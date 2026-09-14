@@ -49,7 +49,7 @@ Implementation sequence:
     1.1C — Conversion Validation & Tests          COMPLETE
 1.2 — Material Master Domain
     1.2A — Material Contract & Classification     COMPLETE
-    1.2B — Material Application CRUD Services     IMPLEMENTED / VALIDATION PENDING
+    1.2B — Material Application CRUD Services     FEATURE CI PASSED / MERGE GATE
     1.2C — Materials UI                           NOT STARTED
 1.3 — Purchase Costing & Inventory Quantity       NOT STARTED
 1.4 — Material-Specific Calibration               NOT STARTED
@@ -106,16 +106,22 @@ Phase 1.2A validation evidence:
 
 Phase 1.2B adds the material application/repository boundary and operational CRUD workflow: create, update, retrieve, list/filter/search, archive, duplicate handling, stable identity rules, and an in-memory repository for deterministic testing and pre-persistence UI work. Implementation detail: `docs/PHASE_1_2B_MATERIAL_CRUD_SERVICES.md`.
 
-Current validation gate for 1.2B:
+Phase 1.2B feature validation evidence:
 
-- TypeScript typecheck
-- application/domain tests
-- production build
-- feature PR CI
-- merge to `develop`
-- post-merge `develop` CI
+- PR: `#8`
+- dependency install passed
+- TypeScript typecheck passed
+- application/domain tests passed
+- full automated test suite passed
+- production build passed
+- feature PR CI passed
 
-Next task after 1.2B is fully validated and merged:
+Final 1.2B integration gate:
+
+- merge PR `#8` to `develop`
+- confirm post-merge `develop` CI
+
+Next task after final integration validation:
 
 **1.2C — Materials UI**
 
