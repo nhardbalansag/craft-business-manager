@@ -48,8 +48,8 @@ Implementation sequence:
     1.1B — Standard Conversion Engine             COMPLETE
     1.1C — Conversion Validation & Tests          COMPLETE
 1.2 — Material Master Domain
-    1.2A — Material Contract & Classification     IMPLEMENTED / VALIDATION PENDING
-    1.2B — Material Application CRUD Services     NOT STARTED
+    1.2A — Material Contract & Classification     COMPLETE (merge/post-merge gate pending)
+    1.2B — Material Application CRUD Services     NEXT
     1.2C — Materials UI                           NOT STARTED
 1.3 — Purchase Costing & Inventory Quantity       NOT STARTED
 1.4 — Material-Specific Calibration               NOT STARTED
@@ -94,16 +94,21 @@ Phase 1.1C validation evidence:
 
 Phase 1.2A establishes the authoritative material source-data contract and classification taxonomy, including standard measurement units vs non-standard package labels. Derived spreadsheet-style fields are removed from the source of truth. Implementation detail: `docs/PHASE_1_2A_MATERIAL_CONTRACT.md`.
 
-Current validation gate for 1.2A:
+Phase 1.2A feature validation evidence:
 
-- TypeScript typecheck
-- material-domain tests
-- production build
-- feature PR CI
-- merge to `develop`
-- post-merge `develop` CI
+- PR: `#7`
+- TypeScript typecheck passed
+- material-domain tests passed
+- full automated test suite passed
+- production build passed
+- feature PR CI passed
 
-Next task after 1.2A is fully validated and merged:
+Final Phase 1.2A integration gate:
+
+- merge PR #7 to `develop`
+- confirm post-merge `develop` CI
+
+Next task after final integration validation:
 
 **1.2B — Material Application CRUD Services**
 
