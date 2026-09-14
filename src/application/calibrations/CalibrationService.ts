@@ -4,13 +4,16 @@ import {
   type MaterialCalibrationEvidence,
   type MaterialCupWeightCalibration,
 } from '../../domain/materialCalibration';
+import { MaterialCostingError } from '../../domain/materialCosting';
+import { calculateMaterialInventoryValuation, MaterialInventoryError } from '../../domain/materialInventory';
 import type { MaterialRepository } from '../materials/MaterialRepository';
 import type { CalibrationRepository } from './CalibrationRepository';
 
 export type CalibrationApplicationErrorCode =
   | 'MATERIAL_NOT_FOUND'
   | 'CALIBRATION_NOT_FOUND'
-  | 'DUPLICATE_CALIBRATION_ID';
+  | 'DUPLICATE_CALIBRATION_ID'
+  | 'CALIBRATION_IN_USE';
 
 export class CalibrationApplicationError extends Error {
   readonly code: CalibrationApplicationErrorCode;
@@ -37,6 +40,17 @@ function normalizeEvidence(evidence: MaterialCalibrationEvidence): MaterialCalib
     materialId: evidence.materialId.trim(),
     notes: evidence.notes?.trim() || undefined,
   };
+}
+
+function sameIdentity(left: string, right: string): boolean {
+  return left.trim().toLocaleLowerCase() === right.trim().toLocaleLowerCase();
+}
+
+function isMissingCalibrationError(error: unknown): boolean {
+  return (
+    (error instanceof MaterialInventoryError || error instanceof MaterialCostingError) &&
+    error.code === 'MISSING_MATERIAL_CALIBRATION'
+  );
 }
 
 export class CalibrationService {
@@ -110,6 +124,28 @@ export class CalibrationService {
         { calibrationId: id.trim() },
       );
     }
+
+    const material = await this.materialRepository.findById(existing.materialId);
+    if (material) {
+      const remaining = (await this.repository.list()).filter(
+        (record) =>
+          sameIdentity(record.materialId, existing.materialId) && !sameIdentity(record.id, existing.id),
+      );
+
+      try {
+        calculateMaterialInventoryValuation(material, remaining);
+      } catch (error) {
+        if (isMissingCalibrationError(error)) {
+          throw new CalibrationApplicationError(
+            'CALIBRATION_IN_USE',
+            `Calibration ${existing.id} cannot be deleted because ${material.name} currently depends on calibration evidence for its saved cup-to-weight conversion. Add another calibration, provide a valid manual fallback, or change the material to a standard unit first.`,
+            { calibrationId: existing.id, materialId: material.id },
+          );
+        }
+        throw error;
+      }
+    }
+
     await this.repository.delete(id);
   }
 }

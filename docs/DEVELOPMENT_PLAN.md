@@ -46,8 +46,8 @@ Dedicated plan: `docs/PHASE_1_MATERIALS_UNITS_CALIBRATION_PLAN.md`
     1.5B — Materials UI Integration               COMPLETE
 
 1.6 — Phase 1 Integration & Completion Gate       IN PROGRESS
-    1.6A — Integrated Materials Workflow          NEXT
-    1.6B — Regression, Build & Completion         NOT STARTED
+    1.6A — Integrated Materials Workflow          FEATURE CI PASSED / MERGE GATE
+    1.6B — Regression, Build & Completion         NEXT AFTER 1.6A
 ```
 
 ### Phase 1.1 — Measurement & Conversion Foundation
@@ -112,11 +112,25 @@ Implementation docs:
 - `docs/PHASE_1_5A_SUPPLIER_SOURCE_CONTRACT.md`
 - `docs/PHASE_1_5B_MATERIALS_SOURCE_UI.md`
 
+### Phase 1.6A — Integrated Materials Workflow
+
+Status: **FEATURE CI PASSED — MERGE GATE**
+
+The integration layer exercises Phase 1 as a complete workflow instead of isolated modules.
+
+Covered scenarios include kilogram-purchased plaster with supplier metadata, real `5 cups = 1 kg` calibration, saved cup-based stock normalization and inventory valuation, latest-calibration precedence, safe calibration deletion behavior, count-package conversion, standard volume conversion, supplier/source search, supplier-only edits remaining financially neutral, and archive filtering.
+
+Integration hardening prevents deleting the last calibration required by a material's currently saved cup-to-weight state. This avoids leaving persisted material data unresolvable after calibration history maintenance.
+
+Feature validation for PR #21 passed dependency installation, TypeScript typecheck, the full regression suite, the new integrated workflow tests, and production build.
+
+Implementation detail: `docs/PHASE_1_6A_INTEGRATED_MATERIALS_WORKFLOW.md`.
+
 ### Current active task
 
-**1.6A — Integrated Materials Workflow**
+**1.6A — Integrated Materials Workflow — final merge gate**
 
-This task will validate the complete end-to-end materials workflow across material creation, package costing, calibration, stock normalization, inventory valuation, and supplier/source metadata before the final Phase 1 regression/completion gate.
+After the final PR-head CI, merge, and post-merge `develop` CI pass, the next task is **1.6B — Regression, Build & Completion**.
 
 ---
 
