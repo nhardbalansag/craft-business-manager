@@ -51,19 +51,19 @@ Implementation sequence:
     1.2A — Material Contract & Classification     COMPLETE
     1.2B — Material Application CRUD Services     COMPLETE
     1.2C — Materials UI                           COMPLETE
-1.3 — Purchase Costing & Inventory Quantity       IN PROGRESS
+1.3 — Purchase Costing & Inventory Quantity       COMPLETE
     1.3A — Package Cost / Base-Unit Costing        COMPLETE
     1.3B — On-Hand Quantity Normalization         COMPLETE
-    1.3C — Inventory Valuation & Validation       FEATURE CI PASSED / MERGE GATE
-1.4 — Material-Specific Calibration               NOT STARTED
-    1.4A — Cup-to-Weight Calibration Model        NEXT AFTER 1.3C
-    1.4B — Effective Conversion Precedence        NOT STARTED
+    1.3C — Inventory Valuation & Validation       COMPLETE
+1.4 — Material-Specific Calibration               IN PROGRESS
+    1.4A — Cup-to-Weight Calibration Model        FEATURE CI PASSED / MERGE GATE
+    1.4B — Effective Conversion Precedence        NEXT AFTER 1.4A
     1.4C — Calibration UI & Tests                 NOT STARTED
 1.5 — Supplier & Source Metadata                  NOT STARTED
 1.6 — Phase 1 Integration & Completion Gate       NOT STARTED
 ```
 
-Phase 1.1 established one authoritative unit catalog, standard same-dimension conversion engine, runtime unit validation, and exhaustive conversion tests. Dry `cup → g` remains explicitly material-specific.
+Phase 1.1 established one authoritative unit catalog, standard same-dimension conversion engine, runtime unit validation, and exhaustive conversion tests. Dry `cup -> g` remains explicitly material-specific.
 
 Phase 1.2A established the authoritative material source-data contract and classification taxonomy, including standard measurement units vs non-standard package labels. Implementation detail: `docs/PHASE_1_2A_MATERIAL_CONTRACT.md`.
 
@@ -105,11 +105,11 @@ Phase 1.3B validation evidence:
 - feature PR CI passed
 - post-merge `develop` CI passed
 
-Phase 1.3C adds current inventory valuation and formal inventory-state validation. Inventory value is derived as normalized stock multiplied by cost/base-unit. Negative stock is rejected at the valuation/persistence boundary, while lower-level normalization remains mathematically pure. The Materials UI displays the current derived inventory value. Implementation detail: `docs/PHASE_1_3C_INVENTORY_VALUATION.md`.
+Phase 1.3C added current inventory valuation and formal inventory-state validation. Inventory value is derived as normalized stock multiplied by cost/base-unit. Negative stock is rejected at the valuation/persistence boundary, while lower-level normalization remains mathematically pure. The Materials UI displays the current derived inventory value. Implementation detail: `docs/PHASE_1_3C_INVENTORY_VALUATION.md`.
 
-Phase 1.3C feature validation evidence:
+Phase 1.3C validation evidence:
 
-- PR #12
+- PR #12 merged
 - dependency installation passed
 - TypeScript typecheck passed
 - inventory valuation domain tests passed
@@ -117,18 +117,33 @@ Phase 1.3C feature validation evidence:
 - full regression test suite passed
 - production build passed
 - feature PR CI passed
+- post-merge `develop` CI passed
 
-Remaining 1.3C gate:
+**Phase 1.3 — Purchase Costing & Inventory Quantity is complete.**
+
+Phase 1.4A introduces material-specific cup-to-weight calibration evidence. Real volume and weight measurements are preserved as source facts, while normalized cups, normalized grams, and grams-per-cup are derived. Calibration is bound to one weight-based material; invalid zero/non-finite measurements and mismatched materials are rejected. Multiple samples use a deterministic `latest valid calibration wins` strategy. Implementation detail: `docs/PHASE_1_4A_CUP_WEIGHT_CALIBRATION.md`.
+
+Phase 1.4A feature validation evidence:
+
+- PR #13
+- initial CI correctly blocked an invalid TypeScript test fixture
+- fixture was corrected without weakening runtime validation
+- dependency installation passed
+- TypeScript typecheck passed
+- calibration domain tests passed
+- full regression test suite passed
+- production build passed
+- corrected feature CI passed
+
+Remaining 1.4A gate:
 
 - final PR-head CI after documentation update
-- merge PR #12 to `develop`
+- merge PR #13 to `develop`
 - post-merge `develop` CI
 
-When 1.3C passes, **Phase 1.3 — Purchase Costing & Inventory Quantity** is complete.
+Next task after 1.4A completion:
 
-Next task after 1.3C completion:
-
-**1.4A — Cup-to-Weight Calibration Model**
+**1.4B — Effective Conversion Precedence**
 
 ## Phase 2 — Product Recipes & Mold Yield
 
@@ -205,9 +220,9 @@ Proposed sheets:
 ## Storage migration path
 
 ```text
-UI → Application Services → StoragePort
-                             ├─ ExcelStorage (v1)
-                             └─ SQLiteStorage (future)
+UI -> Application Services -> StoragePort
+                             |- ExcelStorage (v1)
+                             `- SQLiteStorage (future)
 ```
 
 No React component should read/write spreadsheet cells directly.
