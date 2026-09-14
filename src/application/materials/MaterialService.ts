@@ -1,7 +1,8 @@
 import type { MaterialCalibrationEvidence } from '../../domain/materialCalibration';
-import type { Material, MaterialGroup } from '../../domain/materials';
-import { validateMaterialContract } from '../../domain/materials';
 import { calculateMaterialInventoryValuation } from '../../domain/materialInventory';
+import { normalizeMaterialSourceMetadata } from '../../domain/materialSource';
+import type { Material, MaterialGroup } from '../../domain/materials';
+import { cloneMaterial, validateMaterialContract } from '../../domain/materials';
 import type { MaterialRepository } from './MaterialRepository';
 
 export interface MaterialListFilter {
@@ -41,6 +42,7 @@ function normalizeMaterial(material: Material): Material {
     ...material,
     id: material.id.trim(),
     name: material.name.trim(),
+    source: normalizeMaterialSourceMetadata(material.source),
     notes: material.notes?.trim() || undefined,
   };
 }
@@ -49,9 +51,17 @@ function matchesQuery(material: Material, query: string): boolean {
   const normalized = normalizeComparable(query);
   if (!normalized) return true;
 
-  return [material.id, material.name, material.notes ?? ''].some((value) =>
-    value.toLocaleLowerCase().includes(normalized),
-  );
+  const source = material.source;
+  return [
+    material.id,
+    material.name,
+    material.notes ?? '',
+    source?.vendorName ?? '',
+    source?.source ?? '',
+    source?.contactNumber ?? '',
+    source?.socialPage ?? '',
+    source?.notes ?? '',
+  ].some((value) => value.toLocaleLowerCase().includes(normalized));
 }
 
 export class MaterialService {
@@ -68,7 +78,7 @@ export class MaterialService {
     this.assertUniqueIdentity(material, all);
 
     await this.repository.insert(material);
-    return { ...material };
+    return cloneMaterial(material);
   }
 
   async updateMaterial(id: string, changes: MaterialUpdate): Promise<Material> {
@@ -80,12 +90,12 @@ export class MaterialService {
     this.assertUniqueIdentity(candidate, all, existing.id);
 
     await this.repository.replace(candidate);
-    return { ...candidate };
+    return cloneMaterial(candidate);
   }
 
   async getMaterial(id: string): Promise<Material | null> {
     const material = await this.repository.findById(id);
-    return material ? { ...material } : null;
+    return material ? cloneMaterial(material) : null;
   }
 
   async listMaterials(filter: MaterialListFilter = {}): Promise<Material[]> {
@@ -99,16 +109,16 @@ export class MaterialService {
         const byName = a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
         return byName || a.id.localeCompare(b.id, undefined, { sensitivity: 'base' });
       })
-      .map((material) => ({ ...material }));
+      .map(cloneMaterial);
   }
 
   async archiveMaterial(id: string): Promise<Material> {
     const existing = await this.requireMaterial(id);
-    if (!existing.isActive) return { ...existing };
+    if (!existing.isActive) return cloneMaterial(existing);
 
     const archived = { ...existing, isActive: false };
     await this.repository.replace(archived);
-    return { ...archived };
+    return cloneMaterial(archived);
   }
 
   private async validateMaterialForPersistence(material: Material): Promise<void> {
