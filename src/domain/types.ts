@@ -7,21 +7,16 @@ import type { YieldSample } from './yieldSamples';
 export type { FixedRecipeItem, FixedRecipeItemRole } from './fixedRecipeItems';
 export type { Material } from './materials';
 export type { MixPreset, RatioBasis } from './mixPresets';
+export type {
+  ProductComponent,
+  ProductComponentRole,
+  ProductComponentSourceType,
+  ProductComponentSourceType as ProductComponentSource,
+} from './productComponents';
 export type { Product, ProductCategory } from './products';
 export type { YieldSample, YieldSampleMaterialInput } from './yieldSamples';
 export type { BaseUnit, InputUnit } from './units';
 export type PricingMethod = 'profit-amount' | 'markup-percent' | 'margin-percent';
-
-/** Phase 3 scaffold only. Product composition is not part of the Phase 2 Product contract. */
-export type ProductComponentSource = 'material' | 'product';
-
-export interface ProductComponent {
-  id: string;
-  sourceType: ProductComponentSource;
-  sourceId: string;
-  quantityPerProduct: number;
-  role: 'vessel' | 'molded-component' | 'decoration' | 'packaging' | 'other';
-}
 
 /** Phase 4 scaffold retained for existing costing helpers; not part of the Phase 2 Product contract. */
 export interface PricingPolicy {
