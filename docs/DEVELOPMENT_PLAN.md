@@ -41,12 +41,12 @@ Dedicated plan: `docs/PHASE_1_MATERIALS_UNITS_CALIBRATION_PLAN.md`
     1.4B — Effective Conversion Precedence        COMPLETE
     1.4C — Calibration UI & Tests                 COMPLETE
 
-1.5 — Supplier & Source Metadata                  IN PROGRESS
+1.5 — Supplier & Source Metadata                  COMPLETE
     1.5A — Supplier / Source Contract             COMPLETE
-    1.5B — Materials UI Integration               IMPLEMENTED / VALIDATION PENDING
+    1.5B — Materials UI Integration               COMPLETE
 
-1.6 — Phase 1 Integration & Completion Gate       NOT STARTED
-    1.6A — Integrated Materials Workflow          NEXT AFTER 1.5B
+1.6 — Phase 1 Integration & Completion Gate       IN PROGRESS
+    1.6A — Integrated Materials Workflow          NEXT
     1.6B — Regression, Build & Completion         NOT STARTED
 ```
 
@@ -87,55 +87,36 @@ Implementation docs:
 - `docs/PHASE_1_4B_EFFECTIVE_CONVERSION_PRECEDENCE.md`
 - `docs/PHASE_1_4C_CALIBRATION_UI.md`
 
-### Phase 1.5A — Supplier / Source Contract
+### Phase 1.5 — Supplier & Source Metadata
 
 Status: **COMPLETE**
 
-The material domain supports lightweight source metadata for vendor name, branch/platform/source detail, purchase/re-order link, contact number, social-page reference, and buying notes.
+Phase 1.5A added the lightweight supplier/source contract for vendor name, branch/platform/source detail, purchase/re-order link, contact number, social-page reference, and buying notes. The application normalizes source text, validates purchase links, includes source text in material search, and deep-clones nested metadata at repository/service boundaries.
 
-Supplier/source data remains independent of costing. The application normalizes source text, validates purchase links, includes source text in material search, and deep-clones nested metadata at repository/service boundaries.
+Phase 1.5B exposed that contract in the Materials UI with a dedicated Supplier / source section, source-aware edit flow, Source table column, re-order link, empty-source state, and supplier-aware search.
+
+Supplier/source data remains completely outside package costing, calibration, normalized stock, and inventory valuation.
 
 Validation evidence:
 
-- PR #17 merged
-- implementation merge commit `00e37f44865a67ccc209d94f2edfa621cc704b05`
-- feature CI passed
-- post-merge `develop` CI run `34824257561` passed
+- Phase 1.5A PR #17 merged
+- Phase 1.5A implementation merge commit `00e37f44865a67ccc209d94f2edfa621cc704b05`
+- Phase 1.5A post-merge CI run `34824257561` passed
+- Phase 1.5B PR #19 merged
+- Phase 1.5B implementation merge commit `2fa0c5fb58a4017b25aca8cb132af4811161ebf4`
+- Phase 1.5B feature CI passed
+- Phase 1.5B post-merge `develop` CI run `34825119934` passed
 
-Implementation detail: `docs/PHASE_1_5A_SUPPLIER_SOURCE_CONTRACT.md`.
+Implementation docs:
 
-### Phase 1.5B — Materials UI Integration
-
-Status: **IMPLEMENTED — VALIDATION PENDING**
-
-The Materials workspace now exposes supplier/source metadata directly in the existing add/edit workflow.
-
-Delivered on the feature branch:
-
-- dedicated Supplier / source form section
-- vendor/supplier name input
-- branch/platform/source detail input
-- purchase/re-order URL input
-- contact number input
-- social page/handle input
-- supplier-specific buying notes
-- separate material notes vs source notes
-- source metadata restored during Edit
-- Source column in the material list
-- direct Re-order link when a purchase URL exists
-- `Not recorded` state for materials without supplier metadata
-- supplier-aware search exposed through the existing search box
-- responsive table width adjustments for the new source column
-
-Supplier fields remain informational and do not participate in costing, calibration, stock normalization, or inventory valuation.
-
-Implementation detail: `docs/PHASE_1_5B_MATERIALS_SOURCE_UI.md`.
+- `docs/PHASE_1_5A_SUPPLIER_SOURCE_CONTRACT.md`
+- `docs/PHASE_1_5B_MATERIALS_SOURCE_UI.md`
 
 ### Current active task
 
-**1.5B — Materials UI Integration — validation / merge gate**
+**1.6A — Integrated Materials Workflow**
 
-After feature CI, merge, and post-merge `develop` CI pass, **Phase 1.5 is complete** and the next task is **1.6A — Integrated Materials Workflow**.
+This task will validate the complete end-to-end materials workflow across material creation, package costing, calibration, stock normalization, inventory valuation, and supplier/source metadata before the final Phase 1 regression/completion gate.
 
 ---
 
