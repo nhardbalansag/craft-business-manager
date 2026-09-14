@@ -1,12 +1,13 @@
 import type { MaterialCalibrationEvidence } from './materialCalibration';
-import { selectLatestMaterialCupWeightCalibration } from './materialCalibration';
 import type { Material } from './materials';
-import { isMaterialCupWeightBridge } from './materials';
-import { calculateMaterialPackageCosting } from './materialCosting';
-import { areUnitsCompatible, getStandardConversionFactor } from './units';
+import {
+  MaterialQuantityError,
+  normalizeMaterialQuantity,
+  type MaterialQuantityConversionSource,
+} from './materialQuantity';
 import type { YieldSample, YieldSampleMaterialInput } from './yieldSamples';
 
-export type YieldLearningConversionSource = 'standard' | 'calibration' | 'manual';
+export type YieldLearningConversionSource = MaterialQuantityConversionSource;
 
 export interface LearnedMaterialRequirement {
   materialId: string;
@@ -56,74 +57,50 @@ function comparable(value: string): string {
   return value.trim().toLowerCase();
 }
 
-function calibrationsForMaterial(
-  materialId: string,
-  calibrations: readonly MaterialCalibrationEvidence[],
-): MaterialCalibrationEvidence[] {
-  const key = comparable(materialId);
-  return calibrations.filter((record) => comparable(record.materialId) === key);
-}
-
 export function normalizeYieldSampleMaterialInput(
   sampleId: string,
   input: YieldSampleMaterialInput,
   material: Material,
   calibrations: readonly MaterialCalibrationEvidence[] = [],
 ): Omit<LearnedMaterialRequirement, 'baseQuantityPerGoodPiece'> {
-  if (areUnitsCompatible(input.unit, material.baseUnit)) {
-    const factor = getStandardConversionFactor(input.unit, material.baseUnit);
+  try {
+    const normalized = normalizeMaterialQuantity(
+      material,
+      input.quantity,
+      input.unit,
+      calibrations,
+    );
+
     return {
       materialId: material.id,
-      sourceQuantity: input.quantity,
+      sourceQuantity: normalized.sourceQuantity,
       sourceUnit: input.unit,
-      baseUnit: material.baseUnit,
-      normalizedBaseQuantityConsumed: input.quantity * factor,
-      conversionSource: 'standard',
-      calibrationId: null,
+      baseUnit: normalized.baseUnit,
+      normalizedBaseQuantityConsumed: normalized.normalizedBaseQuantity,
+      conversionSource: normalized.conversionSource,
+      calibrationId: normalized.calibrationId,
     };
-  }
+  } catch (error) {
+    if (error instanceof MaterialQuantityError) {
+      if (error.code === 'MISSING_MATERIAL_CALIBRATION') {
+        throw new YieldLearningError(
+          'MISSING_MATERIAL_CALIBRATION',
+          `Yield sample ${sampleId} requires cup-to-weight calibration for ${material.name}.`,
+          { sampleId, materialId: material.id },
+        );
+      }
 
-  if (isMaterialCupWeightBridge(input.unit, material.baseUnit)) {
-    const materialCalibrations = calibrationsForMaterial(material.id, calibrations);
-    if (materialCalibrations.length > 0) {
-      const calibration = selectLatestMaterialCupWeightCalibration(material, materialCalibrations);
-      return {
-        materialId: material.id,
-        sourceQuantity: input.quantity,
-        sourceUnit: input.unit,
-        baseUnit: material.baseUnit,
-        normalizedBaseQuantityConsumed: input.quantity * calibration.gramsPerCup,
-        conversionSource: 'calibration',
-        calibrationId: calibration.evidence.id,
-      };
+      if (error.code === 'UNRESOLVED_CROSS_DIMENSION_UNIT') {
+        throw new YieldLearningError(
+          'UNRESOLVED_CROSS_DIMENSION_UNIT',
+          `Yield sample ${sampleId} cannot convert ${input.unit} to ${material.baseUnit} for ${material.name}.`,
+          { sampleId, materialId: material.id },
+        );
+      }
     }
 
-    if (material.purchaseUnit === 'cup' && material.manualBaseUnitsPerPurchaseUnit !== undefined) {
-      const packageCosting = calculateMaterialPackageCosting(material, []);
-      return {
-        materialId: material.id,
-        sourceQuantity: input.quantity,
-        sourceUnit: input.unit,
-        baseUnit: material.baseUnit,
-        normalizedBaseQuantityConsumed:
-          input.quantity * packageCosting.effectiveBaseUnitsPerPurchaseUnit,
-        conversionSource: 'manual',
-        calibrationId: null,
-      };
-    }
-
-    throw new YieldLearningError(
-      'MISSING_MATERIAL_CALIBRATION',
-      `Yield sample ${sampleId} requires cup-to-weight calibration for ${material.name}.`,
-      { sampleId, materialId: material.id },
-    );
+    throw error;
   }
-
-  throw new YieldLearningError(
-    'UNRESOLVED_CROSS_DIMENSION_UNIT',
-    `Yield sample ${sampleId} cannot convert ${input.unit} to ${material.baseUnit} for ${material.name}.`,
-    { sampleId, materialId: material.id },
-  );
 }
 
 /**
