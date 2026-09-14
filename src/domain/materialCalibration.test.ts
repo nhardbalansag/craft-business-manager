@@ -104,21 +104,25 @@ describe('deriveMaterialCupWeightCalibration', () => {
   });
 
   it('rejects a non-volume measurement unit at runtime', () => {
-    const invalid = evidence() as MaterialCalibrationEvidence & { volumeUnit: string };
-    invalid.volumeUnit = 'kg';
+    const invalid = {
+      ...evidence(),
+      volumeUnit: 'kg',
+    } as unknown as MaterialCalibrationEvidence;
 
-    expect(() =>
-      deriveMaterialCupWeightCalibration(material(), invalid as MaterialCalibrationEvidence),
-    ).toThrowError(expect.objectContaining({ code: 'INVALID_VOLUME_UNIT' }));
+    expect(() => deriveMaterialCupWeightCalibration(material(), invalid)).toThrowError(
+      expect.objectContaining({ code: 'INVALID_VOLUME_UNIT' }),
+    );
   });
 
   it('rejects a non-weight known-weight unit at runtime', () => {
-    const invalid = evidence() as MaterialCalibrationEvidence & { weightUnit: string };
-    invalid.weightUnit = 'cup';
+    const invalid = {
+      ...evidence(),
+      weightUnit: 'cup',
+    } as unknown as MaterialCalibrationEvidence;
 
-    expect(() =>
-      deriveMaterialCupWeightCalibration(material(), invalid as MaterialCalibrationEvidence),
-    ).toThrowError(expect.objectContaining({ code: 'INVALID_WEIGHT_UNIT' }));
+    expect(() => deriveMaterialCupWeightCalibration(material(), invalid)).toThrowError(
+      expect.objectContaining({ code: 'INVALID_WEIGHT_UNIT' }),
+    );
   });
 
   it('requires stable identity and a valid recordedAt timestamp', () => {
