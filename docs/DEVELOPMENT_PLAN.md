@@ -144,25 +144,66 @@ Completion detail: `docs/PHASE_1_6B_REGRESSION_BUILD_COMPLETION.md`.
 
 ## Phase 2 — Product Recipes & Mold Yield
 
-Status: **NEXT**
+Status: **PLANNED — IMPLEMENTATION NOT STARTED**
 
-Planned:
+Dedicated plan: `docs/PHASE_2_PRODUCT_RECIPES_MOLD_YIELD_PLAN.md`
 
-- paintable art, candle pot, and candle product categories
-- mix presets and ratio basis
-- sample-yield recording
-- good/rejected piece tracking
-- material-per-good-piece calculation
-- safety-waste adjustment
-- estimated producible pieces from inventory
+Phase 2 has been assessed and should be split into the following implementation units:
 
-Mold volume remains optional; real sample batches are authoritative when volume is unknown.
+```text
+2.1 — Product & Mix Foundation
+    2.1A — Product Contract & Category Rules                  NEXT
+    2.1B — Mix Preset Contract & Ratio Engine                 NOT STARTED
+    2.1C — Product / Mix Repositories & Application Services  NOT STARTED
 
-### Current active phase
+2.2 — Yield Evidence & Per-Good-Piece Learning
+    2.2A — Yield Sample Evidence Contract                     NOT STARTED
+    2.2B — Good / Rejected Output & Learned Requirements      NOT STARTED
+    2.2C — Effective Yield Selection & History Rules          NOT STARTED
 
-**Phase 2 — Product Recipes & Mold Yield**
+2.3 — Recipe Requirement Synthesis
+    2.3A — Fixed Recipe Item Contract & Material Roles        NOT STARTED
+    2.3B — Effective Per-Piece Material Requirements          NOT STARTED
+    2.3C — Material Cost Preview & Requirement Validation     NOT STARTED
 
-Before implementation, assess whether Phase 2 should be split into smaller implementation units and subphases, preserving the established branch/PR/CI discipline.
+2.4 — Safety Waste & Inventory-Limited Capacity
+    2.4A — Safety Waste Policy                                NOT STARTED
+    2.4B — Waste-Adjusted Production Requirements             NOT STARTED
+    2.4C — Producible Pieces & Limiting Material              NOT STARTED
+
+2.5 — Product / Yield / Production UI
+    2.5A — Products & Mix Presets UI                          NOT STARTED
+    2.5B — Yield Recording & History UI                       NOT STARTED
+    2.5C — Production Estimate UI                             NOT STARTED
+
+2.6 — Phase 2 Integration & Completion Gate
+    2.6A — Integrated Product / Yield Workflow                NOT STARTED
+    2.6B — Regression, Build & Completion Validation          NOT STARTED
+```
+
+### Phase 2 architecture result
+
+The existing `Product`, `MixPreset`, `MoldYieldSample`, and recipe types in `src/domain/types.ts`, plus the simple yield helpers in `src/domain/costing.ts`, are treated as **prototype scaffolding** to refine rather than completed Phase 2 functionality.
+
+Important Phase 2 decisions:
+
+- mold volume remains optional;
+- real batch evidence is authoritative;
+- a yield sample records all actual material inputs, not just the primary material;
+- learned material requirement is `total material consumed / good pieces`;
+- rejected pieces are tracked separately and are not a second waste multiplier;
+- safety waste is a separate planning reserve;
+- latest valid yield sample is the initial effective-sample strategy;
+- fixed per-product recipe materials remain separate from yield-derived materials;
+- material cost preview is allowed in Phase 2, but selling price/profit remains Phase 4;
+- nested products, vessels, molded components, and multi-component capacity remain Phase 3;
+- Excel persistence remains Phase 5.
+
+### Current active task
+
+**2.1A — Product Contract & Category Rules**
+
+Do not begin 2.1B until 2.1A is merged and post-merge `develop` CI is green.
 
 ---
 
