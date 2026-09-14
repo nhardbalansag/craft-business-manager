@@ -53,7 +53,7 @@ Implementation sequence:
     1.2C — Materials UI                           COMPLETE
 1.3 — Purchase Costing & Inventory Quantity       IN PROGRESS
     1.3A — Package Cost / Base-Unit Costing        COMPLETE
-    1.3B — On-Hand Quantity Normalization         IMPLEMENTED / VALIDATION PENDING
+    1.3B — On-Hand Quantity Normalization         FEATURE CI PASSED / MERGE GATE
     1.3C — Inventory Valuation & Validation       NOT STARTED
 1.4 — Material-Specific Calibration               NOT STARTED
 1.5 — Supplier & Source Metadata                  NOT STARTED
@@ -90,15 +90,22 @@ Phase 1.3A validation evidence:
 
 Phase 1.3B adds canonical on-hand stock normalization while preserving the user's entered quantity/unit as source data. Compatible standard units use the shared conversion engine; a package label is accepted only when it is the configured purchase package with a known effective package conversion. Derived normalized stock is shown in the Materials UI and remains unpersisted. Implementation detail: `docs/PHASE_1_3B_ON_HAND_NORMALIZATION.md`.
 
-Current validation gate for 1.3B:
+Phase 1.3B feature validation evidence:
 
-- TypeScript typecheck
-- on-hand normalization domain tests
-- MaterialService boundary tests
-- production build
-- feature PR CI
-- merge to `develop`
-- post-merge `develop` CI
+- PR: `#11`
+- dependency installation passed
+- TypeScript typecheck passed
+- on-hand normalization domain tests passed
+- MaterialService boundary tests passed
+- full automated test suite passed
+- production build passed
+- feature PR CI passed
+
+Remaining 1.3B gate:
+
+- final PR-head CI after documentation update
+- merge PR `#11` to `develop`
+- confirm post-merge `develop` CI
 
 Next task after 1.3B is fully validated and merged:
 
