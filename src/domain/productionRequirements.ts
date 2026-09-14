@@ -15,6 +15,7 @@ export interface WasteAdjustedRequirementContribution {
   effectiveBaseQuantityPerProduct: number;
   wasteReserveBaseQuantityPerProduct: number;
   plannedBaseQuantityPerProduct: number;
+  /** Precise mathematical contribution for the batch; count-unit rounding is applied only to the material total. */
   plannedBatchBaseQuantity: number;
 }
 
@@ -27,6 +28,7 @@ export interface WasteAdjustedMaterialRequirement {
   safetyWasteMultiplier: number;
   wasteReserveBaseQuantityPerProduct: number;
   plannedBaseQuantityPerProduct: number;
+  /** Physical batch requirement. Count materials are rounded upward only at this total-batch boundary. */
   plannedBatchBaseQuantity: number;
   contributions: WasteAdjustedRequirementContribution[];
 }
@@ -130,12 +132,30 @@ function nearlyEqual(a: number, b: number): boolean {
 }
 
 /**
+ * Converts a precise mathematical batch requirement into the physical amount that
+ * must actually be prepared. Weight and volume remain continuous. Count materials are
+ * indivisible, so only the final batch total is rounded upward.
+ */
+function physicalBatchRequirement(
+  baseUnit: Material['baseUnit'],
+  plannedBaseQuantityPerProduct: number,
+  plannedQuantity: number,
+): number {
+  const precise = plannedBaseQuantityPerProduct * plannedQuantity;
+  return baseUnit === 'pc' ? Math.ceil(precise) : precise;
+}
+
+/**
  * Applies one product's validated safety-waste planning reserve to canonical effective
  * requirements and scales the result to a requested batch quantity.
  *
  * Observed defect loss is deliberately not applied here. Yield learning already
  * includes the material consumed while making rejected pieces; safety waste is an
  * independent future-production reserve.
+ *
+ * For indivisible count materials, the precise per-product requirement is preserved
+ * and only the final batch total is rounded upward. This avoids both fractional
+ * physical pieces and premature per-piece rounding that would overstate waste.
  */
 export function deriveWasteAdjustedProductionRequirements(
   productId: string,
@@ -187,7 +207,11 @@ export function deriveWasteAdjustedProductionRequirements(
     const plannedBaseQuantityPerProduct = requirement.baseQuantityPerProduct * policy.multiplier;
     const wasteReserveBaseQuantityPerProduct =
       plannedBaseQuantityPerProduct - requirement.baseQuantityPerProduct;
-    const plannedBatchBaseQuantity = plannedBaseQuantityPerProduct * plannedQuantity;
+    const plannedBatchBaseQuantity = physicalBatchRequirement(
+      requirement.baseUnit,
+      plannedBaseQuantityPerProduct,
+      plannedQuantity,
+    );
 
     assertFiniteDerived(
       normalizedProductId,
