@@ -4,6 +4,7 @@ import { InMemoryMaterialRepository } from './materials/InMemoryMaterialReposito
 import { MaterialService } from './materials/MaterialService';
 import { InMemoryMixPresetRepository } from './mixPresets/InMemoryMixPresetRepository';
 import { MixPresetService } from './mixPresets/MixPresetService';
+import { ProductionRequirementService } from './production/ProductionRequirementService';
 import { InMemoryProductRepository } from './products/InMemoryProductRepository';
 import { ProductService } from './products/ProductService';
 import { RecipeMaterialCostPreviewService } from './recipeCosts/RecipeMaterialCostPreviewService';
@@ -67,4 +68,8 @@ export const recipeMaterialCostPreviewService = new RecipeMaterialCostPreviewSer
   effectiveRecipeRequirementService,
   materialRepository,
   calibrationRepository,
+);
+export const productionRequirementService = new ProductionRequirementService(
+  effectiveRecipeRequirementService,
+  productService,
 );
