@@ -15,12 +15,16 @@ Planning baseline: `docs/PHASE_2_PRODUCT_RECIPES_MOLD_YIELD_PLAN.md`
     2.2B — Good / Rejected Output & Learning          COMPLETE
     2.2C — Effective Yield Selection & History        COMPLETE
 
-2.3 — Recipe Requirement Synthesis                    IN PROGRESS
+2.3 — Recipe Requirement Synthesis                    COMPLETE
     2.3A — Fixed Recipe Item Contract & Material Roles COMPLETE
     2.3B — Effective Per-Piece Material Requirements  COMPLETE
-    2.3C — Material Cost Preview & Validation         VALIDATION / MERGE GATE
+    2.3C — Material Cost Preview & Validation         COMPLETE
 
-2.4 — Safety Waste & Inventory-Limited Capacity       NOT STARTED
+2.4 — Safety Waste & Inventory-Limited Capacity       IN PROGRESS
+    2.4A — Safety Waste Policy                        NEXT
+    2.4B — Waste-Adjusted Requirements                NOT STARTED
+    2.4C — Producible Pieces & Limiting Material      NOT STARTED
+
 2.5 — Product / Yield / Production UI                 NOT STARTED
 2.6 — Phase 2 Integration & Completion Gate           NOT STARTED
 ```
@@ -72,8 +76,23 @@ Evidence:
 - implementation merge commit `fe313ba7af5161137b1b80de74898836374a915d`;
 - post-merge CI run `34837084144` passed.
 
+### 2.3C — Material Cost Preview & Requirement Validation
+
+- prices canonical 2.3B material requirements using the Phase 1 package-cost engine;
+- preserves package-cost conversion source and costing calibration identity;
+- derives contribution-level costs for yield/fixed sources while keeping one material total;
+- validates material identity, canonical base unit, quantities, cost basis, and contribution reconciliation;
+- carries 2.3B readiness forward and adds costing readiness;
+- supports ready/partial/not-ready cost preview results;
+- allows legitimate zero-cost materials while rejecting malformed/unresolvable cost bases;
+- supports archived historical material/product inspection without reactivation;
+- keeps all material cost totals derived rather than persisted.
+
+Evidence:
+- PR #42 merged;
+- implementation merge commit `6c9b5f48e74f2771166761c7a2deaf708319f2a8`;
+- post-merge CI run `34838146695` passed.
+
 ## Current active task
 
-**2.3C — Material Cost Preview & Requirement Validation**
-
-Implementation is complete on `feature/phase-2-3c-material-cost-preview` and is awaiting CI / merge validation.
+**2.4A — Safety Waste Policy**
