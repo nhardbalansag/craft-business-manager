@@ -5,16 +5,20 @@ Status: **IN PROGRESS**
 Planning baseline: `docs/PHASE_2_PRODUCT_RECIPES_MOLD_YIELD_PLAN.md`
 
 ```text
-2.1 — Product & Mix Foundation
-    2.1A — Product Contract & Category Rules        COMPLETE
-    2.1B — Mix Preset Contract & Ratio Engine       COMPLETE
-    2.1C — Product / Mix Repositories & Services    VALIDATION / MERGE GATE
+2.1 — Product & Mix Foundation                         COMPLETE
+    2.1A — Product Contract & Category Rules          COMPLETE
+    2.1B — Mix Preset Contract & Ratio Engine         COMPLETE
+    2.1C — Product / Mix Repositories & Services      COMPLETE
 
-2.2 — Yield Evidence & Per-Good-Piece Learning      NOT STARTED
-2.3 — Recipe Requirement Synthesis                  NOT STARTED
-2.4 — Safety Waste & Inventory-Limited Capacity     NOT STARTED
-2.5 — Product / Yield / Production UI               NOT STARTED
-2.6 — Phase 2 Integration & Completion Gate         NOT STARTED
+2.2 — Yield Evidence & Per-Good-Piece Learning        IN PROGRESS
+    2.2A — Yield Sample Evidence Contract             NEXT
+    2.2B — Good / Rejected Output & Learning          NOT STARTED
+    2.2C — Effective Yield Selection & History        NOT STARTED
+
+2.3 — Recipe Requirement Synthesis                    NOT STARTED
+2.4 — Safety Waste & Inventory-Limited Capacity       NOT STARTED
+2.5 — Product / Yield / Production UI                 NOT STARTED
+2.6 — Phase 2 Integration & Completion Gate           NOT STARTED
 ```
 
 ## Completed
@@ -54,8 +58,24 @@ Evidence:
 - implementation merge commit `176b548e5c2e35cbdc067fe5c3dafe7280c1f557`;
 - post-merge CI run `34829821545` passed.
 
+### 2.1C — Product / Mix Repositories & Application Services
+
+- storage-agnostic Product and Mix repository ports;
+- in-memory implementations with defensive cloning;
+- Product CRUD/search/filter/archive service;
+- Mix CRUD/search/filter/archive service;
+- case-insensitive duplicate ID/name protection;
+- product-to-mix existence/activity/category validation;
+- mix-to-material existence/activity validation;
+- reverse dependency protection for active products;
+- shared-session service composition for future UI work.
+
+Evidence:
+
+- PR #30 merged;
+- implementation merge commit `e5faa7f57adc0424b4ebf104700ca86d2882f171`;
+- post-merge CI run `34830919088` passed.
+
 ## Current active task
 
-**2.1C — Product / Mix Repositories & Application Services**
-
-Implementation is complete on `feature/phase-2-1c-product-mix-services` and is awaiting feature CI / merge validation.
+**2.2A — Yield Sample Evidence Contract**
