@@ -16,7 +16,7 @@ Delivered React + TypeScript + Vite, branch strategy, domain contracts, pure cos
 
 ## Phase 1 — Materials, Units & Calibration
 
-Status: **IN PROGRESS**
+Status: **IN PROGRESS — FINAL COMPLETION GATE**
 
 Dedicated plan: `docs/PHASE_1_MATERIALS_UNITS_CALIBRATION_PLAN.md`
 
@@ -47,7 +47,7 @@ Dedicated plan: `docs/PHASE_1_MATERIALS_UNITS_CALIBRATION_PLAN.md`
 
 1.6 — Phase 1 Integration & Completion Gate       IN PROGRESS
     1.6A — Integrated Materials Workflow          COMPLETE
-    1.6B — Regression, Build & Completion         NEXT
+    1.6B — Regression, Build & Completion         FEATURE CI PASSED / MERGE GATE
 ```
 
 ### Phase 1.1 — Measurement & Conversion Foundation
@@ -120,11 +120,23 @@ Validation evidence:
 
 Implementation detail: `docs/PHASE_1_6A_INTEGRATED_MATERIALS_WORKFLOW.md`.
 
+### Phase 1.6B — Regression, Build & Completion
+
+Status: **FEATURE CI PASSED — MERGE GATE**
+
+This final Phase 1 gate adds React render smoke coverage for both completed Phase 1 workspaces and re-runs the entire unit, domain, application, integration, typecheck, and production-build surface before Phase 1 can be closed.
+
+Feature CI run `34826926034` passed dependency installation, TypeScript typecheck, the full automated test suite, the new React render smoke checks, and production build.
+
+No new business-domain behavior is introduced in 1.6B.
+
+Completion detail: `docs/PHASE_1_6B_REGRESSION_BUILD_COMPLETION.md`.
+
 ### Current active task
 
-**1.6B — Regression, Build & Completion**
+**1.6B — Regression, Build & Completion — final merge gate**
 
-This is the final Phase 1 gate. It will run the complete regression/build validation, reconcile Phase 1 documentation/status, verify no known Phase 1 blockers remain, and formally close Phase 1 before moving to **Phase 2 — Product Recipes & Mold Yield**.
+The final PR head must revalidate after the status update. Phase 1 will be marked complete only after PR #23 merges to `develop` and post-merge `develop` CI passes. The next development phase will then be **Phase 2 — Product Recipes & Mold Yield**.
 
 ---
 
