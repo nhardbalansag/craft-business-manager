@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import App from './App';
 import { CalibrationPage } from './ui/calibration/CalibrationPage';
 import { ProductsPage } from './ui/products/ProductsPage';
+import { ProductionPage } from './ui/production/ProductionPage';
 import { YieldPage } from './ui/yield/YieldPage';
 
 describe('React workspace smoke validation', () => {
@@ -16,6 +17,7 @@ describe('React workspace smoke validation', () => {
     expect(html).toContain('Supplier / source');
     expect(html).toContain('Products');
     expect(html).toContain('Yield');
+    expect(html).toContain('Production');
   });
 
   it('renders the Calibration workspace without requiring browser-side effects', () => {
@@ -44,5 +46,16 @@ describe('React workspace smoke validation', () => {
     expect(html).toContain('Materials actually consumed');
     expect(html).toContain('EFFECTIVE LEARNING');
     expect(html).toContain('Recorded batches');
+  });
+
+  it('renders the Phase 2 Production estimate workspace without browser-side effects', () => {
+    const html = renderToStaticMarkup(<ProductionPage />);
+
+    expect(html).toContain('Production estimate');
+    expect(html).toContain('Planned finished pieces');
+    expect(html).toContain('Producible now');
+    expect(html).toContain('Materials to prepare');
+    expect(html).toContain('Direct material preview');
+    expect(html).toContain('Issues to resolve');
   });
 });
