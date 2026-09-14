@@ -41,7 +41,8 @@ export type MaterialCalibrationErrorCode =
   | 'NON_FINITE_WEIGHT'
   | 'NON_POSITIVE_WEIGHT'
   | 'INVALID_WEIGHT_UNIT'
-  | 'INVALID_RECORDED_AT';
+  | 'INVALID_RECORDED_AT'
+  | 'NO_CALIBRATIONS';
 
 export class MaterialCalibrationError extends Error {
   readonly code: MaterialCalibrationErrorCode;
@@ -182,4 +183,34 @@ export function deriveMaterialCupWeightCalibration(
     knownWeightGrams,
     gramsPerCup: knownWeightGrams / measuredCups,
   };
+}
+
+/**
+ * Phase 1 deterministic sample strategy: latest valid calibration wins.
+ *
+ * Every supplied evidence record is validated for the target material first.
+ * If timestamps are equal, calibration ID is used as a stable tie-breaker so
+ * selection is deterministic across storage implementations.
+ */
+export function selectLatestMaterialCupWeightCalibration(
+  material: Pick<Material, 'id' | 'name' | 'baseUnit'>,
+  evidenceRecords: readonly MaterialCalibrationEvidence[],
+): MaterialCupWeightCalibration {
+  if (evidenceRecords.length === 0) {
+    throw new MaterialCalibrationError(
+      'NO_CALIBRATIONS',
+      `No cup-to-weight calibrations are available for ${material.name}.`,
+      { materialId: material.id },
+    );
+  }
+
+  const derived = evidenceRecords.map((evidence) =>
+    deriveMaterialCupWeightCalibration(material, evidence),
+  );
+
+  return derived.sort((a, b) => {
+    const byRecordedAt = Date.parse(b.evidence.recordedAt) - Date.parse(a.evidence.recordedAt);
+    if (byRecordedAt !== 0) return byRecordedAt;
+    return b.evidence.id.localeCompare(a.evidence.id, undefined, { sensitivity: 'base' });
+  })[0];
 }
