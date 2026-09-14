@@ -2,11 +2,13 @@
 
 ## Status
 
-**IMPLEMENTED — VALIDATION / MERGE GATE**
+**COMPLETE — MERGED + POST-MERGE CI PASSED**
 
-Branch: `feature/phase-2-4c-production-capacity`
+Implementation PR: **#48**
 
-Base: corrected `develop` state after Phase 2.4B closeout.
+Implementation merge commit: `e9a6bbffd36d6aed29d7660fabee8845252ab5fb`
+
+Post-merge CI: **34841719987 — SUCCESS**
 
 ## Objective
 
@@ -56,7 +58,7 @@ limiting materials = plaster, brush
 
 2.4C reuses Phase 1 `normalizeMaterialOnHand()` as the authoritative inventory normalization path.
 
-That means current stock may resolve through:
+Current stock may resolve through:
 
 - standard same-dimension conversion;
 - material calibration for dry `cup -> g`;
@@ -114,7 +116,7 @@ The pure domain engine:
 
 ## Application boundary
 
-Added:
+Delivered:
 
 - `src/domain/productionCapacity.ts`
 - `src/domain/productionCapacity.test.ts`
@@ -140,6 +142,24 @@ Phase 3 remains responsible for extending the limiting-capacity calculation with
 - nested components;
 - multiple vessel/component quantities per finished product.
 
+## Validation evidence
+
+The completion gate passed:
+
+- standard inventory capacity tests;
+- calibrated cup-stock capacity tests;
+- zero-stock tests;
+- tied limiting-material tests;
+- missing/unresolvable inventory readiness tests;
+- partial upstream requirement protection;
+- active-product/archived-material protection;
+- Phase 3 component scope exclusion;
+- full regression suite;
+- TypeScript typecheck;
+- production build;
+- feature PR merge;
+- post-merge `develop` CI.
+
 ## Explicitly deferred
 
 2.4C does **not**:
@@ -150,22 +170,6 @@ Phase 3 remains responsible for extending the limiting-capacity calculation with
 - reserve stock or create production orders;
 - introduce selling-price/profit behavior.
 
-## Completion gate
+## Next task
 
-2.4C may be marked complete after:
-
-- standard inventory capacity tests pass;
-- calibrated cup-stock capacity tests pass;
-- zero-stock tests pass;
-- tied limiting-material tests pass;
-- missing/unresolvable inventory returns controlled readiness results;
-- partial upstream requirements do not publish a misleading final capacity;
-- active-product/archived-material rule is covered;
-- Phase 3 component scope remains excluded;
-- full regression suite passes;
-- TypeScript typecheck passes;
-- production build passes;
-- feature PR merges into `develop`;
-- post-merge `develop` CI passes.
-
-Next task after completion: **2.5A — Products & Mix Presets UI**.
+**2.5A — Products & Mix Presets UI**
