@@ -36,15 +36,26 @@ Validation evidence:
 
 ## Phase 1 — Materials, Units & Calibration
 
-Status: **NEXT**
+Status: **PLANNED — DEVELOPMENT NOT STARTED**
 
-- materials CRUD
-- package price → cost/base-unit calculation
-- standard units: g, kg, mL, L, cup, pc
-- manual package conversion
-- dry-material grams-per-cup calibration
-- on-hand inventory
-- supplier/source metadata
+Dedicated plan: `docs/PHASE_1_MATERIALS_UNITS_CALIBRATION_PLAN.md`
+
+Implementation sequence:
+
+```text
+1.1 — Measurement & Conversion Foundation
+1.2 — Material Master Domain
+1.3 — Purchase Costing & Inventory Quantity
+1.4 — Material-Specific Calibration
+1.5 — Supplier & Source Metadata
+1.6 — Phase 1 Integration & Completion Gate
+```
+
+The detailed plan further splits each subphase into implementation-sized tasks and defines unit standards, cross-dimension conversion rules, calibration precedence, completion gates, and branch/PR sequencing.
+
+Next active implementation task after this planning change:
+
+**1.1A — Unit Catalog & Dimensional Rules**
 
 ## Phase 2 — Product Recipes & Mold Yield
 
