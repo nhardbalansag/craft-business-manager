@@ -2,13 +2,15 @@
 
 ## Status
 
-**FEATURE CI PASSED — MERGE GATE**
+**COMPLETE**
 
-Branch: `feature/phase-1-6b-regression-completion`
-
-Base: `develop` at `b6d629bd6bf48c0a7dadfe45457c16ba5439be69`
+Implementation branch: `feature/phase-1-6b-regression-completion`
 
 PR: `#23`
+
+Implementation merge commit: `ee6953c9e1d132325c77e23cd9e07c859b469dbb`
+
+Post-merge `develop` CI run: `34827137558` — **SUCCESS**
 
 ## Objective
 
@@ -18,7 +20,7 @@ This phase is a release-readiness gate. It does not introduce a new business dom
 
 ## Completion coverage
 
-The final Phase 1 gate requires all of the following to remain green:
+The final Phase 1 gate validated all of the following:
 
 - unit catalog, compatibility, conversion, rounding, and runtime-validation tests;
 - material contract/classification validation;
@@ -53,9 +55,13 @@ It separately renders the Calibration workspace to ensure its initial state can 
 
 These smoke tests complement—not replace—the application/domain integration tests from Phase 1.6A.
 
-## Feature validation evidence
+## Validation evidence
 
-PR #23 feature CI run `34826926034` passed:
+Feature CI run `34826926034` passed the initial implementation head.
+
+Final PR-head CI run `34827053087` passed after the validation-status documentation update.
+
+Both runs passed:
 
 - dependency installation;
 - TypeScript typecheck;
@@ -64,17 +70,16 @@ PR #23 feature CI run `34826926034` passed:
 - React Materials and Calibration render smoke tests;
 - production build.
 
-## Documentation reconciliation
+PR #23 then merged into `develop` at:
 
-The Phase 1 planning/status documents must be reconciled during closeout so they no longer claim Phase 1 development has not started.
+`ee6953c9e1d132325c77e23cd9e07c859b469dbb`
 
-Phase 1 may be marked **COMPLETE** only after the PR merge and post-merge `develop` validation gates pass.
+Post-merge `develop` CI run `34827137558` passed the same validation pipeline on that exact merge commit.
 
-## Remaining completion gate
+## Completion result
 
-- final PR-head CI after this status update;
-- merge PR #23 into `develop`;
-- post-merge `develop` CI passes;
-- final documentation closeout records Phase 1 as COMPLETE and Phase 2 as next.
+**Phase 1 — Materials, Units & Calibration is complete.**
 
-Next task after successful completion: **Phase 2 — Product Recipes & Mold Yield**.
+There are no known Phase 1 blockers remaining at this gate.
+
+The next active development phase is **Phase 2 — Product Recipes & Mold Yield**.

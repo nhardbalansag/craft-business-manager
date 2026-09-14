@@ -16,7 +16,7 @@ Delivered React + TypeScript + Vite, branch strategy, domain contracts, pure cos
 
 ## Phase 1 — Materials, Units & Calibration
 
-Status: **IN PROGRESS — FINAL COMPLETION GATE**
+Status: **COMPLETE**
 
 Dedicated plan: `docs/PHASE_1_MATERIALS_UNITS_CALIBRATION_PLAN.md`
 
@@ -45,9 +45,9 @@ Dedicated plan: `docs/PHASE_1_MATERIALS_UNITS_CALIBRATION_PLAN.md`
     1.5A — Supplier / Source Contract             COMPLETE
     1.5B — Materials UI Integration               COMPLETE
 
-1.6 — Phase 1 Integration & Completion Gate       IN PROGRESS
+1.6 — Phase 1 Integration & Completion Gate       COMPLETE
     1.6A — Integrated Materials Workflow          COMPLETE
-    1.6B — Regression, Build & Completion         FEATURE CI PASSED / MERGE GATE
+    1.6B — Regression, Build & Completion         COMPLETE
 ```
 
 ### Phase 1.1 — Measurement & Conversion Foundation
@@ -122,25 +122,29 @@ Implementation detail: `docs/PHASE_1_6A_INTEGRATED_MATERIALS_WORKFLOW.md`.
 
 ### Phase 1.6B — Regression, Build & Completion
 
-Status: **FEATURE CI PASSED — MERGE GATE**
+Status: **COMPLETE**
 
-This final Phase 1 gate adds React render smoke coverage for both completed Phase 1 workspaces and re-runs the entire unit, domain, application, integration, typecheck, and production-build surface before Phase 1 can be closed.
+The final Phase 1 gate added React render smoke coverage for the Materials and Calibration workspaces and re-ran the complete unit, domain, application, integration, typecheck, and production-build surface.
 
-Feature CI run `34826926034` passed dependency installation, TypeScript typecheck, the full automated test suite, the new React render smoke checks, and production build.
+Validation evidence:
 
-No new business-domain behavior is introduced in 1.6B.
+- PR #23 merged
+- merge commit `ee6953c9e1d132325c77e23cd9e07c859b469dbb`
+- feature CI run `34826926034` passed
+- final PR-head CI run `34827053087` passed
+- post-merge `develop` CI run `34827137558` passed
 
 Completion detail: `docs/PHASE_1_6B_REGRESSION_BUILD_COMPLETION.md`.
 
-### Current active task
+### Phase 1 completion result
 
-**1.6B — Regression, Build & Completion — final merge gate**
-
-The final PR head must revalidate after the status update. Phase 1 will be marked complete only after PR #23 merges to `develop` and post-merge `develop` CI passes. The next development phase will then be **Phase 2 — Product Recipes & Mold Yield**.
+**Phase 1 is complete.** The material, measurement, costing, calibration, inventory, supplier/source, application-service, UI, integration, and final regression/build gates all passed.
 
 ---
 
 ## Phase 2 — Product Recipes & Mold Yield
+
+Status: **NEXT**
 
 Planned:
 
@@ -153,6 +157,12 @@ Planned:
 - estimated producible pieces from inventory
 
 Mold volume remains optional; real sample batches are authoritative when volume is unknown.
+
+### Current active phase
+
+**Phase 2 — Product Recipes & Mold Yield**
+
+Before implementation, assess whether Phase 2 should be split into smaller implementation units and subphases, preserving the established branch/PR/CI discipline.
 
 ---
 
