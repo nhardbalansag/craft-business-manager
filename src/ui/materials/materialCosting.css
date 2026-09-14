@@ -67,6 +67,37 @@
   white-space: nowrap;
 }
 
+.materials-table {
+  min-width: 980px;
+}
+
+.source-summary {
+  min-width: 150px;
+}
+
+.source-summary strong {
+  margin-bottom: 2px;
+}
+
+.source-link {
+  display: inline-block;
+  margin-top: 6px;
+  color: #6d5940;
+  font-size: .78rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.source-link:hover {
+  text-decoration: underline;
+}
+
+.source-empty {
+  color: #989084;
+  font-size: .8rem;
+  font-style: italic;
+}
+
 @media (max-width: 680px) {
   .cost-metrics {
     grid-template-columns: 1fr;
