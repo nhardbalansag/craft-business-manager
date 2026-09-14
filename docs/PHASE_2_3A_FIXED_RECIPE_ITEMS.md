@@ -2,11 +2,13 @@
 
 ## Status
 
-**IMPLEMENTED — VALIDATION / MERGE GATE**
+**COMPLETE**
 
-Branch: `feature/phase-2-3a-fixed-recipe`
+Implementation PR: **#38**
 
-Base: `develop` at `bb26ee2a67a01ea3ff16ca1cea34d7f5e86964f8`.
+Implementation merge commit: `2fbe12437328d70f3aa155bde49a49603ddbf69a`
+
+Post-merge CI run: `34835244976` — **SUCCESS**
 
 ## Objective
 
@@ -64,7 +66,7 @@ cup -> g without sample   -> explicit manual g/cup fallback when configured
 other cross-dimension     -> controlled error
 ```
 
-The same normalizer is now used by yield learning, preventing conversion-rule drift between yield and fixed recipe inputs.
+The same normalizer is used by yield learning, preventing conversion-rule drift between yield and fixed recipe inputs.
 
 ## Duplicate policy
 
@@ -105,7 +107,7 @@ Direct packaging consumables such as labels or simple stocked boxes may remain P
 
 ## Application boundary
 
-Added:
+Delivered:
 
 - `FixedRecipeItemRepository`;
 - `InMemoryFixedRecipeItemRepository`;
@@ -119,6 +121,20 @@ Added:
 
 `BusinessDataset.recipeItems` replaces the old `ProductRecipeItem` prototype scaffold.
 
+## Validation evidence
+
+The final implementation passed:
+
+- TypeScript typecheck;
+- fixed recipe contract tests;
+- standard and calibrated quantity normalization tests;
+- duplicate product/material tests;
+- active reference and Phase 3 vessel-boundary tests;
+- the full existing regression suite;
+- production build;
+- feature PR merge into `develop`;
+- post-merge `develop` CI.
+
 ## Deferred
 
 - combining fixed and yield-derived requirements: **2.3B**;
@@ -127,18 +143,4 @@ Added:
 - recipe/product UI: **2.5**;
 - vessels and nested components: **Phase 3**.
 
-## Completion gate
-
-2.3A may be marked complete after:
-
-- TypeScript typecheck passes;
-- fixed recipe contract tests pass;
-- standard and calibrated quantity normalization tests pass;
-- duplicate product/material tests pass;
-- active reference and Phase 3 vessel-boundary tests pass;
-- full regression suite passes;
-- production build passes;
-- feature PR merges into `develop`;
-- post-merge `develop` CI passes.
-
-Next task after completion: **2.3B — Effective Per-Piece Material Requirements**.
+Next task: **2.3B — Effective Per-Piece Material Requirements**.
