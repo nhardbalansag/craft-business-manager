@@ -57,7 +57,7 @@ Implementation sequence:
     1.3C — Inventory Valuation & Validation       COMPLETE
 1.4 — Material-Specific Calibration               IN PROGRESS
     1.4A — Cup-to-Weight Calibration Model        COMPLETE
-    1.4B — Effective Conversion Precedence        IMPLEMENTED / VALIDATION PENDING
+    1.4B — Effective Conversion Precedence        FEATURE CI PASSED / MERGE GATE
     1.4C — Calibration UI & Tests                 NEXT AFTER 1.4B
 1.5 — Supplier & Source Metadata                  NOT STARTED
 1.6 — Phase 1 Integration & Completion Gate       NOT STARTED
@@ -138,14 +138,20 @@ Phase 1.4A validation evidence:
 
 Phase 1.4B integrates calibration into package costing and stock normalization using explicit source precedence. Same-dimension/package conversion remains `manual -> standard`; dry `cup -> g` becomes `latest material calibration -> manual g/cup fallback -> controlled error`. The material contract permits only this specific cross-dimension bridge, while unrelated cross-dimension units remain invalid. Conversion results report their source and calibration ID where applicable. Implementation detail: `docs/PHASE_1_4B_EFFECTIVE_CONVERSION_PRECEDENCE.md`.
 
-Current 1.4B validation gate:
+Phase 1.4B feature validation evidence:
 
-- TypeScript typecheck
-- conversion precedence tests
-- full regression test suite
-- production build
-- feature PR CI
-- merge to `develop`
+- PR #14
+- dependency installation passed
+- TypeScript typecheck passed
+- conversion-precedence tests passed
+- full regression test suite passed
+- production build passed
+- feature PR CI passed
+
+Remaining 1.4B gate:
+
+- final PR-head CI after documentation update
+- merge PR #14 to `develop`
 - post-merge `develop` CI
 
 Next task after 1.4B completion:
