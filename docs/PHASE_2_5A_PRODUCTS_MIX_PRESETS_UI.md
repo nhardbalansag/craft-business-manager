@@ -2,11 +2,13 @@
 
 ## Status
 
-**IMPLEMENTED — VALIDATION / MERGE GATE**
-
-Feature branch: `feature/phase-2-5a-products-mix-ui`
+**COMPLETE — MERGED + POST-MERGE CI PASSED**
 
 Implementation PR: **#50**
+
+Implementation merge commit: `e5a6777efe5b40bbd2a7c1afa9af1c03f30ce694`
+
+Post-merge CI: **34843399968 — SUCCESS**
 
 ## Objective
 
@@ -93,23 +95,20 @@ Phase 2.5A does **not** implement:
 - selling-price/profit policy — Phase 4;
 - persistence migration — later storage phases.
 
-## Validation coverage
+## Validation evidence
 
-The React smoke suite now renders the Products workspace server-side and verifies the principal Product/Mix UI sections without requiring browser effects.
+The completion gate passed:
 
-Existing ProductService and MixPresetService regression suites remain authoritative for CRUD and relationship behavior beneath the UI.
+- TypeScript typecheck;
+- all Product/Mix service and domain regressions;
+- Products workspace React smoke validation;
+- full automated test suite;
+- production build;
+- PR #50 merge into `develop`;
+- post-merge `develop` CI run `34843399968`.
 
-## Completion gate
+One smoke assertion was corrected during feature validation because the test expected `Product catalog` while the rendered heading was `PRODUCT CATALOG`; production behavior did not require a change.
 
-2.5A may be marked complete after:
-
-- TypeScript typecheck passes;
-- all existing Product/Mix service/domain regressions pass;
-- Products workspace smoke validation passes;
-- production build passes;
-- PR #50 merges into `develop`;
-- post-merge `develop` CI passes.
-
-## Next task after completion
+## Next task
 
 **2.5B — Yield Recording & History UI**
