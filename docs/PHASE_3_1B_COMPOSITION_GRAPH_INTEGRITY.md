@@ -2,13 +2,24 @@
 
 ## Status
 
-**IMPLEMENTED — VALIDATION / MERGE GATE**
+**COMPLETE**
+
+Implementation PR: `#63`
 
 Feature branch: `feature/phase-3-1b-composition-graph`
 
-Authoritative base:
+Authoritative implementation base:
 
 `develop` @ `85731ab76110419fc8f11e7f4bbdecd0dd159e33`
+
+Implementation merge commit:
+
+`5bcaa40d983c1838f6f3fd975ef3b78081e446cb`
+
+Validation evidence:
+
+- feature CI run `34910508714` — SUCCESS;
+- post-merge `develop` CI run `34910649113` — SUCCESS.
 
 ## Objective
 
@@ -102,7 +113,7 @@ A cycle that is unrelated to the requested traversal root does not block travers
 
 ## Error contract
 
-3.1B introduces `ProductCompositionGraphError` with:
+3.1B introduced `ProductCompositionGraphError` with:
 
 ```text
 INVALID_ROOT_PRODUCT_ID
@@ -146,16 +157,16 @@ Tests cover:
 - unrelated corrupted cycles not blocking a safe root;
 - blank traversal-root validation.
 
-## Completion gate
+## Completion gate result
 
-3.1B is complete only after:
+Passed:
 
-- feature-head typecheck passes;
-- complete regression tests pass;
-- production build passes;
-- implementation PR merges to `develop`;
-- exact post-merge `develop` CI succeeds.
+- feature-head typecheck;
+- complete regression tests;
+- production build;
+- implementation PR merge to `develop`;
+- exact post-merge `develop` CI.
 
-## Next task after completion
+## Next task
 
 **3.1C — Component Repository & Application Services**
