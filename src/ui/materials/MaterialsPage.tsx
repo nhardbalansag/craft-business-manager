@@ -3,11 +3,15 @@ import {
   MATERIAL_GROUPS,
   MATERIAL_PACKAGE_UNITS,
   MaterialContractError,
-  isMaterialPackageUnit,
   type Material,
   type MaterialGroup,
   type MaterialPurchaseUnit,
 } from '../../domain/materials';
+import {
+  MaterialCostingError,
+  calculateMaterialPackageCosting,
+  type MaterialPackageCosting,
+} from '../../domain/materialCosting';
 import {
   SUPPORTED_UNITS,
   getUnitDimension,
@@ -20,6 +24,7 @@ import {
   type MaterialListFilter,
 } from '../../application/materials/MaterialService';
 import { InMemoryMaterialRepository } from '../../application/materials/InMemoryMaterialRepository';
+import './materialCosting.css';
 
 const materialRepository = new InMemoryMaterialRepository();
 const materialService = new MaterialService(materialRepository);
@@ -96,6 +101,17 @@ function formatUnit(unit: MaterialPurchaseUnit): string {
   return labels[unit] ?? unit;
 }
 
+function formatNumber(value: number, maximumFractionDigits = 6): string {
+  return value.toLocaleString(undefined, { maximumFractionDigits });
+}
+
+function formatMoney(value: number, maximumFractionDigits = 6): string {
+  return `₱${value.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits,
+  })}`;
+}
+
 function materialToForm(material: Material): MaterialFormState {
   return {
     id: material.id,
@@ -134,8 +150,20 @@ function formToMaterial(form: MaterialFormState, isActive: boolean): Material {
   };
 }
 
+function packageCostingOrNull(material: Material): MaterialPackageCosting | null {
+  try {
+    return calculateMaterialPackageCosting(material);
+  } catch {
+    return null;
+  }
+}
+
 function errorMessage(error: unknown): string {
-  if (error instanceof MaterialApplicationError || error instanceof MaterialContractError) {
+  if (
+    error instanceof MaterialApplicationError ||
+    error instanceof MaterialContractError ||
+    error instanceof MaterialCostingError
+  ) {
     return error.message;
   }
   if (error instanceof Error) return error.message;
@@ -154,6 +182,9 @@ export function MaterialsPage() {
   const [busy, setBusy] = useState(false);
 
   const unitOptions = useMemo(() => purchaseUnitOptions(form.baseUnit), [form.baseUnit]);
+  const previewMaterial = useMemo(() => formToMaterial(form, true), [form]);
+  const costingPreview = useMemo(() => packageCostingOrNull(previewMaterial), [previewMaterial]);
+  const manualIsRequired = MATERIAL_PACKAGE_UNITS.includes(form.purchaseUnit as (typeof MATERIAL_PACKAGE_UNITS)[number]);
 
   const refresh = useCallback(async () => {
     const filter: MaterialListFilter = {
@@ -246,8 +277,8 @@ export function MaterialsPage() {
           <p className="eyebrow">MATERIAL MASTER</p>
           <h1 id="materials-heading">Materials</h1>
           <p className="page-lead">
-            Record what you buy and what you currently have on hand. Costing, normalized inventory,
-            and material calibration will build on these source inputs in the next phases.
+            Record purchase and stock source data. Package conversion and cost per base unit are now
+            calculated automatically; stock normalization and inventory valuation come next.
           </p>
         </div>
         <div className="session-badge" title="Excel persistence is planned for a later phase">
@@ -319,7 +350,7 @@ export function MaterialsPage() {
               <span>Purchase quantity</span>
               <input
                 required
-                min="0"
+                min="0.000001"
                 step="any"
                 type="number"
                 value={form.purchaseQuantity}
@@ -334,9 +365,6 @@ export function MaterialsPage() {
                 onChange={(event) => setForm((current) => ({
                   ...current,
                   purchaseUnit: event.target.value as MaterialPurchaseUnit,
-                  manualBaseUnitsPerPurchaseUnit: isMaterialPackageUnit(event.target.value)
-                    ? current.manualBaseUnitsPerPurchaseUnit
-                    : '',
                 }))}
               >
                 {unitOptions.map((unit) => <option value={unit} key={unit}>{formatUnit(unit)}</option>)}
@@ -355,23 +383,68 @@ export function MaterialsPage() {
               />
             </label>
 
-            {isMaterialPackageUnit(form.purchaseUnit) && (
-              <label className="field">
-                <span>Manual conversion</span>
-                <input
-                  min="0"
-                  step="any"
-                  type="number"
-                  value={form.manualBaseUnitsPerPurchaseUnit}
-                  placeholder={`Base ${form.baseUnit} per ${form.purchaseUnit}`}
-                  onChange={(event) => setForm((current) => ({
-                    ...current,
-                    manualBaseUnitsPerPurchaseUnit: event.target.value,
-                  }))}
-                />
-                <small>Optional for now; Phase 1.3 will enforce package-conversion rules.</small>
-              </label>
-            )}
+            <label className="field">
+              <span>Manual conversion {manualIsRequired ? '(required)' : '(optional override)'}</span>
+              <input
+                min="0.000001"
+                step="any"
+                type="number"
+                value={form.manualBaseUnitsPerPurchaseUnit}
+                placeholder={`${form.baseUnit} per ${formatUnit(form.purchaseUnit)}`}
+                onChange={(event) => setForm((current) => ({
+                  ...current,
+                  manualBaseUnitsPerPurchaseUnit: event.target.value,
+                }))}
+              />
+              <small>
+                {manualIsRequired
+                  ? `Enter how many ${form.baseUnit} are in 1 ${formatUnit(form.purchaseUnit)}.`
+                  : 'Leave blank to use the standard conversion. A value here overrides it.'}
+              </small>
+            </label>
+
+            <div className="field field-wide cost-preview" aria-live="polite">
+              <div className="cost-preview-heading">
+                <span>Calculated purchase costing</span>
+                <small>Derived only — these values are not stored as source data.</small>
+              </div>
+              {costingPreview ? (
+                <div className="cost-metrics">
+                  <div className="cost-metric">
+                    <span>Standard conversion</span>
+                    <strong>
+                      {costingPreview.standardBaseUnitsPerPurchaseUnit === null
+                        ? 'N/A'
+                        : `1 ${formatUnit(form.purchaseUnit)} = ${formatNumber(costingPreview.standardBaseUnitsPerPurchaseUnit)} ${form.baseUnit}`}
+                    </strong>
+                  </div>
+                  <div className="cost-metric">
+                    <span>Manual conversion</span>
+                    <strong>
+                      {costingPreview.manualBaseUnitsPerPurchaseUnit === null
+                        ? 'Not set'
+                        : `1 ${formatUnit(form.purchaseUnit)} = ${formatNumber(costingPreview.manualBaseUnitsPerPurchaseUnit)} ${form.baseUnit}`}
+                    </strong>
+                  </div>
+                  <div className="cost-metric cost-metric-emphasis">
+                    <span>Effective conversion</span>
+                    <strong>
+                      1 {formatUnit(form.purchaseUnit)} = {formatNumber(costingPreview.effectiveBaseUnitsPerPurchaseUnit)} {form.baseUnit}
+                    </strong>
+                    <small>{costingPreview.effectiveConversionSource} conversion used</small>
+                  </div>
+                  <div className="cost-metric cost-metric-emphasis">
+                    <span>Cost per {form.baseUnit}</span>
+                    <strong>{formatMoney(costingPreview.costPerBaseUnit)} / {form.baseUnit}</strong>
+                    <small>{formatNumber(costingPreview.packageBaseQuantity)} {form.baseUnit} in this purchase</small>
+                  </div>
+                </div>
+              ) : (
+                <div className="cost-preview-empty">
+                  Enter a positive purchase quantity and a valid conversion to calculate package cost per {form.baseUnit}.
+                </div>
+              )}
+            </div>
 
             <div className="field-group-title">Current stock</div>
 
@@ -470,26 +543,34 @@ export function MaterialsPage() {
                 </tr>
               </thead>
               <tbody>
-                {materials.map((material) => (
-                  <tr key={material.id} className={material.isActive ? undefined : 'archived-row'}>
-                    <td>
-                      <strong>{material.name}</strong>
-                      <span className="material-id">{material.id}</span>
-                    </td>
-                    <td><span className="group-pill">{formatGroup(material.group)}</span></td>
-                    <td>{material.purchaseQuantity} {formatUnit(material.purchaseUnit)}</td>
-                    <td>{material.onHandQuantity} {formatUnit(material.onHandUnit)}</td>
-                    <td>₱{material.packageCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                    <td className="row-actions">
-                      <button className="text-button" type="button" onClick={() => editMaterial(material)}>Edit</button>
-                      {material.isActive && (
-                        <button className="text-button danger" disabled={busy} type="button" onClick={() => void archiveMaterial(material)}>
-                          Archive
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                {materials.map((material) => {
+                  const costing = packageCostingOrNull(material);
+                  return (
+                    <tr key={material.id} className={material.isActive ? undefined : 'archived-row'}>
+                      <td>
+                        <strong>{material.name}</strong>
+                        <span className="material-id">{material.id}</span>
+                      </td>
+                      <td><span className="group-pill">{formatGroup(material.group)}</span></td>
+                      <td>{material.purchaseQuantity} {formatUnit(material.purchaseUnit)}</td>
+                      <td>{material.onHandQuantity} {formatUnit(material.onHandUnit)}</td>
+                      <td>
+                        <strong>{formatMoney(material.packageCost, 2)}</strong>
+                        <span className="cost-detail">
+                          {costing ? `${formatMoney(costing.costPerBaseUnit)} / ${material.baseUnit}` : 'Conversion required'}
+                        </span>
+                      </td>
+                      <td className="row-actions">
+                        <button className="text-button" type="button" onClick={() => editMaterial(material)}>Edit</button>
+                        {material.isActive && (
+                          <button className="text-button danger" disabled={busy} type="button" onClick={() => void archiveMaterial(material)}>
+                            Archive
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
 

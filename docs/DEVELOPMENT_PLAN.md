@@ -47,12 +47,12 @@ Implementation sequence:
     1.1A — Unit Catalog & Dimensional Rules        COMPLETE
     1.1B — Standard Conversion Engine             COMPLETE
     1.1C — Conversion Validation & Tests          COMPLETE
-1.2 — Material Master Domain
+1.2 — Material Master Domain                      COMPLETE
     1.2A — Material Contract & Classification     COMPLETE
     1.2B — Material Application CRUD Services     COMPLETE
-    1.2C — Materials UI                           FEATURE CI PASSED / MERGE GATE
-1.3 — Purchase Costing & Inventory Quantity       NOT STARTED
-    1.3A — Package Cost / Base-Unit Costing        NEXT AFTER 1.2C
+    1.2C — Materials UI                           COMPLETE
+1.3 — Purchase Costing & Inventory Quantity       IN PROGRESS
+    1.3A — Package Cost / Base-Unit Costing        FEATURE CI PASSED / MERGE GATE
     1.3B — On-Hand Quantity Normalization         NOT STARTED
     1.3C — Inventory Valuation & Validation       NOT STARTED
 1.4 — Material-Specific Calibration               NOT STARTED
@@ -66,37 +66,35 @@ Phase 1.2A established the authoritative material source-data contract and class
 
 Phase 1.2B added the material application/repository boundary and operational CRUD workflow: create, update, retrieve, list/filter/search, archive, duplicate handling, stable identity rules, and an in-memory repository. Implementation detail: `docs/PHASE_1_2B_MATERIAL_CRUD_SERVICES.md`.
 
-Phase 1.2B validation evidence:
+Phase 1.2C delivered the first visible Materials workspace with add/edit forms, group/base-unit/purchase-unit/on-hand inputs, manual conversion input, listing, search, filters, soft archive, responsive styling, and explicit session-only persistence messaging. Implementation detail: `docs/PHASE_1_2C_MATERIALS_UI.md`.
 
-- PR: `#8`
-- dependency install passed
+Phase 1.2 validation evidence:
+
+- PR #8 completed Material CRUD services
+- PR #9 completed Materials UI
+- feature and post-merge `develop` CI passed
+
+Phase 1.3A adds deterministic package conversion and cost/base-unit calculation. Manual conversion has explicit precedence over standard same-dimension conversion; package labels without a conversion are rejected with a controlled domain error. Derived costing remains calculated rather than persisted. Implementation detail: `docs/PHASE_1_3A_PACKAGE_COSTING.md`.
+
+Phase 1.3A feature validation evidence:
+
+- PR: `#10`
+- dependency installation passed
 - TypeScript typecheck passed
-- application/domain tests passed
+- package-costing domain tests passed
+- MaterialService boundary tests passed
+- full automated test suite passed
 - production build passed
 - feature PR CI passed
-- post-merge `develop` CI passed
 
-Phase 1.2C delivers the first visible Materials workspace. It includes add/edit material forms, group/base-unit/purchase-unit/on-hand inputs, conditional manual package conversion input, material listing, search, filters, soft archive, responsive styling, and explicit session-only persistence messaging. Implementation detail: `docs/PHASE_1_2C_MATERIALS_UI.md`.
+Remaining 1.3A gate:
 
-Phase 1.2C feature validation evidence:
-
-- PR: `#9`
-- dependency install passed
-- TypeScript typecheck passed
-- existing domain/application tests passed
-- production build passed
-- feature PR CI passed
-
-Remaining gate:
-
-- merge PR `#9` to `develop`
+- merge PR `#10` to `develop`
 - confirm post-merge `develop` CI
 
-When this gate passes, **Phase 1.2 — Material Master Domain** is complete.
+Next task after 1.3A is fully validated and merged:
 
-Next task after 1.2C completion:
-
-**1.3A — Package Cost / Base-Unit Costing**
+**1.3B — On-Hand Quantity Normalization**
 
 ## Phase 2 — Product Recipes & Mold Yield
 
