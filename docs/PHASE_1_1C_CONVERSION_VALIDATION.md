@@ -2,11 +2,13 @@
 
 ## Status
 
-**IMPLEMENTED — VALIDATION PENDING**
+**COMPLETE — FEATURE CI PASSED; POST-MERGE DEVELOP CONFIRMATION REQUIRED**
 
 Branch: `feature/phase-1-1c-conversion-validation`
 
 Base: `develop`
+
+PR: `#6`
 
 ## Objective
 
@@ -114,21 +116,33 @@ In particular:
 
 is only a volume conversion. It does not imply any gram weight for plaster, wax, or another material.
 
+## Validation evidence
+
+Feature PR validation passed:
+
+- dependency installation passed
+- TypeScript typecheck passed
+- exhaustive automated tests passed
+- production build passed
+- PR CI passed
+
+Final integration confirmation is the post-merge `develop` CI run on the merge commit.
+
 ## Completion gate
 
-Phase 1.1C is complete only when:
+Phase 1.1C requires:
 
-- TypeScript typecheck passes
-- all unit/conversion tests pass
-- production build passes
-- feature PR CI passes
+- TypeScript typecheck passes ✅
+- all unit/conversion tests pass ✅
+- production build passes ✅
+- feature PR CI passes ✅
 - PR is merged into `develop`
 - post-merge `develop` CI passes
 
-When this gate passes, **Phase 1.1 — Measurement & Conversion Foundation is fully complete**.
+After the final two integration checks, **Phase 1.1 — Measurement & Conversion Foundation is fully complete**.
 
 ## Next task
 
-After Phase 1.1C completion, proceed to:
+After final post-merge confirmation, proceed to:
 
 **Phase 1.2A — Material Contract & Classification**
