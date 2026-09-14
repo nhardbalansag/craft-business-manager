@@ -21,7 +21,7 @@ Planning baseline: `docs/PHASE_2_PRODUCT_RECIPES_MOLD_YIELD_PLAN.md`
     2.3C — Material Cost Preview & Validation         COMPLETE
 
 2.4 — Safety Waste & Inventory-Limited Capacity       IN PROGRESS
-    2.4A — Safety Waste Policy                        NEXT
+    2.4A — Safety Waste Policy                        VALIDATION / MERGE GATE
     2.4B — Waste-Adjusted Requirements                NOT STARTED
     2.4C — Producible Pieces & Limiting Material      NOT STARTED
 
@@ -96,3 +96,5 @@ Evidence:
 ## Current active task
 
 **2.4A — Safety Waste Policy**
+
+Implementation is complete on `feature/phase-2-4a-safety-waste-policy` and is awaiting CI / merge validation.
