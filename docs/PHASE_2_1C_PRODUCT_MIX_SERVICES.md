@@ -2,11 +2,17 @@
 
 ## Status
 
-**IMPLEMENTED — VALIDATION PENDING**
+**COMPLETE**
 
-Branch: `feature/phase-2-1c-product-mix-services`
+Implementation branch: `feature/phase-2-1c-product-mix-services`
 
-Base: `develop` at `ef0faf9375a15ceaf2f54850da85e500641a9b41`.
+Implementation base: `develop` at `ef0faf9375a15ceaf2f54850da85e500641a9b41`.
+
+Implementation PR: **#30**
+
+Merge commit: `e5faa7f57adc0424b4ebf104700ca86d2882f171`
+
+Post-merge CI run: `34830919088` — **SUCCESS**
 
 ## Objective
 
@@ -44,7 +50,7 @@ When a product references a mix preset:
 - the preset must exist;
 - its compatible categories must include the product category;
 - an active product requires an active preset;
-- archived products may retain an archived preset for historical continuity.
+- archived products may retain an archived preset for historical continuity, but category compatibility still remains valid.
 
 ## Mix-preset operations
 
@@ -115,19 +121,23 @@ No React Product/Mix UI is introduced in 2.1C; UI remains Phase 2.5A.
 - `src/application/productMixServices.test.ts`
 - `src/application/session.ts`
 
-## Completion gate
+## Validation evidence
 
-2.1C may be marked complete after:
+The completion gate passed:
 
-- TypeScript typecheck passes;
-- Product/Mix service tests pass;
-- defensive-clone tests pass;
-- full regression suite passes;
-- production build passes;
-- feature PR CI passes;
-- PR merges into `develop`;
-- post-merge `develop` CI passes.
+- TypeScript typecheck — PASS;
+- Product/Mix service tests — PASS;
+- defensive-clone tests — PASS;
+- full regression suite — PASS;
+- production build — PASS;
+- feature PR #30 CI — PASS after one corrected test fixture;
+- PR #30 merged into `develop`;
+- post-merge CI run `34830919088` — PASS.
 
-After completion, **2.1 — Product & Mix Foundation** is complete.
+The initial CI failure was isolated to a test fixture that expected an archived product to accept a category-incompatible mix. The service rule was intentionally retained: archive status relaxes the active-preset requirement, not semantic category compatibility.
+
+## Phase result
+
+With 2.1A, 2.1B, and 2.1C complete, **2.1 — Product & Mix Foundation is COMPLETE**.
 
 Next task: **2.2A — Yield Sample Evidence Contract**.
