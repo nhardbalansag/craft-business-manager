@@ -166,6 +166,7 @@ describe('ProductService', () => {
     );
     await expectProductError(productService.createProduct(product()), 'MIX_PRESET_CATEGORY_MISMATCH');
 
+    await mixPresetRepository.replace(preset({ isActive: false }));
     await expect(productService.createProduct(product({ isActive: false }))).resolves.toMatchObject({
       isActive: false,
     });
