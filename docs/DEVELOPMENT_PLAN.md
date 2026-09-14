@@ -45,8 +45,8 @@ Implementation sequence:
 ```text
 1.1 — Measurement & Conversion Foundation
     1.1A — Unit Catalog & Dimensional Rules        COMPLETE
-    1.1B — Standard Conversion Engine             NEXT
-    1.1C — Conversion Validation & Tests          NOT STARTED
+    1.1B — Standard Conversion Engine             COMPLETE
+    1.1C — Conversion Validation & Tests          NEXT
 1.2 — Material Master Domain                      NOT STARTED
 1.3 — Purchase Costing & Inventory Quantity       NOT STARTED
 1.4 — Material-Specific Calibration               NOT STARTED
@@ -63,11 +63,23 @@ Phase 1.1A validation evidence:
 - TypeScript typecheck passes
 - automated tests pass
 - production build passes
-- post-merge `develop` CI is required before beginning 1.1B
+- post-merge `develop` CI passed
+
+Phase 1.1B adds the standard same-dimension conversion engine, canonical normalization helpers, controlled conversion errors, and explicit rounding boundaries. Implementation detail: `docs/PHASE_1_1B_STANDARD_CONVERSION_ENGINE.md`.
+
+Phase 1.1B validation evidence:
+
+- PR: `#5`
+- dependency install passed
+- TypeScript typecheck passed
+- automated tests passed
+- production build passed
+- feature PR CI passed
+- final merge/post-merge integration validation is required before starting 1.1C
 
 Next active task after final post-merge validation:
 
-**1.1B — Standard Conversion Engine**
+**1.1C — Conversion Validation & Tests**
 
 ## Phase 2 — Product Recipes & Mold Yield
 
