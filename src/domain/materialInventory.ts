@@ -14,9 +14,17 @@ export interface MaterialOnHandNormalization {
   conversionSource: OnHandConversionSource;
 }
 
+export interface MaterialInventoryValuation {
+  normalizedBaseQuantity: number;
+  baseUnit: Material['baseUnit'];
+  costPerBaseUnit: number;
+  inventoryValue: number;
+}
+
 export type MaterialInventoryErrorCode =
   | 'NON_FINITE_ON_HAND_QUANTITY'
-  | 'UNRESOLVED_PACKAGE_ON_HAND_UNIT';
+  | 'UNRESOLVED_PACKAGE_ON_HAND_UNIT'
+  | 'NEGATIVE_ON_HAND_QUANTITY';
 
 export class MaterialInventoryError extends Error {
   readonly code: MaterialInventoryErrorCode;
@@ -39,8 +47,8 @@ export class MaterialInventoryError extends Error {
  *   because only that package has an authoritative effective package conversion;
  * - dry cross-dimension cases such as cup -> g remain unavailable until Phase 1.4.
  *
- * Negative quantities are preserved mathematically here. Phase 1.3C owns the
- * business rule that inventory cannot be negative.
+ * Negative quantities are preserved mathematically here. Higher-level inventory
+ * valuation owns the business rule that inventory cannot be negative.
  */
 export function normalizeMaterialOnHand(material: Material): MaterialOnHandNormalization {
   if (!Number.isFinite(material.onHandQuantity)) {
@@ -92,4 +100,35 @@ export function normalizeMaterialOnHand(material: Material): MaterialOnHandNorma
     `On-hand unit ${String(material.onHandUnit)} for ${material.name} cannot be normalized.`,
     material.id,
   );
+}
+
+/**
+ * Calculates the current value of a material's on-hand inventory.
+ *
+ * Formula:
+ *   inventory value = normalized on-hand base quantity × cost per base unit
+ *
+ * This function is also the Phase 1.3 inventory-validity boundary: negative stock is
+ * rejected here even though the lower-level normalization function remains a pure
+ * mathematical converter.
+ */
+export function calculateMaterialInventoryValuation(material: Material): MaterialInventoryValuation {
+  const normalized = normalizeMaterialOnHand(material);
+
+  if (normalized.normalizedBaseQuantity < 0) {
+    throw new MaterialInventoryError(
+      'NEGATIVE_ON_HAND_QUANTITY',
+      `On-hand quantity for ${material.name} cannot be negative.`,
+      material.id,
+    );
+  }
+
+  const costing = calculateMaterialPackageCosting(material);
+
+  return {
+    normalizedBaseQuantity: normalized.normalizedBaseQuantity,
+    baseUnit: normalized.baseUnit,
+    costPerBaseUnit: costing.costPerBaseUnit,
+    inventoryValue: normalized.normalizedBaseQuantity * costing.costPerBaseUnit,
+  };
 }
