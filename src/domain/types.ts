@@ -1,11 +1,13 @@
 import type { Material } from './materials';
+import type { Product, ProductCategory } from './products';
 
 export type { Material } from './materials';
+export type { Product, ProductCategory } from './products';
 export type { BaseUnit, InputUnit } from './units';
-export type ProductCategory = 'paintable-art' | 'candle-pot' | 'candle';
 export type RatioBasis = 'weight' | 'volume';
 export type PricingMethod = 'profit-amount' | 'markup-percent' | 'margin-percent';
 
+/** Prototype Phase 2.1B scaffold; replaced/refined by the dedicated mix domain in 2.1B. */
 export interface MixPreset {
   id: string;
   name: string;
@@ -17,6 +19,7 @@ export interface MixPreset {
   secondaryParts: number;
 }
 
+/** Prototype Phase 2.2 scaffold; replaced/refined by the yield evidence domain in 2.2A. */
 export interface MoldYieldSample {
   id: string;
   productId: string;
@@ -27,12 +30,14 @@ export interface MoldYieldSample {
   recordedAt: string;
 }
 
+/** Prototype Phase 2.3 scaffold; replaced/refined by the fixed recipe domain in 2.3A. */
 export interface ProductRecipeItem {
   materialId: string;
   baseQuantityPerProduct: number;
   purpose?: string;
 }
 
+/** Phase 3 scaffold only. Product composition is not part of the Phase 2 Product contract. */
 export type ProductComponentSource = 'material' | 'product';
 
 export interface ProductComponent {
@@ -43,20 +48,10 @@ export interface ProductComponent {
   role: 'vessel' | 'molded-component' | 'decoration' | 'packaging' | 'other';
 }
 
+/** Phase 4 scaffold retained for existing costing helpers; not part of the Phase 2 Product contract. */
 export interface PricingPolicy {
   method: PricingMethod;
   value: number;
-}
-
-export interface Product {
-  id: string;
-  name: string;
-  category: ProductCategory;
-  mixPresetId?: string;
-  safetyWasteRate: number;
-  recipeItems: ProductRecipeItem[];
-  components: ProductComponent[];
-  pricing: PricingPolicy;
 }
 
 export interface BusinessDataset {
