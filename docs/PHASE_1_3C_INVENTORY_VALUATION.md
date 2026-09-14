@@ -2,11 +2,13 @@
 
 ## Status
 
-**IMPLEMENTED — VALIDATION PENDING**
+**FEATURE CI PASSED — MERGE GATE**
 
 Branch: `feature/phase-1-3c-inventory-valuation`
 
 Base: `develop`
+
+PR: `#12`
 
 ## Objective
 
@@ -113,17 +115,22 @@ Tests cover:
 - negative package cost propagation
 - MaterialService create/update negative-inventory rejection
 
-## Completion gate
+## Feature validation evidence
+
+- dependency installation passed
+- TypeScript typecheck passed
+- inventory valuation domain tests passed
+- MaterialService inventory-boundary tests passed
+- full regression test suite passed
+- production build passed
+- PR #12 feature CI passed
+
+## Remaining completion gate
 
 Phase 1.3C is complete only after:
 
-- TypeScript typecheck passes
-- domain valuation tests pass
-- service-boundary tests pass
-- all existing regression tests pass
-- production build passes
-- feature PR CI passes
-- PR merges into `develop`
+- final PR-head CI passes after documentation update
+- PR #12 merges into `develop`
 - post-merge `develop` CI passes
 
 When this gate passes, **Phase 1.3 — Purchase Costing & Inventory Quantity** is fully complete.
