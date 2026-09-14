@@ -3,6 +3,7 @@ import type { Material } from './materials';
 import {
   MaterialCalibrationError,
   deriveMaterialCupWeightCalibration,
+  selectLatestMaterialCupWeightCalibration,
   type MaterialCalibrationEvidence,
 } from './materialCalibration';
 
@@ -132,5 +133,53 @@ describe('deriveMaterialCupWeightCalibration', () => {
     expect(() =>
       deriveMaterialCupWeightCalibration(material(), evidence({ recordedAt: 'not-a-date' })),
     ).toThrowError(expect.objectContaining({ code: 'INVALID_RECORDED_AT' }));
+  });
+});
+
+describe('selectLatestMaterialCupWeightCalibration', () => {
+  it('selects the latest valid calibration sample for a material', () => {
+    const selected = selectLatestMaterialCupWeightCalibration(material(), [
+      evidence({
+        id: 'CAL-OLD',
+        measuredVolume: 5,
+        knownWeight: 1,
+        weightUnit: 'kg',
+        recordedAt: '2026-09-01T09:00:00+08:00',
+      }),
+      evidence({
+        id: 'CAL-NEW',
+        measuredVolume: 4,
+        knownWeight: 0.84,
+        weightUnit: 'kg',
+        recordedAt: '2026-09-14T09:00:00+08:00',
+      }),
+    ]);
+
+    expect(selected.evidence.id).toBe('CAL-NEW');
+    expect(selected.gramsPerCup).toBe(210);
+  });
+
+  it('uses calibration ID as a deterministic tie-breaker for equal timestamps', () => {
+    const selected = selectLatestMaterialCupWeightCalibration(material(), [
+      evidence({ id: 'CAL-A', recordedAt: '2026-09-14T09:00:00+08:00' }),
+      evidence({ id: 'CAL-B', recordedAt: '2026-09-14T09:00:00+08:00' }),
+    ]);
+
+    expect(selected.evidence.id).toBe('CAL-B');
+  });
+
+  it('rejects selection when no calibration evidence exists', () => {
+    expect(() => selectLatestMaterialCupWeightCalibration(material(), [])).toThrowError(
+      expect.objectContaining({ code: 'NO_CALIBRATIONS' }),
+    );
+  });
+
+  it('does not silently skip invalid or foreign samples', () => {
+    expect(() =>
+      selectLatestMaterialCupWeightCalibration(material(), [
+        evidence(),
+        evidence({ id: 'CAL-FOREIGN', materialId: 'MAT-WAX' }),
+      ]),
+    ).toThrowError(expect.objectContaining({ code: 'MATERIAL_MISMATCH' }));
   });
 });
