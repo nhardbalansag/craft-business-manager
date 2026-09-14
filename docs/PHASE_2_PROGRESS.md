@@ -22,7 +22,7 @@ Planning baseline: `docs/PHASE_2_PRODUCT_RECIPES_MOLD_YIELD_PLAN.md`
 
 2.4 — Safety Waste & Inventory-Limited Capacity       IN PROGRESS
     2.4A — Safety Waste Policy                        COMPLETE
-    2.4B — Waste-Adjusted Requirements                NEXT
+    2.4B — Waste-Adjusted Requirements                VALIDATION / MERGE GATE
     2.4C — Producible Pieces & Limiting Material      NOT STARTED
 
 2.5 — Product / Yield / Production UI                 NOT STARTED
@@ -111,3 +111,15 @@ Evidence:
 ## Current active task
 
 **2.4B — Waste-Adjusted Production Requirements**
+
+Implementation is complete on `feature/phase-2-4b-waste-adjusted-requirements` and is awaiting CI / merge validation.
+
+Implemented scope:
+- applies the validated product safety-waste multiplier to canonical 2.3B requirements;
+- preserves effective quantity, explicit reserve quantity, adjusted per-piece quantity, and planned batch quantity;
+- scales yield/fixed contribution traceability with the same multiplier;
+- validates non-negative whole-number planned finished-product quantities while allowing zero;
+- propagates 2.3B ready/partial/not-ready status and issues;
+- explicitly excludes observed defect rate from the multiplier;
+- keeps all planning results derived rather than persisted;
+- does not inspect inventory or calculate production capacity yet.
