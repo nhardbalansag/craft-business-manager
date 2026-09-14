@@ -44,8 +44,8 @@ Implementation sequence:
 
 ```text
 1.1 — Measurement & Conversion Foundation
-    1.1A — Unit Catalog & Dimensional Rules        IMPLEMENTED / VALIDATION PENDING
-    1.1B — Standard Conversion Engine             NOT STARTED
+    1.1A — Unit Catalog & Dimensional Rules        COMPLETE
+    1.1B — Standard Conversion Engine             NEXT
     1.1C — Conversion Validation & Tests          NOT STARTED
 1.2 — Material Master Domain                      NOT STARTED
 1.3 — Purchase Costing & Inventory Quantity       NOT STARTED
@@ -54,18 +54,18 @@ Implementation sequence:
 1.6 — Phase 1 Integration & Completion Gate       NOT STARTED
 ```
 
-Phase 1.1A establishes one authoritative unit catalog with canonical dimensions and explicitly prevents universal cross-dimension conversion such as dry `cup → g`. Implementation detail: `docs/PHASE_1_1A_UNIT_CATALOG.md`.
+Phase 1.1A established one authoritative unit catalog with canonical dimensions and explicitly prevents universal cross-dimension conversion such as dry `cup → g`. Implementation detail: `docs/PHASE_1_1A_UNIT_CATALOG.md`.
 
-Current validation gate for 1.1A:
+Phase 1.1A validation evidence:
 
-- TypeScript typecheck
-- automated tests
-- production build
-- feature PR CI
-- merge to `develop`
-- post-merge `develop` CI
+- PR: `#4`
+- dependency install passes
+- TypeScript typecheck passes
+- automated tests pass
+- production build passes
+- post-merge `develop` CI is required before beginning 1.1B
 
-Next task after 1.1A is fully validated and merged:
+Next active task after final post-merge validation:
 
 **1.1B — Standard Conversion Engine**
 
