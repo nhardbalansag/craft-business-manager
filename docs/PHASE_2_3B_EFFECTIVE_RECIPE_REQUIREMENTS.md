@@ -2,11 +2,13 @@
 
 ## Status
 
-**IMPLEMENTED — VALIDATION / MERGE GATE**
+**COMPLETE**
 
-Branch: `feature/phase-2-3b-effective-requirements`
+Implementation PR: **#40**
 
-Base: `develop` at `1efc58d67ec6676650f9defb668c24e54146b415`.
+Implementation merge commit: `fe313ba7af5161137b1b80de74898836374a915d`
+
+Post-merge CI run: **#34837084144 — SUCCESS**
 
 ## Objective
 
@@ -146,6 +148,22 @@ Added:
 - `src/application/recipeRequirements/EffectiveRecipeRequirementService.test.ts`
 - shared-session wiring through `effectiveRecipeRequirementService`.
 
+## Validation evidence
+
+The completion gate passed:
+
+- yield-only synthesis tests passed;
+- fixed-only synthesis tests passed;
+- combined-material canonical merge tests passed;
+- contribution traceability tests passed;
+- base-unit conflict protection tests passed;
+- readiness-state tests passed;
+- full regression suite passed;
+- TypeScript typecheck passed;
+- production build passed;
+- PR #40 merged into `develop`;
+- post-merge `develop` CI run #34837084144 passed.
+
 ## Deferred
 
 - material cost contribution and recipe total cost: **2.3C**;
@@ -154,20 +172,4 @@ Added:
 - product/yield/production UI: **2.5**;
 - vessels and nested product components: **Phase 3**.
 
-## Completion gate
-
-2.3B may be marked complete after:
-
-- yield-only synthesis tests pass;
-- fixed-only synthesis tests pass;
-- combined-material canonical merge tests pass;
-- contribution traceability tests pass;
-- base-unit conflict protection tests pass;
-- readiness-state tests pass;
-- full regression suite passes;
-- TypeScript typecheck passes;
-- production build passes;
-- feature PR merges into `develop`;
-- post-merge `develop` CI passes.
-
-Next task after completion: **2.3C — Material Cost Preview & Requirement Validation**.
+Next task: **2.3C — Material Cost Preview & Requirement Validation**.
