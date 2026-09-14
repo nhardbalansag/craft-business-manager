@@ -2,11 +2,13 @@
 
 ## Status
 
-**IMPLEMENTED — VALIDATION / MERGE GATE**
-
-Feature branch: `feature/phase-2-5c-production-estimate-ui`
+**COMPLETE — MERGED + POST-MERGE CI PASSED**
 
 Implementation PR: **#54**
+
+Implementation merge commit: `d2c2c567d90cddfdf0fb7300294dc5f4f59f48ad`
+
+Post-merge CI: **34846437781 — SUCCESS**
 
 ## Objective
 
@@ -114,28 +116,17 @@ This phase does not add selling price, margin, markup, labor, overhead, or profi
 - selling price, markup, margin, or profit — Phase 4;
 - persistent production-estimate snapshots.
 
-## React validation
+## Validation evidence
 
-The React smoke suite renders `ProductionPage` server-side and verifies the principal planning sections:
+The completion gate passed:
 
-- Production estimate;
-- planned finished pieces;
-- producible-now summary;
-- materials-to-prepare table;
-- direct-material preview;
-- readiness/issues section.
+- TypeScript typecheck;
+- all existing domain/application regression tests;
+- Production workspace React smoke validation;
+- production build;
+- implementation PR #54 merge;
+- post-merge `develop` CI run `34846437781`.
 
-## Completion gate
-
-2.5C may be marked complete after:
-
-- TypeScript typecheck passes;
-- all existing domain/application regression tests pass;
-- Production workspace smoke validation passes;
-- production build passes;
-- PR #54 merges into `develop`;
-- post-merge `develop` CI passes.
-
-## Next task after completion
+## Next task
 
 **2.6A — Integrated Phase 2 Product / Yield / Production Workflow**

@@ -25,12 +25,14 @@ Planning baseline: `docs/PHASE_2_PRODUCT_RECIPES_MOLD_YIELD_PLAN.md`
     2.4B — Waste-Adjusted Requirements                COMPLETE
     2.4C — Producible Pieces & Limiting Material      COMPLETE
 
-2.5 — Product / Yield / Production UI                 IN PROGRESS
+2.5 — Product / Yield / Production UI                 COMPLETE
     2.5A — Products & Mix Presets UI                  COMPLETE
     2.5B — Yield Recording & History UI               COMPLETE
-    2.5C — Production Estimate UI                     NEXT
+    2.5C — Production Estimate UI                     COMPLETE
 
-2.6 — Phase 2 Integration & Completion Gate           NOT STARTED
+2.6 — Phase 2 Integration & Completion Gate           IN PROGRESS
+    2.6A — Integrated Phase 2 Workflow                NEXT
+    2.6B — Regression / Build / Completion            NOT STARTED
 ```
 
 ## Completed
@@ -184,6 +186,25 @@ Evidence:
 - implementation merge commit `db0cc26fbe78ee076fd65dde90d4e66cea1480f1`;
 - post-merge CI run `34844884088` passed.
 
+### 2.5C — Production Estimate UI
+
+- enables the Production top-level navigation workspace;
+- combines `ProductionRequirementService`, `ProductionCapacityService`, and `RecipeMaterialCostPreviewService` without duplicating business calculations in React;
+- accepts non-negative whole-number planned finished-product quantity, including zero for preview;
+- displays effective, waste-reserve, waste-adjusted per-piece, and planned batch material quantities;
+- displays normalized on-hand inventory, conversion source, per-material capacity, overall producible pieces, and all tied limiting materials;
+- warns when requested production exceeds reliable current direct-material capacity;
+- displays direct-material cost per product plus waste-adjusted per-piece and batch material cost;
+- surfaces requirement, inventory, and costing readiness issues;
+- exposes skipped invalid yield evidence when effective-yield fallback is in use;
+- keeps vessels/nested components in Phase 3 and selling price/profit in Phase 4;
+- adds responsive Production styles and React smoke coverage.
+
+Evidence:
+- PR #54 merged;
+- implementation merge commit `d2c2c567d90cddfdf0fb7300294dc5f4f59f48ad`;
+- post-merge CI run `34846437781` passed.
+
 ## Current active task
 
-**2.5C — Production Estimate UI**
+**2.6A — Integrated Phase 2 Product / Yield / Production Workflow**
