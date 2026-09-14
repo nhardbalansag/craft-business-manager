@@ -1,7 +1,6 @@
 import type { Material, MaterialGroup } from '../../domain/materials';
 import { validateMaterialContract } from '../../domain/materials';
-import { calculateMaterialPackageCosting } from '../../domain/materialCosting';
-import { normalizeMaterialOnHand } from '../../domain/materialInventory';
+import { calculateMaterialInventoryValuation } from '../../domain/materialInventory';
 import type { MaterialRepository } from './MaterialRepository';
 
 export interface MaterialListFilter {
@@ -53,8 +52,9 @@ function matchesQuery(material: Material, query: string): boolean {
 
 function validateMaterialForPersistence(material: Material): void {
   validateMaterialContract(material);
-  calculateMaterialPackageCosting(material);
-  normalizeMaterialOnHand(material);
+  // Inventory valuation composes package costing + on-hand normalization and adds
+  // Phase 1.3C business validation such as rejecting negative inventory.
+  calculateMaterialInventoryValuation(material);
 }
 
 export class MaterialService {
