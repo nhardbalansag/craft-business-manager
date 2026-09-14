@@ -46,7 +46,7 @@ Implementation sequence:
 1.1 — Measurement & Conversion Foundation
     1.1A — Unit Catalog & Dimensional Rules        COMPLETE
     1.1B — Standard Conversion Engine             COMPLETE
-    1.1C — Conversion Validation & Tests          NEXT
+    1.1C — Conversion Validation & Tests          IMPLEMENTED / VALIDATION PENDING
 1.2 — Material Master Domain                      NOT STARTED
 1.3 — Purchase Costing & Inventory Quantity       NOT STARTED
 1.4 — Material-Specific Calibration               NOT STARTED
@@ -75,11 +75,22 @@ Phase 1.1B validation evidence:
 - automated tests passed
 - production build passed
 - feature PR CI passed
-- final merge/post-merge integration validation is required before starting 1.1C
+- post-merge `develop` CI passed
 
-Next active task after final post-merge validation:
+Phase 1.1C hardens the measurement foundation with runtime unit validation plus exhaustive compatible/incompatible conversion matrix tests. Implementation detail: `docs/PHASE_1_1C_CONVERSION_VALIDATION.md`.
 
-**1.1C — Conversion Validation & Tests**
+Current validation gate for 1.1C:
+
+- TypeScript typecheck
+- exhaustive automated unit/conversion tests
+- production build
+- feature PR CI
+- merge to `develop`
+- post-merge `develop` CI
+
+When that gate passes, **Phase 1.1 is complete** and the next active task becomes:
+
+**1.2A — Material Contract & Classification**
 
 ## Phase 2 — Product Recipes & Mold Yield
 
