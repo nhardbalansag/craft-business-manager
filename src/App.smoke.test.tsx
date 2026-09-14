@@ -42,7 +42,7 @@ describe('React workspace smoke validation', () => {
     expect(html).toContain('Yield &amp; history');
     expect(html).toContain('Record a yield sample');
     expect(html).toContain('Materials actually consumed');
-    expect(html).toContain('Effective learning');
+    expect(html).toContain('EFFECTIVE LEARNING');
     expect(html).toContain('Recorded batches');
   });
 });
