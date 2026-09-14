@@ -2,11 +2,15 @@
 
 ## Status
 
-**IMPLEMENTED — VALIDATION / MERGE GATE**
+**COMPLETE**
 
-Branch: `feature/phase-2-4b-waste-adjusted-requirements`
+Implementation branch: `feature/phase-2-4b-waste-adjusted-requirements`
 
-Base: corrected `develop` state before Phase 2.4B implementation.
+Implementation PR: **#46**
+
+Implementation merge commit: `34788e67913bbc3587dc1118797a34b892cd8df9`
+
+Post-merge CI run: **34840488193 — SUCCESS**
 
 ## Objective
 
@@ -168,21 +172,21 @@ Phase 2.4B does **not**:
 - include vessels/nested components — Phase 3;
 - add labor, overhead, selling price, margin, or profit policy.
 
-## Completion gate
+## Completion evidence
 
-2.4B may be marked complete after:
+The completion gate passed:
 
-- per-piece waste-adjustment tests pass;
-- planned-batch scaling tests pass;
-- zero planned quantity tests pass;
-- invalid planned quantity tests pass;
-- contribution traceability/reconciliation tests pass;
-- ready/partial/not-ready application tests pass;
+- per-piece waste-adjustment tests passed;
+- planned-batch scaling tests passed;
+- zero planned quantity tests passed;
+- invalid planned quantity tests passed;
+- contribution traceability/reconciliation tests passed;
+- ready/partial/not-ready application tests passed;
 - observed defect rate remains explicitly excluded;
-- full regression suite passes;
-- TypeScript typecheck passes;
-- production build passes;
-- feature PR merges into `develop`;
-- post-merge `develop` CI passes.
+- full regression suite passed;
+- TypeScript typecheck passed;
+- production build passed;
+- PR #46 merged into `develop`;
+- post-merge `develop` CI run 34840488193 passed.
 
-Next task after completion: **2.4C — Producible Pieces & Limiting Material**.
+Next task: **2.4C — Producible Pieces & Limiting Material**.
