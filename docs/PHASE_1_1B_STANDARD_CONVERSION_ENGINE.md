@@ -2,11 +2,13 @@
 
 ## Status
 
-**IMPLEMENTED — VALIDATION PENDING**
+**COMPLETE**
 
 Branch: `feature/phase-1-1b-standard-conversion`
 
 Base: `develop`
+
+PR: `#5`
 
 ## Scope
 
@@ -135,7 +137,7 @@ Added domain capabilities:
 
 ## Automated coverage
 
-`src/domain/units.test.ts` now covers:
+`src/domain/units.test.ts` covers:
 
 - weight conversions
 - volume conversions
@@ -163,15 +165,13 @@ Not part of Phase 1.1B:
 - UI conversion controls
 - Excel persistence
 
-## Completion gate
+## Validation evidence
 
-Phase 1.1B is complete only after:
+- dependency installation passed
+- TypeScript typecheck passed
+- automated tests passed
+- production build passed
+- PR CI passed
+- PR merge and post-merge `develop` CI are the final integration gate
 
-- TypeScript typecheck passes
-- automated tests pass
-- production build passes
-- feature PR CI passes
-- PR is merged to `develop`
-- post-merge `develop` CI passes
-
-Next task after completion: **1.1C — Conversion Validation & Tests**.
+Next task after final integration validation: **1.1C — Conversion Validation & Tests**.
