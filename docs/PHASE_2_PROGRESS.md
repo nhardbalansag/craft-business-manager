@@ -31,8 +31,8 @@ Planning baseline: `docs/PHASE_2_PRODUCT_RECIPES_MOLD_YIELD_PLAN.md`
     2.5C — Production Estimate UI                     COMPLETE
 
 2.6 — Phase 2 Integration & Completion Gate           IN PROGRESS
-    2.6A — Integrated Phase 2 Workflow                NEXT
-    2.6B — Regression / Build / Completion            NOT STARTED
+    2.6A — Integrated Phase 2 Workflow                COMPLETE
+    2.6B — Regression / Build / Completion            NEXT
 ```
 
 ## Completed
@@ -205,6 +205,21 @@ Evidence:
 - implementation merge commit `d2c2c567d90cddfdf0fb7300294dc5f4f59f48ad`;
 - post-merge CI run `34846437781` passed.
 
+### 2.6A — Integrated Phase 2 Workflow
+
+- validates the full application path from material/calibration setup through mix/product, real yield evidence, fixed recipe inputs, effective requirements, direct-material cost preview, safety-waste planning, and inventory-limited capacity;
+- validates the calibrated plaster workflow from cups to canonical grams while retaining original production evidence;
+- validates effective-yield fallback through downstream requirement, costing, planning, and capacity services when a newer calibration-dependent sample becomes non-derivable;
+- finalizes indivisible count-material planning so precise per-product and source-contribution quantities are retained while only the final physical `pc` batch requirement is rounded upward;
+- reconciles Production summary batch cost to the physical batch quantities so rounded count requirements cannot understate planned material cost;
+- verifies deterministic limiting-material behavior, including tied limiting materials;
+- preserves Phase 3 component/vessel and Phase 4 selling-price/profit boundaries.
+
+Evidence:
+- PR #56 merged;
+- implementation merge commit `3557121019908949b6032e371581f452d9a19163`;
+- post-merge CI run `34848952735` passed.
+
 ## Current active task
 
-**2.6A — Integrated Phase 2 Product / Yield / Production Workflow**
+**2.6B — Regression, Build & Phase 2 Completion Validation**
