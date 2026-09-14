@@ -2,23 +2,23 @@
 
 ## Status
 
-**VALIDATION / MERGE GATE**
+**COMPLETE — MERGED + POST-MERGE CI PASSED**
 
-Feature branch: `feature/phase-2-6b-completion-validation`
+Implementation PR: **#58**
 
-Authoritative base:
+Implementation merge commit: `e79303fdcad4fb298154be957f938584f164a61b`
 
-`develop` @ `e053d5812bcd6b9f5e24839f4e2d4e2121dd6ce2`
+Post-merge CI: **34908149932 — SUCCESS**
 
 ## Objective
 
 Close Phase 2 only after the complete Phase 1 + Phase 2 application surface passes one final regression, typecheck, integration, React smoke, and production-build gate on an exact feature head and then again on the exact merged `develop` commit.
 
-No new Phase 2 business behavior is intentionally introduced here. Phase 2.6A already completed the end-to-end workflow and fixed the final integration gap around indivisible count-material batch rounding and physical batch-cost reconciliation.
+No new Phase 2 business behavior was introduced here. Phase 2.6A already completed the end-to-end workflow and fixed the final integration gap around indivisible count-material batch rounding and physical batch-cost reconciliation.
 
 ## Completion validation surface
 
-The final gate covers all current automated suites, including:
+The final gate covered all current automated suites, including:
 
 - standard measurement/unit conversion and validation;
 - material master, costing, inventory, supplier/source, and calibration behavior;
@@ -37,11 +37,19 @@ The final gate covers all current automated suites, including:
 - TypeScript typecheck;
 - production Vite build.
 
-## Baseline evidence before the final feature gate
+## Final validation evidence
 
-The exact starting `develop` commit already passed CI run `34849497544`.
+The exact starting `develop` commit passed CI run `34849497544` before the completion branch was created.
 
-Observed baseline:
+The completion feature head then passed CI run `34908067484`.
+
+PR #58 merged to `develop` as:
+
+`e79303fdcad4fb298154be957f938584f164a61b`
+
+The exact merge commit passed post-merge CI run `34908149932`.
+
+Observed complete regression surface:
 
 ```text
 Test files: 38 passed
@@ -50,11 +58,11 @@ Typecheck:  passed
 Build:      passed
 ```
 
-The build transformed 76 modules and emitted the production bundle successfully.
+The production build transformed 76 modules and emitted the Vite production bundle successfully.
 
 ## Phase 2 completion invariants
 
-The completion gate confirms that Phase 2 delivers these stable boundaries:
+The completion gate confirms these stable Phase 2 boundaries:
 
 1. Real production sample evidence is authoritative; mold volume is optional.
 2. Learned material usage divides total batch consumption by good pieces only.
@@ -71,18 +79,6 @@ The completion gate confirms that Phase 2 delivers these stable boundaries:
 13. Excel persistence remains Phase 5.
 14. React continues to use application services rather than duplicating domain calculations.
 
-## Final validation requirements
-
-Before Phase 2 may be marked complete:
-
-- feature-head dependency installation must succeed;
-- `npm run typecheck` must succeed;
-- `npm run test:run` must pass the complete suite;
-- `npm run build` must succeed;
-- the completion PR must merge to `develop`;
-- CI on the exact merge commit must complete successfully;
-- only then may `PHASE_2_PROGRESS.md`, `DEVELOPMENT_PLAN.md`, and README status be advanced to Phase 3.
-
 ## Deferred work remains intentional
 
 Phase 2 completion does **not** include:
@@ -97,7 +93,13 @@ Phase 2 completion does **not** include:
 - native Tauri file dialogs/storage;
 - inventory reservation or production stock deduction.
 
-## Next phase after successful completion
+## Completion result
+
+**Phase 2 — Product Recipes & Mold Yield is complete.**
+
+The product, mix, yield-evidence, learned-requirement, fixed-recipe, cost-preview, safety-waste, inventory-capacity, UI, integrated-workflow, and final regression/build gates all passed.
+
+## Next phase
 
 **Phase 3 — Product Components, Vessels & Nested Molded Products**
 
