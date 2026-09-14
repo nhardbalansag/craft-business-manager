@@ -36,7 +36,7 @@ Validation evidence:
 
 ## Phase 1 — Materials, Units & Calibration
 
-Status: **PLANNED — DEVELOPMENT NOT STARTED**
+Status: **IN PROGRESS**
 
 Dedicated plan: `docs/PHASE_1_MATERIALS_UNITS_CALIBRATION_PLAN.md`
 
@@ -44,18 +44,30 @@ Implementation sequence:
 
 ```text
 1.1 — Measurement & Conversion Foundation
-1.2 — Material Master Domain
-1.3 — Purchase Costing & Inventory Quantity
-1.4 — Material-Specific Calibration
-1.5 — Supplier & Source Metadata
-1.6 — Phase 1 Integration & Completion Gate
+    1.1A — Unit Catalog & Dimensional Rules        IMPLEMENTED / VALIDATION PENDING
+    1.1B — Standard Conversion Engine             NOT STARTED
+    1.1C — Conversion Validation & Tests          NOT STARTED
+1.2 — Material Master Domain                      NOT STARTED
+1.3 — Purchase Costing & Inventory Quantity       NOT STARTED
+1.4 — Material-Specific Calibration               NOT STARTED
+1.5 — Supplier & Source Metadata                  NOT STARTED
+1.6 — Phase 1 Integration & Completion Gate       NOT STARTED
 ```
 
-The detailed plan further splits each subphase into implementation-sized tasks and defines unit standards, cross-dimension conversion rules, calibration precedence, completion gates, and branch/PR sequencing.
+Phase 1.1A establishes one authoritative unit catalog with canonical dimensions and explicitly prevents universal cross-dimension conversion such as dry `cup → g`. Implementation detail: `docs/PHASE_1_1A_UNIT_CATALOG.md`.
 
-Next active implementation task after this planning change:
+Current validation gate for 1.1A:
 
-**1.1A — Unit Catalog & Dimensional Rules**
+- TypeScript typecheck
+- automated tests
+- production build
+- feature PR CI
+- merge to `develop`
+- post-merge `develop` CI
+
+Next task after 1.1A is fully validated and merged:
+
+**1.1B — Standard Conversion Engine**
 
 ## Phase 2 — Product Recipes & Mold Yield
 
