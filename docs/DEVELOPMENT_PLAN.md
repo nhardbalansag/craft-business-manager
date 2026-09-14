@@ -8,7 +8,9 @@ The domain layer must not depend on Excel so persistence can move to SQLite late
 
 ## Phase 0 — Repository & Architecture Foundation
 
-Status: **IN PROGRESS / FOUNDATION CREATED**
+Status: **COMPLETE**
+
+Completed foundation:
 
 - React + TypeScript + Vite scaffold
 - `main` and `develop` branch strategy
@@ -16,14 +18,25 @@ Status: **IN PROGRESS / FOUNDATION CREATED**
 - pure costing/yield helpers
 - storage-port abstraction
 - Excel adapter boundary
+- Vitest automated tests for current costing/yield primitives
+- GitHub Actions CI using Node 22
 
-Completion gate:
+Completion gate: **PASSED**
 
-- project installs, type-checks, and builds
-- domain functions have automated tests
-- architecture decisions documented
+- dependency installation succeeds
+- TypeScript typecheck succeeds
+- automated domain tests succeed
+- production build succeeds
+- architecture decisions are documented
+
+Validation evidence:
+
+- Phase 0 PR: `#2`
+- CI workflow validates `npm install`, `npm run typecheck`, `npm run test:run`, and `npm run build`
 
 ## Phase 1 — Materials, Units & Calibration
+
+Status: **NEXT**
 
 - materials CRUD
 - package price → cost/base-unit calculation
