@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Material } from '../../domain/materials';
 import { MaterialContractError } from '../../domain/materials';
+import { MaterialInventoryError } from '../../domain/materialInventory';
 import { InMemoryMaterialRepository } from './InMemoryMaterialRepository';
 import { MaterialApplicationError, MaterialService } from './MaterialService';
 
@@ -62,6 +63,43 @@ describe('MaterialService create/update/retrieve', () => {
     ).rejects.toBeInstanceOf(MaterialContractError);
 
     expect(await materials.listMaterials()).toEqual([]);
+  });
+
+  it('rejects unresolved package-label on-hand units before persistence', async () => {
+    const materials = service();
+    const candidate = material({
+      id: 'MAT-LABEL',
+      name: 'Product Label',
+      group: 'packaging',
+      baseUnit: 'pc',
+      purchaseQuantity: 1,
+      purchaseUnit: 'pack',
+      packageCost: 120,
+      manualBaseUnitsPerPurchaseUnit: 100,
+      onHandQuantity: 1,
+      onHandUnit: 'box',
+    });
+
+    await expect(materials.createMaterial(candidate)).rejects.toBeInstanceOf(MaterialInventoryError);
+    expect(await materials.listMaterials()).toEqual([]);
+  });
+
+  it('accepts a matching package-label on-hand unit with a known conversion', async () => {
+    const materials = service();
+    const candidate = material({
+      id: 'MAT-LABEL',
+      name: 'Product Label',
+      group: 'packaging',
+      baseUnit: 'pc',
+      purchaseQuantity: 1,
+      purchaseUnit: 'pack',
+      packageCost: 120,
+      manualBaseUnitsPerPurchaseUnit: 100,
+      onHandQuantity: 0.5,
+      onHandUnit: 'pack',
+    });
+
+    await expect(materials.createMaterial(candidate)).resolves.toEqual(candidate);
   });
 
   it('updates an existing material while preserving its stable ID', async () => {
