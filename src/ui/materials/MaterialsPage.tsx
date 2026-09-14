@@ -192,7 +192,8 @@ export function MaterialsPage() {
     setMessage(null);
 
     try {
-      const candidate = formToMaterial(form, true);
+      const existing = editingId ? await materialService.getMaterial(editingId) : null;
+      const candidate = formToMaterial(form, existing?.isActive ?? true);
       if (editingId) {
         const { id: _ignored, ...changes } = candidate;
         await materialService.updateMaterial(editingId, changes);
