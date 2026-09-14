@@ -126,10 +126,23 @@ export function ProductionPage() {
   const exceedsCapacity =
     Boolean(capacity?.status === 'ready' && capacity.produciblePieces !== null && quantity > capacity.produciblePieces);
 
+  const completeCostCoverage = Boolean(
+    plan &&
+    costPreview?.status === 'ready' &&
+    costPreview.lines.length === plan.requirements.length &&
+    plan.requirements.every((requirement) => costById.has(requirement.materialId.toLocaleLowerCase())),
+  );
   const wasteAdjustedCostPerProduct =
-    plan && costPreview ? costPreview.totalMaterialCostPerProduct * plan.safetyWasteMultiplier : null;
+    plan && completeCostCoverage && costPreview
+      ? costPreview.totalMaterialCostPerProduct * plan.safetyWasteMultiplier
+      : null;
   const plannedBatchMaterialCost =
-    wasteAdjustedCostPerProduct !== null ? wasteAdjustedCostPerProduct * quantity : null;
+    plan && completeCostCoverage
+      ? plan.requirements.reduce((total, requirement) => {
+          const cost = costById.get(requirement.materialId.toLocaleLowerCase());
+          return total + (cost ? cost.costPerBaseUnit * requirement.plannedBatchBaseQuantity : 0);
+        }, 0)
+      : null;
 
   const allIssues = [
     ...(plan?.issues.map((issue) => ({ source: 'Requirement', message: issue.message })) ?? []),
@@ -204,7 +217,7 @@ export function ProductionPage() {
         <article className="panel production-summary-card">
           <span>Planned material cost</span>
           <strong>{plannedBatchMaterialCost !== null ? peso.format(plannedBatchMaterialCost) : '—'}</strong>
-          <small>{wasteAdjustedCostPerProduct !== null ? `${peso.format(wasteAdjustedCostPerProduct)} waste-adjusted / piece` : 'Direct materials only'}</small>
+          <small>{wasteAdjustedCostPerProduct !== null ? `${peso.format(wasteAdjustedCostPerProduct)} mathematical waste-adjusted / piece` : 'Direct materials only when fully priceable'}</small>
         </article>
       </div>
 
