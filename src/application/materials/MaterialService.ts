@@ -1,5 +1,6 @@
 import type { Material, MaterialGroup } from '../../domain/materials';
 import { validateMaterialContract } from '../../domain/materials';
+import { calculateMaterialPackageCosting } from '../../domain/materialCosting';
 import type { MaterialRepository } from './MaterialRepository';
 
 export interface MaterialListFilter {
@@ -49,12 +50,17 @@ function matchesQuery(material: Material, query: string): boolean {
   );
 }
 
+function validateMaterialForPersistence(material: Material): void {
+  validateMaterialContract(material);
+  calculateMaterialPackageCosting(material);
+}
+
 export class MaterialService {
   constructor(private readonly repository: MaterialRepository) {}
 
   async createMaterial(input: Material): Promise<Material> {
     const material = normalizeMaterial(input);
-    validateMaterialContract(material);
+    validateMaterialForPersistence(material);
 
     const all = await this.repository.list();
     this.assertUniqueIdentity(material, all);
@@ -66,7 +72,7 @@ export class MaterialService {
   async updateMaterial(id: string, changes: MaterialUpdate): Promise<Material> {
     const existing = await this.requireMaterial(id);
     const candidate = normalizeMaterial({ ...existing, ...changes, id: existing.id });
-    validateMaterialContract(candidate);
+    validateMaterialForPersistence(candidate);
 
     const all = await this.repository.list();
     this.assertUniqueIdentity(candidate, all, existing.id);
