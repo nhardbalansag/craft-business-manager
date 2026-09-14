@@ -2,11 +2,13 @@
 
 ## Status
 
-**IMPLEMENTED — VALIDATION PENDING**
+**FEATURE CI PASSED — MERGE GATE**
 
 Branch: `feature/phase-1-3b-on-hand-normalization`
 
 Base: `develop`
+
+PR: `#11`
 
 ## Objective
 
@@ -129,16 +131,20 @@ Tests cover:
 - negative quantity preservation for later validation
 - MaterialService persistence boundary
 
-## Completion gate
+## Feature validation evidence
 
-Phase 1.3B is complete only after:
+- dependency installation passed
+- TypeScript typecheck passed
+- normalization/domain tests passed
+- application boundary tests passed
+- full automated test suite passed
+- production build passed
+- feature PR CI passed
 
-- TypeScript typecheck passes
-- normalization/domain tests pass
-- application boundary tests pass
-- production build passes
-- feature PR CI passes
-- PR merges into `develop`
+## Remaining completion gate
+
+- final PR-head CI after this documentation update
+- merge PR `#11` into `develop`
 - post-merge `develop` CI passes
 
 Next task after completion: **1.3C — Inventory Valuation & Validation**.
