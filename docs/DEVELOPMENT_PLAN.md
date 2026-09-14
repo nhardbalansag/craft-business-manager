@@ -43,12 +43,12 @@ Dedicated plan: `docs/PHASE_1_MATERIALS_UNITS_CALIBRATION_PLAN.md`
 Implementation sequence:
 
 ```text
-1.1 — Measurement & Conversion Foundation         COMPLETE (post-merge CI confirmation pending)
+1.1 — Measurement & Conversion Foundation         COMPLETE
     1.1A — Unit Catalog & Dimensional Rules        COMPLETE
     1.1B — Standard Conversion Engine             COMPLETE
     1.1C — Conversion Validation & Tests          COMPLETE
 1.2 — Material Master Domain
-    1.2A — Material Contract & Classification     NEXT
+    1.2A — Material Contract & Classification     IMPLEMENTED / VALIDATION PENDING
     1.2B — Material Application CRUD Services     NOT STARTED
     1.2C — Materials UI                           NOT STARTED
 1.3 — Purchase Costing & Inventory Quantity       NOT STARTED
@@ -80,9 +80,9 @@ Phase 1.1B validation evidence:
 - feature PR CI passed
 - post-merge `develop` CI passed
 
-Phase 1.1C adds runtime unit validation plus exhaustive compatible/incompatible conversion matrix tests. Implementation detail: `docs/PHASE_1_1C_CONVERSION_VALIDATION.md`.
+Phase 1.1C added runtime unit validation plus exhaustive compatible/incompatible conversion matrix tests. Implementation detail: `docs/PHASE_1_1C_CONVERSION_VALIDATION.md`.
 
-Phase 1.1C feature validation evidence:
+Phase 1.1C validation evidence:
 
 - PR: `#6`
 - dependency install passed
@@ -90,12 +90,22 @@ Phase 1.1C feature validation evidence:
 - exhaustive automated tests passed
 - production build passed
 - feature PR CI passed
+- post-merge `develop` CI passed
 
-Final Phase 1.1 integration confirmation is the post-merge `develop` CI run for PR #6.
+Phase 1.2A establishes the authoritative material source-data contract and classification taxonomy, including standard measurement units vs non-standard package labels. Derived spreadsheet-style fields are removed from the source of truth. Implementation detail: `docs/PHASE_1_2A_MATERIAL_CONTRACT.md`.
 
-After that succeeds, the active development task is:
+Current validation gate for 1.2A:
 
-**1.2A — Material Contract & Classification**
+- TypeScript typecheck
+- material-domain tests
+- production build
+- feature PR CI
+- merge to `develop`
+- post-merge `develop` CI
+
+Next task after 1.2A is fully validated and merged:
+
+**1.2B — Material Application CRUD Services**
 
 ## Phase 2 — Product Recipes & Mold Yield
 
