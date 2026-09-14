@@ -43,10 +43,10 @@ Dedicated plan: `docs/PHASE_1_MATERIALS_UNITS_CALIBRATION_PLAN.md`
 
 1.5 — Supplier & Source Metadata                  IN PROGRESS
     1.5A — Supplier / Source Contract             COMPLETE
-    1.5B — Materials UI Integration               NEXT
+    1.5B — Materials UI Integration               IMPLEMENTED / VALIDATION PENDING
 
 1.6 — Phase 1 Integration & Completion Gate       NOT STARTED
-    1.6A — Integrated Materials Workflow          NOT STARTED
+    1.6A — Integrated Materials Workflow          NEXT AFTER 1.5B
     1.6B — Regression, Build & Completion         NOT STARTED
 ```
 
@@ -91,7 +91,7 @@ Implementation docs:
 
 Status: **COMPLETE**
 
-The material domain now supports lightweight source metadata for vendor name, branch/platform/source detail, purchase/re-order link, contact number, social-page reference, and buying notes.
+The material domain supports lightweight source metadata for vendor name, branch/platform/source detail, purchase/re-order link, contact number, social-page reference, and buying notes.
 
 Supplier/source data remains independent of costing. The application normalizes source text, validates purchase links, includes source text in material search, and deep-clones nested metadata at repository/service boundaries.
 
@@ -104,11 +104,38 @@ Validation evidence:
 
 Implementation detail: `docs/PHASE_1_5A_SUPPLIER_SOURCE_CONTRACT.md`.
 
+### Phase 1.5B — Materials UI Integration
+
+Status: **IMPLEMENTED — VALIDATION PENDING**
+
+The Materials workspace now exposes supplier/source metadata directly in the existing add/edit workflow.
+
+Delivered on the feature branch:
+
+- dedicated Supplier / source form section
+- vendor/supplier name input
+- branch/platform/source detail input
+- purchase/re-order URL input
+- contact number input
+- social page/handle input
+- supplier-specific buying notes
+- separate material notes vs source notes
+- source metadata restored during Edit
+- Source column in the material list
+- direct Re-order link when a purchase URL exists
+- `Not recorded` state for materials without supplier metadata
+- supplier-aware search exposed through the existing search box
+- responsive table width adjustments for the new source column
+
+Supplier fields remain informational and do not participate in costing, calibration, stock normalization, or inventory valuation.
+
+Implementation detail: `docs/PHASE_1_5B_MATERIALS_SOURCE_UI.md`.
+
 ### Current active task
 
-**1.5B — Materials UI Integration**
+**1.5B — Materials UI Integration — validation / merge gate**
 
-This task will expose vendor/source metadata in the Materials form and listing while keeping the fields informational and non-financial.
+After feature CI, merge, and post-merge `develop` CI pass, **Phase 1.5 is complete** and the next task is **1.6A — Integrated Materials Workflow**.
 
 ---
 
