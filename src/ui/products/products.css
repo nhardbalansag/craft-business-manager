@@ -1,0 +1,78 @@
+.products-workspace { padding-top: 34px; }
+.product-layout { align-items: start; }
+.workspace-switcher {
+  display: inline-flex;
+  gap: 4px;
+  margin: 0 0 18px;
+  padding: 4px;
+  border: 1px solid #d9d2c6;
+  border-radius: 14px;
+  background: #fffdf8;
+}
+.workspace-switcher button {
+  border: 0;
+  border-radius: 10px;
+  padding: 9px 14px;
+  background: transparent;
+  color: #746c61;
+  font-weight: 800;
+}
+.workspace-switcher button.active {
+  background: #2d2924;
+  color: #fffdf8;
+}
+.products-filters { grid-template-columns: minmax(220px, 1fr) 180px 150px; }
+.category-checkboxes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+.category-checkboxes label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 10px;
+  border: 1px solid #ddd5c9;
+  border-radius: 10px;
+  background: #faf7f1;
+  color: #5f574e;
+  font-size: .8rem;
+  font-weight: 750;
+}
+.category-checkboxes input { width: auto; margin: 0; }
+.mix-lines { display: grid; gap: 9px; }
+.mix-line-row {
+  display: grid;
+  grid-template-columns: minmax(150px, 1.45fr) minmax(105px, .8fr) minmax(88px, .65fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid #e4ddd2;
+  border-radius: 12px;
+  background: #fbf8f3;
+}
+.mix-line-row input,
+.mix-line-row select { min-width: 0; }
+.add-line-button { margin-top: 9px; }
+.products-table { min-width: 900px; }
+.mix-table { min-width: 1050px; }
+.status-pill {
+  display: inline-flex;
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: #ede8e0;
+  color: #756b61;
+  font-size: .72rem;
+  font-weight: 800;
+}
+.status-pill.status-active { background: #e8f1e6; color: #426340; }
+.ratio-summary { display: block; color: #342f29; font-weight: 800; }
+.line-detail { display: block; margin-top: 4px; max-width: 360px; color: #8a8176; line-height: 1.35; }
+
+@media (max-width: 760px) {
+  .products-filters { grid-template-columns: 1fr; }
+  .workspace-switcher { width: 100%; }
+  .workspace-switcher button { flex: 1; }
+  .mix-line-row { grid-template-columns: 1fr; }
+  .mix-line-row .text-button { justify-self: start; }
+}
