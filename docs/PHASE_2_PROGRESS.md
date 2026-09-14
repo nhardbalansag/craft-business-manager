@@ -20,12 +20,16 @@ Planning baseline: `docs/PHASE_2_PRODUCT_RECIPES_MOLD_YIELD_PLAN.md`
     2.3B — Effective Per-Piece Material Requirements  COMPLETE
     2.3C — Material Cost Preview & Validation         COMPLETE
 
-2.4 — Safety Waste & Inventory-Limited Capacity       IN PROGRESS
+2.4 — Safety Waste & Inventory-Limited Capacity       COMPLETE
     2.4A — Safety Waste Policy                        COMPLETE
     2.4B — Waste-Adjusted Requirements                COMPLETE
-    2.4C — Producible Pieces & Limiting Material      NEXT
+    2.4C — Producible Pieces & Limiting Material      COMPLETE
 
-2.5 — Product / Yield / Production UI                 NOT STARTED
+2.5 — Product / Yield / Production UI                 IN PROGRESS
+    2.5A — Products & Mix Presets UI                  NEXT
+    2.5B — Yield Recording & History UI               NOT STARTED
+    2.5C — Production Estimate UI                     NOT STARTED
+
 2.6 — Phase 2 Integration & Completion Gate           NOT STARTED
 ```
 
@@ -125,6 +129,25 @@ Evidence:
 - implementation merge commit `34788e67913bbc3587dc1118797a34b892cd8df9`;
 - post-merge CI run `34840488193` passed.
 
+### 2.4C — Producible Pieces & Limiting Material
+
+- combines waste-adjusted per-product requirements with current normalized Phase 1 inventory;
+- calculates each direct material's capacity using floor division;
+- publishes overall producible pieces only when the complete direct-material picture is reliable;
+- reports every tied limiting material deterministically;
+- preserves stock normalization source and calibration identity;
+- supports standard, calibrated cup-to-weight, manual fallback, and purchase-package inventory normalization;
+- treats zero stock as valid capacity zero;
+- surfaces missing, archived, mismatched, negative, or unresolvable inventory as controlled readiness issues;
+- returns diagnostic per-material capacities for partial states without publishing a misleading overall capacity;
+- keeps purchased vessels, molded products, nested components, and component-limited capacity in Phase 3;
+- wires `productionCapacityService` into the shared application session.
+
+Evidence:
+- PR #48 merged;
+- implementation merge commit `e9a6bbffd36d6aed29d7660fabee8845252ab5fb`;
+- post-merge CI run `34841719987` passed.
+
 ## Current active task
 
-**2.4C — Producible Pieces & Limiting Material**
+**2.5A — Products & Mix Presets UI**
