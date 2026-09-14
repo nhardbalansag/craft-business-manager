@@ -7,6 +7,7 @@ import { MixPresetService } from './mixPresets/MixPresetService';
 import { InMemoryProductRepository } from './products/InMemoryProductRepository';
 import { ProductService } from './products/ProductService';
 import { InMemoryYieldSampleRepository } from './yieldSamples/InMemoryYieldSampleRepository';
+import { YieldLearningService } from './yieldSamples/YieldLearningService';
 import { YieldSampleEvidenceService } from './yieldSamples/YieldSampleEvidenceService';
 
 export const materialRepository = new InMemoryMaterialRepository();
@@ -33,4 +34,9 @@ export const yieldSampleEvidenceService = new YieldSampleEvidenceService(
   productRepository,
   mixPresetRepository,
   materialRepository,
+);
+export const yieldLearningService = new YieldLearningService(
+  yieldSampleRepository,
+  materialRepository,
+  calibrationRepository,
 );
