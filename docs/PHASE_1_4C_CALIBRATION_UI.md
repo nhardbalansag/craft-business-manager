@@ -2,17 +2,19 @@
 
 ## Status
 
-**IMPLEMENTED — VALIDATION PENDING**
+**FEATURE CI PASSED — MERGE GATE**
 
 Branch: `feature/phase-1-4c-calibration-ui`
 
 Base: `develop`
 
+PR: `#15`
+
 ## Objective
 
 Make the material-specific calibration model operational through the React application while preserving the Phase 1 source-data architecture.
 
-A user must be able to:
+A user can now:
 
 1. create a weight-based material,
 2. open Calibration,
@@ -51,7 +53,7 @@ Calibration records remain evidence objects. `gramsPerCup` continues to be deriv
 
 ## Calibration workspace
 
-The Calibration tab now provides:
+The Calibration tab provides:
 
 - active gram-based material selector
 - calibration ID
@@ -65,7 +67,7 @@ The Calibration tab now provides:
 - effective-sample badge
 - delete action for erroneous evidence
 
-The initial effective strategy remains:
+The effective strategy remains:
 
 ```text
 latest valid calibration wins
@@ -73,9 +75,9 @@ latest valid calibration wins
 
 ## Materials integration
 
-The Materials workspace now reads calibration history from the shared session and passes material-specific evidence into package costing, stock normalization, and inventory valuation.
+The Materials workspace reads calibration history from the shared session and passes material-specific evidence into package costing, stock normalization, and inventory valuation.
 
-For gram-based materials, `cup` becomes an available purchase/on-hand source unit.
+For gram-based materials, `cup` is now an available purchase/on-hand source unit.
 
 Example:
 
@@ -91,11 +93,11 @@ The UI identifies the effective conversion source. Calibration continues to outr
 
 ## Application validation boundary
 
-`MaterialService` now receives calibration evidence through an injected provider before persistence validation.
+`MaterialService` receives calibration evidence through an injected provider before persistence validation.
 
 This prevents a mismatch where React could preview calibrated cup stock but the application service rejected the same material when saving it.
 
-Existing MaterialService tests remain compatible because the provider defaults to no calibration evidence.
+Existing MaterialService usage remains compatible because the provider defaults to no calibration evidence.
 
 ## Automated coverage
 
@@ -110,19 +112,23 @@ New tests cover:
 
 Existing domain tests continue to cover derivation, effective precedence, costing, normalization, and inventory valuation.
 
-## Completion gate
+## Feature validation evidence
 
-Phase 1.4C is complete only after:
+PR #15 feature CI passed:
 
-- TypeScript typecheck passes
-- calibration service tests pass
-- calibrated MaterialService integration tests pass
-- all regression tests pass
-- production build passes
-- feature PR CI passes
-- PR merges into `develop`
-- post-merge `develop` CI passes
+- dependency installation
+- TypeScript typecheck
+- calibration application tests
+- calibrated MaterialService integration tests
+- full regression suite
+- production build
 
-After completion, **Phase 1.4 — Material-Specific Calibration** is complete.
+## Remaining completion gate
+
+- final PR-head CI after documentation status updates
+- merge PR #15 into `develop`
+- post-merge `develop` CI
+
+After those gates pass, **Phase 1.4 — Material-Specific Calibration** is complete.
 
 Next task: **1.5A — Supplier / Source Contract**.
