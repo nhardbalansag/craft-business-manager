@@ -94,6 +94,38 @@ describe('waste-adjusted production requirements', () => {
     ]);
   });
 
+  it('rounds only the final planned batch total upward for indivisible count materials', () => {
+    const countRequirement: EffectiveMaterialRequirement = {
+      materialId: 'MAT-BRUSH',
+      baseUnit: 'pc',
+      baseQuantityPerProduct: 1,
+      source: 'fixed',
+      contributions: [
+        {
+          source: 'fixed',
+          sourceId: 'RI-BRUSH',
+          role: 'finish',
+          baseQuantityPerProduct: 1,
+          conversionSource: 'standard',
+          calibrationId: null,
+        },
+      ],
+    };
+
+    const result = deriveWasteAdjustedProductionRequirements(
+      'ART-001',
+      [countRequirement],
+      deriveProductSafetyWastePolicy({ id: 'ART-001', safetyWasteRate: 0.05 }),
+      8,
+    );
+
+    const brush = result.requirements[0];
+    expect(brush.plannedBaseQuantityPerProduct).toBeCloseTo(1.05, 10);
+    expect(brush.wasteReserveBaseQuantityPerProduct).toBeCloseTo(0.05, 10);
+    expect(brush.contributions[0].plannedBatchBaseQuantity).toBeCloseTo(8.4, 10);
+    expect(brush.plannedBatchBaseQuantity).toBe(9);
+  });
+
   it('handles zero planned quantity without changing per-piece planning', () => {
     const result = deriveWasteAdjustedProductionRequirements(
       'ART-001',
