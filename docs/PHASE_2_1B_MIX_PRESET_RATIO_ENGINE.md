@@ -2,11 +2,17 @@
 
 ## Status
 
-**IMPLEMENTED — VALIDATION PENDING**
+**COMPLETE**
 
-Branch: `feature/phase-2-1b-mix-preset-ratio-engine`
+Implementation branch: `feature/phase-2-1b-mix-preset-ratio-engine`
 
-Base: `develop` at `29d9d8a96e9447bc6c93c244744f938f81d4d101`.
+Implementation base: `develop` at `29d9d8a96e9447bc6c93c244744f938f81d4d101`.
+
+Implementation PR: **#28**
+
+Merge commit: `176b548e5c2e35cbdc067fe5c3dafe7280c1f557`
+
+Post-merge CI run: `34829821545` — **SUCCESS**
 
 ## Objective
 
@@ -36,6 +42,7 @@ Locked rules:
 - exactly one `primary` line;
 - `secondary` and `additive` lines are optional;
 - every material may appear only once, case-insensitively;
+- material-ID matching uses deterministic locale-independent lowercase keys;
 - all `parts` values must be positive finite numbers;
 - single-line presets are valid;
 - referenced material existence/activity is deferred to 2.1C application services.
@@ -90,6 +97,7 @@ The anchor may be any preset line, not only the primary line.
 - `weight` presets require a weight anchor unit;
 - `volume` presets require a volume anchor unit;
 - count units are invalid for mix-ratio anchors;
+- unsupported runtime unit values are rejected with controlled errors;
 - the ratio engine does not normalize material quantities to canonical units;
 - Phase 1 remains responsible for material-specific normalization/calibration after resolution.
 
@@ -112,6 +120,18 @@ Compatibility is metadata at this domain level. Product-to-preset reference vali
 - `src/domain/mixPresets.test.ts`
 - `src/domain/types.ts`
 
+## Validation evidence
+
+The completion gate passed:
+
+- TypeScript typecheck — PASS;
+- mix contract and ratio-resolution tests — PASS;
+- full regression tests — PASS;
+- production build — PASS;
+- feature PR CI — PASS;
+- PR #28 merged into `develop`;
+- post-merge CI run `34829821545` — PASS.
+
 ## Deferred work
 
 - Product/Mix repositories, duplicate ID/name rules, material-reference validation: **2.1C**
@@ -120,16 +140,4 @@ Compatibility is metadata at this domain level. Product-to-preset reference vali
 - Safety-waste/capacity calculations: **2.4**
 - Product/Mix UI: **2.5**
 
-## Completion gate
-
-2.1B may be marked complete after:
-
-- TypeScript typecheck passes;
-- mix contract and ratio-resolution tests pass;
-- full regression tests pass;
-- production build passes;
-- feature PR CI passes;
-- PR merges into `develop`;
-- post-merge `develop` CI passes.
-
-Next task after completion: **2.1C — Product / Mix Repositories & Application Services**.
+Next task: **2.1C — Product / Mix Repositories & Application Services**.

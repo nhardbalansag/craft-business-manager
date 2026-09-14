@@ -7,8 +7,8 @@ Planning baseline: `docs/PHASE_2_PRODUCT_RECIPES_MOLD_YIELD_PLAN.md`
 ```text
 2.1 — Product & Mix Foundation
     2.1A — Product Contract & Category Rules        COMPLETE
-    2.1B — Mix Preset Contract & Ratio Engine       VALIDATION / MERGE GATE
-    2.1C — Product / Mix Repositories & Services    NOT STARTED
+    2.1B — Mix Preset Contract & Ratio Engine       COMPLETE
+    2.1C — Product / Mix Repositories & Services    NEXT
 
 2.2 — Yield Evidence & Per-Good-Piece Learning      NOT STARTED
 2.3 — Recipe Requirement Synthesis                  NOT STARTED
@@ -34,8 +34,26 @@ Evidence:
 - implementation merge commit `fbb31b315b68ee3d4e3b77ce29b153893cff7cdc`;
 - post-merge CI run `34828814552` passed.
 
+### 2.1B — Mix Preset Contract & Ratio Engine
+
+- dedicated reusable `MixPreset` domain contract;
+- explicit compatible product categories;
+- weight/volume ratio bases;
+- primary, secondary, and additive material-line roles;
+- single-line and richer multi-line formulas supported;
+- positive finite ratio parts and case-insensitive duplicate-material protection;
+- exactly one primary line required;
+- deterministic anchor-based ratio resolution from any preset line;
+- anchor unit is preserved for all resolved lines;
+- incompatible/count/unsupported units reject with controlled errors;
+- Phase 1 remains authoritative for material normalization/calibration.
+
+Evidence:
+
+- PR #28 merged;
+- implementation merge commit `176b548e5c2e35cbdc067fe5c3dafe7280c1f557`;
+- post-merge CI run `34829821545` passed.
+
 ## Current active task
 
-**2.1B — Mix Preset Contract & Ratio Engine**
-
-Implementation is on `feature/phase-2-1b-mix-preset-ratio-engine` and is awaiting feature CI / merge validation.
+**2.1C — Product / Mix Repositories & Application Services**
