@@ -2,15 +2,26 @@
 
 ## Objective
 
-Build a desktop-first tool for material costing, mold-yield learning, inventory-based production estimates, multi-vessel candle recipes, and selling-price/profit planning.
+Build a desktop-first tool for material costing, real-production yield learning, inventory-based production estimates, multi-vessel / multi-component craft products, and selling-price / profit planning.
 
-The domain layer must remain storage-agnostic so Excel persistence can later move to SQLite without rewriting business rules.
+The domain and application layers must remain storage-agnostic so Excel persistence can later move to SQLite without rewriting business rules.
+
+## Delivery principles
+
+- preserve user-entered/source evidence and derive normalized values;
+- use canonical internal units (`g`, `mL`, `pc`);
+- keep material-specific cross-dimension conversion behind calibration/manual evidence;
+- keep React behind application services rather than duplicating business rules in UI code;
+- keep production estimates derived rather than persisted as stale authoritative totals;
+- advance phases only after feature CI, merge, and post-merge `develop` CI succeed.
+
+---
 
 ## Phase 0 — Repository & Architecture Foundation
 
 Status: **COMPLETE**
 
-Delivered React + TypeScript + Vite, branch strategy, domain contracts, pure costing/yield helpers, storage abstraction, Vitest, and GitHub Actions CI.
+Delivered React + TypeScript + Vite, branch strategy, storage abstraction, domain/application layering, Vitest, and GitHub Actions CI.
 
 ---
 
@@ -21,234 +32,186 @@ Status: **COMPLETE**
 Dedicated plan: `docs/PHASE_1_MATERIALS_UNITS_CALIBRATION_PLAN.md`
 
 ```text
-1.1 — Measurement & Conversion Foundation         COMPLETE
-    1.1A — Unit Catalog & Dimensional Rules        COMPLETE
-    1.1B — Standard Conversion Engine             COMPLETE
-    1.1C — Conversion Validation & Tests          COMPLETE
-
-1.2 — Material Master Domain                      COMPLETE
-    1.2A — Material Contract & Classification     COMPLETE
-    1.2B — Material Application CRUD Services     COMPLETE
-    1.2C — Materials UI                           COMPLETE
-
-1.3 — Purchase Costing & Inventory Quantity       COMPLETE
-    1.3A — Package Cost / Base-Unit Costing        COMPLETE
-    1.3B — On-Hand Quantity Normalization         COMPLETE
-    1.3C — Inventory Valuation & Validation       COMPLETE
-
-1.4 — Material-Specific Calibration               COMPLETE
-    1.4A — Cup-to-Weight Calibration Model        COMPLETE
-    1.4B — Effective Conversion Precedence        COMPLETE
-    1.4C — Calibration UI & Tests                 COMPLETE
-
-1.5 — Supplier & Source Metadata                  COMPLETE
-    1.5A — Supplier / Source Contract             COMPLETE
-    1.5B — Materials UI Integration               COMPLETE
-
-1.6 — Phase 1 Integration & Completion Gate       COMPLETE
-    1.6A — Integrated Materials Workflow          COMPLETE
-    1.6B — Regression, Build & Completion         COMPLETE
+1.1 Measurement & Conversion Foundation         COMPLETE
+1.2 Material Master Domain                      COMPLETE
+1.3 Purchase Costing & Inventory Quantity       COMPLETE
+1.4 Material-Specific Calibration               COMPLETE
+1.5 Supplier & Source Metadata                  COMPLETE
+1.6 Integration & Completion Gate               COMPLETE
 ```
 
-### Phase 1.1 — Measurement & Conversion Foundation
+Phase 1 established:
 
-Established the authoritative unit catalog, canonical units (`g`, `mL`, `pc`), standard same-dimension conversions, runtime validation, controlled errors, explicit rounding, and exhaustive conversion tests.
-
-Dry `cup -> g` is deliberately excluded from universal unit conversion.
-
-### Phase 1.2 — Material Master Domain
-
-Established the material source-data contract, material taxonomy, package-unit labels, repository/service boundary, CRUD/search/filter/archive workflow, duplicate protection, and visible Materials workspace.
-
-### Phase 1.3 — Purchase Costing & Inventory Quantity
-
-Established deterministic package costing, on-hand normalization, inventory valuation, and business validation.
-
-```text
-package base quantity
-= purchase quantity × effective package conversion
-
-cost per base unit
-= package cost ÷ package base quantity
-
-inventory value
-= normalized on-hand quantity × cost per base unit
-```
-
-### Phase 1.4 — Material-Specific Calibration
-
-Status: **COMPLETE**
-
-Material-specific cup-to-weight evidence, effective conversion precedence, calibration application services, Calibration UI/history, and calibrated Materials calculations are complete.
-
-Implementation docs:
-
-- `docs/PHASE_1_4A_CUP_WEIGHT_CALIBRATION.md`
-- `docs/PHASE_1_4B_EFFECTIVE_CONVERSION_PRECEDENCE.md`
-- `docs/PHASE_1_4C_CALIBRATION_UI.md`
-
-### Phase 1.5 — Supplier & Source Metadata
-
-Status: **COMPLETE**
-
-Phase 1.5A added the lightweight supplier/source contract for vendor name, branch/platform/source detail, purchase/re-order link, contact number, social-page reference, and buying notes. The application normalizes source text, validates purchase links, includes source text in material search, and deep-clones nested metadata at repository/service boundaries.
-
-Phase 1.5B exposed that contract in the Materials UI with a dedicated Supplier / source section, source-aware edit flow, Source table column, re-order link, empty-source state, and supplier-aware search.
-
-Supplier/source data remains completely outside package costing, calibration, normalized stock, and inventory valuation.
-
-Implementation docs:
-
-- `docs/PHASE_1_5A_SUPPLIER_SOURCE_CONTRACT.md`
-- `docs/PHASE_1_5B_MATERIALS_SOURCE_UI.md`
-
-### Phase 1.6A — Integrated Materials Workflow
-
-Status: **COMPLETE**
-
-Phase 1.6A validated the full Phase 1 material workflow across standard unit conversion, calibrated plaster cup-to-weight handling, package conversion, costing, stock normalization, inventory valuation, supplier/source search, archive filtering, and financial isolation of supplier-only edits.
-
-Integration hardening also prevents deleting the final calibration required by a currently saved cup-based material state.
-
-Validation evidence:
-
-- PR #21 merged
-- merge commit `a0e3a605eb0a137613e583b0711229088f9c61fd`
-- feature CI passed
-- final PR-head CI passed
-- post-merge `develop` CI run `34826188230` passed
-
-Implementation detail: `docs/PHASE_1_6A_INTEGRATED_MATERIALS_WORKFLOW.md`.
-
-### Phase 1.6B — Regression, Build & Completion
-
-Status: **COMPLETE**
-
-The final Phase 1 gate added React render smoke coverage for the Materials and Calibration workspaces and re-ran the complete unit, domain, application, integration, typecheck, and production-build surface.
-
-Validation evidence:
-
-- PR #23 merged
-- merge commit `ee6953c9e1d132325c77e23cd9e07c859b469dbb`
-- feature CI run `34826926034` passed
-- final PR-head CI run `34827053087` passed
-- post-merge `develop` CI run `34827137558` passed
+- canonical weight/volume/count units and validated same-dimension conversions;
+- material master CRUD/search/archive and source metadata;
+- package-cost conversion and cost per canonical base unit;
+- current inventory normalization and valuation;
+- material-specific `cup -> g` calibration/manual fallback;
+- effective conversion precedence;
+- Materials and Calibration React workspaces;
+- integrated regression/build validation.
 
 Completion detail: `docs/PHASE_1_6B_REGRESSION_BUILD_COMPLETION.md`.
-
-### Phase 1 completion result
-
-**Phase 1 is complete.** The material, measurement, costing, calibration, inventory, supplier/source, application-service, UI, integration, and final regression/build gates all passed.
 
 ---
 
 ## Phase 2 — Product Recipes & Mold Yield
 
-Status: **PLANNED — IMPLEMENTATION NOT STARTED**
+Status: **COMPLETE**
 
-Dedicated plan: `docs/PHASE_2_PRODUCT_RECIPES_MOLD_YIELD_PLAN.md`
+Planning baseline: `docs/PHASE_2_PRODUCT_RECIPES_MOLD_YIELD_PLAN.md`
 
-Phase 2 has been assessed and should be split into the following implementation units:
+Live completion tracker: `docs/PHASE_2_PROGRESS.md`
+
+Final completion record: `docs/PHASE_2_6B_REGRESSION_BUILD_COMPLETION.md`
 
 ```text
-2.1 — Product & Mix Foundation
-    2.1A — Product Contract & Category Rules                  NEXT
-    2.1B — Mix Preset Contract & Ratio Engine                 NOT STARTED
-    2.1C — Product / Mix Repositories & Application Services  NOT STARTED
+2.1 Product & Mix Foundation                    COMPLETE
+    2.1A Product Contract & Category Rules      COMPLETE
+    2.1B Mix Preset Contract & Ratio Engine     COMPLETE
+    2.1C Product / Mix Services                 COMPLETE
 
-2.2 — Yield Evidence & Per-Good-Piece Learning
-    2.2A — Yield Sample Evidence Contract                     NOT STARTED
-    2.2B — Good / Rejected Output & Learned Requirements      NOT STARTED
-    2.2C — Effective Yield Selection & History Rules          NOT STARTED
+2.2 Yield Evidence & Per-Good-Piece Learning    COMPLETE
+    2.2A Yield Sample Evidence Contract         COMPLETE
+    2.2B Good / Rejected Output & Learning      COMPLETE
+    2.2C Effective Yield Selection & History    COMPLETE
 
-2.3 — Recipe Requirement Synthesis
-    2.3A — Fixed Recipe Item Contract & Material Roles        NOT STARTED
-    2.3B — Effective Per-Piece Material Requirements          NOT STARTED
-    2.3C — Material Cost Preview & Requirement Validation     NOT STARTED
+2.3 Recipe Requirement Synthesis                COMPLETE
+    2.3A Fixed Recipe Items & Roles             COMPLETE
+    2.3B Effective Per-Piece Requirements       COMPLETE
+    2.3C Material Cost Preview                  COMPLETE
 
-2.4 — Safety Waste & Inventory-Limited Capacity
-    2.4A — Safety Waste Policy                                NOT STARTED
-    2.4B — Waste-Adjusted Production Requirements             NOT STARTED
-    2.4C — Producible Pieces & Limiting Material              NOT STARTED
+2.4 Safety Waste & Inventory Capacity           COMPLETE
+    2.4A Safety Waste Policy                    COMPLETE
+    2.4B Waste-Adjusted Requirements            COMPLETE
+    2.4C Producible Pieces & Limiting Material  COMPLETE
 
-2.5 — Product / Yield / Production UI
-    2.5A — Products & Mix Presets UI                          NOT STARTED
-    2.5B — Yield Recording & History UI                       NOT STARTED
-    2.5C — Production Estimate UI                             NOT STARTED
+2.5 Product / Yield / Production UI             COMPLETE
+    2.5A Products & Mix Presets UI              COMPLETE
+    2.5B Yield Recording & History UI           COMPLETE
+    2.5C Production Estimate UI                 COMPLETE
 
-2.6 — Phase 2 Integration & Completion Gate
-    2.6A — Integrated Product / Yield Workflow                NOT STARTED
-    2.6B — Regression, Build & Completion Validation          NOT STARTED
+2.6 Integration & Completion Gate               COMPLETE
+    2.6A Integrated Phase 2 Workflow            COMPLETE
+    2.6B Regression / Build / Completion        COMPLETE
 ```
 
-### Phase 2 architecture result
+### Phase 2 delivered behavior
 
-The existing `Product`, `MixPreset`, `MoldYieldSample`, and recipe types in `src/domain/types.ts`, plus the simple yield helpers in `src/domain/costing.ts`, are treated as **prototype scaffolding** to refine rather than completed Phase 2 functionality.
+- product categories for paintable art, candle pots, and candles;
+- reusable weight/volume mix presets and anchor-based ratio resolution;
+- immutable multi-material real-production yield evidence;
+- learned material usage based on total consumed divided by good pieces;
+- separate rejected-piece diagnostic rate without double-counting waste;
+- deterministic latest-derivable yield selection with safe fallback;
+- fixed per-product recipe materials with roles and source-unit preservation;
+- derived yield + fixed canonical material requirements with traceability;
+- direct-material cost preview using Phase 1 purchase costing;
+- explicit product safety-waste planning reserve;
+- waste-adjusted per-piece and planned-batch requirements;
+- physical whole-count batch rounding for indivisible `pc` materials only at final batch total;
+- current-stock producible-piece capacity and all tied limiting materials;
+- Products, Mix Presets, Yield, and Production Estimate React workflows;
+- end-to-end Phase 2 integration regression coverage.
 
-Important Phase 2 decisions:
+### Phase 2 final gate
 
-- mold volume remains optional;
-- real batch evidence is authoritative;
-- a yield sample records all actual material inputs, not just the primary material;
-- learned material requirement is `total material consumed / good pieces`;
-- rejected pieces are tracked separately and are not a second waste multiplier;
-- safety waste is a separate planning reserve;
-- latest valid yield sample is the initial effective-sample strategy;
-- fixed per-product recipe materials remain separate from yield-derived materials;
-- material cost preview is allowed in Phase 2, but selling price/profit remains Phase 4;
-- nested products, vessels, molded components, and multi-component capacity remain Phase 3;
-- Excel persistence remains Phase 5.
+PR #58 merged as:
 
-### Current active task
+`e79303fdcad4fb298154be957f938584f164a61b`
 
-**2.1A — Product Contract & Category Rules**
+Post-merge CI run `34908149932` passed.
 
-Do not begin 2.1B until 2.1A is merged and post-merge `develop` CI is green.
+Final observed automated surface:
+
+```text
+38 test files passed
+349 tests passed
+TypeScript typecheck passed
+Production Vite build passed
+```
+
+### Boundaries intentionally deferred after Phase 2
+
+- purchased vessels and container/component semantics — Phase 3;
+- molded/nested child products and multi-component capacity — Phase 3;
+- selling price, markup, target margin, revenue, and profit — Phase 4;
+- Excel persistence/import/export — Phase 5;
+- native Tauri filesystem integration — Phase 6.
 
 ---
 
-## Phase 3 — Multi-Vessel / Multi-Component Products
+## Phase 3 — Product Components, Vessels & Nested Molded Products
 
-Support sellable products composed of multiple purchased or molded components, with total component cost and limiting component capacity.
+Status: **NEXT — ASSESSMENT / PHASE DECOMPOSITION REQUIRED**
+
+Objective: support sellable products composed of purchased vessels, molded child products, and multiple required components while preserving cost and production-capacity traceability.
+
+Expected scope to assess before implementation:
+
+- authoritative `ProductComponent` contract;
+- component kind / source semantics;
+- purchased vessel/component references;
+- molded child-product references;
+- component quantity per parent product;
+- cycle prevention for nested product references;
+- component repository/application services;
+- effective component requirements;
+- component cost roll-up;
+- component inventory / child-product capacity;
+- combined direct-material + component production capacity;
+- multi-vessel candle/set UI;
+- integration and completion gates.
+
+**Do not begin Phase 3 implementation until this scope is split into explicit phases/sub-phases and their dependencies are validated.**
 
 ---
 
 ## Phase 4 — Pricing & Production Planning
 
+Status: **PLANNED**
+
 Planned:
 
-- total unit cost
-- fixed profit
-- markup percentage
-- target margin
-- planned batch cost
-- expected revenue/profit
-- production-capacity warnings
+- total unit cost;
+- fixed-profit pricing;
+- markup percentage;
+- target margin;
+- selling price;
+- planned batch cost;
+- expected revenue and profit;
+- production-capacity warnings.
 
 ---
 
 ## Phase 5 — Excel Persistence
 
+Status: **PLANNED**
+
 Planned:
 
-- workbook schema/versioning
-- load/save `.xlsx`
-- workbook validation
-- atomic save strategy
-- timestamped backups
-- import existing workbook data where feasible
+- workbook schema/versioning;
+- load/save `.xlsx` through the storage adapter;
+- workbook validation;
+- atomic save strategy;
+- timestamped backups;
+- import existing workbook data where feasible.
 
-Proposed sheets: Materials, Calibrations, MixPresets, Products, RecipeItems, ProductComponents, MoldYieldSamples, Settings.
+Proposed sheets include Materials, Calibrations, MixPresets, Products, RecipeItems, ProductComponents, YieldSamples, and Settings.
 
 ---
 
 ## Phase 6 — Tauri Desktop Integration
 
-Planned native dialogs, application data directory, backup folder, safe write/replace flow, and desktop packaging.
+Status: **PLANNED**
+
+Planned native file dialogs, application-data directory, backup folder, safe write/replace flow, and desktop packaging.
 
 ---
 
 ## Phase 7 — Reporting & Operational Polish
+
+Status: **PLANNED**
 
 Planned dashboard, inventory valuation, profitability, material requirements, low-stock indicators, production history, and Excel report export.
 
@@ -257,9 +220,19 @@ Planned dashboard, inventory valuation, profitability, material requirements, lo
 ## Storage migration path
 
 ```text
-UI -> Application Services -> StoragePort
-                             |- ExcelStorage (v1)
-                             `- SQLiteStorage (future)
+React UI
+   ↓
+Application Services
+   ↓
+Domain
+   ↓
+StoragePort
+   ├── ExcelStorage (v1)
+   └── SQLiteStorage (future)
 ```
 
 No React component should read or write spreadsheet cells directly.
+
+## Current active task
+
+**Phase 3 — Product Components, Vessels & Nested Molded Products: assess and split the phase before implementation.**

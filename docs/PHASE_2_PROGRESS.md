@@ -1,6 +1,6 @@
 # Phase 2 — Product Recipes & Mold Yield Progress
 
-Status: **IN PROGRESS**
+Status: **COMPLETE**
 
 Planning baseline: `docs/PHASE_2_PRODUCT_RECIPES_MOLD_YIELD_PLAN.md`
 
@@ -30,9 +30,9 @@ Planning baseline: `docs/PHASE_2_PRODUCT_RECIPES_MOLD_YIELD_PLAN.md`
     2.5B — Yield Recording & History UI               COMPLETE
     2.5C — Production Estimate UI                     COMPLETE
 
-2.6 — Phase 2 Integration & Completion Gate           IN PROGRESS
+2.6 — Phase 2 Integration & Completion Gate           COMPLETE
     2.6A — Integrated Phase 2 Workflow                COMPLETE
-    2.6B — Regression / Build / Completion            NEXT
+    2.6B — Regression / Build / Completion            COMPLETE
 ```
 
 ## Completed
@@ -220,6 +220,31 @@ Evidence:
 - implementation merge commit `3557121019908949b6032e371581f452d9a19163`;
 - post-merge CI run `34848952735` passed.
 
-## Current active task
+### 2.6B — Regression, Build & Phase 2 Completion Validation
 
-**2.6B — Regression, Build & Phase 2 Completion Validation**
+- reran the complete Phase 1 + Phase 2 automated validation surface;
+- verified 38 test files and 349 tests passing;
+- verified TypeScript typecheck;
+- verified React smoke coverage across Materials, Calibration, Products, Yield, and Production;
+- verified the integrated Phase 2 product/yield/production workflow remains green;
+- verified the production Vite build;
+- confirmed no new Phase 2 business-rule defect at the final gate;
+- confirmed Phase 3 component/vessel, Phase 4 pricing/profit, and Phase 5 persistence boundaries remain intact.
+
+Evidence:
+- PR #58 merged;
+- completion merge commit `e79303fdcad4fb298154be957f938584f164a61b`;
+- feature CI run `34908067484` passed;
+- post-merge CI run `34908149932` passed.
+
+## Phase 2 completion result
+
+**Phase 2 — Product Recipes & Mold Yield is complete.**
+
+The product/mix, yield evidence and learning, recipe synthesis, direct-material costing, safety-waste planning, inventory capacity, UI, integrated workflow, and final regression/build gates all passed.
+
+## Next active task
+
+**Phase 3 — Product Components, Vessels & Nested Molded Products — assessment and phase decomposition.**
+
+Do not begin Phase 3 implementation until its scope has been assessed and split into explicit implementation phases/sub-phases.
