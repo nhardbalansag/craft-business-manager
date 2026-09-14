@@ -49,81 +49,54 @@ Implementation sequence:
     1.1C — Conversion Validation & Tests          COMPLETE
 1.2 — Material Master Domain
     1.2A — Material Contract & Classification     COMPLETE
-    1.2B — Material Application CRUD Services     FEATURE CI PASSED / MERGE GATE
-    1.2C — Materials UI                           NOT STARTED
+    1.2B — Material Application CRUD Services     COMPLETE
+    1.2C — Materials UI                           FEATURE CI PASSED / MERGE GATE
 1.3 — Purchase Costing & Inventory Quantity       NOT STARTED
+    1.3A — Package Cost / Base-Unit Costing        NEXT AFTER 1.2C
+    1.3B — On-Hand Quantity Normalization         NOT STARTED
+    1.3C — Inventory Valuation & Validation       NOT STARTED
 1.4 — Material-Specific Calibration               NOT STARTED
 1.5 — Supplier & Source Metadata                  NOT STARTED
 1.6 — Phase 1 Integration & Completion Gate       NOT STARTED
 ```
 
-Phase 1.1A established one authoritative unit catalog with canonical dimensions and explicitly prevents universal cross-dimension conversion such as dry `cup → g`. Implementation detail: `docs/PHASE_1_1A_UNIT_CATALOG.md`.
+Phase 1.1 established one authoritative unit catalog, standard same-dimension conversion engine, runtime unit validation, and exhaustive conversion tests. Dry `cup → g` remains explicitly material-specific.
 
-Phase 1.1A validation evidence:
+Phase 1.2A established the authoritative material source-data contract and classification taxonomy, including standard measurement units vs non-standard package labels. Implementation detail: `docs/PHASE_1_2A_MATERIAL_CONTRACT.md`.
 
-- PR: `#4`
-- dependency install passed
-- TypeScript typecheck passed
-- automated tests passed
-- production build passed
-- post-merge `develop` CI passed
+Phase 1.2B added the material application/repository boundary and operational CRUD workflow: create, update, retrieve, list/filter/search, archive, duplicate handling, stable identity rules, and an in-memory repository. Implementation detail: `docs/PHASE_1_2B_MATERIAL_CRUD_SERVICES.md`.
 
-Phase 1.1B added the standard same-dimension conversion engine, canonical normalization helpers, controlled conversion errors, and explicit rounding boundaries. Implementation detail: `docs/PHASE_1_1B_STANDARD_CONVERSION_ENGINE.md`.
-
-Phase 1.1B validation evidence:
-
-- PR: `#5`
-- dependency install passed
-- TypeScript typecheck passed
-- automated tests passed
-- production build passed
-- feature PR CI passed
-- post-merge `develop` CI passed
-
-Phase 1.1C added runtime unit validation plus exhaustive compatible/incompatible conversion matrix tests. Implementation detail: `docs/PHASE_1_1C_CONVERSION_VALIDATION.md`.
-
-Phase 1.1C validation evidence:
-
-- PR: `#6`
-- dependency install passed
-- TypeScript typecheck passed
-- exhaustive automated tests passed
-- production build passed
-- feature PR CI passed
-- post-merge `develop` CI passed
-
-Phase 1.2A establishes the authoritative material source-data contract and classification taxonomy, including standard measurement units vs non-standard package labels. Derived spreadsheet-style fields are removed from the source of truth. Implementation detail: `docs/PHASE_1_2A_MATERIAL_CONTRACT.md`.
-
-Phase 1.2A validation evidence:
-
-- PR: `#7`
-- TypeScript typecheck passed
-- material-domain tests passed
-- full automated test suite passed
-- production build passed
-- feature PR CI passed
-- post-merge `develop` CI passed
-
-Phase 1.2B adds the material application/repository boundary and operational CRUD workflow: create, update, retrieve, list/filter/search, archive, duplicate handling, stable identity rules, and an in-memory repository for deterministic testing and pre-persistence UI work. Implementation detail: `docs/PHASE_1_2B_MATERIAL_CRUD_SERVICES.md`.
-
-Phase 1.2B feature validation evidence:
+Phase 1.2B validation evidence:
 
 - PR: `#8`
 - dependency install passed
 - TypeScript typecheck passed
 - application/domain tests passed
-- full automated test suite passed
+- production build passed
+- feature PR CI passed
+- post-merge `develop` CI passed
+
+Phase 1.2C delivers the first visible Materials workspace. It includes add/edit material forms, group/base-unit/purchase-unit/on-hand inputs, conditional manual package conversion input, material listing, search, filters, soft archive, responsive styling, and explicit session-only persistence messaging. Implementation detail: `docs/PHASE_1_2C_MATERIALS_UI.md`.
+
+Phase 1.2C feature validation evidence:
+
+- PR: `#9`
+- dependency install passed
+- TypeScript typecheck passed
+- existing domain/application tests passed
 - production build passed
 - feature PR CI passed
 
-Final 1.2B integration gate:
+Remaining gate:
 
-- merge PR `#8` to `develop`
+- merge PR `#9` to `develop`
 - confirm post-merge `develop` CI
 
-Next task after final integration validation:
+When this gate passes, **Phase 1.2 — Material Master Domain** is complete.
 
-**1.2C — Materials UI**
+Next task after 1.2C completion:
+
+**1.3A — Package Cost / Base-Unit Costing**
 
 ## Phase 2 — Product Recipes & Mold Yield
 
