@@ -27,4 +27,8 @@ export class InMemoryYieldSampleRepository implements YieldSampleRepository {
   async insert(sample: YieldSample): Promise<void> {
     this.samples.set(key(sample.id), cloneYieldSample(sample));
   }
+
+  async delete(id: string): Promise<void> {
+    this.samples.delete(key(id));
+  }
 }
