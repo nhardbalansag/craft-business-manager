@@ -22,8 +22,8 @@ Planning baseline: `docs/PHASE_2_PRODUCT_RECIPES_MOLD_YIELD_PLAN.md`
 
 2.4 — Safety Waste & Inventory-Limited Capacity       IN PROGRESS
     2.4A — Safety Waste Policy                        COMPLETE
-    2.4B — Waste-Adjusted Requirements                VALIDATION / MERGE GATE
-    2.4C — Producible Pieces & Limiting Material      NOT STARTED
+    2.4B — Waste-Adjusted Requirements                COMPLETE
+    2.4C — Producible Pieces & Limiting Material      NEXT
 
 2.5 — Product / Yield / Production UI                 NOT STARTED
 2.6 — Phase 2 Integration & Completion Gate           NOT STARTED
@@ -108,18 +108,23 @@ Evidence:
 - implementation merge commit `7b7ff441cc86f010211ffb93428ba13c8871cb1e`;
 - post-merge CI run `34839447489` passed.
 
-## Current active task
+### 2.4B — Waste-Adjusted Production Requirements
 
-**2.4B — Waste-Adjusted Production Requirements**
-
-Implementation is complete on `feature/phase-2-4b-waste-adjusted-requirements` and is awaiting CI / merge validation.
-
-Implemented scope:
 - applies the validated product safety-waste multiplier to canonical 2.3B requirements;
 - preserves effective quantity, explicit reserve quantity, adjusted per-piece quantity, and planned batch quantity;
 - scales yield/fixed contribution traceability with the same multiplier;
-- validates non-negative whole-number planned finished-product quantities while allowing zero;
+- accepts zero or positive whole-number planned finished-product quantities;
+- rejects negative, non-finite, and fractional production counts;
 - propagates 2.3B ready/partial/not-ready status and issues;
 - explicitly excludes observed defect rate from the multiplier;
 - keeps all planning results derived rather than persisted;
-- does not inspect inventory or calculate production capacity yet.
+- leaves inventory availability and capacity to 2.4C.
+
+Evidence:
+- PR #46 merged;
+- implementation merge commit `34788e67913bbc3587dc1118797a34b892cd8df9`;
+- post-merge CI run `34840488193` passed.
+
+## Current active task
+
+**2.4C — Producible Pieces & Limiting Material**
