@@ -56,9 +56,9 @@ Implementation sequence:
     1.3B — On-Hand Quantity Normalization         COMPLETE
     1.3C — Inventory Valuation & Validation       COMPLETE
 1.4 — Material-Specific Calibration               IN PROGRESS
-    1.4A — Cup-to-Weight Calibration Model        FEATURE CI PASSED / MERGE GATE
-    1.4B — Effective Conversion Precedence        NEXT AFTER 1.4A
-    1.4C — Calibration UI & Tests                 NOT STARTED
+    1.4A — Cup-to-Weight Calibration Model        COMPLETE
+    1.4B — Effective Conversion Precedence        IMPLEMENTED / VALIDATION PENDING
+    1.4C — Calibration UI & Tests                 NEXT AFTER 1.4B
 1.5 — Supplier & Source Metadata                  NOT STARTED
 1.6 — Phase 1 Integration & Completion Gate       NOT STARTED
 ```
@@ -121,11 +121,11 @@ Phase 1.3C validation evidence:
 
 **Phase 1.3 — Purchase Costing & Inventory Quantity is complete.**
 
-Phase 1.4A introduces material-specific cup-to-weight calibration evidence. Real volume and weight measurements are preserved as source facts, while normalized cups, normalized grams, and grams-per-cup are derived. Calibration is bound to one weight-based material; invalid zero/non-finite measurements and mismatched materials are rejected. Multiple samples use a deterministic `latest valid calibration wins` strategy. Implementation detail: `docs/PHASE_1_4A_CUP_WEIGHT_CALIBRATION.md`.
+Phase 1.4A introduced material-specific cup-to-weight calibration evidence. Real volume and weight measurements are preserved as source facts, while normalized cups, normalized grams, and grams-per-cup are derived. Calibration is bound to one weight-based material; invalid zero/non-finite measurements and mismatched materials are rejected. Multiple samples use a deterministic `latest valid calibration wins` strategy. Implementation detail: `docs/PHASE_1_4A_CUP_WEIGHT_CALIBRATION.md`.
 
-Phase 1.4A feature validation evidence:
+Phase 1.4A validation evidence:
 
-- PR #13
+- PR #13 merged
 - initial CI correctly blocked an invalid TypeScript test fixture
 - fixture was corrected without weakening runtime validation
 - dependency installation passed
@@ -134,16 +134,23 @@ Phase 1.4A feature validation evidence:
 - full regression test suite passed
 - production build passed
 - corrected feature CI passed
+- post-merge `develop` CI passed
 
-Remaining 1.4A gate:
+Phase 1.4B integrates calibration into package costing and stock normalization using explicit source precedence. Same-dimension/package conversion remains `manual -> standard`; dry `cup -> g` becomes `latest material calibration -> manual g/cup fallback -> controlled error`. The material contract permits only this specific cross-dimension bridge, while unrelated cross-dimension units remain invalid. Conversion results report their source and calibration ID where applicable. Implementation detail: `docs/PHASE_1_4B_EFFECTIVE_CONVERSION_PRECEDENCE.md`.
 
-- final PR-head CI after documentation update
-- merge PR #13 to `develop`
+Current 1.4B validation gate:
+
+- TypeScript typecheck
+- conversion precedence tests
+- full regression test suite
+- production build
+- feature PR CI
+- merge to `develop`
 - post-merge `develop` CI
 
-Next task after 1.4A completion:
+Next task after 1.4B completion:
 
-**1.4B — Effective Conversion Precedence**
+**1.4C — Calibration UI & Tests**
 
 ## Phase 2 — Product Recipes & Mold Yield
 
