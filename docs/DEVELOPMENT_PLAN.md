@@ -42,7 +42,7 @@ Dedicated plan: `docs/PHASE_1_MATERIALS_UNITS_CALIBRATION_PLAN.md`
     1.4C — Calibration UI & Tests                 COMPLETE
 
 1.5 — Supplier & Source Metadata                  IN PROGRESS
-    1.5A — Supplier / Source Contract             NEXT
+    1.5A — Supplier / Source Contract             IMPLEMENTED / VALIDATION PENDING
     1.5B — Materials UI Integration               NOT STARTED
 
 1.6 — Phase 1 Integration & Completion Gate       NOT STARTED
@@ -126,11 +126,38 @@ Implementation docs:
 - `docs/PHASE_1_4B_EFFECTIVE_CONVERSION_PRECEDENCE.md`
 - `docs/PHASE_1_4C_CALIBRATION_UI.md`
 
+### Phase 1.5A — Supplier / Source Contract
+
+The lightweight supplier/source model is implemented without introducing a standalone Supplier module.
+
+Material source metadata can record:
+
+- vendor name
+- branch/platform/source detail
+- purchase/re-order link
+- contact number
+- social-page reference
+- buying notes
+
+The source contract is isolated from costing. Supplier metadata cannot change package cost/base-unit, calibration, normalized stock, or inventory valuation.
+
+Application safeguards include:
+
+- whitespace normalization
+- empty-source collapse
+- `http`/`https` purchase-link validation
+- supplier-aware material search
+- deep cloning of nested source metadata at repository/service boundaries
+
+Implementation detail: `docs/PHASE_1_5A_SUPPLIER_SOURCE_CONTRACT.md`.
+
 ### Current active task
 
-**1.5A — Supplier / Source Contract**
+**1.5A — Supplier / Source Contract — validation and merge gate**
 
-Phase 1.5 will add lightweight supplier/source metadata without coupling vendor details to material costing logic.
+After 1.5A is merged and post-merge CI passes, the next task is:
+
+**1.5B — Materials UI Integration**
 
 ---
 
