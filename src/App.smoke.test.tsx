@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import App from './App';
 import { CalibrationPage } from './ui/calibration/CalibrationPage';
 import { ProductsPage } from './ui/products/ProductsPage';
+import { YieldPage } from './ui/yield/YieldPage';
 
 describe('React workspace smoke validation', () => {
   it('renders the Materials workspace with the completed Phase 1 inputs and derived sections', () => {
@@ -14,6 +15,7 @@ describe('React workspace smoke validation', () => {
     expect(html).toContain('Normalized stock &amp; valuation');
     expect(html).toContain('Supplier / source');
     expect(html).toContain('Products');
+    expect(html).toContain('Yield');
   });
 
   it('renders the Calibration workspace without requiring browser-side effects', () => {
@@ -32,5 +34,15 @@ describe('React workspace smoke validation', () => {
     expect(html).toContain('Sellable products');
     expect(html).toContain('Mix presets');
     expect(html).toContain('Safety waste (%)');
+  });
+
+  it('renders the Phase 2 Yield recording and history workspace without browser-side effects', () => {
+    const html = renderToStaticMarkup(<YieldPage />);
+
+    expect(html).toContain('Yield &amp; history');
+    expect(html).toContain('Record a yield sample');
+    expect(html).toContain('Materials actually consumed');
+    expect(html).toContain('Effective learning');
+    expect(html).toContain('Recorded batches');
   });
 });
