@@ -2,11 +2,13 @@
 
 ## Status
 
-**IMPLEMENTED — VALIDATION PENDING**
+**FEATURE CI PASSED — MERGE GATE**
 
 Branch: `feature/phase-1-4a-cup-weight-calibration`
 
 Base: `develop`
+
+PR: `#13`
 
 ## Objective
 
@@ -150,16 +152,21 @@ Tests cover:
 - empty calibration collection
 - invalid/foreign sample rejection
 
-## Completion gate
+## Validation evidence
 
-Phase 1.4A is complete only after:
+- initial PR CI identified and blocked a TypeScript-only invalid test fixture
+- the fixture was corrected without weakening runtime validation
+- dependency installation passed
+- TypeScript typecheck passed
+- calibration tests passed
+- full regression test suite passed
+- production build passed
+- final feature implementation CI passed
 
-- TypeScript typecheck passes
-- calibration domain tests pass
-- all existing regression tests pass
-- production build passes
-- feature PR CI passes
-- PR merges into `develop`
+## Remaining completion gate
+
+- final PR-head CI after this documentation update
+- merge PR `#13` into `develop`
 - post-merge `develop` CI passes
 
 Next task after completion: **1.4B — Effective Conversion Precedence**.
