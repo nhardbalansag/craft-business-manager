@@ -56,7 +56,7 @@ Implementation sequence:
     1.3B — On-Hand Quantity Normalization         COMPLETE
     1.3C — Inventory Valuation & Validation       COMPLETE
 1.4 — Material-Specific Calibration               IN PROGRESS
-    1.4A — Cup-to-Weight Calibration Model        IMPLEMENTED / VALIDATION PENDING
+    1.4A — Cup-to-Weight Calibration Model        FEATURE CI PASSED / MERGE GATE
     1.4B — Effective Conversion Precedence        NEXT AFTER 1.4A
     1.4C — Calibration UI & Tests                 NOT STARTED
 1.5 — Supplier & Source Metadata                  NOT STARTED
@@ -123,14 +123,22 @@ Phase 1.3C validation evidence:
 
 Phase 1.4A introduces material-specific cup-to-weight calibration evidence. Real volume and weight measurements are preserved as source facts, while normalized cups, normalized grams, and grams-per-cup are derived. Calibration is bound to one weight-based material; invalid zero/non-finite measurements and mismatched materials are rejected. Multiple samples use a deterministic `latest valid calibration wins` strategy. Implementation detail: `docs/PHASE_1_4A_CUP_WEIGHT_CALIBRATION.md`.
 
-Current 1.4A validation gate:
+Phase 1.4A feature validation evidence:
 
-- TypeScript typecheck
-- calibration domain tests
-- full regression test suite
-- production build
-- feature PR CI
-- merge to `develop`
+- PR #13
+- initial CI correctly blocked an invalid TypeScript test fixture
+- fixture was corrected without weakening runtime validation
+- dependency installation passed
+- TypeScript typecheck passed
+- calibration domain tests passed
+- full regression test suite passed
+- production build passed
+- corrected feature CI passed
+
+Remaining 1.4A gate:
+
+- final PR-head CI after documentation update
+- merge PR #13 to `develop`
 - post-merge `develop` CI
 
 Next task after 1.4A completion:
