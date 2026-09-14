@@ -108,6 +108,29 @@ export function validateProductComponentSourceUniqueness(
   }
 }
 
+function validateDirectSelfReferences(
+  components: readonly ProductComponent[],
+): void {
+  for (const component of sortedValidatedComponents(components)) {
+    if (component.sourceType !== 'product') continue;
+
+    const parent = canonicalProductId(component.parentProductId);
+    const source = canonicalProductId(component.sourceId);
+    if (parent !== source) continue;
+
+    throw new ProductCompositionGraphError(
+      'DIRECT_SELF_REFERENCE',
+      `Product ${component.parentProductId.trim()} cannot contain itself as component ${component.id.trim()}.`,
+      {
+        componentId: component.id.trim(),
+        parentProductId: component.parentProductId.trim(),
+        sourceId: component.sourceId.trim(),
+        cyclePath: [parent, parent],
+      },
+    );
+  }
+}
+
 type ProductAdjacency = ReadonlyMap<string, readonly string[]>;
 
 function buildProductAdjacency(
@@ -120,19 +143,6 @@ function buildProductAdjacency(
 
     const parent = canonicalProductId(component.parentProductId);
     const source = canonicalProductId(component.sourceId);
-
-    if (parent === source) {
-      throw new ProductCompositionGraphError(
-        'DIRECT_SELF_REFERENCE',
-        `Product ${component.parentProductId.trim()} cannot contain itself as component ${component.id.trim()}.`,
-        {
-          componentId: component.id.trim(),
-          parentProductId: component.parentProductId.trim(),
-          sourceId: component.sourceId.trim(),
-          cyclePath: [parent, parent],
-        },
-      );
-    }
 
     let children = adjacency.get(parent);
     if (!children) {
@@ -164,17 +174,7 @@ function cycleError(cyclePath: readonly string[]): ProductCompositionGraphError 
   );
 }
 
-/**
- * Returns the first deterministic product-backed cycle, or null when the graph is acyclic.
- *
- * IDs in the path are canonical (trimmed/lowercase) so error output remains stable even
- * when source records use inconsistent case.
- */
-export function findProductCompositionCycle(
-  components: readonly ProductComponent[],
-): readonly string[] | null {
-  validateProductComponentSourceUniqueness(components);
-  const adjacency = buildProductAdjacency(components);
+function findCycleInAdjacency(adjacency: ProductAdjacency): readonly string[] | null {
   const state = new Map<string, 'visiting' | 'visited'>();
   const path: string[] = [];
   const pathIndex = new Map<string, number>();
@@ -189,9 +189,7 @@ export function findProductCompositionCycle(
 
       if (childState === 'visiting') {
         const start = pathIndex.get(child);
-        if (start === undefined) {
-          return [child, child];
-        }
+        if (start === undefined) return [child, child];
         return [...path.slice(start), child];
       }
 
@@ -217,6 +215,21 @@ export function findProductCompositionCycle(
 }
 
 /**
+ * Returns the first deterministic product-backed cycle, or null when the graph is acyclic.
+ *
+ * IDs in the path are canonical (trimmed/lowercase) so error output remains stable even
+ * when source records use inconsistent case. Direct self-reference is represented as
+ * `[product, product]` by this inspection helper; the full validator reports it with the
+ * more specific `DIRECT_SELF_REFERENCE` error code.
+ */
+export function findProductCompositionCycle(
+  components: readonly ProductComponent[],
+): readonly string[] | null {
+  validateProductComponentSourceUniqueness(components);
+  return findCycleInAdjacency(buildProductAdjacency(components));
+}
+
+/**
  * Full Phase 3.1B composition-graph gate.
  *
  * Material-backed components participate in duplicate-source validation but do not
@@ -226,7 +239,10 @@ export function findProductCompositionCycle(
 export function validateProductCompositionGraph(
   components: readonly ProductComponent[],
 ): void {
-  const cycle = findProductCompositionCycle(components);
+  validateProductComponentSourceUniqueness(components);
+  validateDirectSelfReferences(components);
+
+  const cycle = findCycleInAdjacency(buildProductAdjacency(components));
   if (cycle) throw cycleError(cycle);
 }
 
