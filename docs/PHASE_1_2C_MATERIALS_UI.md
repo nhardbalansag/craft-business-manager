@@ -2,11 +2,13 @@
 
 ## Status
 
-**IMPLEMENTED — VALIDATION PENDING**
+**FEATURE CI PASSED — MERGE / POST-MERGE GATE**
 
 Branch: `feature/phase-1-2c-materials-ui`
 
 Base: `develop`
+
+PR: `#9`
 
 ## Objective
 
@@ -38,8 +40,6 @@ The Materials workspace now provides:
 
 The UI only offers standard measurement units compatible with the selected canonical base dimension.
 
-Examples:
-
 ```text
 base g  -> g, kg, oz, lb + package labels
 base mL -> mL, L, cup, tbsp, tsp, fl-oz + package labels
@@ -52,8 +52,6 @@ Package labels such as `bag`, `box`, `pack`, or `bottle` remain source inputs. P
 
 ## Application-service boundary
 
-The React screen does not directly mutate a dataset and does not own duplicate or contract rules.
-
 ```text
 MaterialsPage
     ↓
@@ -62,27 +60,37 @@ MaterialService
 MaterialRepository
 ```
 
-The current screen uses `InMemoryMaterialRepository` only because Excel persistence is intentionally scheduled later.
+The React screen does not directly mutate a dataset, does not duplicate identity rules, and does not read/write spreadsheet cells.
 
 ## Persistence limitation
 
-The UI clearly displays **Session-only storage**.
-
-Material data survives React rerenders within the running application module, but it is not yet written to an Excel workbook or SQLite database and will not survive a full application reload/restart.
+The screen clearly displays **Session-only storage**. The current implementation uses `InMemoryMaterialRepository`; data is not yet written to Excel or SQLite and will not survive a full application reload/restart.
 
 No fake inventory records are seeded.
 
 ## Archive behavior
 
-Archiving is soft-delete behavior:
-
-- active material becomes inactive
-- record remains queryable through the Archived/All filters
-- material ID remains reserved
+- archive is soft delete
+- archived records remain available through Archived/All filters
+- IDs remain reserved
 - editing an archived material preserves its archived state
-- edit does not silently reactivate a record
+- editing does not silently reactivate records
 
-Hard delete and restore/reactivate controls are intentionally not introduced here.
+## Feature validation evidence
+
+PR `#9` feature-head CI passed:
+
+- dependency installation
+- TypeScript typecheck
+- existing domain/application automated tests
+- production build
+
+## Remaining completion gate
+
+- merge PR `#9` into `develop`
+- confirm post-merge `develop` CI passes
+
+When this gate passes, **Phase 1.2 — Material Master Domain is complete**.
 
 ## Out of scope
 
@@ -95,17 +103,4 @@ Hard delete and restore/reactivate controls are intentionally not introduced her
 - supplier/source metadata
 - product recipes
 
-## Completion gate
-
-Phase 1.2C is complete only after:
-
-- TypeScript typecheck passes
-- existing domain/application tests pass
-- production build passes
-- feature PR CI passes
-- PR merges into `develop`
-- post-merge `develop` CI passes
-
-When complete, **Phase 1.2 — Material Master Domain** is complete.
-
-Next task: **Phase 1.3A — Package Cost / Base-Unit Costing**.
+Next task after completion: **Phase 1.3A — Package Cost / Base-Unit Costing**.
