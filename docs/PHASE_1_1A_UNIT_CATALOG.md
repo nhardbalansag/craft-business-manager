@@ -2,11 +2,13 @@
 
 ## Status
 
-**IMPLEMENTED — VALIDATION PENDING**
+**COMPLETE**
 
 Branch: `feature/phase-1-1a-unit-catalog`
 
 Base: `develop`
+
+PR: `#4`
 
 ## Scope
 
@@ -144,16 +146,16 @@ It defines:
 - rejected cross-dimension pairs
 - the absence of universal cup-to-gram conversion
 
-## Completion gate
+## Validation evidence
 
-This task is complete only after:
+Feature PR validation passed:
 
-- TypeScript typecheck passes
-- automated tests pass
-- production build passes
-- PR CI passes
-- the PR is merged into `develop`
-- post-merge `develop` CI passes
+- dependency install — PASS
+- TypeScript typecheck — PASS
+- automated tests — PASS
+- production build — PASS
+
+Final task closure also requires PR merge and post-merge `develop` CI. Those are verified as part of the repository workflow before moving to Phase 1.1B.
 
 ## Explicitly deferred
 
