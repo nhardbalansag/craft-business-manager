@@ -143,27 +143,76 @@ Production Vite build passed
 
 ## Phase 3 — Product Components, Vessels & Nested Molded Products
 
-Status: **NEXT — ASSESSMENT / PHASE DECOMPOSITION REQUIRED**
+Status: **PLANNED — IMPLEMENTATION NOT STARTED**
 
-Objective: support sellable products composed of purchased vessels, molded child products, and multiple required components while preserving cost and production-capacity traceability.
+Dedicated plan: `docs/PHASE_3_PRODUCT_COMPONENTS_VESSELS_PLAN.md`
 
-Expected scope to assess before implementation:
+Live tracker: `docs/PHASE_3_PROGRESS.md`
 
-- authoritative `ProductComponent` contract;
-- component kind / source semantics;
-- purchased vessel/component references;
-- molded child-product references;
-- component quantity per parent product;
-- cycle prevention for nested product references;
-- component repository/application services;
-- effective component requirements;
-- component cost roll-up;
-- component inventory / child-product capacity;
-- combined direct-material + component production capacity;
-- multi-vessel candle/set UI;
-- integration and completion gates.
+Phase 3 extends Phase 2 direct-material products into typed sellable compositions containing purchased vessels/components and handmade child Products.
 
-**Do not begin Phase 3 implementation until this scope is split into explicit phases/sub-phases and their dependencies are validated.**
+```text
+3.1 Composition Foundation
+    3.1A Product Component Contract & Roles             NEXT
+    3.1B Composition Graph Integrity & Cycle Prevention NOT STARTED
+    3.1C Component Repository & Application Services    NOT STARTED
+
+3.2 Finished Component Stock
+    3.2A Product Stock Contract & Validation            NOT STARTED
+    3.2B Product Stock Repository & Services            NOT STARTED
+    3.2C Source Availability & Relationship Guards      NOT STARTED
+
+3.3 Component-Aware Cost Roll-Up
+    3.3A Material-Backed Component Cost                 NOT STARTED
+    3.3B Recursive Product-Backed Component Cost        NOT STARTED
+    3.3C Total Product Cost & Readiness                  NOT STARTED
+
+3.4 Component-Limited Assembly Capacity
+    3.4A Per-Component Availability & Capacity          NOT STARTED
+    3.4B Direct-Material + Component Capacity           NOT STARTED
+    3.4C Limiting Resource Trace & Readiness            NOT STARTED
+
+3.5 Component / Stock / Production UI
+    3.5A Product Composition Editor                     NOT STARTED
+    3.5B Finished Component Stock UI                    NOT STARTED
+    3.5C Component-Aware Production Estimate UI         NOT STARTED
+
+3.6 Integration & Completion Gate
+    3.6A Integrated Multi-Component Workflow            NOT STARTED
+    3.6B Regression / Build / Completion                NOT STARTED
+```
+
+### Phase 3 architecture decisions
+
+- component sources are explicitly typed as Material-backed or Product-backed;
+- component quantities are discrete positive whole-piece counts;
+- purchased material-backed components use Phase 1 count inventory/costing;
+- handmade Product-backed components use explicit finished Product stock for current assembly availability;
+- nested Product composition forms an acyclic directed graph;
+- direct and transitive composition cycles are prohibited;
+- child Product cost is recursively derived from its Phase 2 direct materials plus its own Phase 3 components;
+- current parent assembly capacity uses parent direct-material capacity plus current component availability;
+- parent capacity does not silently include hypothetical manufacture of missing child stock from shared raw materials;
+- all tied limiting resources remain visible with typed identity;
+- derived component cost/capacity is not persisted as source data;
+- labor/overhead/selling price remains Phase 4;
+- Excel persistence remains Phase 5;
+- stock reservations, automatic deductions, and movement history remain outside Phase 3.
+
+### Phase 3 required business scenarios
+
+- candle using one purchased glass/plastic/stainless vessel;
+- candle using one handmade plaster-pot Product as its vessel;
+- product containing several molded child products in different quantities;
+- nested composition such as gift set -> candle -> handmade pot;
+- tied limiting components;
+- safe rejection of direct and transitive cycles.
+
+### Current Phase 3 task
+
+**3.1A — Product Component Contract & Roles**
+
+Do not begin 3.1B until 3.1A is merged and post-merge `develop` CI is green.
 
 ---
 
@@ -197,7 +246,7 @@ Planned:
 - timestamped backups;
 - import existing workbook data where feasible.
 
-Proposed sheets include Materials, Calibrations, MixPresets, Products, RecipeItems, ProductComponents, YieldSamples, and Settings.
+Proposed sheets include Materials, Calibrations, MixPresets, Products, RecipeItems, ProductComponents, ProductStocks, YieldSamples, and Settings.
 
 ---
 
@@ -235,4 +284,4 @@ No React component should read or write spreadsheet cells directly.
 
 ## Current active task
 
-**Phase 3 — Product Components, Vessels & Nested Molded Products: assess and split the phase before implementation.**
+**Phase 3.1A — Product Component Contract & Roles**
