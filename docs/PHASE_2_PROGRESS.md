@@ -11,8 +11,8 @@ Planning baseline: `docs/PHASE_2_PRODUCT_RECIPES_MOLD_YIELD_PLAN.md`
     2.1C — Product / Mix Repositories & Services      COMPLETE
 
 2.2 — Yield Evidence & Per-Good-Piece Learning        IN PROGRESS
-    2.2A — Yield Sample Evidence Contract             VALIDATION / MERGE GATE
-    2.2B — Good / Rejected Output & Learning          NOT STARTED
+    2.2A — Yield Sample Evidence Contract             COMPLETE
+    2.2B — Good / Rejected Output & Learning          NEXT
     2.2C — Effective Yield Selection & History        NOT STARTED
 
 2.3 — Recipe Requirement Synthesis                    NOT STARTED
@@ -76,8 +76,25 @@ Evidence:
 - implementation merge commit `e5faa7f57adc0424b4ebf104700ca86d2882f171`;
 - post-merge CI run `34830919088` passed.
 
+### 2.2A — Yield Sample Evidence Contract
+
+- authoritative immutable `YieldSample` evidence contract;
+- multi-material batch inputs with preserved source quantity/unit;
+- good and rejected output counts;
+- append-oriented sample repository/service;
+- active-reference validation for new evidence;
+- historical samples remain readable after referenced records are archived;
+- case-insensitive unique sample IDs;
+- defensive deep cloning of nested material inputs;
+- `BusinessDataset.yieldSamples` replaces the one-material mold-yield scaffold;
+- legacy costing primitive decoupled from the removed scaffold.
+
+Evidence:
+
+- PR #32 merged;
+- implementation merge commit `84c435d1beaea26eeeab5eb908b3218e75dadaea`;
+- post-merge CI run `34832272913` passed.
+
 ## Current active task
 
-**2.2A — Yield Sample Evidence Contract**
-
-Implementation is complete on `feature/phase-2-2a-yield-sample-evidence` and is awaiting feature CI / merge validation.
+**2.2B — Good / Rejected Output & Learned Requirements**

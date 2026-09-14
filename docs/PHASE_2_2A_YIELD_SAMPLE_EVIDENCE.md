@@ -2,11 +2,19 @@
 
 ## Status
 
-**IMPLEMENTED — VALIDATION PENDING**
+**COMPLETE**
 
-Branch: `feature/phase-2-2a-yield-sample-evidence`
+Implementation branch: `feature/phase-2-2a-yield-sample-evidence`
 
-Base: `develop` at `3ba2f7d496b30094613eb344eda2a39e05acb015`.
+Implementation base: `develop` at `3ba2f7d496b30094613eb344eda2a39e05acb015`.
+
+Implementation PR: **#32**
+
+Merge commit: `84c435d1beaea26eeeab5eb908b3218e75dadaea`
+
+Final feature CI run: `34832157588` — **SUCCESS**
+
+Post-merge develop CI run: `34832272913` — **SUCCESS**
 
 ## Objective
 
@@ -72,6 +80,8 @@ Correction/deletion/history-selection rules are deferred to 2.2C.
 
 The prototype `MoldYieldSample` and `moldYieldSamples` dataset field are replaced by the authoritative `YieldSample` / `yieldSamples` contract.
 
+The old costing primitive was decoupled from `MoldYieldSample` and now accepts canonical numeric quantity plus good-piece count. Canonicalizing each evidence line remains the responsibility of 2.2B.
+
 ## Files
 
 - `src/domain/yieldSamples.ts`
@@ -81,7 +91,21 @@ The prototype `MoldYieldSample` and `moldYieldSamples` dataset field are replace
 - `src/application/yieldSamples/YieldSampleEvidenceService.ts`
 - `src/application/yieldSamples/YieldSampleEvidenceService.test.ts`
 - `src/domain/types.ts`
+- `src/domain/costing.ts`
+- `src/domain/costing.test.ts`
 - `src/application/session.ts`
+
+## Validation evidence
+
+The completion gate passed:
+
+- TypeScript typecheck — PASS;
+- domain contract tests — PASS;
+- evidence repository/service tests — PASS;
+- full regression suite — PASS;
+- production build — PASS;
+- PR #32 merged into `develop`;
+- post-merge CI run `34832272913` — PASS.
 
 ## Deferred work
 
@@ -91,17 +115,4 @@ The prototype `MoldYieldSample` and `moldYieldSamples` dataset field are replace
 - fixed recipe synthesis: **2.3**
 - production/yield UI: **2.5**
 
-## Completion gate
-
-2.2A may be marked complete after:
-
-- TypeScript typecheck passes;
-- domain contract tests pass;
-- evidence repository/service tests pass;
-- full regression suite passes;
-- production build passes;
-- feature PR CI passes;
-- PR merges into `develop`;
-- post-merge `develop` CI passes.
-
-Next task after completion: **2.2B — Good / Rejected Output & Learned Requirements**.
+Next task: **2.2B — Good / Rejected Output & Learned Requirements**.
