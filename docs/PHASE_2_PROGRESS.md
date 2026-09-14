@@ -18,7 +18,7 @@ Planning baseline: `docs/PHASE_2_PRODUCT_RECIPES_MOLD_YIELD_PLAN.md`
 2.3 — Recipe Requirement Synthesis                    IN PROGRESS
     2.3A — Fixed Recipe Item Contract & Material Roles COMPLETE
     2.3B — Effective Per-Piece Material Requirements  COMPLETE
-    2.3C — Material Cost Preview & Validation         NEXT
+    2.3C — Material Cost Preview & Validation         VALIDATION / MERGE GATE
 
 2.4 — Safety Waste & Inventory-Limited Capacity       NOT STARTED
 2.5 — Product / Yield / Production UI                 NOT STARTED
@@ -75,3 +75,5 @@ Evidence:
 ## Current active task
 
 **2.3C — Material Cost Preview & Requirement Validation**
+
+Implementation is complete on `feature/phase-2-3c-material-cost-preview` and is awaiting CI / merge validation.
