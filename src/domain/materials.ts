@@ -1,3 +1,5 @@
+import type { MaterialSourceMetadata } from './materialSource';
+import { validateMaterialSourceMetadata } from './materialSource';
 import type { BaseUnit, InputUnit } from './units';
 import { areUnitsCompatible, isSupportedUnit } from './units';
 
@@ -59,12 +61,21 @@ export interface Material {
   onHandQuantity: number;
   onHandUnit: MaterialPurchaseUnit;
 
+  /** Lightweight supplier/source information for finding and re-ordering the material. */
+  source?: MaterialSourceMetadata;
   notes?: string;
   isActive: boolean;
 }
 
 const MATERIAL_GROUP_SET: ReadonlySet<string> = new Set(MATERIAL_GROUPS);
 const MATERIAL_PACKAGE_UNIT_SET: ReadonlySet<string> = new Set(MATERIAL_PACKAGE_UNITS);
+
+export function cloneMaterial(material: Material): Material {
+  return {
+    ...material,
+    source: material.source ? { ...material.source } : undefined,
+  };
+}
 
 export function isMaterialGroup(value: unknown): value is MaterialGroup {
   return typeof value === 'string' && MATERIAL_GROUP_SET.has(value);
@@ -146,7 +157,7 @@ function validateStandardMaterialUnit(
 }
 
 /**
- * Validates the identity/classification portion of a material record.
+ * Validates the identity/classification/source portion of a material record.
  * Numeric costing and inventory rules are intentionally handled by later domain layers.
  */
 export function validateMaterialContract(material: Material): void {
@@ -172,4 +183,8 @@ export function validateMaterialContract(material: Material): void {
 
   validateStandardMaterialUnit(material.purchaseUnit, material.baseUnit, 'Purchase');
   validateStandardMaterialUnit(material.onHandUnit, material.baseUnit, 'On-hand');
+
+  if (material.source !== undefined) {
+    validateMaterialSourceMetadata(material.source);
+  }
 }
