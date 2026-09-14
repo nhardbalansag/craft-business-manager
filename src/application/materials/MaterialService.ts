@@ -1,6 +1,7 @@
 import type { Material, MaterialGroup } from '../../domain/materials';
 import { validateMaterialContract } from '../../domain/materials';
 import { calculateMaterialPackageCosting } from '../../domain/materialCosting';
+import { normalizeMaterialOnHand } from '../../domain/materialInventory';
 import type { MaterialRepository } from './MaterialRepository';
 
 export interface MaterialListFilter {
@@ -53,6 +54,7 @@ function matchesQuery(material: Material, query: string): boolean {
 function validateMaterialForPersistence(material: Material): void {
   validateMaterialContract(material);
   calculateMaterialPackageCosting(material);
+  normalizeMaterialOnHand(material);
 }
 
 export class MaterialService {

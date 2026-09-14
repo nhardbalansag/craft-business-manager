@@ -3,6 +3,7 @@ import {
   MATERIAL_GROUPS,
   MATERIAL_PACKAGE_UNITS,
   MaterialContractError,
+  isMaterialPackageUnit,
   type Material,
   type MaterialGroup,
   type MaterialPurchaseUnit,
@@ -12,6 +13,11 @@ import {
   calculateMaterialPackageCosting,
   type MaterialPackageCosting,
 } from '../../domain/materialCosting';
+import {
+  MaterialInventoryError,
+  normalizeMaterialOnHand,
+  type MaterialOnHandNormalization,
+} from '../../domain/materialInventory';
 import {
   SUPPORTED_UNITS,
   getUnitDimension,
@@ -67,6 +73,11 @@ function compatibleStandardUnits(baseUnit: BaseUnit): Unit[] {
 
 function purchaseUnitOptions(baseUnit: BaseUnit): MaterialPurchaseUnit[] {
   return [...compatibleStandardUnits(baseUnit), ...MATERIAL_PACKAGE_UNITS];
+}
+
+function onHandUnitOptions(baseUnit: BaseUnit, purchaseUnit: MaterialPurchaseUnit): MaterialPurchaseUnit[] {
+  const standard = compatibleStandardUnits(baseUnit);
+  return isMaterialPackageUnit(purchaseUnit) ? [...standard, purchaseUnit] : standard;
 }
 
 function defaultPurchaseUnit(baseUnit: BaseUnit): MaterialPurchaseUnit {
@@ -158,11 +169,20 @@ function packageCostingOrNull(material: Material): MaterialPackageCosting | null
   }
 }
 
+function onHandNormalizationOrNull(material: Material): MaterialOnHandNormalization | null {
+  try {
+    return normalizeMaterialOnHand(material);
+  } catch {
+    return null;
+  }
+}
+
 function errorMessage(error: unknown): string {
   if (
     error instanceof MaterialApplicationError ||
     error instanceof MaterialContractError ||
-    error instanceof MaterialCostingError
+    error instanceof MaterialCostingError ||
+    error instanceof MaterialInventoryError
   ) {
     return error.message;
   }
@@ -181,9 +201,14 @@ export function MaterialsPage() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const unitOptions = useMemo(() => purchaseUnitOptions(form.baseUnit), [form.baseUnit]);
+  const purchaseOptions = useMemo(() => purchaseUnitOptions(form.baseUnit), [form.baseUnit]);
+  const stockOptions = useMemo(
+    () => onHandUnitOptions(form.baseUnit, form.purchaseUnit),
+    [form.baseUnit, form.purchaseUnit],
+  );
   const previewMaterial = useMemo(() => formToMaterial(form, true), [form]);
   const costingPreview = useMemo(() => packageCostingOrNull(previewMaterial), [previewMaterial]);
+  const stockPreview = useMemo(() => onHandNormalizationOrNull(previewMaterial), [previewMaterial]);
   const manualIsRequired = MATERIAL_PACKAGE_UNITS.includes(form.purchaseUnit as (typeof MATERIAL_PACKAGE_UNITS)[number]);
 
   const refresh = useCallback(async () => {
@@ -213,6 +238,18 @@ export function MaterialsPage() {
       purchaseUnit: nextDefault,
       onHandUnit: baseUnit,
       manualBaseUnitsPerPurchaseUnit: '',
+    }));
+  }
+
+  function updatePurchaseUnit(purchaseUnit: MaterialPurchaseUnit) {
+    setForm((current) => ({
+      ...current,
+      purchaseUnit,
+      onHandUnit: isMaterialPackageUnit(current.onHandUnit)
+        ? isMaterialPackageUnit(purchaseUnit)
+          ? purchaseUnit
+          : current.baseUnit
+        : current.onHandUnit,
     }));
   }
 
@@ -277,8 +314,8 @@ export function MaterialsPage() {
           <p className="eyebrow">MATERIAL MASTER</p>
           <h1 id="materials-heading">Materials</h1>
           <p className="page-lead">
-            Record purchase and stock source data. Package conversion and cost per base unit are now
-            calculated automatically; stock normalization and inventory valuation come next.
+            Record purchase and stock source data. Package costing and on-hand normalization are calculated
+            automatically; inventory valuation comes next.
           </p>
         </div>
         <div className="session-badge" title="Excel persistence is planned for a later phase">
@@ -362,12 +399,9 @@ export function MaterialsPage() {
               <span>Purchase unit</span>
               <select
                 value={form.purchaseUnit}
-                onChange={(event) => setForm((current) => ({
-                  ...current,
-                  purchaseUnit: event.target.value as MaterialPurchaseUnit,
-                }))}
+                onChange={(event) => updatePurchaseUnit(event.target.value as MaterialPurchaseUnit)}
               >
-                {unitOptions.map((unit) => <option value={unit} key={unit}>{formatUnit(unit)}</option>)}
+                {purchaseOptions.map((unit) => <option value={unit} key={unit}>{formatUnit(unit)}</option>)}
               </select>
             </label>
 
@@ -466,9 +500,41 @@ export function MaterialsPage() {
                 value={form.onHandUnit}
                 onChange={(event) => setForm((current) => ({ ...current, onHandUnit: event.target.value as MaterialPurchaseUnit }))}
               >
-                {unitOptions.map((unit) => <option value={unit} key={unit}>{formatUnit(unit)}</option>)}
+                {stockOptions.map((unit) => <option value={unit} key={unit}>{formatUnit(unit)}</option>)}
               </select>
+              <small>Use a compatible measurement unit or the configured purchase package.</small>
             </label>
+
+            <div className="field field-wide cost-preview" aria-live="polite">
+              <div className="cost-preview-heading">
+                <span>Normalized stock</span>
+                <small>Canonical quantity used by later production and valuation calculations.</small>
+              </div>
+              {stockPreview ? (
+                <div className="cost-metrics">
+                  <div className="cost-metric">
+                    <span>Entered stock</span>
+                    <strong>{formatNumber(stockPreview.enteredQuantity)} {formatUnit(stockPreview.enteredUnit)}</strong>
+                  </div>
+                  <div className="cost-metric">
+                    <span>Stock conversion</span>
+                    <strong>
+                      1 {formatUnit(stockPreview.enteredUnit)} = {formatNumber(stockPreview.baseUnitsPerOnHandUnit)} {stockPreview.baseUnit}
+                    </strong>
+                    <small>{stockPreview.conversionSource === 'standard' ? 'standard unit conversion' : 'configured purchase-package conversion'}</small>
+                  </div>
+                  <div className="cost-metric cost-metric-emphasis">
+                    <span>Normalized on hand</span>
+                    <strong>{formatNumber(stockPreview.normalizedBaseQuantity)} {stockPreview.baseUnit}</strong>
+                    <small>Derived — source entry remains {formatNumber(stockPreview.enteredQuantity)} {formatUnit(stockPreview.enteredUnit)}</small>
+                  </div>
+                </div>
+              ) : (
+                <div className="cost-preview-empty">
+                  Enter a finite stock quantity in a compatible unit or the configured purchase package.
+                </div>
+              )}
+            </div>
 
             <label className="field field-wide">
               <span>Notes</span>
@@ -545,6 +611,7 @@ export function MaterialsPage() {
               <tbody>
                 {materials.map((material) => {
                   const costing = packageCostingOrNull(material);
+                  const stock = onHandNormalizationOrNull(material);
                   return (
                     <tr key={material.id} className={material.isActive ? undefined : 'archived-row'}>
                       <td>
@@ -553,7 +620,12 @@ export function MaterialsPage() {
                       </td>
                       <td><span className="group-pill">{formatGroup(material.group)}</span></td>
                       <td>{material.purchaseQuantity} {formatUnit(material.purchaseUnit)}</td>
-                      <td>{material.onHandQuantity} {formatUnit(material.onHandUnit)}</td>
+                      <td>
+                        <strong>{material.onHandQuantity} {formatUnit(material.onHandUnit)}</strong>
+                        <span className="cost-detail">
+                          {stock ? `${formatNumber(stock.normalizedBaseQuantity)} ${material.baseUnit} normalized` : 'Normalization required'}
+                        </span>
+                      </td>
                       <td>
                         <strong>{formatMoney(material.packageCost, 2)}</strong>
                         <span className="cost-detail">
