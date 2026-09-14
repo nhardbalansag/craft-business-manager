@@ -29,7 +29,7 @@ describe('React workspace smoke validation', () => {
 
     expect(html).toContain('Products &amp; mixes');
     expect(html).toContain('Add a product');
-    expect(html).toContain('Product catalog');
+    expect(html).toContain('Sellable products');
     expect(html).toContain('Mix presets');
     expect(html).toContain('Safety waste (%)');
   });
