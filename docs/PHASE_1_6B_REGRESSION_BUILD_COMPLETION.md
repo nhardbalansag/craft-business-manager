@@ -2,11 +2,13 @@
 
 ## Status
 
-**IMPLEMENTED — VALIDATION PENDING**
+**FEATURE CI PASSED — MERGE GATE**
 
 Branch: `feature/phase-1-6b-regression-completion`
 
 Base: `develop` at `b6d629bd6bf48c0a7dadfe45457c16ba5439be69`
+
+PR: `#23`
 
 ## Objective
 
@@ -51,16 +53,27 @@ It separately renders the Calibration workspace to ensure its initial state can 
 
 These smoke tests complement—not replace—the application/domain integration tests from Phase 1.6A.
 
+## Feature validation evidence
+
+PR #23 feature CI run `34826926034` passed:
+
+- dependency installation;
+- TypeScript typecheck;
+- complete automated regression test run;
+- Phase 1.6A integrated workflow tests;
+- React Materials and Calibration render smoke tests;
+- production build.
+
 ## Documentation reconciliation
 
 The Phase 1 planning/status documents must be reconciled during closeout so they no longer claim Phase 1 development has not started.
 
-Phase 1 may be marked **COMPLETE** only after the feature branch, PR, merge, and post-merge `develop` validation gates all pass.
+Phase 1 may be marked **COMPLETE** only after the PR merge and post-merge `develop` validation gates pass.
 
 ## Remaining completion gate
 
-- feature PR CI passes on the exact final head;
-- merge into `develop`;
+- final PR-head CI after this status update;
+- merge PR #23 into `develop`;
 - post-merge `develop` CI passes;
 - final documentation closeout records Phase 1 as COMPLETE and Phase 2 as next.
 
