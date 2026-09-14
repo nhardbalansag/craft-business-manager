@@ -42,8 +42,8 @@ Dedicated plan: `docs/PHASE_1_MATERIALS_UNITS_CALIBRATION_PLAN.md`
     1.4C — Calibration UI & Tests                 COMPLETE
 
 1.5 — Supplier & Source Metadata                  IN PROGRESS
-    1.5A — Supplier / Source Contract             FEATURE CI PASSED / MERGE GATE
-    1.5B — Materials UI Integration               NEXT AFTER 1.5A
+    1.5A — Supplier / Source Contract             COMPLETE
+    1.5B — Materials UI Integration               NEXT
 
 1.6 — Phase 1 Integration & Completion Gate       NOT STARTED
     1.6A — Integrated Materials Workflow          NOT STARTED
@@ -79,46 +79,7 @@ inventory value
 
 Status: **COMPLETE**
 
-1.4A added material-specific measurement evidence and derived grams-per-cup.
-
-Example:
-
-```text
-5 cups plaster = 1 kg
-1 kg = 1,000 g
-=> 200 g/cup
-```
-
-1.4B integrated explicit precedence:
-
-```text
-ordinary package conversion:
-manual -> standard -> error
-
-dry cup-to-weight conversion:
-latest material calibration -> manual g/cup fallback -> error
-```
-
-1.4C made calibration operational in the React app:
-
-- shared session material/calibration services
-- CalibrationRepository and CalibrationService
-- calibration create/list/effective/delete workflow
-- enabled Calibration navigation tab
-- material selector and measurement form
-- live normalized cup/gram and g/cup preview
-- calibration history and effective sample
-- calibrated cup inputs in Materials
-- calibration-aware costing, stock normalization, and inventory valuation
-- MaterialService persistence validation using calibration evidence
-- application and regression tests
-
-Phase 1.4C evidence:
-
-- PR #15 merged
-- merge commit `a4ca2dd406fd90e8640fdf4011eb8bf684a2ccfb`
-- final PR-head CI passed
-- post-merge `develop` CI run `34823193266` passed
+Material-specific cup-to-weight evidence, effective conversion precedence, calibration application services, Calibration UI/history, and calibrated Materials calculations are complete.
 
 Implementation docs:
 
@@ -128,23 +89,26 @@ Implementation docs:
 
 ### Phase 1.5A — Supplier / Source Contract
 
-The lightweight supplier/source model is implemented without introducing a standalone Supplier module.
+Status: **COMPLETE**
 
-Material source metadata can record vendor name, branch/platform/source detail, purchase/re-order link, contact number, social-page reference, and buying notes.
+The material domain now supports lightweight source metadata for vendor name, branch/platform/source detail, purchase/re-order link, contact number, social-page reference, and buying notes.
 
-The source contract is isolated from costing. Supplier metadata cannot change package cost/base-unit, calibration, normalized stock, or inventory valuation.
+Supplier/source data remains independent of costing. The application normalizes source text, validates purchase links, includes source text in material search, and deep-clones nested metadata at repository/service boundaries.
 
-Application safeguards include whitespace normalization, empty-source collapse, `http`/`https` purchase-link validation, supplier-aware material search, and deep cloning of nested source metadata at repository/service boundaries.
+Validation evidence:
 
-Feature validation passed on PR #17: dependency installation, TypeScript typecheck, all automated tests, and production build are green.
+- PR #17 merged
+- implementation merge commit `00e37f44865a67ccc209d94f2edfa621cc704b05`
+- feature CI passed
+- post-merge `develop` CI run `34824257561` passed
 
 Implementation detail: `docs/PHASE_1_5A_SUPPLIER_SOURCE_CONTRACT.md`.
 
 ### Current active task
 
-**1.5A — Supplier / Source Contract — final merge gate**
+**1.5B — Materials UI Integration**
 
-After PR #17 merges and post-merge `develop` CI passes, the next task is **1.5B — Materials UI Integration**.
+This task will expose vendor/source metadata in the Materials form and listing while keeping the fields informational and non-financial.
 
 ---
 
