@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { MaterialCalibrationEvidence } from './materialCalibration';
 import type { Material } from './materials';
 import {
   MaterialCostingError,
@@ -21,14 +22,29 @@ function material(overrides: Partial<Material> = {}): Material {
   };
 }
 
+function calibration(overrides: Partial<MaterialCalibrationEvidence> = {}): MaterialCalibrationEvidence {
+  return {
+    id: 'CAL-PLASTER-001',
+    materialId: 'MAT-PLASTER',
+    measuredVolume: 5,
+    volumeUnit: 'cup',
+    knownWeight: 1,
+    weightUnit: 'kg',
+    recordedAt: '2026-09-14T16:00:00+08:00',
+    ...overrides,
+  };
+}
+
 describe('material package costing', () => {
   it('derives cost per gram from a standard kilogram purchase', () => {
     const result = calculateMaterialPackageCosting(material());
 
     expect(result.standardBaseUnitsPerPurchaseUnit).toBe(1000);
     expect(result.manualBaseUnitsPerPurchaseUnit).toBeNull();
+    expect(result.calibrationBaseUnitsPerPurchaseUnit).toBeNull();
     expect(result.effectiveBaseUnitsPerPurchaseUnit).toBe(1000);
     expect(result.effectiveConversionSource).toBe('standard');
+    expect(result.effectiveCalibrationId).toBeNull();
     expect(result.packageBaseQuantity).toBe(1000);
     expect(result.costPerBaseUnit).toBeCloseTo(0.066, 12);
   });
@@ -82,7 +98,7 @@ describe('material package costing', () => {
     expect(result.costPerBaseUnit).toBeCloseTo(1.2, 12);
   });
 
-  it('lets an explicit manual conversion override a standard conversion', () => {
+  it('lets an explicit manual conversion override a standard same-dimension conversion', () => {
     const result = calculateMaterialPackageCosting(
       material({
         purchaseQuantity: 1,
@@ -97,6 +113,66 @@ describe('material package costing', () => {
     expect(result.effectiveBaseUnitsPerPurchaseUnit).toBe(950);
     expect(result.effectiveConversionSource).toBe('manual');
     expect(result.costPerBaseUnit).toBeCloseTo(0.1, 12);
+  });
+
+  it('uses the latest material calibration for cup -> gram package costing', () => {
+    const result = calculateMaterialPackageCosting(
+      material({
+        purchaseQuantity: 2,
+        purchaseUnit: 'cup',
+        packageCost: 40,
+      }),
+      [calibration()],
+    );
+
+    expect(result.standardBaseUnitsPerPurchaseUnit).toBeNull();
+    expect(result.calibrationBaseUnitsPerPurchaseUnit).toBe(200);
+    expect(result.effectiveBaseUnitsPerPurchaseUnit).toBe(200);
+    expect(result.effectiveConversionSource).toBe('calibration');
+    expect(result.effectiveCalibrationId).toBe('CAL-PLASTER-001');
+    expect(result.packageBaseQuantity).toBe(400);
+    expect(result.costPerBaseUnit).toBeCloseTo(0.1, 12);
+  });
+
+  it('lets material calibration outrank a manual g/cup fallback', () => {
+    const result = calculateMaterialPackageCosting(
+      material({
+        purchaseUnit: 'cup',
+        manualBaseUnitsPerPurchaseUnit: 180,
+        packageCost: 20,
+      }),
+      [calibration()],
+    );
+
+    expect(result.manualBaseUnitsPerPurchaseUnit).toBe(180);
+    expect(result.calibrationBaseUnitsPerPurchaseUnit).toBe(200);
+    expect(result.effectiveBaseUnitsPerPurchaseUnit).toBe(200);
+    expect(result.effectiveConversionSource).toBe('calibration');
+  });
+
+  it('falls back to an explicit manual g/cup conversion when no calibration exists', () => {
+    const result = calculateMaterialPackageCosting(
+      material({
+        purchaseUnit: 'cup',
+        manualBaseUnitsPerPurchaseUnit: 185,
+        packageCost: 18.5,
+      }),
+    );
+
+    expect(result.effectiveBaseUnitsPerPurchaseUnit).toBe(185);
+    expect(result.effectiveConversionSource).toBe('manual');
+    expect(result.effectiveCalibrationId).toBeNull();
+    expect(result.costPerBaseUnit).toBeCloseTo(0.1, 12);
+  });
+
+  it('requires calibration or an explicit manual fallback for cup -> gram costing', () => {
+    try {
+      calculateMaterialPackageCosting(material({ purchaseUnit: 'cup', manualBaseUnitsPerPurchaseUnit: undefined }));
+      throw new Error('Expected costing to fail.');
+    } catch (error) {
+      expect(error).toBeInstanceOf(MaterialCostingError);
+      expect((error as MaterialCostingError).code).toBe('MISSING_MATERIAL_CALIBRATION');
+    }
   });
 
   it('allows a zero-cost package while preserving a valid quantity', () => {
@@ -152,10 +228,13 @@ describe('material package costing', () => {
     }
   });
 
-  it('rejects invalid manual conversion values', () => {
+  it('rejects invalid manual conversion values even when calibration is available', () => {
     for (const manualBaseUnitsPerPurchaseUnit of [0, -10, Number.NaN]) {
       try {
-        calculateMaterialPackageCosting(material({ manualBaseUnitsPerPurchaseUnit }));
+        calculateMaterialPackageCosting(
+          material({ purchaseUnit: 'cup', manualBaseUnitsPerPurchaseUnit }),
+          [calibration()],
+        );
         throw new Error('Expected costing to fail.');
       } catch (error) {
         expect(error).toBeInstanceOf(MaterialCostingError);
