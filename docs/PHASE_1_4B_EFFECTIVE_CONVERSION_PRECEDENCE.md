@@ -2,11 +2,13 @@
 
 ## Status
 
-**IMPLEMENTED — VALIDATION PENDING**
+**FEATURE CI PASSED — MERGE GATE**
 
 Branch: `feature/phase-1-4b-effective-conversion-precedence`
 
 Base: `develop`
+
+PR: `#14`
 
 ## Objective
 
@@ -80,71 +82,33 @@ cup -> g
 
 This does **not** mean the contract knows how to convert it. It only permits the record to reach the Phase 1.4 resolver.
 
-Other incompatible combinations remain rejected, for example:
-
-- L -> g
-- mL -> g
-- cup -> pc
-- kg -> mL
+Other incompatible combinations remain rejected, including `L -> g`, `mL -> g`, `cup -> pc`, and `kg -> mL`.
 
 ## Package costing integration
 
-`calculateMaterialPackageCosting(material, calibrationEvidence)` now reports:
-
-- standard conversion when available
-- manual conversion when supplied
-- calibration conversion when applicable
-- effective conversion
-- effective conversion source
-- effective calibration ID when calibration was used
-- package base quantity
-- cost per base unit
+`calculateMaterialPackageCosting(material, calibrationEvidence)` now reports the standard, manual, calibration, and effective conversion values; the effective source; calibration ID when used; package base quantity; and cost per base unit.
 
 For dry cup purchases, calibration is applied before the manual fallback.
 
 ## On-hand normalization integration
 
-`normalizeMaterialOnHand(material, calibrationEvidence)` now supports:
+`normalizeMaterialOnHand(material, calibrationEvidence)` supports compatible standard conversion, calibrated cup-to-gram conversion, manual g/cup fallback when cup is also the configured purchase unit, and configured purchase-package conversion.
 
-- compatible standard unit conversion
-- calibrated cup-to-gram conversion
-- manual g/cup fallback when `cup` is also the configured purchase unit
-- purchase-package conversion
-
-It reports the effective source as one of:
-
-- `standard`
-- `calibration`
-- `manual`
-- `purchase-package`
-
-When a purchase package is reused for stock normalization, the underlying package conversion source is also reported.
+It reports the source as `standard`, `calibration`, `manual`, or `purchase-package`. For purchase-package stock, the underlying package conversion source is also exposed.
 
 ## Inventory valuation integration
 
-`calculateMaterialInventoryValuation(material, calibrationEvidence)` passes the same calibration evidence through both stock normalization and package costing.
-
-Example:
+`calculateMaterialInventoryValuation(material, calibrationEvidence)` passes the same calibration evidence through stock normalization and package costing.
 
 ```text
-Purchase:
-1 kg plaster = ₱66
-cost per gram = ₱0.066
-
-Calibration:
-5 cups = 1,000 g
-200 g/cup
-
-On hand:
-3 cups = 600 g
-
-Inventory value:
-600 × ₱0.066 = ₱39.60
+Purchase: 1 kg plaster = ₱66
+Cost per gram = ₱0.066
+Calibration: 5 cups = 1,000 g = 200 g/cup
+On hand: 3 cups = 600 g
+Inventory value: 600 × ₱0.066 = ₱39.60
 ```
 
 ## Controlled failure behavior
-
-The system now distinguishes these cases:
 
 - dry cup stock/costing with no calibration or manual fallback -> material calibration required
 - unrelated cross-dimension unit -> unresolved cross-dimension error
@@ -156,41 +120,28 @@ There is still no universal `cup -> g` conversion in the shared unit engine.
 
 ## Application/UI boundary
 
-Phase 1.4B establishes the domain precedence and calculation contract.
+Phase 1.4B establishes the domain precedence and calculation contract. The existing Materials UI does not yet create/manage calibration records or automatically offer calibrated cup input.
 
-The existing Materials UI does not yet create/manage calibration records or offer calibrated cup input automatically. That wiring belongs to:
-
-**Phase 1.4C — Calibration UI & Tests**
-
-1.4C will provide calibration CRUD/session storage, select materials, save measurement evidence, and pass the effective calibration into material calculations.
+That wiring belongs to **Phase 1.4C — Calibration UI & Tests**, which will provide calibration CRUD/session storage, material selection, measurement entry, saved evidence, and application/UI use of the effective calibration.
 
 ## Automated coverage
 
-Tests cover:
+Tests cover structural acceptance of the `cup -> g` bridge, rejection of unrelated cross-dimension units, standard conversion, manual-over-standard package precedence, calibration-over-manual dry-cup precedence, manual g/cup fallback, missing-calibration failure, calibrated stock normalization, latest-calibration selection, unresolved conversions, and calibrated inventory valuation.
 
-- structural acceptance of the `cup -> g` calibration bridge
-- continued rejection of unrelated cross-dimension units
-- standard package conversion
-- manual-over-standard package precedence
-- calibration-over-manual dry cup precedence
-- manual g/cup fallback without calibration
-- missing calibration failure
-- calibrated cup stock normalization
-- latest-valid-calibration selection during normalization
-- manual cup stock fallback
-- unresolved cross-dimension rejection
-- calibrated inventory valuation
+## Feature validation evidence
 
-## Completion gate
+PR `#14` feature CI passed:
 
-Phase 1.4B is complete only after:
+- dependency installation passed
+- TypeScript typecheck passed
+- conversion-precedence tests passed
+- full regression test suite passed
+- production build passed
 
-- TypeScript typecheck passes
-- conversion-precedence tests pass
-- all regression tests pass
-- production build passes
-- feature PR CI passes
-- PR merges into `develop`
-- post-merge `develop` CI passes
+## Remaining completion gate
+
+- final PR-head CI after this documentation update
+- merge PR `#14` into `develop`
+- confirm post-merge `develop` CI
 
 Next task after completion: **1.4C — Calibration UI & Tests**.
