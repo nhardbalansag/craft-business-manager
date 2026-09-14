@@ -52,7 +52,7 @@ Implementation sequence:
     1.2B — Material Application CRUD Services     COMPLETE
     1.2C — Materials UI                           COMPLETE
 1.3 — Purchase Costing & Inventory Quantity       IN PROGRESS
-    1.3A — Package Cost / Base-Unit Costing        IMPLEMENTED / VALIDATION PENDING
+    1.3A — Package Cost / Base-Unit Costing        FEATURE CI PASSED / MERGE GATE
     1.3B — On-Hand Quantity Normalization         NOT STARTED
     1.3C — Inventory Valuation & Validation       NOT STARTED
 1.4 — Material-Specific Calibration               NOT STARTED
@@ -76,15 +76,21 @@ Phase 1.2 validation evidence:
 
 Phase 1.3A adds deterministic package conversion and cost/base-unit calculation. Manual conversion has explicit precedence over standard same-dimension conversion; package labels without a conversion are rejected with a controlled domain error. Derived costing remains calculated rather than persisted. Implementation detail: `docs/PHASE_1_3A_PACKAGE_COSTING.md`.
 
-Current validation gate for 1.3A:
+Phase 1.3A feature validation evidence:
 
-- TypeScript typecheck
-- package-costing domain tests
-- MaterialService boundary tests
-- production build
-- feature PR CI
-- merge to `develop`
-- post-merge `develop` CI
+- PR: `#10`
+- dependency installation passed
+- TypeScript typecheck passed
+- package-costing domain tests passed
+- MaterialService boundary tests passed
+- full automated test suite passed
+- production build passed
+- feature PR CI passed
+
+Remaining 1.3A gate:
+
+- merge PR `#10` to `develop`
+- confirm post-merge `develop` CI
 
 Next task after 1.3A is fully validated and merged:
 
