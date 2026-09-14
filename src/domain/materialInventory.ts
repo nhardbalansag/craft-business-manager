@@ -1,9 +1,13 @@
 import type { Material } from './materials';
-import { isMaterialPackageUnit } from './materials';
+import { isMaterialCupWeightBridge, isMaterialPackageUnit } from './materials';
+import {
+  selectLatestMaterialCupWeightCalibration,
+  type MaterialCalibrationEvidence,
+} from './materialCalibration';
 import { calculateMaterialPackageCosting } from './materialCosting';
-import { getStandardConversionFactor, isSupportedUnit } from './units';
+import { areUnitsCompatible, getStandardConversionFactor, isSupportedUnit } from './units';
 
-export type OnHandConversionSource = 'standard' | 'purchase-package';
+export type OnHandConversionSource = 'standard' | 'calibration' | 'manual' | 'purchase-package';
 
 export interface MaterialOnHandNormalization {
   enteredQuantity: number;
@@ -12,6 +16,8 @@ export interface MaterialOnHandNormalization {
   baseUnitsPerOnHandUnit: number;
   normalizedBaseQuantity: number;
   conversionSource: OnHandConversionSource;
+  calibrationId: string | null;
+  purchasePackageConversionSource: 'manual' | 'standard' | 'calibration' | null;
 }
 
 export interface MaterialInventoryValuation {
@@ -24,6 +30,8 @@ export interface MaterialInventoryValuation {
 export type MaterialInventoryErrorCode =
   | 'NON_FINITE_ON_HAND_QUANTITY'
   | 'UNRESOLVED_PACKAGE_ON_HAND_UNIT'
+  | 'UNRESOLVED_CROSS_DIMENSION_UNIT'
+  | 'MISSING_MATERIAL_CALIBRATION'
   | 'NEGATIVE_ON_HAND_QUANTITY';
 
 export class MaterialInventoryError extends Error {
@@ -41,16 +49,21 @@ export class MaterialInventoryError extends Error {
 /**
  * Normalizes the user-entered on-hand quantity into the material's canonical base unit.
  *
- * Rules:
- * - standard same-dimension units use the shared unit conversion engine;
- * - a package label can be normalized only when it is the material's purchase unit,
- *   because only that package has an authoritative effective package conversion;
- * - dry cross-dimension cases such as cup -> g remain unavailable until Phase 1.4.
+ * Precedence:
+ * - compatible standard units -> standard conversion;
+ * - dry cup -> gram -> latest material calibration;
+ * - dry cup -> gram with no calibration -> manual g/cup fallback only when cup is
+ *   the material's configured purchase unit;
+ * - configured package label -> the package's effective conversion;
+ * - everything else -> controlled error.
  *
  * Negative quantities are preserved mathematically here. Higher-level inventory
  * valuation owns the business rule that inventory cannot be negative.
  */
-export function normalizeMaterialOnHand(material: Material): MaterialOnHandNormalization {
+export function normalizeMaterialOnHand(
+  material: Material,
+  evidenceRecords: readonly MaterialCalibrationEvidence[] = [],
+): MaterialOnHandNormalization {
   if (!Number.isFinite(material.onHandQuantity)) {
     throw new MaterialInventoryError(
       'NON_FINITE_ON_HAND_QUANTITY',
@@ -60,15 +73,62 @@ export function normalizeMaterialOnHand(material: Material): MaterialOnHandNorma
   }
 
   if (isSupportedUnit(material.onHandUnit)) {
-    const factor = getStandardConversionFactor(material.onHandUnit, material.baseUnit);
-    return {
-      enteredQuantity: material.onHandQuantity,
-      enteredUnit: material.onHandUnit,
-      baseUnit: material.baseUnit,
-      baseUnitsPerOnHandUnit: factor,
-      normalizedBaseQuantity: material.onHandQuantity * factor,
-      conversionSource: 'standard',
-    };
+    if (areUnitsCompatible(material.onHandUnit, material.baseUnit)) {
+      const factor = getStandardConversionFactor(material.onHandUnit, material.baseUnit);
+      return {
+        enteredQuantity: material.onHandQuantity,
+        enteredUnit: material.onHandUnit,
+        baseUnit: material.baseUnit,
+        baseUnitsPerOnHandUnit: factor,
+        normalizedBaseQuantity: material.onHandQuantity * factor,
+        conversionSource: 'standard',
+        calibrationId: null,
+        purchasePackageConversionSource: null,
+      };
+    }
+
+    if (isMaterialCupWeightBridge(material.onHandUnit, material.baseUnit)) {
+      if (evidenceRecords.length > 0) {
+        const calibration = selectLatestMaterialCupWeightCalibration(material, evidenceRecords);
+        return {
+          enteredQuantity: material.onHandQuantity,
+          enteredUnit: material.onHandUnit,
+          baseUnit: material.baseUnit,
+          baseUnitsPerOnHandUnit: calibration.gramsPerCup,
+          normalizedBaseQuantity: material.onHandQuantity * calibration.gramsPerCup,
+          conversionSource: 'calibration',
+          calibrationId: calibration.evidence.id,
+          purchasePackageConversionSource: null,
+        };
+      }
+
+      if (material.purchaseUnit === 'cup' && material.manualBaseUnitsPerPurchaseUnit !== undefined) {
+        const packageCosting = calculateMaterialPackageCosting(material, evidenceRecords);
+        return {
+          enteredQuantity: material.onHandQuantity,
+          enteredUnit: material.onHandUnit,
+          baseUnit: material.baseUnit,
+          baseUnitsPerOnHandUnit: packageCosting.effectiveBaseUnitsPerPurchaseUnit,
+          normalizedBaseQuantity:
+            material.onHandQuantity * packageCosting.effectiveBaseUnitsPerPurchaseUnit,
+          conversionSource: 'manual',
+          calibrationId: null,
+          purchasePackageConversionSource: null,
+        };
+      }
+
+      throw new MaterialInventoryError(
+        'MISSING_MATERIAL_CALIBRATION',
+        `A cup-to-weight calibration is required to normalize ${material.name} stock entered in cups.`,
+        material.id,
+      );
+    }
+
+    throw new MaterialInventoryError(
+      'UNRESOLVED_CROSS_DIMENSION_UNIT',
+      `On-hand unit ${material.onHandUnit} cannot be converted to ${material.baseUnit} for ${material.name}.`,
+      material.id,
+    );
   }
 
   if (isMaterialPackageUnit(material.onHandUnit)) {
@@ -80,7 +140,7 @@ export function normalizeMaterialOnHand(material: Material): MaterialOnHandNorma
       );
     }
 
-    const packageCosting = calculateMaterialPackageCosting(material);
+    const packageCosting = calculateMaterialPackageCosting(material, evidenceRecords);
     const factor = packageCosting.effectiveBaseUnitsPerPurchaseUnit;
 
     return {
@@ -90,11 +150,11 @@ export function normalizeMaterialOnHand(material: Material): MaterialOnHandNorma
       baseUnitsPerOnHandUnit: factor,
       normalizedBaseQuantity: material.onHandQuantity * factor,
       conversionSource: 'purchase-package',
+      calibrationId: packageCosting.effectiveCalibrationId,
+      purchasePackageConversionSource: packageCosting.effectiveConversionSource,
     };
   }
 
-  // Material's TypeScript contract makes this unreachable for typed application data,
-  // but keeping the guard explicit protects future untyped import boundaries.
   throw new MaterialInventoryError(
     'UNRESOLVED_PACKAGE_ON_HAND_UNIT',
     `On-hand unit ${String(material.onHandUnit)} for ${material.name} cannot be normalized.`,
@@ -107,13 +167,12 @@ export function normalizeMaterialOnHand(material: Material): MaterialOnHandNorma
  *
  * Formula:
  *   inventory value = normalized on-hand base quantity × cost per base unit
- *
- * This function is also the Phase 1.3 inventory-validity boundary: negative stock is
- * rejected here even though the lower-level normalization function remains a pure
- * mathematical converter.
  */
-export function calculateMaterialInventoryValuation(material: Material): MaterialInventoryValuation {
-  const normalized = normalizeMaterialOnHand(material);
+export function calculateMaterialInventoryValuation(
+  material: Material,
+  evidenceRecords: readonly MaterialCalibrationEvidence[] = [],
+): MaterialInventoryValuation {
+  const normalized = normalizeMaterialOnHand(material, evidenceRecords);
 
   if (normalized.normalizedBaseQuantity < 0) {
     throw new MaterialInventoryError(
@@ -123,7 +182,7 @@ export function calculateMaterialInventoryValuation(material: Material): Materia
     );
   }
 
-  const costing = calculateMaterialPackageCosting(material);
+  const costing = calculateMaterialPackageCosting(material, evidenceRecords);
 
   return {
     normalizedBaseQuantity: normalized.normalizedBaseQuantity,
