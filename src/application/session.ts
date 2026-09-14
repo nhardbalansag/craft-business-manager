@@ -6,6 +6,8 @@ import { InMemoryMixPresetRepository } from './mixPresets/InMemoryMixPresetRepos
 import { MixPresetService } from './mixPresets/MixPresetService';
 import { InMemoryProductRepository } from './products/InMemoryProductRepository';
 import { ProductService } from './products/ProductService';
+import { FixedRecipeItemService } from './recipeItems/FixedRecipeItemService';
+import { InMemoryFixedRecipeItemRepository } from './recipeItems/InMemoryFixedRecipeItemRepository';
 import { InMemoryYieldSampleRepository } from './yieldSamples/InMemoryYieldSampleRepository';
 import { YieldHistoryService } from './yieldSamples/YieldHistoryService';
 import { YieldLearningService } from './yieldSamples/YieldLearningService';
@@ -16,6 +18,7 @@ export const calibrationRepository = new InMemoryCalibrationRepository();
 export const mixPresetRepository = new InMemoryMixPresetRepository();
 export const productRepository = new InMemoryProductRepository();
 export const yieldSampleRepository = new InMemoryYieldSampleRepository();
+export const fixedRecipeItemRepository = new InMemoryFixedRecipeItemRepository();
 
 export const materialService = new MaterialService(materialRepository, async (materialId) => {
   const records = await calibrationRepository.list();
@@ -43,6 +46,12 @@ export const yieldLearningService = new YieldLearningService(
 );
 export const yieldHistoryService = new YieldHistoryService(
   yieldSampleRepository,
+  productRepository,
+  materialRepository,
+  calibrationRepository,
+);
+export const fixedRecipeItemService = new FixedRecipeItemService(
+  fixedRecipeItemRepository,
   productRepository,
   materialRepository,
   calibrationRepository,

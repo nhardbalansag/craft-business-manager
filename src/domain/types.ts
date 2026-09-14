@@ -1,21 +1,16 @@
+import type { FixedRecipeItem } from './fixedRecipeItems';
 import type { Material } from './materials';
 import type { MixPreset, RatioBasis } from './mixPresets';
 import type { Product, ProductCategory } from './products';
 import type { YieldSample } from './yieldSamples';
 
+export type { FixedRecipeItem, FixedRecipeItemRole } from './fixedRecipeItems';
 export type { Material } from './materials';
 export type { MixPreset, RatioBasis } from './mixPresets';
 export type { Product, ProductCategory } from './products';
 export type { YieldSample, YieldSampleMaterialInput } from './yieldSamples';
 export type { BaseUnit, InputUnit } from './units';
 export type PricingMethod = 'profit-amount' | 'markup-percent' | 'margin-percent';
-
-/** Prototype Phase 2.3 scaffold; replaced/refined by the fixed recipe domain in 2.3A. */
-export interface ProductRecipeItem {
-  materialId: string;
-  baseQuantityPerProduct: number;
-  purpose?: string;
-}
 
 /** Phase 3 scaffold only. Product composition is not part of the Phase 2 Product contract. */
 export type ProductComponentSource = 'material' | 'product';
@@ -40,4 +35,5 @@ export interface BusinessDataset {
   mixPresets: MixPreset[];
   products: Product[];
   yieldSamples: YieldSample[];
+  recipeItems: FixedRecipeItem[];
 }
