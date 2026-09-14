@@ -4,7 +4,12 @@ import { InMemoryMaterialRepository } from './materials/InMemoryMaterialReposito
 import { MaterialService } from './materials/MaterialService';
 
 export const materialRepository = new InMemoryMaterialRepository();
-export const materialService = new MaterialService(materialRepository);
-
 export const calibrationRepository = new InMemoryCalibrationRepository();
+
+export const materialService = new MaterialService(materialRepository, async (materialId) => {
+  const records = await calibrationRepository.list();
+  const key = materialId.trim().toLocaleLowerCase();
+  return records.filter((record) => record.materialId.trim().toLocaleLowerCase() === key);
+});
+
 export const calibrationService = new CalibrationService(calibrationRepository, materialRepository);
