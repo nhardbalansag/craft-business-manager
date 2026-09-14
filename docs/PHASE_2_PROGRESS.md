@@ -17,7 +17,7 @@ Planning baseline: `docs/PHASE_2_PRODUCT_RECIPES_MOLD_YIELD_PLAN.md`
 
 2.3 — Recipe Requirement Synthesis                    IN PROGRESS
     2.3A — Fixed Recipe Item Contract & Material Roles COMPLETE
-    2.3B — Effective Per-Piece Material Requirements  NEXT
+    2.3B — Effective Per-Piece Material Requirements  VALIDATION / MERGE GATE
     2.3C — Material Cost Preview & Validation         NOT STARTED
 
 2.4 — Safety Waste & Inventory-Limited Capacity       NOT STARTED
@@ -58,3 +58,5 @@ Evidence:
 ## Current active task
 
 **2.3B — Effective Per-Piece Material Requirements**
+
+Implementation is complete on `feature/phase-2-3b-effective-requirements` and is awaiting CI / merge validation.

@@ -6,6 +6,7 @@ import { InMemoryMixPresetRepository } from './mixPresets/InMemoryMixPresetRepos
 import { MixPresetService } from './mixPresets/MixPresetService';
 import { InMemoryProductRepository } from './products/InMemoryProductRepository';
 import { ProductService } from './products/ProductService';
+import { EffectiveRecipeRequirementService } from './recipeRequirements/EffectiveRecipeRequirementService';
 import { FixedRecipeItemService } from './recipeItems/FixedRecipeItemService';
 import { InMemoryFixedRecipeItemRepository } from './recipeItems/InMemoryFixedRecipeItemRepository';
 import { InMemoryYieldSampleRepository } from './yieldSamples/InMemoryYieldSampleRepository';
@@ -55,4 +56,9 @@ export const fixedRecipeItemService = new FixedRecipeItemService(
   productRepository,
   materialRepository,
   calibrationRepository,
+);
+export const effectiveRecipeRequirementService = new EffectiveRecipeRequirementService(
+  productRepository,
+  yieldHistoryService,
+  fixedRecipeItemService,
 );
