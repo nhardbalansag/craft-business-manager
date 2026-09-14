@@ -1,12 +1,12 @@
 # Phase 3 — Product Components, Vessels & Nested Molded Products Progress
 
-Status: **PLANNED — IMPLEMENTATION NOT STARTED**
+Status: **IN PROGRESS**
 
 Planning baseline: `docs/PHASE_3_PRODUCT_COMPONENTS_VESSELS_PLAN.md`
 
 ```text
-3.1 — Composition Foundation
-    3.1A — Product Component Contract & Roles             NEXT
+3.1 — Composition Foundation                         IN PROGRESS
+    3.1A — Product Component Contract & Roles        VALIDATION / MERGE GATE
     3.1B — Composition Graph Integrity & Cycle Prevention NOT STARTED
     3.1C — Component Repository & Application Services    NOT STARTED
 
@@ -49,8 +49,23 @@ Planning baseline: `docs/PHASE_3_PRODUCT_COMPONENTS_VESSELS_PLAN.md`
 - Excel persistence remains Phase 5;
 - no stock reservations, automatic deductions, or stock transaction ledger are introduced in Phase 3.
 
+## 3.1A implementation at validation gate
+
+- dedicated `src/domain/productComponents.ts` replaces the loose Phase 3 scaffold;
+- authoritative fields: component ID, parent Product ID, source type/ID, structural role, whole-piece quantity, optional notes;
+- source kinds: `material | product`;
+- roles: `vessel`, `molded-component`, `decorative-component`, `insert`, `accessory`, `other`;
+- finite, positive integer `quantityPerParent` enforced;
+- deterministic normalization, clone, source-key, and duplicate-source equality helpers added;
+- material-backed compatibility requires a matching count-based (`pc`) Material source;
+- derived cost/capacity remains excluded;
+- graph self/cycle validation remains 3.1B;
+- repositories, active-reference validation, archive guards, and `BusinessDataset.productComponents` remain 3.1C.
+
+Implementation record: `docs/PHASE_3_1A_PRODUCT_COMPONENT_CONTRACT.md`
+
 ## Current active task
 
-**3.1A — Product Component Contract & Roles**
+**3.1A — Product Component Contract & Roles — validation / merge gate**
 
 Do not start 3.1B until 3.1A is merged and post-merge `develop` CI is green.
