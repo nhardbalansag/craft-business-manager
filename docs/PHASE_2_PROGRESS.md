@@ -26,7 +26,7 @@ Planning baseline: `docs/PHASE_2_PRODUCT_RECIPES_MOLD_YIELD_PLAN.md`
     2.4C — Producible Pieces & Limiting Material      COMPLETE
 
 2.5 — Product / Yield / Production UI                 IN PROGRESS
-    2.5A — Products & Mix Presets UI                  NEXT
+    2.5A — Products & Mix Presets UI                  VALIDATION / MERGE GATE
     2.5B — Yield Recording & History UI               NOT STARTED
     2.5C — Production Estimate UI                     NOT STARTED
 
@@ -148,6 +148,23 @@ Evidence:
 - implementation merge commit `e9a6bbffd36d6aed29d7660fabee8845252ab5fb`;
 - post-merge CI run `34841719987` passed.
 
+## In validation
+
+### 2.5A — Products & Mix Presets UI
+
+- enables the Products top-level navigation workspace;
+- adds Product create/edit/archive/search/category/status UI;
+- exposes safety-waste percentage and category guidance;
+- filters product mix choices by category compatibility and active state;
+- adds Mix Preset create/edit/archive/search/basis/status UI;
+- supports dynamic material ratio lines with primary/secondary/additive roles;
+- exposes compatible-category controls and readable ratio summaries;
+- keeps all saves behind ProductService/MixPresetService application validation;
+- adds responsive styles and React smoke coverage;
+- preserves Phase 3 vessel/component and later Phase 4 pricing boundaries.
+
+Implementation PR: **#50**
+
 ## Current active task
 
-**2.5A — Products & Mix Presets UI**
+**2.5A — Products & Mix Presets UI — validation / merge gate**
