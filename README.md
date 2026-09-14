@@ -2,28 +2,16 @@
 
 Desktop-first business costing, inventory, production-yield, and pricing manager for a craft business producing:
 
-- Paintable plaster art and mold toys for kids
-- Handmade candle pots / vessels
-- Candles using handmade or purchased vessels
+- paintable plaster art and mold toys for kids;
+- handmade candle pots / vessels;
+- candles using handmade or purchased vessels;
+- event candles and multi-component craft products.
 
 ## Project direction
 
-The application is designed as a **React + TypeScript + Vite** frontend wrapped by **Tauri** for safe local file access. Version 1 uses an Excel workbook (`.xlsx`) as the persisted business-data file through a storage adapter, while keeping business logic independent from storage so SQLite can be introduced later without rebuilding the application.
+The application uses **React + TypeScript + Vite** and is intended to be wrapped by **Tauri** for safe local desktop file access.
 
-## Core business requirements
-
-- Materials and supplier/package costing
-- Standard units: grams, kilograms, mL, liters, cups, and pieces
-- Material-specific cup-to-weight calibration
-- Reusable mix ratios
-- Mold/design sample-yield calibration without requiring mold volume
-- Safety/waste allowance
-- Product recipes and add-ons
-- Multiple vessels/components per candle product
-- Handmade molded pots reusable as candle vessels
-- Inventory-based producible-quantity calculation
-- Unit cost, batch cost, base price, markup/margin, and profit computation
-- Excel import/export and local backups
+The business/domain layer remains storage-agnostic. Excel (`.xlsx`) is the planned first persisted business-data format through a storage adapter, with SQLite as a later migration option without rewriting business rules.
 
 ## Architecture
 
@@ -32,46 +20,97 @@ React UI
    ↓
 Application / Business Services
    ↓
-Domain Models + Costing Engine
+Domain Models + Costing / Production Engines
    ↓
 Storage Port
-   ├── ExcelStorage (v1)
+   ├── ExcelStorage (planned v1 persistence)
    └── SQLiteStorage (future)
    ↓
 Tauri filesystem boundary
 ```
 
-## Initial domain model
+React components do not directly read or write spreadsheet cells.
 
-- `Material`
-- `MaterialCalibration`
-- `MixPreset`
-- `Product`
-- `ProductRecipeItem`
-- `ProductVessel`
-- `MoldYieldSample`
-- `InventoryItem`
-- `ProductionPlan`
-- `PricingPolicy`
+## Implemented through Phase 2
 
-A candle may have **zero, one, or many vessel/components**. For example, one sellable design may contain one glass cup plus several mini molded candle components. Production capacity is determined by the most constrained required component.
+### Materials, units, costing, inventory and calibration
 
-## Yield model
+- canonical `g`, `mL`, and `pc` internal units;
+- standard measurement conversion;
+- package costing and cost per base unit;
+- current inventory normalization and valuation;
+- material-specific cup-to-weight calibration/manual fallback;
+- supplier/source metadata;
+- Materials and Calibration workspaces.
 
-Mold volume is optional. Yield can be learned from actual samples, for example:
+### Products, mixes and real-production yield learning
 
-```text
-3 cups plaster → 8 good bears
-```
+- paintable-art, candle-pot, and candle product categories;
+- reusable weight/volume mix presets;
+- immutable multi-material yield samples;
+- good/rejected output tracking;
+- latest-derivable yield selection and fallback;
+- learned canonical material requirement per good piece;
+- fixed recipe materials and roles;
+- yield + fixed requirement synthesis with source traceability.
 
-After cup-to-weight calibration, the system can estimate grams per finished piece, cost per piece, waste-adjusted material requirements, and producible quantity from current stock.
+### Production planning
+
+- direct-material cost preview;
+- product safety-waste reserve;
+- waste-adjusted per-piece and planned-batch requirements;
+- whole-count physical batch rounding for indivisible `pc` materials;
+- normalized-inventory producible-piece capacity;
+- all tied limiting materials;
+- Products, Yield, and Production Estimate workspaces.
+
+Mold volume remains optional. Real sample production evidence is authoritative.
+
+## Phase boundaries
+
+The following are intentionally not yet implemented:
+
+- purchased vessels / container component composition;
+- molded or nested child-product composition;
+- multi-component capacity and cost roll-up;
+- selling price, markup, margin, revenue, and profit policy;
+- Excel persistence/import/export;
+- native Tauri file-system workflow.
 
 ## Branching
 
-- `main` — stable/releasable
-- `develop` — integration branch
-- `feature/*` — implementation work
+- `main` — stable/releasable;
+- `develop` — integration branch;
+- `feature/*` — implementation work;
+- `docs/*` — documentation/status closeout when useful.
 
-## Status
+## Validation status
 
-Repository foundation initialized. The next implementation phase is the React/Tauri application scaffold and domain/storage contracts.
+Phase 2 final completion gate:
+
+```text
+38 test files passed
+349 tests passed
+TypeScript typecheck passed
+Production Vite build passed
+```
+
+Phase 2.6B completion merge: `e79303fdcad4fb298154be957f938584f164a61b`
+
+Post-merge CI run: `34908149932` — success.
+
+See:
+
+- `docs/DEVELOPMENT_PLAN.md`
+- `docs/PHASE_2_PROGRESS.md`
+- `docs/PHASE_2_6B_REGRESSION_BUILD_COMPLETION.md`
+
+## Current status
+
+**Phase 0 — COMPLETE**  
+**Phase 1 — COMPLETE**  
+**Phase 2 — COMPLETE**
+
+Next: **Phase 3 — Product Components, Vessels & Nested Molded Products**.
+
+Phase 3 should be assessed and split into explicit implementation phases/sub-phases before development begins.
