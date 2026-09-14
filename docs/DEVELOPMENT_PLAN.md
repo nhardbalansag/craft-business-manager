@@ -46,8 +46,8 @@ Dedicated plan: `docs/PHASE_1_MATERIALS_UNITS_CALIBRATION_PLAN.md`
     1.5B — Materials UI Integration               COMPLETE
 
 1.6 — Phase 1 Integration & Completion Gate       IN PROGRESS
-    1.6A — Integrated Materials Workflow          NEXT
-    1.6B — Regression, Build & Completion         NOT STARTED
+    1.6A — Integrated Materials Workflow          IMPLEMENTED / VALIDATION PENDING
+    1.6B — Regression, Build & Completion         NEXT AFTER 1.6A
 ```
 
 ### Phase 1.1 — Measurement & Conversion Foundation
@@ -112,11 +112,34 @@ Implementation docs:
 - `docs/PHASE_1_5A_SUPPLIER_SOURCE_CONTRACT.md`
 - `docs/PHASE_1_5B_MATERIALS_SOURCE_UI.md`
 
+### Phase 1.6A — Integrated Materials Workflow
+
+Status: **IMPLEMENTED — VALIDATION PENDING**
+
+The integration layer now exercises Phase 1 as a complete workflow instead of isolated modules.
+
+Covered scenarios include:
+
+- kilogram-purchased plaster with supplier metadata
+- real `5 cups = 1 kg` cup-to-weight calibration
+- saved cup-based stock normalization and inventory valuation
+- latest-calibration precedence
+- safe calibration replacement/deletion behavior
+- count-package conversion (`pack -> pc`)
+- standard volume conversion (`L -> mL`)
+- supplier/source search
+- supplier-only edits remaining financially neutral
+- archive and active/archived filtering
+
+Integration hardening also prevents deleting the last calibration required by a material's currently saved cup-to-weight state. This avoids leaving persisted material data unresolvable after calibration history maintenance.
+
+Implementation detail: `docs/PHASE_1_6A_INTEGRATED_MATERIALS_WORKFLOW.md`.
+
 ### Current active task
 
-**1.6A — Integrated Materials Workflow**
+**1.6A — Integrated Materials Workflow — validation / merge gate**
 
-This task will validate the complete end-to-end materials workflow across material creation, package costing, calibration, stock normalization, inventory valuation, and supplier/source metadata before the final Phase 1 regression/completion gate.
+After feature CI, merge, and post-merge `develop` CI pass, the next task is **1.6B — Regression, Build & Completion**.
 
 ---
 
