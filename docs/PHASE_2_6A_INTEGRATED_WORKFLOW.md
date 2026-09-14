@@ -2,11 +2,13 @@
 
 ## Status
 
-**IMPLEMENTED — VALIDATION / MERGE GATE**
-
-Feature branch: `feature/phase-2-6a-integrated-workflow`
+**COMPLETE — MERGED + POST-MERGE CI PASSED**
 
 Implementation PR: **#56**
+
+Implementation merge commit: `3557121019908949b6032e371581f452d9a19163`
+
+Post-merge CI: **34848952735 — SUCCESS**
 
 ## Objective
 
@@ -188,9 +190,9 @@ The resulting capacity test also verifies deterministic tied limiting materials.
 - inventory reservation or stock deduction;
 - persisted production estimates.
 
-## Validation coverage
+## Validation evidence
 
-Feature validation requires:
+The completion gate passed:
 
 - TypeScript typecheck;
 - all existing Phase 1/2 domain/application regressions;
@@ -198,10 +200,8 @@ Feature validation requires:
 - React smoke tests including Production;
 - production build;
 - PR #56 merge;
-- post-merge `develop` CI.
+- post-merge `develop` CI run `34848952735`.
 
-Initial feature-head CI passed before this documentation update.
-
-## Next task after completion
+## Next task
 
 **2.6B — Regression, Build & Phase 2 Completion Validation**
