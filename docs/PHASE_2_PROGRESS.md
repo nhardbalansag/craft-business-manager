@@ -26,8 +26,8 @@ Planning baseline: `docs/PHASE_2_PRODUCT_RECIPES_MOLD_YIELD_PLAN.md`
     2.4C — Producible Pieces & Limiting Material      COMPLETE
 
 2.5 — Product / Yield / Production UI                 IN PROGRESS
-    2.5A — Products & Mix Presets UI                  VALIDATION / MERGE GATE
-    2.5B — Yield Recording & History UI               NOT STARTED
+    2.5A — Products & Mix Presets UI                  COMPLETE
+    2.5B — Yield Recording & History UI               NEXT
     2.5C — Production Estimate UI                     NOT STARTED
 
 2.6 — Phase 2 Integration & Completion Gate           NOT STARTED
@@ -148,8 +148,6 @@ Evidence:
 - implementation merge commit `e9a6bbffd36d6aed29d7660fabee8845252ab5fb`;
 - post-merge CI run `34841719987` passed.
 
-## In validation
-
 ### 2.5A — Products & Mix Presets UI
 
 - enables the Products top-level navigation workspace;
@@ -163,8 +161,11 @@ Evidence:
 - adds responsive styles and React smoke coverage;
 - preserves Phase 3 vessel/component and later Phase 4 pricing boundaries.
 
-Implementation PR: **#50**
+Evidence:
+- PR #50 merged;
+- implementation merge commit `e5a6777efe5b40bbd2a7c1afa9af1c03f30ce694`;
+- post-merge CI run `34843399968` passed.
 
 ## Current active task
 
-**2.5A — Products & Mix Presets UI — validation / merge gate**
+**2.5B — Yield Recording & History UI**
