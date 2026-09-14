@@ -7,8 +7,8 @@ Planning baseline: `docs/PHASE_3_PRODUCT_COMPONENTS_VESSELS_PLAN.md`
 ```text
 3.1 — Composition Foundation                              IN PROGRESS
     3.1A — Product Component Contract & Roles             COMPLETE
-    3.1B — Composition Graph Integrity & Cycle Prevention VALIDATION / MERGE GATE
-    3.1C — Component Repository & Application Services    NOT STARTED
+    3.1B — Composition Graph Integrity & Cycle Prevention COMPLETE
+    3.1C — Component Repository & Application Services    NEXT
 
 3.2 — Finished Component Stock
     3.2A — Product Stock Contract & Validation            NOT STARTED
@@ -61,7 +61,6 @@ Planning baseline: `docs/PHASE_3_PRODUCT_COMPONENTS_VESSELS_PLAN.md`
 - deterministic normalization, clone, source-key, and duplicate-source equality helpers added;
 - material-backed compatibility requires a matching count-based (`pc`) Material source;
 - derived cost/capacity remains excluded;
-- graph self/cycle validation remains 3.1B;
 - repositories, active-reference validation, archive guards, and `BusinessDataset.productComponents` remain 3.1C.
 
 Evidence:
@@ -72,25 +71,30 @@ Evidence:
 
 Implementation record: `docs/PHASE_3_1A_PRODUCT_COMPONENT_CONTRACT.md`
 
-## 3.1B implementation at validation gate
+### 3.1B — Composition Graph Integrity & Cycle Prevention
 
-- dedicated `src/domain/productCompositionGraph.ts` adds the composition graph boundary;
-- all source records are contract-validated before graph use;
+- dedicated `src/domain/productCompositionGraph.ts` adds the graph boundary;
 - duplicate component-source identity is blocked per parent using the 3.1A source key;
 - direct Product self-reference is rejected with `DIRECT_SELF_REFERENCE`;
 - transitive cycles are rejected with `CYCLE_DETECTED` and a closed canonical cycle path;
 - product IDs are trimmed/case-insensitive for graph identity;
 - adjacency/traversal ordering is deterministic and locale-independent;
-- material-backed components do not create graph edges;
+- material-backed components do not create Product graph edges;
 - guarded depth-first descendant traversal is available for future recursive cost/capacity services;
-- traversal detects reachable corrupted cycles without allowing infinite recursion;
+- reachable corrupted cycles cannot recurse indefinitely;
 - unrelated corrupted cycles do not block traversal of a safe root;
 - repositories, source existence/active-state checks, archive guards, and `BusinessDataset.productComponents` remain 3.1C.
+
+Evidence:
+- PR #63 merged;
+- implementation merge commit `5bcaa40d983c1838f6f3fd975ef3b78081e446cb`;
+- feature CI run `34910508714` passed;
+- post-merge CI run `34910649113` passed.
 
 Implementation record: `docs/PHASE_3_1B_COMPOSITION_GRAPH_INTEGRITY.md`
 
 ## Current active task
 
-**3.1B — Composition Graph Integrity & Cycle Prevention — validation / merge gate**
+**3.1C — Component Repository & Application Services**
 
-Do not start 3.1C until 3.1B is merged and post-merge `develop` CI is green.
+Do not start 3.2A until 3.1C is merged and post-merge `develop` CI is green.
