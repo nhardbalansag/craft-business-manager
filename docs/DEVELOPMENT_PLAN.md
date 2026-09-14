@@ -46,7 +46,7 @@ Dedicated plan: `docs/PHASE_1_MATERIALS_UNITS_CALIBRATION_PLAN.md`
     1.5B — Materials UI Integration               COMPLETE
 
 1.6 — Phase 1 Integration & Completion Gate       IN PROGRESS
-    1.6A — Integrated Materials Workflow          IMPLEMENTED / VALIDATION PENDING
+    1.6A — Integrated Materials Workflow          FEATURE CI PASSED / MERGE GATE
     1.6B — Regression, Build & Completion         NEXT AFTER 1.6A
 ```
 
@@ -114,32 +114,23 @@ Implementation docs:
 
 ### Phase 1.6A — Integrated Materials Workflow
 
-Status: **IMPLEMENTED — VALIDATION PENDING**
+Status: **FEATURE CI PASSED — MERGE GATE**
 
-The integration layer now exercises Phase 1 as a complete workflow instead of isolated modules.
+The integration layer exercises Phase 1 as a complete workflow instead of isolated modules.
 
-Covered scenarios include:
+Covered scenarios include kilogram-purchased plaster with supplier metadata, real `5 cups = 1 kg` calibration, saved cup-based stock normalization and inventory valuation, latest-calibration precedence, safe calibration deletion behavior, count-package conversion, standard volume conversion, supplier/source search, supplier-only edits remaining financially neutral, and archive filtering.
 
-- kilogram-purchased plaster with supplier metadata
-- real `5 cups = 1 kg` cup-to-weight calibration
-- saved cup-based stock normalization and inventory valuation
-- latest-calibration precedence
-- safe calibration replacement/deletion behavior
-- count-package conversion (`pack -> pc`)
-- standard volume conversion (`L -> mL`)
-- supplier/source search
-- supplier-only edits remaining financially neutral
-- archive and active/archived filtering
+Integration hardening prevents deleting the last calibration required by a material's currently saved cup-to-weight state. This avoids leaving persisted material data unresolvable after calibration history maintenance.
 
-Integration hardening also prevents deleting the last calibration required by a material's currently saved cup-to-weight state. This avoids leaving persisted material data unresolvable after calibration history maintenance.
+Feature validation for PR #21 passed dependency installation, TypeScript typecheck, the full regression suite, the new integrated workflow tests, and production build.
 
 Implementation detail: `docs/PHASE_1_6A_INTEGRATED_MATERIALS_WORKFLOW.md`.
 
 ### Current active task
 
-**1.6A — Integrated Materials Workflow — validation / merge gate**
+**1.6A — Integrated Materials Workflow — final merge gate**
 
-After feature CI, merge, and post-merge `develop` CI pass, the next task is **1.6B — Regression, Build & Completion**.
+After the final PR-head CI, merge, and post-merge `develop` CI pass, the next task is **1.6B — Regression, Build & Completion**.
 
 ---
 
