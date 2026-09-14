@@ -1,5 +1,6 @@
-export type BaseUnit = 'g' | 'mL' | 'pc';
-export type InputUnit = BaseUnit | 'kg' | 'L' | 'cup';
+import type { BaseUnit, InputUnit } from './units';
+
+export type { BaseUnit, InputUnit } from './units';
 export type ProductCategory = 'paintable-art' | 'candle-pot' | 'candle';
 export type RatioBasis = 'weight' | 'volume';
 export type PricingMethod = 'profit-amount' | 'markup-percent' | 'margin-percent';
