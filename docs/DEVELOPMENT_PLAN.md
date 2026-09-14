@@ -4,35 +4,24 @@
 
 Build a desktop-first tool for material costing, mold-yield learning, inventory-based production estimates, multi-vessel candle recipes, and selling-price/profit planning.
 
-The domain layer must not depend on Excel so persistence can move to SQLite later.
+The domain layer must remain storage-agnostic so Excel persistence can later move to SQLite without rewriting business rules.
 
 ## Phase 0 — Repository & Architecture Foundation
 
 Status: **COMPLETE**
 
-Completed foundation:
+Delivered:
 
 - React + TypeScript + Vite scaffold
-- `main` and `develop` branch strategy
-- domain type contracts
-- pure costing/yield helpers
-- storage-port abstraction
-- Excel adapter boundary
-- Vitest automated tests for current costing/yield primitives
-- GitHub Actions CI using Node 22
+- `main` / `develop` branch strategy
+- domain type contracts and pure costing/yield helpers
+- storage-port abstraction and Excel adapter boundary
+- Vitest regression suite
+- GitHub Actions CI on Node 22
 
 Completion gate: **PASSED**
 
-- dependency installation succeeds
-- TypeScript typecheck succeeds
-- automated domain tests succeed
-- production build succeeds
-- architecture decisions are documented
-
-Validation evidence:
-
-- Phase 0 PR: `#2`
-- CI workflow validates `npm install`, `npm run typecheck`, `npm run test:run`, and `npm run build`
+---
 
 ## Phase 1 — Materials, Units & Calibration
 
@@ -40,127 +29,173 @@ Status: **IN PROGRESS**
 
 Dedicated plan: `docs/PHASE_1_MATERIALS_UNITS_CALIBRATION_PLAN.md`
 
-Implementation sequence:
-
 ```text
 1.1 — Measurement & Conversion Foundation         COMPLETE
     1.1A — Unit Catalog & Dimensional Rules        COMPLETE
     1.1B — Standard Conversion Engine             COMPLETE
     1.1C — Conversion Validation & Tests          COMPLETE
+
 1.2 — Material Master Domain                      COMPLETE
     1.2A — Material Contract & Classification     COMPLETE
     1.2B — Material Application CRUD Services     COMPLETE
     1.2C — Materials UI                           COMPLETE
+
 1.3 — Purchase Costing & Inventory Quantity       COMPLETE
     1.3A — Package Cost / Base-Unit Costing        COMPLETE
     1.3B — On-Hand Quantity Normalization         COMPLETE
     1.3C — Inventory Valuation & Validation       COMPLETE
+
 1.4 — Material-Specific Calibration               IN PROGRESS
     1.4A — Cup-to-Weight Calibration Model        COMPLETE
-    1.4B — Effective Conversion Precedence        FEATURE CI PASSED / MERGE GATE
-    1.4C — Calibration UI & Tests                 NEXT AFTER 1.4B
+    1.4B — Effective Conversion Precedence        COMPLETE
+    1.4C — Calibration UI & Tests                 FEATURE CI PASSED / MERGE GATE
+
 1.5 — Supplier & Source Metadata                  NOT STARTED
+    1.5A — Supplier / Source Contract             NEXT AFTER 1.4C
+    1.5B — Materials UI Integration               NOT STARTED
+
 1.6 — Phase 1 Integration & Completion Gate       NOT STARTED
+    1.6A — Integrated Materials Workflow          NOT STARTED
+    1.6B — Regression, Build & Completion         NOT STARTED
 ```
 
-Phase 1.1 established one authoritative unit catalog, standard same-dimension conversion engine, runtime unit validation, and exhaustive conversion tests. Dry `cup -> g` remains explicitly material-specific.
+### Phase 1.1 summary
 
-Phase 1.2A established the authoritative material source-data contract and classification taxonomy, including standard measurement units vs non-standard package labels. Implementation detail: `docs/PHASE_1_2A_MATERIAL_CONTRACT.md`.
+Established one authoritative unit catalog, standard same-dimension conversion engine, runtime unit validation, controlled conversion errors, and exhaustive conversion tests. Canonical units are `g`, `mL`, and `pc`. Dry `cup -> g` remains material-specific and is never a universal unit rule.
 
-Phase 1.2B added the material application/repository boundary and operational CRUD workflow: create, update, retrieve, list/filter/search, archive, duplicate handling, stable identity rules, and an in-memory repository. Implementation detail: `docs/PHASE_1_2B_MATERIAL_CRUD_SERVICES.md`.
+Implementation docs:
 
-Phase 1.2C delivered the first visible Materials workspace with add/edit forms, group/base-unit/purchase-unit/on-hand inputs, manual conversion input, listing, search, filters, soft archive, responsive styling, and explicit session-only persistence messaging. Implementation detail: `docs/PHASE_1_2C_MATERIALS_UI.md`.
+- `docs/PHASE_1_1A_UNIT_CATALOG.md`
+- `docs/PHASE_1_1B_STANDARD_CONVERSION_ENGINE.md`
+- `docs/PHASE_1_1C_CONVERSION_VALIDATION.md`
 
-Phase 1.2 validation evidence:
+### Phase 1.2 summary
 
-- PR #8 completed Material CRUD services
-- PR #9 completed Materials UI
-- feature and post-merge `develop` CI passed
+Established the authoritative material source-data contract, material taxonomy, package-unit labels, MaterialRepository/MaterialService boundary, create/update/list/search/filter/archive behavior, duplicate protection, and the first visible Materials workspace.
 
-Phase 1.3A added deterministic package conversion and cost/base-unit calculation. Manual conversion has explicit precedence over standard same-dimension conversion; package labels without a conversion are rejected with a controlled domain error. Derived costing remains calculated rather than persisted. Implementation detail: `docs/PHASE_1_3A_PACKAGE_COSTING.md`.
+The Materials UI supports purchase source data, stock source data, manual conversion, costing previews, search/filtering, editing, and soft archive.
 
-Phase 1.3A validation evidence:
+Implementation docs:
 
-- PR #10 merged
-- dependency installation passed
-- TypeScript typecheck passed
-- package-costing domain tests passed
-- MaterialService boundary tests passed
-- full automated test suite passed
-- production build passed
-- feature PR CI passed
-- post-merge `develop` CI passed
+- `docs/PHASE_1_2A_MATERIAL_CONTRACT.md`
+- `docs/PHASE_1_2B_MATERIAL_CRUD_SERVICES.md`
+- `docs/PHASE_1_2C_MATERIALS_UI.md`
 
-Phase 1.3B added canonical on-hand stock normalization while preserving the user's entered quantity/unit as source data. Compatible standard units use the shared conversion engine; a package label is accepted only when it is the configured purchase package with a known effective package conversion. Derived normalized stock is shown in the Materials UI and remains unpersisted. Implementation detail: `docs/PHASE_1_3B_ON_HAND_NORMALIZATION.md`.
+### Phase 1.3 summary
 
-Phase 1.3B validation evidence:
+Established deterministic package costing, manual-over-standard package conversion precedence, canonical on-hand normalization, inventory valuation, and validation of invalid inventory states.
 
-- PR #11 merged
-- dependency installation passed
-- TypeScript typecheck passed
-- on-hand normalization domain tests passed
-- MaterialService boundary tests passed
-- full automated test suite passed
-- production build passed
-- feature PR CI passed
-- post-merge `develop` CI passed
+Core formulas:
 
-Phase 1.3C added current inventory valuation and formal inventory-state validation. Inventory value is derived as normalized stock multiplied by cost/base-unit. Negative stock is rejected at the valuation/persistence boundary, while lower-level normalization remains mathematically pure. The Materials UI displays the current derived inventory value. Implementation detail: `docs/PHASE_1_3C_INVENTORY_VALUATION.md`.
+```text
+package base quantity
+= purchase quantity × effective package conversion
 
-Phase 1.3C validation evidence:
+cost per base unit
+= package cost ÷ package base quantity
 
-- PR #12 merged
-- dependency installation passed
-- TypeScript typecheck passed
-- inventory valuation domain tests passed
-- MaterialService inventory-boundary tests passed
-- full regression test suite passed
-- production build passed
-- feature PR CI passed
-- post-merge `develop` CI passed
+inventory value
+= normalized on-hand quantity × cost per base unit
+```
 
-**Phase 1.3 — Purchase Costing & Inventory Quantity is complete.**
+Implementation docs:
 
-Phase 1.4A introduced material-specific cup-to-weight calibration evidence. Real volume and weight measurements are preserved as source facts, while normalized cups, normalized grams, and grams-per-cup are derived. Calibration is bound to one weight-based material; invalid zero/non-finite measurements and mismatched materials are rejected. Multiple samples use a deterministic `latest valid calibration wins` strategy. Implementation detail: `docs/PHASE_1_4A_CUP_WEIGHT_CALIBRATION.md`.
+- `docs/PHASE_1_3A_PACKAGE_COSTING.md`
+- `docs/PHASE_1_3B_ON_HAND_NORMALIZATION.md`
+- `docs/PHASE_1_3C_INVENTORY_VALUATION.md`
 
-Phase 1.4A validation evidence:
+### Phase 1.4A summary
 
-- PR #13 merged
-- initial CI correctly blocked an invalid TypeScript test fixture
-- fixture was corrected without weakening runtime validation
-- dependency installation passed
-- TypeScript typecheck passed
-- calibration domain tests passed
-- full regression test suite passed
-- production build passed
-- corrected feature CI passed
-- post-merge `develop` CI passed
+Added material-specific cup-to-weight calibration evidence. The system stores the facts actually measured and derives normalized cups, normalized grams, and grams-per-cup.
 
-Phase 1.4B integrates calibration into package costing and stock normalization using explicit source precedence. Same-dimension/package conversion remains `manual -> standard`; dry `cup -> g` becomes `latest material calibration -> manual g/cup fallback -> controlled error`. The material contract permits only this specific cross-dimension bridge, while unrelated cross-dimension units remain invalid. Conversion results report their source and calibration ID where applicable. Implementation detail: `docs/PHASE_1_4B_EFFECTIVE_CONVERSION_PRECEDENCE.md`.
+Example:
 
-Phase 1.4B feature validation evidence:
+```text
+5 cups plaster = 1 kg
+1 kg = 1,000 g
+=> 200 g/cup
+```
 
-- PR #14
-- dependency installation passed
-- TypeScript typecheck passed
-- conversion-precedence tests passed
-- full regression test suite passed
-- production build passed
-- feature PR CI passed
+Calibration is tied to one weight-based material. Invalid/mismatched evidence is rejected. Multiple samples use the deterministic strategy `latest valid calibration wins`.
 
-Remaining 1.4B gate:
+Implementation doc: `docs/PHASE_1_4A_CUP_WEIGHT_CALIBRATION.md`.
 
-- final PR-head CI after documentation update
-- merge PR #14 to `develop`
+### Phase 1.4B summary
+
+Integrated calibration into package costing, on-hand normalization, and inventory valuation.
+
+Ordinary package precedence:
+
+```text
+manual package conversion
+    ↓
+standard same-dimension conversion
+    ↓
+controlled error
+```
+
+Dry cup-to-weight precedence:
+
+```text
+latest valid material calibration
+    ↓
+manual g/cup fallback
+    ↓
+controlled error
+```
+
+Only the specific material-aware `cup -> g` bridge is permitted. Arbitrary cross-dimension conversions remain invalid. Calculation results identify the conversion source and calibration ID where applicable.
+
+Implementation doc: `docs/PHASE_1_4B_EFFECTIVE_CONVERSION_PRECEDENCE.md`.
+
+### Phase 1.4C current state
+
+The calibration capability is now operational through the React application.
+
+Delivered on PR #15:
+
+- shared session-scoped material and calibration services
+- CalibrationRepository abstraction + in-memory repository
+- CalibrationService create/list/effective/delete workflow
+- duplicate calibration-ID and missing-material validation
+- enabled Calibration navigation tab
+- weight-based material selector
+- measured volume/known weight form
+- live normalized cup/gram and `g/cup` preview
+- calibration history and effective-sample display
+- delete action for erroneous evidence
+- Materials UI support for calibrated `cup` purchase/on-hand inputs
+- calibration-aware package costing, stock normalization, and inventory valuation previews
+- MaterialService persistence validation using injected calibration evidence
+- calibration application tests
+- calibrated MaterialService integration tests
+
+Feature CI passed:
+
+- dependency installation
+- TypeScript typecheck
+- all automated tests
+- production build
+
+Remaining 1.4C gate:
+
+- final PR-head CI after status documentation update
+- merge PR #15 to `develop`
 - post-merge `develop` CI
 
-Next task after 1.4B completion:
+When those gates pass, **Phase 1.4 — Material-Specific Calibration is complete**.
 
-**1.4C — Calibration UI & Tests**
+Next active task after completion:
+
+**1.5A — Supplier / Source Contract**
+
+---
 
 ## Phase 2 — Product Recipes & Mold Yield
 
-- three categories: paintable art, candle pot, candle
+Planned capabilities:
+
+- product categories: paintable art, candle pot, candle
 - mix presets and ratio basis
 - sample-yield recording
 - good/rejected piece tracking
@@ -168,11 +203,13 @@ Next task after 1.4B completion:
 - safety-waste adjustment
 - estimated producible pieces from inventory
 
-Mold volume is optional; sample batches are authoritative when volume is unknown.
+Mold volume is optional; real sample batches remain authoritative when mold volume is unknown.
+
+---
 
 ## Phase 3 — Multi-Vessel / Multi-Component Products
 
-A sellable candle may include multiple components, for example:
+A sellable product may include multiple components, for example:
 
 - 1 glass cup
 - 3 mini heart molded components
@@ -180,9 +217,13 @@ A sellable candle may include multiple components, for example:
 - 1 wick
 - 1 label
 
-The system must calculate both total component cost and the limiting component capacity.
+The system must calculate total component cost and limiting component capacity.
+
+---
 
 ## Phase 4 — Pricing & Production Planning
+
+Planned capabilities:
 
 - total unit cost including waste-adjusted material usage
 - fixed profit amount
@@ -192,7 +233,11 @@ The system must calculate both total component cost and the limiting component c
 - expected revenue and profit
 - production-capacity warnings
 
+---
+
 ## Phase 5 — Excel Persistence
+
+Planned capabilities:
 
 - workbook schema/versioning
 - load/save `.xlsx`
@@ -212,7 +257,11 @@ Proposed sheets:
 - MoldYieldSamples
 - Settings
 
+---
+
 ## Phase 6 — Tauri Desktop Integration
+
+Planned capabilities:
 
 - native open/save dialogs
 - application data directory
@@ -220,7 +269,11 @@ Proposed sheets:
 - safe file write/replace flow
 - desktop packaging
 
+---
+
 ## Phase 7 — Reporting & Operational Polish
+
+Planned capabilities:
 
 - dashboard
 - inventory valuation
@@ -230,6 +283,8 @@ Proposed sheets:
 - production history
 - Excel report export
 
+---
+
 ## Storage migration path
 
 ```text
@@ -238,4 +293,4 @@ UI -> Application Services -> StoragePort
                              `- SQLiteStorage (future)
 ```
 
-No React component should read/write spreadsheet cells directly.
+No React component should read or write spreadsheet cells directly.
