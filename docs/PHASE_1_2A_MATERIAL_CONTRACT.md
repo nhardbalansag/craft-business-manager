@@ -2,7 +2,7 @@
 
 ## Status
 
-**IMPLEMENTED — VALIDATION PENDING**
+**COMPLETE**
 
 Branch: `feature/phase-1-2a-material-contract`
 
@@ -14,7 +14,7 @@ Establish the authoritative source-data contract for purchased and stocked craft
 
 ## Material groups
 
-The system now recognizes:
+The system recognizes:
 
 - `plaster`
 - `wax`
@@ -78,7 +78,7 @@ The previous provisional `Material` interface stored:
 - `onHandBaseQuantity`
 - `gramsPerCup`
 
-These are now removed from the authoritative material record because they are derived values.
+These are removed from the authoritative material record because they are derived values.
 
 Later phases calculate them from source inputs:
 
@@ -89,7 +89,7 @@ This prevents stale spreadsheet-style cached values from becoming the source of 
 
 ## Structural validation
 
-`validateMaterialContract()` currently enforces only contract/classification rules:
+`validateMaterialContract()` enforces contract/classification rules:
 
 - material ID is present
 - material name is present
@@ -98,7 +98,7 @@ This prevents stale spreadsheet-style cached values from becoming the source of 
 - purchase and on-hand units are recognized
 - standard purchase/on-hand units match the material base-unit dimension
 
-Numeric costing/inventory rules are intentionally deferred to their own phases. For example, package cost validation, negative stock rules, missing manual package conversion, and effective conversion calculation belong to Phase 1.3.
+Numeric costing/inventory rules are intentionally deferred to their own phases. Package cost validation, negative stock rules, missing manual package conversion, and effective conversion calculation belong to Phase 1.3.
 
 ## Examples
 
@@ -133,6 +133,16 @@ manual conversion source input: 100 pc / pack
 
 Phase 1.3 will use that input to calculate effective conversion and cost per piece.
 
+## Validation evidence
+
+- TypeScript typecheck passed
+- material-domain tests passed
+- full automated test suite passed
+- production build passed
+- feature PR CI passed
+
+Final integration gate: merge PR #7 to `develop` and confirm post-merge `develop` CI.
+
 ## Out of scope
 
 - CRUD services
@@ -145,15 +155,6 @@ Phase 1.3 will use that input to calculate effective conversion and cost per pie
 - supplier/source metadata model
 - Excel persistence
 
-## Completion gate
+## Next task
 
-Phase 1.2A is complete only after:
-
-- TypeScript typecheck passes
-- material-domain tests pass
-- production build passes
-- feature PR CI passes
-- PR merges into `develop`
-- post-merge `develop` CI passes
-
-Next task after completion: **1.2B — Material Application CRUD Services**.
+After final post-merge validation, proceed to **1.2B — Material Application CRUD Services**.
