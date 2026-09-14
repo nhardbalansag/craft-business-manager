@@ -6,8 +6,8 @@ Planning baseline: `docs/PHASE_3_PRODUCT_COMPONENTS_VESSELS_PLAN.md`
 
 ```text
 3.1 — Composition Foundation                         IN PROGRESS
-    3.1A — Product Component Contract & Roles        VALIDATION / MERGE GATE
-    3.1B — Composition Graph Integrity & Cycle Prevention NOT STARTED
+    3.1A — Product Component Contract & Roles        COMPLETE
+    3.1B — Composition Graph Integrity & Cycle Prevention NEXT
     3.1C — Component Repository & Application Services    NOT STARTED
 
 3.2 — Finished Component Stock
@@ -49,9 +49,11 @@ Planning baseline: `docs/PHASE_3_PRODUCT_COMPONENTS_VESSELS_PLAN.md`
 - Excel persistence remains Phase 5;
 - no stock reservations, automatic deductions, or stock transaction ledger are introduced in Phase 3.
 
-## 3.1A implementation at validation gate
+## Completed
 
-- dedicated `src/domain/productComponents.ts` replaces the loose Phase 3 scaffold;
+### 3.1A — Product Component Contract & Roles
+
+- dedicated `src/domain/productComponents.ts` replaced the loose Phase 3 scaffold;
 - authoritative fields: component ID, parent Product ID, source type/ID, structural role, whole-piece quantity, optional notes;
 - source kinds: `material | product`;
 - roles: `vessel`, `molded-component`, `decorative-component`, `insert`, `accessory`, `other`;
@@ -62,10 +64,16 @@ Planning baseline: `docs/PHASE_3_PRODUCT_COMPONENTS_VESSELS_PLAN.md`
 - graph self/cycle validation remains 3.1B;
 - repositories, active-reference validation, archive guards, and `BusinessDataset.productComponents` remain 3.1C.
 
+Evidence:
+- PR #61 merged;
+- implementation merge commit `3b3206cd266bc2f55ae59c2d7dff6bd906af1652`;
+- feature CI run `34909578128` passed;
+- post-merge CI run `34909650244` passed.
+
 Implementation record: `docs/PHASE_3_1A_PRODUCT_COMPONENT_CONTRACT.md`
 
 ## Current active task
 
-**3.1A — Product Component Contract & Roles — validation / merge gate**
+**3.1B — Composition Graph Integrity & Cycle Prevention**
 
-Do not start 3.1B until 3.1A is merged and post-merge `develop` CI is green.
+Do not start 3.1C until 3.1B is merged and post-merge `develop` CI is green.
