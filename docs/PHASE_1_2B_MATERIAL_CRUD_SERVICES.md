@@ -2,11 +2,13 @@
 
 ## Status
 
-**IMPLEMENTED — VALIDATION PENDING**
+**IMPLEMENTED — FEATURE CI PASSED — MERGE/POST-MERGE GATE PENDING**
 
 Branch: `feature/phase-1-2b-material-crud-services`
 
 Base: `develop`
+
+PR: `#8`
 
 ## Objective
 
@@ -149,6 +151,15 @@ Tests cover:
 - idempotent archive behavior
 - protection against external object mutation
 
+## Feature validation evidence
+
+PR `#8` feature CI passed:
+
+- dependency installation
+- TypeScript typecheck
+- full automated test suite
+- production build
+
 ## Out of scope
 
 - React Materials UI
@@ -162,13 +173,11 @@ Tests cover:
 
 ## Completion gate
 
-Phase 1.2B is complete only after:
+Remaining gates:
 
-- TypeScript typecheck passes
-- application/domain tests pass
-- production build passes
-- feature PR CI passes
-- PR merges into `develop`
-- post-merge `develop` CI passes
+- merge PR `#8` into `develop`
+- confirm post-merge `develop` CI passes
+
+After those gates pass, Phase 1.2B is complete.
 
 Next task after completion: **1.2C — Materials UI**.
