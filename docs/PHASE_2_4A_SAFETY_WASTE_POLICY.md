@@ -2,11 +2,13 @@
 
 ## Status
 
-**IMPLEMENTED — VALIDATION / MERGE GATE**
+**COMPLETE**
 
-Branch: `feature/phase-2-4a-safety-waste-policy`
+Implementation PR: **#44**
 
-Base: `develop` at `6cfc927404bcdb70da4e295acb481586fba4c777`.
+Implementation merge commit: `7b7ff441cc86f010211ffb93428ba13c8871cb1e`
+
+Post-merge CI run: `34839447489` — **SUCCESS**
 
 ## Objective
 
@@ -54,7 +56,7 @@ Therefore:
 - `1` / 100% and higher are rejected;
 - `NaN` / infinities are rejected.
 
-The Product contract now delegates rate validation to the shared safety-waste policy domain, so create/update flows enforce the same rule.
+The Product contract delegates rate validation to the shared safety-waste policy domain, so create/update flows enforce the same rule.
 
 ## Derived policy descriptor
 
@@ -98,7 +100,7 @@ Safety waste is a separate future-production reserve for normal uncertainty such
 - handling loss;
 - small normal production uncertainty.
 
-The system must not automatically copy, infer, or synchronize safety waste from historical defect rate.
+The system does not automatically copy, infer, or synchronize safety waste from historical defect rate.
 
 ## Explicitly deferred
 
@@ -121,20 +123,18 @@ Added/updated:
 - `ProductService.getSafetyWastePolicy()`
 - application regression coverage for policy lookup.
 
-## Completion gate
+## Completion evidence
 
-2.4A may be marked complete after:
-
-- valid boundary-rate tests pass;
-- negative / non-finite / >= 1 rejection tests pass;
+- valid boundary-rate tests passed;
+- negative / non-finite / >= 1 rejection tests passed;
 - product create/update contract uses the shared policy range;
-- policy percentage/multiplier derivation tests pass;
+- policy percentage/multiplier derivation tests passed;
 - defect-rate separation is explicit in contract/tests/documentation;
-- application lookup tests pass;
-- full regression suite passes;
-- TypeScript typecheck passes;
-- production build passes;
-- feature PR merges into `develop`;
-- post-merge `develop` CI passes.
+- application lookup tests passed;
+- full regression suite passed;
+- TypeScript typecheck passed;
+- production build passed;
+- PR #44 merged into `develop`;
+- post-merge CI run `34839447489` passed on `7b7ff441cc86f010211ffb93428ba13c8871cb1e`.
 
-Next task after completion: **2.4B — Waste-Adjusted Production Requirements**.
+Next task: **2.4B — Waste-Adjusted Production Requirements**.

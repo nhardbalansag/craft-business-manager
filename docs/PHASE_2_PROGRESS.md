@@ -21,8 +21,8 @@ Planning baseline: `docs/PHASE_2_PRODUCT_RECIPES_MOLD_YIELD_PLAN.md`
     2.3C — Material Cost Preview & Validation         COMPLETE
 
 2.4 — Safety Waste & Inventory-Limited Capacity       IN PROGRESS
-    2.4A — Safety Waste Policy                        VALIDATION / MERGE GATE
-    2.4B — Waste-Adjusted Requirements                NOT STARTED
+    2.4A — Safety Waste Policy                        COMPLETE
+    2.4B — Waste-Adjusted Requirements                NEXT
     2.4C — Producible Pieces & Limiting Material      NOT STARTED
 
 2.5 — Product / Yield / Production UI                 NOT STARTED
@@ -93,8 +93,21 @@ Evidence:
 - implementation merge commit `6c9b5f48e74f2771166761c7a2deaf708319f2a8`;
 - post-merge CI run `34838146695` passed.
 
+### 2.4A — Safety Waste Policy
+
+- formalizes product safety waste as a forward-looking planning reserve;
+- validates `0 <= safetyWasteRate < 1` through one shared policy domain;
+- rejects negative, non-finite, and 100%+ values;
+- derives percentage and multiplier without prematurely applying them to quantities;
+- explicitly keeps safety waste separate from observed yield defect rate;
+- exposes `ProductService.getSafetyWastePolicy()` for later production planning;
+- supports archived-product historical/policy inspection.
+
+Evidence:
+- PR #44 merged;
+- implementation merge commit `7b7ff441cc86f010211ffb93428ba13c8871cb1e`;
+- post-merge CI run `34839447489` passed.
+
 ## Current active task
 
-**2.4A — Safety Waste Policy**
-
-Implementation is complete on `feature/phase-2-4a-safety-waste-policy` and is awaiting CI / merge validation.
+**2.4B — Waste-Adjusted Production Requirements**
