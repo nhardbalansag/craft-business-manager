@@ -2,11 +2,13 @@
 
 ## Status
 
-**IMPLEMENTED — VALIDATION / MERGE GATE**
+**COMPLETE**
 
-Branch: `feature/phase-2-3c-material-cost-preview`
+Implementation PR: **#42**
 
-Base: `develop` at `1867aa6529742bad4f5bdf3be3dcb48899e7fbb8`.
+Implementation merge commit: `6c9b5f48e74f2771166761c7a2deaf708319f2a8`
+
+Post-merge CI run: **34838146695 — SUCCESS**
 
 ## Objective
 
@@ -142,20 +144,20 @@ Added:
 - selling price, markup, margin, or profit — later pricing phase;
 - React costing/production UI — Phase 2.5.
 
-## Completion gate
+## Validation evidence
 
-2.3C may be marked complete after:
+The completion gate passed:
 
-- combined/yield/fixed cost-preview tests pass;
-- contribution-cost reconciliation tests pass;
-- package-cost conversion source/calibration tests pass;
-- zero-cost-material tests pass;
-- partial/not-ready costing tests pass;
-- requirement-validation tests pass;
-- full regression suite passes;
-- TypeScript typecheck passes;
-- production build passes;
-- feature PR merges into `develop`;
-- post-merge `develop` CI passes.
+- combined/yield/fixed cost-preview tests passed;
+- contribution-cost reconciliation tests passed;
+- package-cost conversion source/calibration tests passed;
+- zero-cost-material tests passed;
+- partial/not-ready costing tests passed;
+- requirement-validation tests passed;
+- full regression suite passed;
+- TypeScript typecheck passed;
+- production build passed;
+- PR #42 merged into `develop`;
+- post-merge `develop` CI run `34838146695` passed on merge commit `6c9b5f48e74f2771166761c7a2deaf708319f2a8`.
 
-Next task after completion: **2.4A — Safety Waste Policy**.
+Next task: **2.4A — Safety Waste Policy**.
