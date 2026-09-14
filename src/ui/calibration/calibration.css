@@ -1,0 +1,29 @@
+.calibration-workspace .calibration-layout { grid-template-columns: minmax(330px, 430px) minmax(0, 1fr); }
+.calibration-empty { padding: 28px; }
+.calibration-empty h2 { margin-top: 0; }
+.calibration-empty p { margin-bottom: 0; color: #746d64; line-height: 1.6; }
+.calibration-preview .cost-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.calibration-result { grid-column: auto; }
+.effective-calibration {
+  margin: 0 22px 18px;
+  padding: 16px 18px;
+  display: grid;
+  gap: 4px;
+  border: 1px solid #d7c5a8;
+  border-radius: 16px;
+  background: #f7f0e4;
+}
+.effective-calibration > span { color: #7b6a53; font-size: .74rem; font-weight: 850; text-transform: uppercase; letter-spacing: .08em; }
+.effective-calibration strong { font-size: 1.35rem; color: #2e2923; }
+.effective-calibration small { color: #7f7569; }
+.calibration-table td:first-child { min-width: 180px; }
+.calibration-table .group-pill { margin-top: 6px; }
+.effective-row { background: #fbf6ed; }
+
+@media (max-width: 1040px) {
+  .calibration-workspace .calibration-layout { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 760px) {
+  .calibration-preview .cost-metrics { grid-template-columns: 1fr; }
+}
