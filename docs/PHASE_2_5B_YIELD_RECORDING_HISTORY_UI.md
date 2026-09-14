@@ -2,11 +2,13 @@
 
 ## Status
 
-**IMPLEMENTED — VALIDATION / MERGE GATE**
-
-Feature branch: `feature/phase-2-5b-yield-history-ui`
+**COMPLETE — MERGED + POST-MERGE CI PASSED**
 
 Implementation PR: **#52**
+
+Implementation merge commit: `db0cc26fbe78ee076fd65dde90d4e66cea1480f1`
+
+Post-merge CI: **34844884088 — SUCCESS**
 
 ## Objective
 
@@ -126,19 +128,18 @@ The workspace consumes shared application-session services:
 
 React does not write repositories directly and does not independently implement yield selection or deletion rules.
 
-## Validation coverage
+## Validation evidence
 
-The React smoke suite now renders the Yield workspace server-side and verifies the principal recording/history sections.
+The completion gate passed:
 
-Existing domain/application regression suites remain authoritative for:
+- TypeScript typecheck;
+- all existing yield/domain/application regression tests;
+- Yield workspace React smoke validation;
+- production build;
+- feature PR #52 merge;
+- post-merge `develop` CI run `34844884088`.
 
-- evidence validation;
-- active product/material/mix reference validation;
-- yield learning;
-- defect-rate derivation;
-- effective sample selection;
-- invalid-sample fallback;
-- protected deletion.
+A smoke assertion initially failed only because the UI rendered the uppercase section label `EFFECTIVE LEARNING` while the test expected title case. The assertion was corrected; no production behavior changed.
 
 ## Scope boundaries
 
@@ -150,17 +151,6 @@ Existing domain/application regression suites remain authoritative for:
 - purchased vessels or molded/nested components — Phase 3;
 - selling-price/profit behavior — Phase 4.
 
-## Completion gate
-
-2.5B may be marked complete after:
-
-- TypeScript typecheck passes;
-- all existing yield/domain/application regressions pass;
-- Yield workspace smoke validation passes;
-- production build passes;
-- PR #52 merges into `develop`;
-- post-merge `develop` CI passes.
-
-## Next task after completion
+## Next task
 
 **2.5C — Production Estimate UI**
