@@ -2,11 +2,15 @@
 
 ## Status
 
-**IMPLEMENTED — VALIDATION PENDING**
+**COMPLETE**
 
-Branch: `feature/phase-2-1a-product-contract`
+Implementation branch: `feature/phase-2-1a-product-contract`
 
-Base: corrected `develop` at `75f9b1f2c2babca68bfe9503f4661045a2255d34`.
+PR: `#26`
+
+Implementation merge commit: `fbb31b315b68ee3d4e3b77ce29b153893cff7cdc`
+
+Post-merge CI run: `34828814552` — **SUCCESS**
 
 ## Objective
 
@@ -64,7 +68,7 @@ The product contract rejects:
 - negative, NaN, or infinite safety-waste rates;
 - non-boolean active state values at runtime boundaries.
 
-A product may omit `mixPresetId`, which is required for cases such as products that are not yet configured or single-material products that will be modeled in later phases.
+A product may omit `mixPresetId`, supporting products that are not yet configured and later single-material mix cases.
 
 Duplicate ID/name policy is owned by the Product application service in Phase 2.1C, where repository state exists to perform the check.
 
@@ -73,6 +77,18 @@ Duplicate ID/name policy is owned by the Product application service in Phase 2.
 - `src/domain/products.ts`
 - `src/domain/products.test.ts`
 - `src/domain/types.ts`
+
+## Validation evidence
+
+Phase 2.1A passed:
+
+- TypeScript typecheck;
+- product/category contract tests;
+- full regression test suite;
+- production build;
+- PR #26 feature CI;
+- merge into `develop`;
+- post-merge `develop` CI run `34828814552`.
 
 ## Deferred work
 
@@ -85,16 +101,6 @@ Duplicate ID/name policy is owned by the Product application service in Phase 2.
 - Components/vessels: **Phase 3**
 - Pricing/profit policy: **Phase 4**
 
-## Completion gate
+## Next active task
 
-2.1A may be marked complete after:
-
-- TypeScript typecheck passes;
-- product/category contract tests pass;
-- full regression tests pass;
-- production build passes;
-- feature PR CI passes;
-- PR merges into `develop`;
-- post-merge `develop` CI passes.
-
-Next task after completion: **2.1B — Mix Preset Contract & Ratio Engine**.
+**2.1B — Mix Preset Contract & Ratio Engine**
