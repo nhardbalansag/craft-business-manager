@@ -46,8 +46,8 @@ Dedicated plan: `docs/PHASE_1_MATERIALS_UNITS_CALIBRATION_PLAN.md`
     1.5B — Materials UI Integration               COMPLETE
 
 1.6 — Phase 1 Integration & Completion Gate       IN PROGRESS
-    1.6A — Integrated Materials Workflow          FEATURE CI PASSED / MERGE GATE
-    1.6B — Regression, Build & Completion         NEXT AFTER 1.6A
+    1.6A — Integrated Materials Workflow          COMPLETE
+    1.6B — Regression, Build & Completion         NEXT
 ```
 
 ### Phase 1.1 — Measurement & Conversion Foundation
@@ -97,16 +97,6 @@ Phase 1.5B exposed that contract in the Materials UI with a dedicated Supplier /
 
 Supplier/source data remains completely outside package costing, calibration, normalized stock, and inventory valuation.
 
-Validation evidence:
-
-- Phase 1.5A PR #17 merged
-- Phase 1.5A implementation merge commit `00e37f44865a67ccc209d94f2edfa621cc704b05`
-- Phase 1.5A post-merge CI run `34824257561` passed
-- Phase 1.5B PR #19 merged
-- Phase 1.5B implementation merge commit `2fa0c5fb58a4017b25aca8cb132af4811161ebf4`
-- Phase 1.5B feature CI passed
-- Phase 1.5B post-merge `develop` CI run `34825119934` passed
-
 Implementation docs:
 
 - `docs/PHASE_1_5A_SUPPLIER_SOURCE_CONTRACT.md`
@@ -114,23 +104,27 @@ Implementation docs:
 
 ### Phase 1.6A — Integrated Materials Workflow
 
-Status: **FEATURE CI PASSED — MERGE GATE**
+Status: **COMPLETE**
 
-The integration layer exercises Phase 1 as a complete workflow instead of isolated modules.
+Phase 1.6A validated the full Phase 1 material workflow across standard unit conversion, calibrated plaster cup-to-weight handling, package conversion, costing, stock normalization, inventory valuation, supplier/source search, archive filtering, and financial isolation of supplier-only edits.
 
-Covered scenarios include kilogram-purchased plaster with supplier metadata, real `5 cups = 1 kg` calibration, saved cup-based stock normalization and inventory valuation, latest-calibration precedence, safe calibration deletion behavior, count-package conversion, standard volume conversion, supplier/source search, supplier-only edits remaining financially neutral, and archive filtering.
+Integration hardening also prevents deleting the final calibration required by a currently saved cup-based material state.
 
-Integration hardening prevents deleting the last calibration required by a material's currently saved cup-to-weight state. This avoids leaving persisted material data unresolvable after calibration history maintenance.
+Validation evidence:
 
-Feature validation for PR #21 passed dependency installation, TypeScript typecheck, the full regression suite, the new integrated workflow tests, and production build.
+- PR #21 merged
+- merge commit `a0e3a605eb0a137613e583b0711229088f9c61fd`
+- feature CI passed
+- final PR-head CI passed
+- post-merge `develop` CI run `34826188230` passed
 
 Implementation detail: `docs/PHASE_1_6A_INTEGRATED_MATERIALS_WORKFLOW.md`.
 
 ### Current active task
 
-**1.6A — Integrated Materials Workflow — final merge gate**
+**1.6B — Regression, Build & Completion**
 
-After the final PR-head CI, merge, and post-merge `develop` CI pass, the next task is **1.6B — Regression, Build & Completion**.
+This is the final Phase 1 gate. It will run the complete regression/build validation, reconcile Phase 1 documentation/status, verify no known Phase 1 blockers remain, and formally close Phase 1 before moving to **Phase 2 — Product Recipes & Mold Yield**.
 
 ---
 

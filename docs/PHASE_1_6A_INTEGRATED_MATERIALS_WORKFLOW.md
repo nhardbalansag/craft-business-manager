@@ -2,13 +2,15 @@
 
 ## Status
 
-**FEATURE CI PASSED — MERGE GATE**
+**COMPLETE**
 
-Branch: `feature/phase-1-6a-integrated-materials-workflow`
-
-Base: corrected `develop` head after removal of accidental temporary probe files.
+Implementation branch: `feature/phase-1-6a-integrated-materials-workflow`
 
 PR: `#21`
+
+Merge commit: `a0e3a605eb0a137613e583b0711229088f9c61fd`
+
+Post-merge CI run: `34826188230` — SUCCESS
 
 ## Objective
 
@@ -38,7 +40,7 @@ Multiple calibration samples remain evidence records and the latest valid sample
 
 The workflow verifies that a newer `210 g/cup` sample becomes effective automatically.
 
-A new application-level guard prevents deleting the final calibration evidence when a saved material currently depends on calibration for its cup-to-weight purchase or stock conversion. This avoids leaving persisted material data in a state that can no longer be normalized or valued.
+An application-level guard prevents deleting the final calibration evidence when a saved material currently depends on calibration for its cup-to-weight purchase or stock conversion. This avoids leaving persisted material data in a state that can no longer be normalized or valued.
 
 Deletion remains allowed when another valid calibration sample remains, a valid manual fallback resolves the saved conversion, or the material is first changed back to a standard unit that no longer requires calibration.
 
@@ -77,20 +79,18 @@ The count-package workflow is archived and active/archived application filters a
 - `src/application/phase1MaterialsWorkflow.test.ts`
 - `src/application/calibrations/CalibrationService.ts`
 
-## Feature validation evidence
+## Validation evidence
 
-PR #21 feature CI passed:
+PR #21 passed:
 
 - dependency installation
 - TypeScript typecheck
 - all existing regression tests
 - new integrated workflow tests
 - production build
-
-## Remaining completion gate
-
-- final PR-head CI after status update
-- merge PR #21 into `develop`
+- final PR-head CI
 - post-merge `develop` CI
 
-Next task after completion: **1.6B — Regression, Build & Completion**.
+## Next task
+
+**1.6B — Regression, Build & Completion**.
