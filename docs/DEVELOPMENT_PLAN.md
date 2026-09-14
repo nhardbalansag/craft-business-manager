@@ -43,11 +43,14 @@ Dedicated plan: `docs/PHASE_1_MATERIALS_UNITS_CALIBRATION_PLAN.md`
 Implementation sequence:
 
 ```text
-1.1 — Measurement & Conversion Foundation
+1.1 — Measurement & Conversion Foundation         COMPLETE (post-merge CI confirmation pending)
     1.1A — Unit Catalog & Dimensional Rules        COMPLETE
     1.1B — Standard Conversion Engine             COMPLETE
-    1.1C — Conversion Validation & Tests          IMPLEMENTED / VALIDATION PENDING
-1.2 — Material Master Domain                      NOT STARTED
+    1.1C — Conversion Validation & Tests          COMPLETE
+1.2 — Material Master Domain
+    1.2A — Material Contract & Classification     NEXT
+    1.2B — Material Application CRUD Services     NOT STARTED
+    1.2C — Materials UI                           NOT STARTED
 1.3 — Purchase Costing & Inventory Quantity       NOT STARTED
 1.4 — Material-Specific Calibration               NOT STARTED
 1.5 — Supplier & Source Metadata                  NOT STARTED
@@ -59,13 +62,13 @@ Phase 1.1A established one authoritative unit catalog with canonical dimensions 
 Phase 1.1A validation evidence:
 
 - PR: `#4`
-- dependency install passes
-- TypeScript typecheck passes
-- automated tests pass
-- production build passes
+- dependency install passed
+- TypeScript typecheck passed
+- automated tests passed
+- production build passed
 - post-merge `develop` CI passed
 
-Phase 1.1B adds the standard same-dimension conversion engine, canonical normalization helpers, controlled conversion errors, and explicit rounding boundaries. Implementation detail: `docs/PHASE_1_1B_STANDARD_CONVERSION_ENGINE.md`.
+Phase 1.1B added the standard same-dimension conversion engine, canonical normalization helpers, controlled conversion errors, and explicit rounding boundaries. Implementation detail: `docs/PHASE_1_1B_STANDARD_CONVERSION_ENGINE.md`.
 
 Phase 1.1B validation evidence:
 
@@ -77,18 +80,20 @@ Phase 1.1B validation evidence:
 - feature PR CI passed
 - post-merge `develop` CI passed
 
-Phase 1.1C hardens the measurement foundation with runtime unit validation plus exhaustive compatible/incompatible conversion matrix tests. Implementation detail: `docs/PHASE_1_1C_CONVERSION_VALIDATION.md`.
+Phase 1.1C adds runtime unit validation plus exhaustive compatible/incompatible conversion matrix tests. Implementation detail: `docs/PHASE_1_1C_CONVERSION_VALIDATION.md`.
 
-Current validation gate for 1.1C:
+Phase 1.1C feature validation evidence:
 
-- TypeScript typecheck
-- exhaustive automated unit/conversion tests
-- production build
-- feature PR CI
-- merge to `develop`
-- post-merge `develop` CI
+- PR: `#6`
+- dependency install passed
+- TypeScript typecheck passed
+- exhaustive automated tests passed
+- production build passed
+- feature PR CI passed
 
-When that gate passes, **Phase 1.1 is complete** and the next active task becomes:
+Final Phase 1.1 integration confirmation is the post-merge `develop` CI run for PR #6.
+
+After that succeeds, the active development task is:
 
 **1.2A — Material Contract & Classification**
 
