@@ -48,8 +48,8 @@ Implementation sequence:
     1.1B — Standard Conversion Engine             COMPLETE
     1.1C — Conversion Validation & Tests          COMPLETE
 1.2 — Material Master Domain
-    1.2A — Material Contract & Classification     COMPLETE (merge/post-merge gate pending)
-    1.2B — Material Application CRUD Services     NEXT
+    1.2A — Material Contract & Classification     COMPLETE
+    1.2B — Material Application CRUD Services     IMPLEMENTED / VALIDATION PENDING
     1.2C — Materials UI                           NOT STARTED
 1.3 — Purchase Costing & Inventory Quantity       NOT STARTED
 1.4 — Material-Specific Calibration               NOT STARTED
@@ -94,7 +94,7 @@ Phase 1.1C validation evidence:
 
 Phase 1.2A establishes the authoritative material source-data contract and classification taxonomy, including standard measurement units vs non-standard package labels. Derived spreadsheet-style fields are removed from the source of truth. Implementation detail: `docs/PHASE_1_2A_MATERIAL_CONTRACT.md`.
 
-Phase 1.2A feature validation evidence:
+Phase 1.2A validation evidence:
 
 - PR: `#7`
 - TypeScript typecheck passed
@@ -102,15 +102,22 @@ Phase 1.2A feature validation evidence:
 - full automated test suite passed
 - production build passed
 - feature PR CI passed
+- post-merge `develop` CI passed
 
-Final Phase 1.2A integration gate:
+Phase 1.2B adds the material application/repository boundary and operational CRUD workflow: create, update, retrieve, list/filter/search, archive, duplicate handling, stable identity rules, and an in-memory repository for deterministic testing and pre-persistence UI work. Implementation detail: `docs/PHASE_1_2B_MATERIAL_CRUD_SERVICES.md`.
 
-- merge PR #7 to `develop`
-- confirm post-merge `develop` CI
+Current validation gate for 1.2B:
 
-Next task after final integration validation:
+- TypeScript typecheck
+- application/domain tests
+- production build
+- feature PR CI
+- merge to `develop`
+- post-merge `develop` CI
 
-**1.2B — Material Application CRUD Services**
+Next task after 1.2B is fully validated and merged:
+
+**1.2C — Materials UI**
 
 ## Phase 2 — Product Recipes & Mold Yield
 
