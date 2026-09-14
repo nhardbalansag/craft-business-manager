@@ -42,8 +42,8 @@ Dedicated plan: `docs/PHASE_1_MATERIALS_UNITS_CALIBRATION_PLAN.md`
     1.4C — Calibration UI & Tests                 COMPLETE
 
 1.5 — Supplier & Source Metadata                  IN PROGRESS
-    1.5A — Supplier / Source Contract             IMPLEMENTED / VALIDATION PENDING
-    1.5B — Materials UI Integration               NOT STARTED
+    1.5A — Supplier / Source Contract             FEATURE CI PASSED / MERGE GATE
+    1.5B — Materials UI Integration               NEXT AFTER 1.5A
 
 1.6 — Phase 1 Integration & Completion Gate       NOT STARTED
     1.6A — Integrated Materials Workflow          NOT STARTED
@@ -130,34 +130,21 @@ Implementation docs:
 
 The lightweight supplier/source model is implemented without introducing a standalone Supplier module.
 
-Material source metadata can record:
-
-- vendor name
-- branch/platform/source detail
-- purchase/re-order link
-- contact number
-- social-page reference
-- buying notes
+Material source metadata can record vendor name, branch/platform/source detail, purchase/re-order link, contact number, social-page reference, and buying notes.
 
 The source contract is isolated from costing. Supplier metadata cannot change package cost/base-unit, calibration, normalized stock, or inventory valuation.
 
-Application safeguards include:
+Application safeguards include whitespace normalization, empty-source collapse, `http`/`https` purchase-link validation, supplier-aware material search, and deep cloning of nested source metadata at repository/service boundaries.
 
-- whitespace normalization
-- empty-source collapse
-- `http`/`https` purchase-link validation
-- supplier-aware material search
-- deep cloning of nested source metadata at repository/service boundaries
+Feature validation passed on PR #17: dependency installation, TypeScript typecheck, all automated tests, and production build are green.
 
 Implementation detail: `docs/PHASE_1_5A_SUPPLIER_SOURCE_CONTRACT.md`.
 
 ### Current active task
 
-**1.5A — Supplier / Source Contract — validation and merge gate**
+**1.5A — Supplier / Source Contract — final merge gate**
 
-After 1.5A is merged and post-merge CI passes, the next task is:
-
-**1.5B — Materials UI Integration**
+After PR #17 merges and post-merge `develop` CI passes, the next task is **1.5B — Materials UI Integration**.
 
 ---
 
