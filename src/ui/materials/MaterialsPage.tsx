@@ -15,7 +15,9 @@ import {
 } from '../../domain/materialCosting';
 import {
   MaterialInventoryError,
+  calculateMaterialInventoryValuation,
   normalizeMaterialOnHand,
+  type MaterialInventoryValuation,
   type MaterialOnHandNormalization,
 } from '../../domain/materialInventory';
 import {
@@ -177,6 +179,14 @@ function onHandNormalizationOrNull(material: Material): MaterialOnHandNormalizat
   }
 }
 
+function inventoryValuationOrNull(material: Material): MaterialInventoryValuation | null {
+  try {
+    return calculateMaterialInventoryValuation(material);
+  } catch {
+    return null;
+  }
+}
+
 function errorMessage(error: unknown): string {
   if (
     error instanceof MaterialApplicationError ||
@@ -209,6 +219,7 @@ export function MaterialsPage() {
   const previewMaterial = useMemo(() => formToMaterial(form, true), [form]);
   const costingPreview = useMemo(() => packageCostingOrNull(previewMaterial), [previewMaterial]);
   const stockPreview = useMemo(() => onHandNormalizationOrNull(previewMaterial), [previewMaterial]);
+  const inventoryPreview = useMemo(() => inventoryValuationOrNull(previewMaterial), [previewMaterial]);
   const manualIsRequired = MATERIAL_PACKAGE_UNITS.includes(form.purchaseUnit as (typeof MATERIAL_PACKAGE_UNITS)[number]);
 
   const refresh = useCallback(async () => {
@@ -314,8 +325,8 @@ export function MaterialsPage() {
           <p className="eyebrow">MATERIAL MASTER</p>
           <h1 id="materials-heading">Materials</h1>
           <p className="page-lead">
-            Record purchase and stock source data. Package costing and on-hand normalization are calculated
-            automatically; inventory valuation comes next.
+            Record purchase and stock source data. Package costing, normalized on-hand stock, and current
+            inventory value are calculated automatically.
           </p>
         </div>
         <div className="session-badge" title="Excel persistence is planned for a later phase">
@@ -507,8 +518,8 @@ export function MaterialsPage() {
 
             <div className="field field-wide cost-preview" aria-live="polite">
               <div className="cost-preview-heading">
-                <span>Normalized stock</span>
-                <small>Canonical quantity used by later production and valuation calculations.</small>
+                <span>Normalized stock & valuation</span>
+                <small>Canonical quantity and current inventory value derived from your source entries.</small>
               </div>
               {stockPreview ? (
                 <div className="cost-metrics">
@@ -527,6 +538,15 @@ export function MaterialsPage() {
                     <span>Normalized on hand</span>
                     <strong>{formatNumber(stockPreview.normalizedBaseQuantity)} {stockPreview.baseUnit}</strong>
                     <small>Derived — source entry remains {formatNumber(stockPreview.enteredQuantity)} {formatUnit(stockPreview.enteredUnit)}</small>
+                  </div>
+                  <div className="cost-metric cost-metric-emphasis">
+                    <span>Inventory value</span>
+                    <strong>{inventoryPreview ? formatMoney(inventoryPreview.inventoryValue, 2) : 'Unavailable'}</strong>
+                    <small>
+                      {inventoryPreview
+                        ? `${formatNumber(inventoryPreview.normalizedBaseQuantity)} ${inventoryPreview.baseUnit} × ${formatMoney(inventoryPreview.costPerBaseUnit)} / ${inventoryPreview.baseUnit}`
+                        : 'Requires valid non-negative stock and purchase costing.'}
+                    </small>
                   </div>
                 </div>
               ) : (
@@ -612,6 +632,7 @@ export function MaterialsPage() {
                 {materials.map((material) => {
                   const costing = packageCostingOrNull(material);
                   const stock = onHandNormalizationOrNull(material);
+                  const inventory = inventoryValuationOrNull(material);
                   return (
                     <tr key={material.id} className={material.isActive ? undefined : 'archived-row'}>
                       <td>
@@ -624,6 +645,9 @@ export function MaterialsPage() {
                         <strong>{material.onHandQuantity} {formatUnit(material.onHandUnit)}</strong>
                         <span className="cost-detail">
                           {stock ? `${formatNumber(stock.normalizedBaseQuantity)} ${material.baseUnit} normalized` : 'Normalization required'}
+                        </span>
+                        <span className="cost-detail">
+                          {inventory ? `Inventory value ${formatMoney(inventory.inventoryValue, 2)}` : 'Valuation unavailable'}
                         </span>
                       </td>
                       <td>

@@ -53,9 +53,12 @@ Implementation sequence:
     1.2C — Materials UI                           COMPLETE
 1.3 — Purchase Costing & Inventory Quantity       IN PROGRESS
     1.3A — Package Cost / Base-Unit Costing        COMPLETE
-    1.3B — On-Hand Quantity Normalization         FEATURE CI PASSED / MERGE GATE
-    1.3C — Inventory Valuation & Validation       NOT STARTED
+    1.3B — On-Hand Quantity Normalization         COMPLETE
+    1.3C — Inventory Valuation & Validation       FEATURE CI PASSED / MERGE GATE
 1.4 — Material-Specific Calibration               NOT STARTED
+    1.4A — Cup-to-Weight Calibration Model        NEXT AFTER 1.3C
+    1.4B — Effective Conversion Precedence        NOT STARTED
+    1.4C — Calibration UI & Tests                 NOT STARTED
 1.5 — Supplier & Source Metadata                  NOT STARTED
 1.6 — Phase 1 Integration & Completion Gate       NOT STARTED
 ```
@@ -74,11 +77,11 @@ Phase 1.2 validation evidence:
 - PR #9 completed Materials UI
 - feature and post-merge `develop` CI passed
 
-Phase 1.3A adds deterministic package conversion and cost/base-unit calculation. Manual conversion has explicit precedence over standard same-dimension conversion; package labels without a conversion are rejected with a controlled domain error. Derived costing remains calculated rather than persisted. Implementation detail: `docs/PHASE_1_3A_PACKAGE_COSTING.md`.
+Phase 1.3A added deterministic package conversion and cost/base-unit calculation. Manual conversion has explicit precedence over standard same-dimension conversion; package labels without a conversion are rejected with a controlled domain error. Derived costing remains calculated rather than persisted. Implementation detail: `docs/PHASE_1_3A_PACKAGE_COSTING.md`.
 
 Phase 1.3A validation evidence:
 
-- PR: `#10`
+- PR #10 merged
 - dependency installation passed
 - TypeScript typecheck passed
 - package-costing domain tests passed
@@ -88,11 +91,11 @@ Phase 1.3A validation evidence:
 - feature PR CI passed
 - post-merge `develop` CI passed
 
-Phase 1.3B adds canonical on-hand stock normalization while preserving the user's entered quantity/unit as source data. Compatible standard units use the shared conversion engine; a package label is accepted only when it is the configured purchase package with a known effective package conversion. Derived normalized stock is shown in the Materials UI and remains unpersisted. Implementation detail: `docs/PHASE_1_3B_ON_HAND_NORMALIZATION.md`.
+Phase 1.3B added canonical on-hand stock normalization while preserving the user's entered quantity/unit as source data. Compatible standard units use the shared conversion engine; a package label is accepted only when it is the configured purchase package with a known effective package conversion. Derived normalized stock is shown in the Materials UI and remains unpersisted. Implementation detail: `docs/PHASE_1_3B_ON_HAND_NORMALIZATION.md`.
 
-Phase 1.3B feature validation evidence:
+Phase 1.3B validation evidence:
 
-- PR: `#11`
+- PR #11 merged
 - dependency installation passed
 - TypeScript typecheck passed
 - on-hand normalization domain tests passed
@@ -100,16 +103,32 @@ Phase 1.3B feature validation evidence:
 - full automated test suite passed
 - production build passed
 - feature PR CI passed
+- post-merge `develop` CI passed
 
-Remaining 1.3B gate:
+Phase 1.3C adds current inventory valuation and formal inventory-state validation. Inventory value is derived as normalized stock multiplied by cost/base-unit. Negative stock is rejected at the valuation/persistence boundary, while lower-level normalization remains mathematically pure. The Materials UI displays the current derived inventory value. Implementation detail: `docs/PHASE_1_3C_INVENTORY_VALUATION.md`.
+
+Phase 1.3C feature validation evidence:
+
+- PR #12
+- dependency installation passed
+- TypeScript typecheck passed
+- inventory valuation domain tests passed
+- MaterialService inventory-boundary tests passed
+- full regression test suite passed
+- production build passed
+- feature PR CI passed
+
+Remaining 1.3C gate:
 
 - final PR-head CI after documentation update
-- merge PR `#11` to `develop`
-- confirm post-merge `develop` CI
+- merge PR #12 to `develop`
+- post-merge `develop` CI
 
-Next task after 1.3B is fully validated and merged:
+When 1.3C passes, **Phase 1.3 — Purchase Costing & Inventory Quantity** is complete.
 
-**1.3C — Inventory Valuation & Validation**
+Next task after 1.3C completion:
+
+**1.4A — Cup-to-Weight Calibration Model**
 
 ## Phase 2 — Product Recipes & Mold Yield
 
