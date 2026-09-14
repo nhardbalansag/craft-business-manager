@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
+import type { MaterialCalibrationEvidence } from './materialCalibration';
 import type { Material } from './materials';
-import { MaterialInventoryError, normalizeMaterialOnHand } from './materialInventory';
+import {
+  MaterialInventoryError,
+  calculateMaterialInventoryValuation,
+  normalizeMaterialOnHand,
+} from './materialInventory';
 
 function material(overrides: Partial<Material> = {}): Material {
   return {
@@ -18,6 +23,19 @@ function material(overrides: Partial<Material> = {}): Material {
   };
 }
 
+function calibration(overrides: Partial<MaterialCalibrationEvidence> = {}): MaterialCalibrationEvidence {
+  return {
+    id: 'CAL-PLASTER-001',
+    materialId: 'MAT-PLASTER',
+    measuredVolume: 5,
+    volumeUnit: 'cup',
+    knownWeight: 1,
+    weightUnit: 'kg',
+    recordedAt: '2026-09-14T16:00:00+08:00',
+    ...overrides,
+  };
+}
+
 describe('normalizeMaterialOnHand', () => {
   it('normalizes kg stock into grams', () => {
     expect(normalizeMaterialOnHand(material())).toEqual({
@@ -27,6 +45,8 @@ describe('normalizeMaterialOnHand', () => {
       baseUnitsPerOnHandUnit: 1000,
       normalizedBaseQuantity: 2500,
       conversionSource: 'standard',
+      calibrationId: null,
+      purchasePackageConversionSource: null,
     });
   });
 
@@ -47,6 +67,7 @@ describe('normalizeMaterialOnHand', () => {
 
     expect(result.normalizedBaseQuantity).toBe(1500);
     expect(result.baseUnitsPerOnHandUnit).toBe(1000);
+    expect(result.conversionSource).toBe('standard');
   });
 
   it('normalizes count stock without changing the quantity', () => {
@@ -85,8 +106,76 @@ describe('normalizeMaterialOnHand', () => {
     );
 
     expect(result.conversionSource).toBe('purchase-package');
+    expect(result.purchasePackageConversionSource).toBe('manual');
     expect(result.baseUnitsPerOnHandUnit).toBe(100);
     expect(result.normalizedBaseQuantity).toBe(50);
+  });
+
+  it('uses material calibration for dry stock entered in cups', () => {
+    const result = normalizeMaterialOnHand(
+      material({ onHandQuantity: 3, onHandUnit: 'cup' }),
+      [calibration()],
+    );
+
+    expect(result.conversionSource).toBe('calibration');
+    expect(result.calibrationId).toBe('CAL-PLASTER-001');
+    expect(result.baseUnitsPerOnHandUnit).toBe(200);
+    expect(result.normalizedBaseQuantity).toBe(600);
+  });
+
+  it('uses the latest valid calibration sample for dry cup stock', () => {
+    const result = normalizeMaterialOnHand(
+      material({ onHandQuantity: 2, onHandUnit: 'cup' }),
+      [
+        calibration({ id: 'CAL-OLD', recordedAt: '2026-09-01T09:00:00+08:00' }),
+        calibration({
+          id: 'CAL-NEW',
+          measuredVolume: 4,
+          knownWeight: 0.84,
+          weightUnit: 'kg',
+          recordedAt: '2026-09-14T09:00:00+08:00',
+        }),
+      ],
+    );
+
+    expect(result.calibrationId).toBe('CAL-NEW');
+    expect(result.baseUnitsPerOnHandUnit).toBe(210);
+    expect(result.normalizedBaseQuantity).toBe(420);
+  });
+
+  it('falls back to manual g/cup only when cup is the configured purchase unit', () => {
+    const result = normalizeMaterialOnHand(
+      material({
+        purchaseUnit: 'cup',
+        manualBaseUnitsPerPurchaseUnit: 190,
+        onHandQuantity: 3,
+        onHandUnit: 'cup',
+      }),
+    );
+
+    expect(result.conversionSource).toBe('manual');
+    expect(result.baseUnitsPerOnHandUnit).toBe(190);
+    expect(result.normalizedBaseQuantity).toBe(570);
+  });
+
+  it('requires a material calibration for cup stock when no valid manual cup fallback exists', () => {
+    try {
+      normalizeMaterialOnHand(material({ purchaseUnit: 'kg', onHandQuantity: 3, onHandUnit: 'cup' }));
+      throw new Error('Expected normalization to fail.');
+    } catch (error) {
+      expect(error).toBeInstanceOf(MaterialInventoryError);
+      expect((error as MaterialInventoryError).code).toBe('MISSING_MATERIAL_CALIBRATION');
+    }
+  });
+
+  it('rejects unsupported cross-dimension stock rather than guessing', () => {
+    try {
+      normalizeMaterialOnHand(material({ onHandUnit: 'L' }));
+      throw new Error('Expected normalization to fail.');
+    } catch (error) {
+      expect(error).toBeInstanceOf(MaterialInventoryError);
+      expect((error as MaterialInventoryError).code).toBe('UNRESOLVED_CROSS_DIMENSION_UNIT');
+    }
   });
 
   it('rejects an arbitrary package label that is not the configured purchase package', () => {
@@ -118,12 +207,31 @@ describe('normalizeMaterialOnHand', () => {
     );
   });
 
-  it('preserves negative quantities mathematically for Phase 1.3C validation', () => {
+  it('preserves negative quantities mathematically for valuation validation', () => {
     expect(normalizeMaterialOnHand(material({ onHandQuantity: -2 })).normalizedBaseQuantity).toBe(-2000);
   });
 
   it('preserves fractional standard-unit quantities precisely', () => {
     const result = normalizeMaterialOnHand(material({ onHandQuantity: 0.125, onHandUnit: 'kg' }));
     expect(result.normalizedBaseQuantity).toBe(125);
+  });
+});
+
+describe('calculateMaterialInventoryValuation with calibration', () => {
+  it('values calibrated cup stock using standard package cost per gram', () => {
+    const result = calculateMaterialInventoryValuation(
+      material({
+        purchaseQuantity: 1,
+        purchaseUnit: 'kg',
+        packageCost: 66,
+        onHandQuantity: 3,
+        onHandUnit: 'cup',
+      }),
+      [calibration()],
+    );
+
+    expect(result.normalizedBaseQuantity).toBe(600);
+    expect(result.costPerBaseUnit).toBeCloseTo(0.066, 12);
+    expect(result.inventoryValue).toBeCloseTo(39.6, 12);
   });
 });

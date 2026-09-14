@@ -4,6 +4,7 @@ import {
   MATERIAL_GROUPS,
   MATERIAL_PACKAGE_UNITS,
   MaterialContractError,
+  isMaterialCupWeightBridge,
   isMaterialGroup,
   isMaterialPackageUnit,
   isMaterialPurchaseUnit,
@@ -78,6 +79,13 @@ describe('material classification', () => {
     expect(parseMaterialPurchaseUnit('box')).toBe('box');
     expect(() => parseMaterialPurchaseUnit('crate')).toThrow(MaterialContractError);
   });
+
+  it('recognizes only cup -> gram as the material-specific cross-dimension bridge', () => {
+    expect(isMaterialCupWeightBridge('cup', 'g')).toBe(true);
+    expect(isMaterialCupWeightBridge('mL', 'g')).toBe(false);
+    expect(isMaterialCupWeightBridge('cup', 'mL')).toBe(false);
+    expect(isMaterialCupWeightBridge('kg', 'g')).toBe(false);
+  });
 });
 
 describe('material contract validation', () => {
@@ -122,13 +130,25 @@ describe('material contract validation', () => {
     ).not.toThrow();
   });
 
+  it('allows cup source input for gram-based materials so Phase 1.4 can resolve it', () => {
+    expect(() =>
+      validateMaterialContract(
+        material({
+          baseUnit: 'g',
+          purchaseUnit: 'cup',
+          onHandUnit: 'cup',
+        }),
+      ),
+    ).not.toThrow();
+  });
+
   it('requires stable non-empty material identity fields', () => {
     for (const candidate of [material({ id: '   ' }), material({ name: '   ' })]) {
       expect(() => validateMaterialContract(candidate)).toThrow(MaterialContractError);
     }
   });
 
-  it('rejects same-system standard units that conflict with the canonical base dimension', () => {
+  it('still rejects every other standard-unit cross-dimension conflict', () => {
     try {
       validateMaterialContract(material({ baseUnit: 'g', purchaseUnit: 'L' }));
       throw new Error('Expected validation to fail.');
@@ -138,6 +158,9 @@ describe('material contract validation', () => {
     }
 
     expect(() => validateMaterialContract(material({ baseUnit: 'g', onHandUnit: 'mL' }))).toThrow(
+      MaterialContractError,
+    );
+    expect(() => validateMaterialContract(material({ baseUnit: 'pc', onHandUnit: 'cup' }))).toThrow(
       MaterialContractError,
     );
   });
@@ -150,8 +173,6 @@ describe('material contract validation', () => {
       onHandUnit: 'box',
     });
 
-    // Structural contract accepts the package label. Phase 1.3 decides whether a
-    // manual conversion is required before costing/normalization can proceed.
     expect(() => validateMaterialContract(candidate)).not.toThrow();
   });
 

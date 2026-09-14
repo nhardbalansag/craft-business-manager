@@ -50,7 +50,8 @@ export interface Material {
   /**
    * Optional source input used when purchaseUnit has no universal standard conversion.
    * Example: 1 box = 50 pc -> manualBaseUnitsPerPurchaseUnit = 50.
-   * This is not an effective/derived conversion; Phase 1.3 decides precedence.
+   * For a weight-based material purchased by cup, this may act as an explicit
+   * manual g/cup fallback when no material calibration exists.
    */
   manualBaseUnitsPerPurchaseUnit?: number;
 
@@ -75,6 +76,15 @@ export function isMaterialPackageUnit(value: unknown): value is MaterialPackageU
 
 export function isMaterialPurchaseUnit(value: unknown): value is MaterialPurchaseUnit {
   return isSupportedUnit(value) || isMaterialPackageUnit(value);
+}
+
+/**
+ * The only standard-unit cross-dimension bridge allowed by the material contract.
+ * It is not itself a conversion: Phase 1.4 must resolve it through material-specific
+ * calibration or an explicit manual g/cup fallback.
+ */
+export function isMaterialCupWeightBridge(unit: MaterialPurchaseUnit, baseUnit: BaseUnit): boolean {
+  return unit === 'cup' && baseUnit === 'g';
 }
 
 export class MaterialContractError extends Error {
@@ -117,9 +127,27 @@ export function parseMaterialPurchaseUnit(value: unknown): MaterialPurchaseUnit 
   return value;
 }
 
+function validateStandardMaterialUnit(
+  unit: MaterialPurchaseUnit,
+  baseUnit: BaseUnit,
+  fieldName: 'Purchase' | 'On-hand',
+): void {
+  if (
+    isSupportedUnit(unit) &&
+    !areUnitsCompatible(unit, baseUnit) &&
+    !isMaterialCupWeightBridge(unit, baseUnit)
+  ) {
+    throw new MaterialContractError(
+      'INCOMPATIBLE_STANDARD_UNIT',
+      `${fieldName} unit ${unit} is incompatible with base unit ${baseUnit}.`,
+      unit,
+    );
+  }
+}
+
 /**
  * Validates the identity/classification portion of a material record.
- * Numeric costing and inventory rules are intentionally deferred to Phases 1.3 and 1.4.
+ * Numeric costing and inventory rules are intentionally handled by later domain layers.
  */
 export function validateMaterialContract(material: Material): void {
   if (!material.id.trim()) {
@@ -142,19 +170,6 @@ export function validateMaterialContract(material: Material): void {
     throw new MaterialContractError('INVALID_PURCHASE_UNIT', 'Material purchase/on-hand unit is unsupported.');
   }
 
-  if (isSupportedUnit(material.purchaseUnit) && !areUnitsCompatible(material.purchaseUnit, material.baseUnit)) {
-    throw new MaterialContractError(
-      'INCOMPATIBLE_STANDARD_UNIT',
-      `Purchase unit ${material.purchaseUnit} is incompatible with base unit ${material.baseUnit}.`,
-      material.purchaseUnit,
-    );
-  }
-
-  if (isSupportedUnit(material.onHandUnit) && !areUnitsCompatible(material.onHandUnit, material.baseUnit)) {
-    throw new MaterialContractError(
-      'INCOMPATIBLE_STANDARD_UNIT',
-      `On-hand unit ${material.onHandUnit} is incompatible with base unit ${material.baseUnit}.`,
-      material.onHandUnit,
-    );
-  }
+  validateStandardMaterialUnit(material.purchaseUnit, material.baseUnit, 'Purchase');
+  validateStandardMaterialUnit(material.onHandUnit, material.baseUnit, 'On-hand');
 }
