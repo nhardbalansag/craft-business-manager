@@ -2,11 +2,13 @@
 
 ## Status
 
-**IMPLEMENTED — VALIDATION PENDING**
+**FEATURE CI PASSED — MERGE GATE**
 
 Branch: `feature/phase-1-5a-supplier-source-contract`
 
 Base: `develop`
+
+PR: `#17`
 
 ## Objective
 
@@ -50,78 +52,45 @@ The contract is isolated in `src/domain/materialSource.ts`, so a later migration
 
 ### Costing independence
 
-Supplier/source metadata does not participate in:
-
-- package conversion
-- cost per base unit
-- calibration
-- on-hand normalization
-- inventory valuation
-
-Changing a vendor name or purchase URL cannot change material costing results.
+Supplier/source metadata does not participate in package conversion, cost per base unit, calibration, on-hand normalization, or inventory valuation. Changing a vendor name or purchase URL cannot change material costing results.
 
 ### Partial information is allowed
 
-A user does not need every supplier field. Any meaningful field is sufficient, for example only:
-
-- vendor name, or
-- purchase link, or
-- contact number.
-
-An all-empty metadata object is normalized away rather than stored.
+A user does not need every supplier field. Any meaningful field is sufficient, for example only vendor name, purchase link, or contact number. An all-empty metadata object is normalized away rather than stored.
 
 ### Purchase-link safety
 
-`purchaseLink` must be a valid `http` or `https` URL.
-
-Other source fields remain free-form. This is intentional because phone numbers, social handles, marketplace names, and branch descriptions vary substantially by country and platform.
+`purchaseLink` must be a valid `http` or `https` URL. Other source fields remain free-form because phone numbers, social handles, marketplace names, and branch descriptions vary by country and platform.
 
 ## Application integration
 
-`MaterialService` now:
+`MaterialService` now trims supplier/source values, removes blank fields, validates purchase links, includes source/vendor fields in material search, and returns deep-cloned source metadata.
 
-- trims supplier/source values before persistence
-- removes blank optional values
-- validates purchase links
-- includes source/vendor fields in existing material search
-- returns deep-cloned source metadata
-
-`InMemoryMaterialRepository` now deep-clones the nested source object so callers cannot mutate stored supplier metadata through a returned object reference.
+`InMemoryMaterialRepository` also deep-clones the nested source object so returned records cannot mutate stored supplier metadata by reference.
 
 ## Automated coverage
 
-Tests cover:
+Tests cover valid/partial metadata, normalization, empty metadata collapse, non-text runtime inputs, purchase-link schemes, persistence, supplier-aware search, invalid source rejection, and nested mutation isolation.
 
-- valid full supplier/source metadata
-- partial metadata
-- whitespace normalization
-- all-empty metadata collapse
-- runtime rejection of non-text fields
-- purchase-link scheme validation
-- MaterialService source persistence
-- supplier/source search
-- invalid source rejection before persistence
-- nested source mutation isolation
+## Feature validation evidence
+
+PR #17 feature CI passed:
+
+- dependency installation
+- TypeScript typecheck
+- supplier/source domain tests
+- MaterialService source integration tests
+- full regression test suite
+- production build
 
 ## Out of scope
 
-Phase 1.5A does not add visible supplier fields to the Materials form/table.
+Visible supplier/source fields in the Materials form/table belong to **1.5B — Materials UI Integration**.
 
-That belongs to:
+## Remaining completion gate
 
-**1.5B — Materials UI Integration**
-
-## Completion gate
-
-Phase 1.5A is complete only after:
-
-- TypeScript typecheck passes
-- supplier/source domain tests pass
-- MaterialService integration tests pass
-- all regression tests pass
-- production build passes
-- feature PR CI passes
-- PR merges into `develop`
-- post-merge `develop` CI passes
+- final PR-head CI after status update
+- merge PR #17 into `develop`
+- post-merge `develop` CI
 
 Next task after completion: **1.5B — Materials UI Integration**.
