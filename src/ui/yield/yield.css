@@ -1,0 +1,228 @@
+.yield-product-bar {
+  margin-bottom: 20px;
+  padding: 18px 20px;
+  display: grid;
+  grid-template-columns: minmax(260px, 420px) minmax(0, 1fr);
+  gap: 20px;
+  align-items: end;
+}
+
+.yield-product-context {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  padding: 9px 0 8px;
+}
+
+.yield-product-context strong {
+  color: #29251f;
+  font-size: 1rem;
+}
+
+.yield-product-context span {
+  color: #80776c;
+  font-size: .82rem;
+}
+
+.yield-layout {
+  grid-template-columns: minmax(350px, 470px) minmax(0, 1fr);
+}
+
+.yield-form {
+  max-height: calc(100vh - 116px);
+  overflow-y: auto;
+}
+
+.yield-history-stack {
+  min-width: 0;
+  display: grid;
+  gap: 20px;
+}
+
+.yield-inputs {
+  display: grid;
+  gap: 8px;
+}
+
+.yield-input-row {
+  display: grid;
+  grid-template-columns: minmax(135px, 1.6fr) minmax(86px, .7fr) minmax(86px, .7fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.effective-yield-card {
+  padding: 22px;
+}
+
+.yield-notice {
+  margin: -4px 0 18px;
+  color: #746c61;
+  line-height: 1.55;
+  font-size: .88rem;
+}
+
+.yield-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.yield-metrics > div {
+  display: grid;
+  gap: 4px;
+  padding: 13px 14px;
+  border-radius: 14px;
+  background: #f4efe6;
+}
+
+.yield-metrics span {
+  color: #82786c;
+  font-size: .72rem;
+  font-weight: 760;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+.yield-metrics strong {
+  color: #28241f;
+  font-size: 1.12rem;
+}
+
+.learned-requirements {
+  display: grid;
+  gap: 8px;
+}
+
+.learned-requirements > div {
+  display: grid;
+  grid-template-columns: minmax(120px, .8fr) minmax(180px, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid #e5ded3;
+  border-radius: 12px;
+}
+
+.learned-requirements span {
+  color: #5c554d;
+  font-weight: 760;
+}
+
+.learned-requirements strong {
+  color: #26221e;
+  font-size: .9rem;
+}
+
+.learned-requirements small {
+  color: #8d8377;
+  text-align: right;
+}
+
+.yield-history-panel {
+  overflow: hidden;
+}
+
+.yield-history-list {
+  border-top: 1px solid #e2dbd0;
+}
+
+.yield-history-item {
+  padding: 18px 20px;
+  border-bottom: 1px solid #ece5dc;
+}
+
+.effective-history-item {
+  background: #fbf7ee;
+}
+
+.yield-history-heading,
+.history-summary,
+.history-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.yield-history-heading > div:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+.yield-history-heading strong {
+  color: #28241f;
+}
+
+.yield-history-heading span,
+.history-summary,
+.history-notes {
+  color: #81776c;
+  font-size: .78rem;
+}
+
+.history-badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.status-warning {
+  background: #f5ead2;
+  color: #7d5e25;
+}
+
+.history-summary {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.history-summary span {
+  padding: 4px 7px;
+  border-radius: 999px;
+  background: #f1ece4;
+}
+
+.history-materials {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.history-materials span {
+  padding: 6px 8px;
+  border: 1px solid #dfd7ca;
+  border-radius: 9px;
+  color: #5e574f;
+  font-size: .78rem;
+}
+
+.history-notes {
+  margin: 11px 0 0;
+  line-height: 1.5;
+}
+
+.history-actions {
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+
+@media (max-width: 1040px) {
+  .yield-layout { grid-template-columns: 1fr; }
+  .yield-form { max-height: none; }
+}
+
+@media (max-width: 760px) {
+  .yield-product-bar { grid-template-columns: 1fr; align-items: stretch; }
+  .yield-input-row { grid-template-columns: 1fr 1fr; }
+  .yield-input-row select:first-child { grid-column: 1 / -1; }
+  .yield-input-row .text-button { justify-self: start; }
+  .yield-metrics { grid-template-columns: 1fr; }
+  .learned-requirements > div { grid-template-columns: 1fr; }
+  .learned-requirements small { text-align: left; }
+  .yield-history-heading { align-items: flex-start; }
+}
