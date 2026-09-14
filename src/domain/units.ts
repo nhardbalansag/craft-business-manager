@@ -111,6 +111,8 @@ export const UNIT_CATALOG = {
 
 export const SUPPORTED_UNITS = Object.keys(UNIT_CATALOG) as Unit[];
 
+const SUPPORTED_UNIT_SET: ReadonlySet<string> = new Set(SUPPORTED_UNITS);
+
 export const CANONICAL_UNIT_BY_DIMENSION: Readonly<Record<UnitDimension, BaseUnit>> = {
   weight: 'g',
   volume: 'mL',
@@ -118,6 +120,7 @@ export const CANONICAL_UNIT_BY_DIMENSION: Readonly<Record<UnitDimension, BaseUni
 };
 
 export type UnitConversionErrorCode =
+  | 'UNSUPPORTED_UNIT'
   | 'INCOMPATIBLE_UNITS'
   | 'NON_FINITE_QUANTITY'
   | 'INVALID_DECIMAL_PLACES';
@@ -127,11 +130,12 @@ export class UnitConversionError extends Error {
   readonly from?: Unit;
   readonly to?: Unit;
   readonly quantity?: number;
+  readonly input?: unknown;
 
   constructor(
     code: UnitConversionErrorCode,
     message: string,
-    context: { from?: Unit; to?: Unit; quantity?: number } = {},
+    context: { from?: Unit; to?: Unit; quantity?: number; input?: unknown } = {},
   ) {
     super(message);
     this.name = 'UnitConversionError';
@@ -139,7 +143,29 @@ export class UnitConversionError extends Error {
     this.from = context.from;
     this.to = context.to;
     this.quantity = context.quantity;
+    this.input = context.input;
   }
+}
+
+/** Runtime guard for values arriving from UI, files, imports, or other untyped sources. */
+export function isSupportedUnit(value: unknown): value is Unit {
+  return typeof value === 'string' && SUPPORTED_UNIT_SET.has(value);
+}
+
+/**
+ * Validates an untyped unit value and narrows it to Unit.
+ * This is intended for application/import boundaries before conversion functions are called.
+ */
+export function parseUnit(value: unknown): Unit {
+  if (!isSupportedUnit(value)) {
+    throw new UnitConversionError(
+      'UNSUPPORTED_UNIT',
+      `Unsupported unit: ${typeof value === 'string' ? value : String(value)}.`,
+      { input: value },
+    );
+  }
+
+  return value;
 }
 
 export function getUnitDefinition(unit: Unit): UnitDefinition {
