@@ -1,24 +1,10 @@
-import type { BaseUnit, InputUnit } from './units';
+import type { Material } from './materials';
 
+export type { Material } from './materials';
 export type { BaseUnit, InputUnit } from './units';
 export type ProductCategory = 'paintable-art' | 'candle-pot' | 'candle';
 export type RatioBasis = 'weight' | 'volume';
 export type PricingMethod = 'profit-amount' | 'markup-percent' | 'margin-percent';
-
-export interface Material {
-  id: string;
-  name: string;
-  group: string;
-  baseUnit: BaseUnit;
-  purchaseQuantity: number;
-  purchaseUnit: InputUnit;
-  baseUnitsPerPurchaseUnit: number;
-  packageCost: number;
-  onHandBaseQuantity: number;
-  gramsPerCup?: number;
-  vendor?: string;
-  notes?: string;
-}
 
 export interface MixPreset {
   id: string;
