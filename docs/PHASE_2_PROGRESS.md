@@ -8,7 +8,7 @@ Planning baseline: `docs/PHASE_2_PRODUCT_RECIPES_MOLD_YIELD_PLAN.md`
 2.1 — Product & Mix Foundation
     2.1A — Product Contract & Category Rules        COMPLETE
     2.1B — Mix Preset Contract & Ratio Engine       COMPLETE
-    2.1C — Product / Mix Repositories & Services    NEXT
+    2.1C — Product / Mix Repositories & Services    VALIDATION / MERGE GATE
 
 2.2 — Yield Evidence & Per-Good-Piece Learning      NOT STARTED
 2.3 — Recipe Requirement Synthesis                  NOT STARTED
@@ -57,3 +57,5 @@ Evidence:
 ## Current active task
 
 **2.1C — Product / Mix Repositories & Application Services**
+
+Implementation is complete on `feature/phase-2-1c-product-mix-services` and is awaiting feature CI / merge validation.
