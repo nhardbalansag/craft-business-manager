@@ -2,13 +2,15 @@
 
 ## Status
 
-**FEATURE CI PASSED — MERGE GATE**
+**COMPLETE — MERGED — POST-MERGE CI PASSED**
 
-Branch: `feature/phase-1-4c-calibration-ui`
-
-Base: `develop`
+Implementation branch: `feature/phase-1-4c-calibration-ui`
 
 PR: `#15`
+
+Merge commit: `a4ca2dd406fd90e8640fdf4011eb8bf684a2ccfb`
+
+Post-merge CI: `34823193266` — SUCCESS
 
 ## Objective
 
@@ -27,7 +29,7 @@ A user can now:
 
 ## Shared session boundary
 
-Materials and calibration records now use shared in-memory application services instead of page-local repositories.
+Materials and calibration records use shared in-memory application services instead of page-local repositories.
 
 ```text
 React Materials UI ─┐
@@ -36,7 +38,7 @@ React Calibration UI┘       ├─ MaterialService
                             └─ CalibrationService
 ```
 
-Persistence is still session-only. Excel storage remains Phase 5.
+Persistence remains session-only. Excel storage is still Phase 5.
 
 ## Calibration application service
 
@@ -44,12 +46,12 @@ Persistence is still session-only. Excel storage remains Phase 5.
 
 - create calibration evidence
 - list calibration history
-- resolve the effective/latest valid calibration
-- delete an erroneous calibration sample
+- resolve effective/latest valid calibration
+- delete erroneous calibration evidence
 - duplicate calibration-ID protection
 - material existence validation
 
-Calibration records remain evidence objects. `gramsPerCup` continues to be derived from the recorded measurement rather than stored as an independent authoritative field.
+Calibration records remain evidence objects. `gramsPerCup` is derived from recorded measurements rather than stored as an independent authoritative material field.
 
 ## Calibration workspace
 
@@ -67,7 +69,7 @@ The Calibration tab provides:
 - effective-sample badge
 - delete action for erroneous evidence
 
-The effective strategy remains:
+Effective strategy:
 
 ```text
 latest valid calibration wins
@@ -77,7 +79,7 @@ latest valid calibration wins
 
 The Materials workspace reads calibration history from the shared session and passes material-specific evidence into package costing, stock normalization, and inventory valuation.
 
-For gram-based materials, `cup` is now an available purchase/on-hand source unit.
+For gram-based materials, `cup` is an available purchase/on-hand source unit.
 
 Example:
 
@@ -93,15 +95,13 @@ The UI identifies the effective conversion source. Calibration continues to outr
 
 ## Application validation boundary
 
-`MaterialService` receives calibration evidence through an injected provider before persistence validation.
-
-This prevents a mismatch where React could preview calibrated cup stock but the application service rejected the same material when saving it.
+`MaterialService` receives calibration evidence through an injected provider before persistence validation. This keeps React previews and application-level save validation consistent.
 
 Existing MaterialService usage remains compatible because the provider defaults to no calibration evidence.
 
 ## Automated coverage
 
-New tests cover:
+Tests cover:
 
 - calibration create/list/effective selection
 - duplicate calibration ID rejection
@@ -109,12 +109,11 @@ New tests cover:
 - deletion behavior
 - calibrated cup stock passing MaterialService persistence validation
 - uncalibrated cup stock remaining invalid
+- existing derivation, precedence, costing, normalization, and valuation regressions
 
-Existing domain tests continue to cover derivation, effective precedence, costing, normalization, and inventory valuation.
+## Completion evidence
 
-## Feature validation evidence
-
-PR #15 feature CI passed:
+PR #15 passed:
 
 - dependency installation
 - TypeScript typecheck
@@ -122,13 +121,10 @@ PR #15 feature CI passed:
 - calibrated MaterialService integration tests
 - full regression suite
 - production build
-
-## Remaining completion gate
-
-- final PR-head CI after documentation status updates
-- merge PR #15 into `develop`
+- final PR-head CI
+- merge into `develop`
 - post-merge `develop` CI
 
-After those gates pass, **Phase 1.4 — Material-Specific Calibration** is complete.
+**Phase 1.4 — Material-Specific Calibration is complete.**
 
 Next task: **1.5A — Supplier / Source Contract**.
