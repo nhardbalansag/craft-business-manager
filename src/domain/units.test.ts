@@ -13,9 +13,12 @@ import {
   getUnitDimension,
   getUnitDefinition,
   isCanonicalUnit,
+  isSupportedUnit,
+  parseUnit,
   roundQuantity,
   toCanonicalQuantity,
 } from './units';
+import type { Unit } from './units';
 
 describe('unit catalog and dimensional rules', () => {
   it('defines one canonical unit for each dimension', () => {
@@ -178,5 +181,134 @@ describe('standard conversion engine', () => {
         expect((error as UnitConversionError).code).toBe('INVALID_DECIMAL_PLACES');
       }
     }
+  });
+});
+
+describe('Phase 1.1C conversion validation hardening', () => {
+  it('recognizes every catalog unit at runtime', () => {
+    for (const unit of SUPPORTED_UNITS) {
+      expect(isSupportedUnit(unit)).toBe(true);
+      expect(parseUnit(unit)).toBe(unit);
+    }
+  });
+
+  it('rejects unsupported runtime unit values with a controlled error', () => {
+    for (const value of ['grams', 'ml', 'box', '', null, undefined, 1, {}, []]) {
+      expect(isSupportedUnit(value)).toBe(false);
+
+      try {
+        parseUnit(value);
+        throw new Error('Expected unsupported unit validation to fail.');
+      } catch (error) {
+        expect(error).toBeInstanceOf(UnitConversionError);
+        expect((error as UnitConversionError).code).toBe('UNSUPPORTED_UNIT');
+        expect((error as UnitConversionError).input).toBe(value);
+      }
+    }
+  });
+
+  it('keeps every catalog definition internally consistent', () => {
+    for (const unit of SUPPORTED_UNITS) {
+      const definition = getUnitDefinition(unit);
+
+      expect(definition.symbol).toBe(unit);
+      expect(definition.toCanonicalFactor).toBeGreaterThan(0);
+      expect(Number.isFinite(definition.toCanonicalFactor)).toBe(true);
+      expect(getUnitDimension(definition.canonicalUnit)).toBe(definition.dimension);
+      expect(isCanonicalUnit(definition.canonicalUnit)).toBe(true);
+
+      if (definition.isCanonical) {
+        expect(definition.symbol).toBe(definition.canonicalUnit);
+        expect(definition.toCanonicalFactor).toBe(1);
+      }
+    }
+  });
+
+  it('returns identity conversion for every supported unit', () => {
+    for (const unit of SUPPORTED_UNITS) {
+      expect(getStandardConversionFactor(unit, unit)).toBe(1);
+      expect(convertQuantity(123.456, unit, unit)).toBe(123.456);
+    }
+  });
+
+  it('round-trips every compatible unit pair', () => {
+    const startingQuantity = 7.125;
+
+    for (const from of SUPPORTED_UNITS) {
+      for (const to of SUPPORTED_UNITS) {
+        if (!areUnitsCompatible(from, to)) {
+          continue;
+        }
+
+        const converted = convertQuantity(startingQuantity, from, to);
+        const roundTripped = convertQuantity(converted, to, from);
+
+        expect(roundTripped).toBeCloseTo(startingQuantity, 10);
+      }
+    }
+  });
+
+  it('rejects every incompatible unit pair', () => {
+    for (const from of SUPPORTED_UNITS) {
+      for (const to of SUPPORTED_UNITS) {
+        if (areUnitsCompatible(from, to)) {
+          continue;
+        }
+
+        try {
+          convertQuantity(1, from, to);
+          throw new Error(`Expected ${from} -> ${to} to fail.`);
+        } catch (error) {
+          expect(error).toBeInstanceOf(UnitConversionError);
+          expect((error as UnitConversionError).code).toBe('INCOMPATIBLE_UNITS');
+          expect((error as UnitConversionError).from).toBe(from);
+          expect((error as UnitConversionError).to).toBe(to);
+        }
+      }
+    }
+  });
+
+  it('validates the required Phase 1.1 reference conversions', () => {
+    const cases: Array<{ quantity: number; from: Unit; to: Unit; expected: number }> = [
+      { quantity: 1, from: 'kg', to: 'g', expected: 1000 },
+      { quantity: 1, from: 'oz', to: 'g', expected: 28.3495 },
+      { quantity: 1, from: 'lb', to: 'g', expected: 453.592 },
+      { quantity: 1, from: 'L', to: 'mL', expected: 1000 },
+      { quantity: 1, from: 'cup', to: 'mL', expected: 240 },
+      { quantity: 1, from: 'tbsp', to: 'mL', expected: 15 },
+      { quantity: 1, from: 'tsp', to: 'mL', expected: 5 },
+      { quantity: 1, from: 'fl-oz', to: 'mL', expected: 29.5735 },
+      { quantity: 1, from: 'pc', to: 'pc', expected: 1 },
+    ];
+
+    for (const testCase of cases) {
+      expect(convertQuantity(testCase.quantity, testCase.from, testCase.to)).toBeCloseTo(
+        testCase.expected,
+        10,
+      );
+    }
+  });
+
+  it('preserves precision through canonical normalization for fractional quantities', () => {
+    const examples: Array<{ quantity: number; unit: Unit }> = [
+      { quantity: 0.333333, unit: 'kg' },
+      { quantity: 0.125, unit: 'cup' },
+      { quantity: 1.75, unit: 'fl-oz' },
+      { quantity: 2.5, unit: 'lb' },
+      { quantity: 12, unit: 'pc' },
+    ];
+
+    for (const example of examples) {
+      const canonical = toCanonicalQuantity(example.quantity, example.unit);
+      const restored = fromCanonicalQuantity(canonical, example.unit);
+      expect(restored).toBeCloseTo(example.quantity, 10);
+    }
+  });
+
+  it('keeps rounding separate from conversion calculations', () => {
+    const raw = convertQuantity(1, 'fl-oz', 'cup');
+    expect(roundQuantity(raw)).toBe(roundQuantity(raw, 6));
+    expect(roundQuantity(raw, 2)).not.toBe(raw);
+    expect(convertQuantity(1, 'fl-oz', 'cup')).toBe(raw);
   });
 });
