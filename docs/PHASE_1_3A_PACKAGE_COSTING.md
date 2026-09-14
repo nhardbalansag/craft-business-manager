@@ -2,11 +2,13 @@
 
 ## Status
 
-**IMPLEMENTED — VALIDATION PENDING**
+**FEATURE CI PASSED — MERGE / POST-MERGE GATE**
 
 Branch: `feature/phase-1-3a-package-costing`
 
 Base: `develop`
+
+PR: `#10`
 
 ## Objective
 
@@ -66,22 +68,7 @@ This supports real packaging or usable-content exceptions without changing the u
 
 ## Non-standard package labels
 
-Package labels such as:
-
-- bag
-- bottle
-- box
-- can
-- jar
-- pack
-- pouch
-- roll
-- set
-- sheet
-- spool
-- tube
-
-have no universal measurement conversion.
+Package labels such as `bag`, `bottle`, `box`, `jar`, `pack`, `pouch`, `roll`, `set`, `sheet`, `spool`, and `tube` have no universal measurement conversion.
 
 Therefore a material such as:
 
@@ -112,37 +99,15 @@ These are derived values and are not added to the authoritative `Material` recor
 
 ## Controlled errors
 
-The domain exposes controlled errors for:
-
-- non-finite purchase quantity
-- zero/negative purchase quantity
-- non-finite package cost
-- negative package cost
-- invalid manual conversion
-- missing package conversion
-
-This prevents divide-by-zero and silent package assumptions.
+The domain exposes controlled errors for non-finite/zero/negative purchase quantities, non-finite/negative package costs, invalid manual conversions, and missing package conversions. This prevents divide-by-zero and silent package assumptions.
 
 ## MaterialService integration
 
-Create/update operations now run both:
-
-1. structural Material contract validation
-2. package costing validation
-
-This keeps conversion/costing rules below React and future Excel import/persistence boundaries.
+Create/update operations now run both structural Material contract validation and package-costing validation. Business rules therefore remain below React and future Excel import/persistence boundaries.
 
 ## Materials UI
 
-The Materials screen now visibly separates:
-
-- Standard conversion
-- Manual conversion
-- Effective conversion
-- Package base quantity
-- Cost per base unit
-
-The table also shows package price plus derived cost/base-unit for saved materials.
+The Materials screen visibly separates Standard conversion, Manual conversion, Effective conversion, Package base quantity, and Cost per base unit. The table also shows package price plus derived cost/base-unit for saved materials.
 
 Manual conversion is visible for both standard units and package labels:
 
@@ -156,32 +121,18 @@ Manual conversion is visible for both standard units and package labels:
 - dry cup-to-weight calibration (1.4)
 - Excel persistence (Phase 5)
 
-## Automated coverage
+## Validation evidence
 
-Tests cover:
+Feature PR CI passed:
 
-- kg → g package costing
-- fractional/multi-unit package quantities
-- count-based pc costing
-- non-standard package labels
-- manual override precedence over standard conversion
-- zero-cost valid packages
-- zero/negative purchase quantity rejection
-- non-finite inputs
-- negative package cost rejection
-- missing package conversion
-- invalid manual conversion
-- MaterialService persistence boundary
+- dependency installation
+- TypeScript typecheck
+- domain/application automated tests
+- production build
 
-## Completion gate
+## Remaining completion gate
 
-Phase 1.3A is complete only after:
-
-- TypeScript typecheck passes
-- domain/application tests pass
-- production build passes
-- feature PR CI passes
-- PR merges into `develop`
-- post-merge `develop` CI passes
+- merge PR `#10` into `develop`
+- confirm post-merge `develop` CI passes
 
 Next task after completion: **1.3B — On-Hand Quantity Normalization**.
