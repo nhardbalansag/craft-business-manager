@@ -2,23 +2,25 @@
 
 ## Status
 
-**IMPLEMENTED — VALIDATION PENDING**
+**FEATURE CI PASSED — MERGE GATE**
 
 Branch: `feature/phase-1-6a-integrated-materials-workflow`
 
 Base: corrected `develop` head after removal of accidental temporary probe files.
 
+PR: `#21`
+
 ## Objective
 
 Validate Phase 1 as one coherent materials workflow rather than a collection of isolated features.
 
-The integrated workflow must prove that material identity/classification, measurement conversion, package costing, calibration, stock normalization, inventory valuation, supplier/source metadata, search, update, and archive behavior work together without breaking each other's contracts.
+The integrated workflow proves that material identity/classification, measurement conversion, package costing, calibration, stock normalization, inventory valuation, supplier/source metadata, search, update, and archive behavior work together without breaking each other's contracts.
 
 ## Integrated scenarios
 
 ### Calibrated plaster workflow
 
-The integration test now exercises:
+The integration test exercises:
 
 1. create a gram-based plaster material purchased by kilogram;
 2. save supplier/source metadata;
@@ -38,25 +40,15 @@ The workflow verifies that a newer `210 g/cup` sample becomes effective automati
 
 A new application-level guard prevents deleting the final calibration evidence when a saved material currently depends on calibration for its cup-to-weight purchase or stock conversion. This avoids leaving persisted material data in a state that can no longer be normalized or valued.
 
-Deletion remains allowed when:
-
-- another valid calibration sample remains;
-- a valid manual fallback resolves the saved conversion; or
-- the material is first changed back to a standard unit that no longer requires calibration.
+Deletion remains allowed when another valid calibration sample remains, a valid manual fallback resolves the saved conversion, or the material is first changed back to a standard unit that no longer requires calibration.
 
 ### Count-package workflow
-
-The integration suite verifies a packaging material such as:
 
 ```text
 1 pack = 100 pc
 package cost = ₱120
 on hand = 0.5 pack
-```
 
-Result:
-
-```text
 normalized stock = 50 pc
 cost per piece = ₱1.20
 inventory value = ₱60.00
@@ -64,16 +56,10 @@ inventory value = ₱60.00
 
 ### Standard volume workflow
 
-The suite also validates ordinary same-dimension conversion independently of calibration:
-
 ```text
 1 L fragrance oil = ₱400
 on hand = 250 mL
-```
 
-Result:
-
-```text
 cost per mL = ₱0.40
 inventory value = ₱100.00
 ```
@@ -82,27 +68,29 @@ inventory value = ₱100.00
 
 The workflow changes only supplier/source metadata and asserts that inventory valuation remains identical before and after the source edit.
 
-This locks the architectural rule that vendor name, purchase link, contact details, social page, branch information, and source notes are informational only.
-
 ### Archive/filter integration
 
-The count-package workflow is archived and the application filters are verified so active and archived materials remain distinct without hard deletion.
+The count-package workflow is archived and active/archived application filters are verified without hard deletion.
 
 ## Files
 
 - `src/application/phase1MaterialsWorkflow.test.ts`
 - `src/application/calibrations/CalibrationService.ts`
 
-## Completion gate
+## Feature validation evidence
 
-Phase 1.6A is complete only after:
+PR #21 feature CI passed:
 
-- TypeScript typecheck passes;
-- all existing domain/application regression tests pass;
-- the new integrated workflow tests pass;
-- production build passes;
-- feature PR CI passes;
-- PR merges into `develop`;
-- post-merge `develop` CI passes.
+- dependency installation
+- TypeScript typecheck
+- all existing regression tests
+- new integrated workflow tests
+- production build
+
+## Remaining completion gate
+
+- final PR-head CI after status update
+- merge PR #21 into `develop`
+- post-merge `develop` CI
 
 Next task after completion: **1.6B — Regression, Build & Completion**.
