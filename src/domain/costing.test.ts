@@ -10,17 +10,6 @@ import {
   totalUnitCost,
   wasteAdjustedRequirement,
 } from './costing';
-import type { MoldYieldSample } from './types';
-
-const moldSample: MoldYieldSample = {
-  id: 'sample-1',
-  productId: 'ART-001',
-  primaryMaterialId: 'MAT-PLASTER',
-  primaryBaseQuantityUsed: 800,
-  goodPieces: 8,
-  rejectedPieces: 1,
-  recordedAt: '2026-09-14T00:00:00.000Z',
-};
 
 describe('costing primitives', () => {
   it('calculates package cost per normalized base unit', () => {
@@ -28,9 +17,9 @@ describe('costing primitives', () => {
     expect(costPerBaseUnit(100, 0, 1000)).toBe(0);
   });
 
-  it('learns material usage per good piece from a real mold sample', () => {
-    expect(baseQuantityPerGoodPiece(moldSample)).toBe(100);
-    expect(baseQuantityPerGoodPiece({ ...moldSample, goodPieces: 0 })).toBe(0);
+  it('calculates canonical material usage per good piece once batch normalization is known', () => {
+    expect(baseQuantityPerGoodPiece(800, 8)).toBe(100);
+    expect(baseQuantityPerGoodPiece(800, 0)).toBe(0);
   });
 
   it('applies safety waste to the material requirement', () => {

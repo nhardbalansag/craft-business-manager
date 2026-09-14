@@ -11,7 +11,7 @@ Planning baseline: `docs/PHASE_2_PRODUCT_RECIPES_MOLD_YIELD_PLAN.md`
     2.1C — Product / Mix Repositories & Services      COMPLETE
 
 2.2 — Yield Evidence & Per-Good-Piece Learning        IN PROGRESS
-    2.2A — Yield Sample Evidence Contract             NEXT
+    2.2A — Yield Sample Evidence Contract             VALIDATION / MERGE GATE
     2.2B — Good / Rejected Output & Learning          NOT STARTED
     2.2C — Effective Yield Selection & History        NOT STARTED
 
@@ -79,3 +79,5 @@ Evidence:
 ## Current active task
 
 **2.2A — Yield Sample Evidence Contract**
+
+Implementation is complete on `feature/phase-2-2a-yield-sample-evidence` and is awaiting feature CI / merge validation.

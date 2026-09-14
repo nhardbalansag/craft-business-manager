@@ -1,4 +1,4 @@
-import type { MoldYieldSample, PricingPolicy } from './types';
+import type { PricingPolicy } from './types';
 
 export function costPerBaseUnit(
   packageCost: number,
@@ -9,8 +9,13 @@ export function costPerBaseUnit(
   return totalBaseUnits > 0 ? packageCost / totalBaseUnits : 0;
 }
 
-export function baseQuantityPerGoodPiece(sample: MoldYieldSample): number {
-  return sample.goodPieces > 0 ? sample.primaryBaseQuantityUsed / sample.goodPieces : 0;
+/**
+ * Generic numeric primitive retained for Phase 2.2B.
+ * Canonical batch material quantity is derived from YieldSample evidence first,
+ * then divided by good pieces through this helper.
+ */
+export function baseQuantityPerGoodPiece(baseQuantityUsed: number, goodPieces: number): number {
+  return goodPieces > 0 ? baseQuantityUsed / goodPieces : 0;
 }
 
 export function wasteAdjustedRequirement(baseQuantity: number, safetyWasteRate: number): number {
