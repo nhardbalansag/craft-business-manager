@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { CalibrationPage } from './ui/calibration/CalibrationPage';
 import { MaterialsPage } from './ui/materials/MaterialsPage';
+import { ProductsPage } from './ui/products/ProductsPage';
 
-type AppSection = 'materials' | 'calibration';
+type AppSection = 'materials' | 'calibration' | 'products';
 
 export default function App() {
   const [section, setSection] = useState<AppSection>('materials');
@@ -20,12 +21,14 @@ export default function App() {
         <nav className="phase-nav" aria-label="Application sections">
           <button className={`nav-item ${section === 'materials' ? 'active' : ''}`} type="button" onClick={() => setSection('materials')}>Materials</button>
           <button className={`nav-item ${section === 'calibration' ? 'active' : ''}`} type="button" onClick={() => setSection('calibration')}>Calibration</button>
-          <button className="nav-item" type="button" disabled>Products</button>
+          <button className={`nav-item ${section === 'products' ? 'active' : ''}`} type="button" onClick={() => setSection('products')}>Products</button>
           <button className="nav-item" type="button" disabled>Production</button>
         </nav>
       </header>
 
-      {section === 'materials' ? <MaterialsPage /> : <CalibrationPage />}
+      {section === 'materials' && <MaterialsPage />}
+      {section === 'calibration' && <CalibrationPage />}
+      {section === 'products' && <ProductsPage />}
     </main>
   );
 }
