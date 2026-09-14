@@ -85,6 +85,7 @@ export class MixPresetService {
     const preset = normalizeMixPreset(input);
     validateMixPresetContract(preset);
     await this.validateMaterialReferences(preset);
+    await this.assertActiveProductRelationshipsRemainValid(preset);
 
     const all = await this.repository.list();
     this.assertUniqueIdentity(preset, all);
