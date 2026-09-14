@@ -5,9 +5,9 @@ Status: **IN PROGRESS**
 Planning baseline: `docs/PHASE_3_PRODUCT_COMPONENTS_VESSELS_PLAN.md`
 
 ```text
-3.1 — Composition Foundation                         IN PROGRESS
-    3.1A — Product Component Contract & Roles        COMPLETE
-    3.1B — Composition Graph Integrity & Cycle Prevention NEXT
+3.1 — Composition Foundation                              IN PROGRESS
+    3.1A — Product Component Contract & Roles             COMPLETE
+    3.1B — Composition Graph Integrity & Cycle Prevention VALIDATION / MERGE GATE
     3.1C — Component Repository & Application Services    NOT STARTED
 
 3.2 — Finished Component Stock
@@ -72,8 +72,25 @@ Evidence:
 
 Implementation record: `docs/PHASE_3_1A_PRODUCT_COMPONENT_CONTRACT.md`
 
+## 3.1B implementation at validation gate
+
+- dedicated `src/domain/productCompositionGraph.ts` adds the composition graph boundary;
+- all source records are contract-validated before graph use;
+- duplicate component-source identity is blocked per parent using the 3.1A source key;
+- direct Product self-reference is rejected with `DIRECT_SELF_REFERENCE`;
+- transitive cycles are rejected with `CYCLE_DETECTED` and a closed canonical cycle path;
+- product IDs are trimmed/case-insensitive for graph identity;
+- adjacency/traversal ordering is deterministic and locale-independent;
+- material-backed components do not create graph edges;
+- guarded depth-first descendant traversal is available for future recursive cost/capacity services;
+- traversal detects reachable corrupted cycles without allowing infinite recursion;
+- unrelated corrupted cycles do not block traversal of a safe root;
+- repositories, source existence/active-state checks, archive guards, and `BusinessDataset.productComponents` remain 3.1C.
+
+Implementation record: `docs/PHASE_3_1B_COMPOSITION_GRAPH_INTEGRITY.md`
+
 ## Current active task
 
-**3.1B — Composition Graph Integrity & Cycle Prevention**
+**3.1B — Composition Graph Integrity & Cycle Prevention — validation / merge gate**
 
 Do not start 3.1C until 3.1B is merged and post-merge `develop` CI is green.
