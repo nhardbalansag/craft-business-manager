@@ -6,11 +6,14 @@ import { InMemoryMixPresetRepository } from './mixPresets/InMemoryMixPresetRepos
 import { MixPresetService } from './mixPresets/MixPresetService';
 import { InMemoryProductRepository } from './products/InMemoryProductRepository';
 import { ProductService } from './products/ProductService';
+import { InMemoryYieldSampleRepository } from './yieldSamples/InMemoryYieldSampleRepository';
+import { YieldSampleEvidenceService } from './yieldSamples/YieldSampleEvidenceService';
 
 export const materialRepository = new InMemoryMaterialRepository();
 export const calibrationRepository = new InMemoryCalibrationRepository();
 export const mixPresetRepository = new InMemoryMixPresetRepository();
 export const productRepository = new InMemoryProductRepository();
+export const yieldSampleRepository = new InMemoryYieldSampleRepository();
 
 export const materialService = new MaterialService(materialRepository, async (materialId) => {
   const records = await calibrationRepository.list();
@@ -24,4 +27,10 @@ export const mixPresetService = new MixPresetService(
   mixPresetRepository,
   materialRepository,
   productRepository,
+);
+export const yieldSampleEvidenceService = new YieldSampleEvidenceService(
+  yieldSampleRepository,
+  productRepository,
+  mixPresetRepository,
+  materialRepository,
 );
