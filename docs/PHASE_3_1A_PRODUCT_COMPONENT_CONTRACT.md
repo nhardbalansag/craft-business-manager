@@ -2,11 +2,17 @@
 
 ## Status
 
-**IMPLEMENTED — VALIDATION / MERGE GATE**
+**COMPLETE — MERGED + POST-MERGE CI PASSED**
+
+Implementation PR: **#61**
+
+Implementation merge commit: `3b3206cd266bc2f55ae59c2d7dff6bd906af1652`
+
+Post-merge CI: **34909650244 — SUCCESS**
 
 Feature branch: `feature/phase-3-1a-component-contract`
 
-Authoritative base:
+Authoritative implementation base:
 
 `develop` @ `fce7477dc23ef51ffb14d7cacdfabef3a243f4ea`
 
@@ -157,16 +163,16 @@ Tests cover:
 - material source identity matching;
 - rejection of non-count materials as discrete component sources.
 
-## Completion gate
+## Completion evidence
 
-3.1A is complete only after:
+- PR #61 merged successfully;
+- implementation merge commit: `3b3206cd266bc2f55ae59c2d7dff6bd906af1652`;
+- feature-head CI run `34909578128` passed;
+- post-merge `develop` CI run `34909650244` passed;
+- typecheck passed;
+- complete regression suite passed;
+- production build passed.
 
-- feature-head typecheck passes;
-- complete regression tests pass;
-- production build passes;
-- implementation PR merges to `develop`;
-- exact post-merge `develop` CI succeeds.
-
-## Next task after completion
+## Next task
 
 **3.1B — Composition Graph Integrity & Cycle Prevention**
