@@ -2,11 +2,13 @@
 
 ## Status
 
-**IMPLEMENTED — VALIDATION / MERGE GATE**
+**COMPLETE**
 
-Branch: `feature/phase-2-2c-yield-history`
+Implementation PR: **#36**
 
-Base: `develop` at `c634e7c94402df6e3dc460c6dd06258df8ba24de`.
+Implementation merge commit: `20757f540afb9d08a3ecd505521fc8af64013bb5`
+
+Post-merge CI run: `34834211687` — **SUCCESS**
 
 ## Objective
 
@@ -81,6 +83,20 @@ The repository remains append-oriented: it has insert and controlled delete, but
 - `src/application/yieldSamples/InMemoryYieldSampleRepository.ts`
 - `src/application/session.ts`
 
+## Validation evidence
+
+The completed implementation passed:
+
+- deterministic history-order tests;
+- effective latest-valid selection tests;
+- invalid-newer fallback tests;
+- safe deletion / final-effective-sample protection tests;
+- full regression suite;
+- TypeScript typecheck;
+- production build;
+- feature PR CI;
+- post-merge `develop` CI.
+
 ## Deferred
 
 - combining yield-derived requirements with fixed recipe inputs: **2.3**
@@ -88,18 +104,4 @@ The repository remains append-oriented: it has insert and controlled delete, but
 - yield history UI/correction workflow: **2.5B**
 - alternate statistical selection strategies: future enhancement only if real production usage justifies them.
 
-## Completion gate
-
-2.2C may be marked complete after:
-
-- deterministic history-order tests pass;
-- effective latest-valid selection tests pass;
-- invalid-newer fallback tests pass;
-- safe deletion / final-effective-sample protection tests pass;
-- full regression suite passes;
-- TypeScript typecheck passes;
-- production build passes;
-- feature PR merges into `develop`;
-- post-merge `develop` CI passes.
-
-Next task after completion: **2.3A — Fixed Recipe Item Contract & Material Roles**.
+Next task: **2.3A — Fixed Recipe Item Contract & Material Roles**.
