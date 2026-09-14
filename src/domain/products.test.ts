@@ -77,8 +77,9 @@ describe('product contract validation', () => {
     expect(() => validateProductContract(product({ mixPresetId: undefined }))).not.toThrow();
   });
 
-  it('allows zero safety waste', () => {
+  it('accepts safety waste from zero up to but excluding 100%', () => {
     expect(() => validateProductContract(product({ safetyWasteRate: 0 }))).not.toThrow();
+    expect(() => validateProductContract(product({ safetyWasteRate: 0.999 }))).not.toThrow();
   });
 
   it.each([
@@ -87,6 +88,8 @@ describe('product contract validation', () => {
     [{ category: 'gift-set' as Product['category'] }, 'INVALID_CATEGORY'],
     [{ mixPresetId: '  ' }, 'INVALID_MIX_PRESET_ID'],
     [{ safetyWasteRate: -0.01 }, 'INVALID_SAFETY_WASTE_RATE'],
+    [{ safetyWasteRate: 1 }, 'INVALID_SAFETY_WASTE_RATE'],
+    [{ safetyWasteRate: 1.25 }, 'INVALID_SAFETY_WASTE_RATE'],
     [{ safetyWasteRate: Number.NaN }, 'INVALID_SAFETY_WASTE_RATE'],
     [{ safetyWasteRate: Number.POSITIVE_INFINITY }, 'INVALID_SAFETY_WASTE_RATE'],
     [{ isActive: 'yes' as unknown as boolean }, 'INVALID_ACTIVE_STATE'],
