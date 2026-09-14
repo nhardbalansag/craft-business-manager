@@ -1,3 +1,5 @@
+import { SafetyWastePolicyError, validateSafetyWasteRate } from './safetyWastePolicy';
+
 export const PRODUCT_CATEGORIES = ['paintable-art', 'candle-pot', 'candle'] as const;
 
 export type ProductCategory = (typeof PRODUCT_CATEGORIES)[number];
@@ -48,7 +50,7 @@ export interface Product {
   category: ProductCategory;
   /** Optional reference only; mix-preset contract/validation is implemented in Phase 2.1B/2.1C. */
   mixPresetId?: string;
-  /** Planning reserve entered as a decimal rate, e.g. 0.05 = 5%. Formal waste policy is Phase 2.4. */
+  /** Planning reserve entered as a decimal rate, e.g. 0.05 = 5%. Must satisfy 0 <= rate < 1. */
   safetyWasteRate: number;
   notes?: string;
   isActive: boolean;
@@ -100,10 +102,11 @@ export function cloneProduct(product: Product): Product {
 }
 
 /**
- * Validates only the authoritative Phase 2.1A source contract.
- * Duplicate identity/name checks belong to ProductService in Phase 2.1C.
- * Mix-preset compatibility belongs to Phase 2.1B/2.1C.
- * Waste calculations belong to Phase 2.4.
+ * Validates the authoritative Product source contract.
+ * Duplicate identity/name checks belong to ProductService.
+ * Mix-preset compatibility belongs to ProductService/MixPresetService.
+ * Safety-waste range semantics are centralized in Phase 2.4A.
+ * Applying the safety-waste multiplier belongs to Phase 2.4B.
  */
 export function validateProductContract(product: Product): void {
   if (!product.id.trim()) {
@@ -130,12 +133,17 @@ export function validateProductContract(product: Product): void {
     );
   }
 
-  if (!Number.isFinite(product.safetyWasteRate) || product.safetyWasteRate < 0) {
-    throw new ProductContractError(
-      'INVALID_SAFETY_WASTE_RATE',
-      'Safety waste rate must be a finite number greater than or equal to zero.',
-      product.safetyWasteRate,
-    );
+  try {
+    validateSafetyWasteRate(product.safetyWasteRate);
+  } catch (error) {
+    if (error instanceof SafetyWastePolicyError) {
+      throw new ProductContractError(
+        'INVALID_SAFETY_WASTE_RATE',
+        error.message,
+        product.safetyWasteRate,
+      );
+    }
+    throw error;
   }
 
   if (typeof product.isActive !== 'boolean') {
