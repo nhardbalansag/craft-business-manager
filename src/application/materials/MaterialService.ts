@@ -1,3 +1,4 @@
+import type { MaterialCalibrationEvidence } from '../../domain/materialCalibration';
 import type { Material, MaterialGroup } from '../../domain/materials';
 import { validateMaterialContract } from '../../domain/materials';
 import { calculateMaterialInventoryValuation } from '../../domain/materialInventory';
@@ -10,6 +11,9 @@ export interface MaterialListFilter {
 }
 
 export type MaterialUpdate = Partial<Omit<Material, 'id'>>;
+export type MaterialCalibrationEvidenceProvider = (
+  materialId: string,
+) => Promise<readonly MaterialCalibrationEvidence[]>;
 
 export type MaterialApplicationErrorCode =
   | 'MATERIAL_NOT_FOUND'
@@ -50,19 +54,15 @@ function matchesQuery(material: Material, query: string): boolean {
   );
 }
 
-function validateMaterialForPersistence(material: Material): void {
-  validateMaterialContract(material);
-  // Inventory valuation composes package costing + on-hand normalization and adds
-  // Phase 1.3C business validation such as rejecting negative inventory.
-  calculateMaterialInventoryValuation(material);
-}
-
 export class MaterialService {
-  constructor(private readonly repository: MaterialRepository) {}
+  constructor(
+    private readonly repository: MaterialRepository,
+    private readonly calibrationEvidenceProvider: MaterialCalibrationEvidenceProvider = async () => [],
+  ) {}
 
   async createMaterial(input: Material): Promise<Material> {
     const material = normalizeMaterial(input);
-    validateMaterialForPersistence(material);
+    await this.validateMaterialForPersistence(material);
 
     const all = await this.repository.list();
     this.assertUniqueIdentity(material, all);
@@ -74,7 +74,7 @@ export class MaterialService {
   async updateMaterial(id: string, changes: MaterialUpdate): Promise<Material> {
     const existing = await this.requireMaterial(id);
     const candidate = normalizeMaterial({ ...existing, ...changes, id: existing.id });
-    validateMaterialForPersistence(candidate);
+    await this.validateMaterialForPersistence(candidate);
 
     const all = await this.repository.list();
     this.assertUniqueIdentity(candidate, all, existing.id);
@@ -109,6 +109,12 @@ export class MaterialService {
     const archived = { ...existing, isActive: false };
     await this.repository.replace(archived);
     return { ...archived };
+  }
+
+  private async validateMaterialForPersistence(material: Material): Promise<void> {
+    validateMaterialContract(material);
+    const evidence = await this.calibrationEvidenceProvider(material.id);
+    calculateMaterialInventoryValuation(material, evidence);
   }
 
   private async requireMaterial(id: string): Promise<Material> {
