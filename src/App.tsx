@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { CalibrationPage } from './ui/calibration/CalibrationPage';
 import { MaterialsPage } from './ui/materials/MaterialsPage';
 import { ProductsPage } from './ui/products/ProductsPage';
+import { ProductionPage } from './ui/production/ProductionPage';
 import { YieldPage } from './ui/yield/YieldPage';
 
-type AppSection = 'materials' | 'calibration' | 'products' | 'yield';
+type AppSection = 'materials' | 'calibration' | 'products' | 'yield' | 'production';
 
 export default function App() {
   const [section, setSection] = useState<AppSection>('materials');
@@ -24,7 +25,7 @@ export default function App() {
           <button className={`nav-item ${section === 'calibration' ? 'active' : ''}`} type="button" onClick={() => setSection('calibration')}>Calibration</button>
           <button className={`nav-item ${section === 'products' ? 'active' : ''}`} type="button" onClick={() => setSection('products')}>Products</button>
           <button className={`nav-item ${section === 'yield' ? 'active' : ''}`} type="button" onClick={() => setSection('yield')}>Yield</button>
-          <button className="nav-item" type="button" disabled>Production</button>
+          <button className={`nav-item ${section === 'production' ? 'active' : ''}`} type="button" onClick={() => setSection('production')}>Production</button>
         </nav>
       </header>
 
@@ -32,6 +33,7 @@ export default function App() {
       {section === 'calibration' && <CalibrationPage />}
       {section === 'products' && <ProductsPage />}
       {section === 'yield' && <YieldPage />}
+      {section === 'production' && <ProductionPage />}
     </main>
   );
 }
