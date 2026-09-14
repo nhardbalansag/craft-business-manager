@@ -2,6 +2,10 @@ import type { MixPreset } from '../../domain/mixPresets';
 import { isMixPresetCompatibleWithCategory } from '../../domain/mixPresets';
 import type { Product, ProductCategory } from '../../domain/products';
 import { cloneProduct, validateProductContract } from '../../domain/products';
+import {
+  deriveProductSafetyWastePolicy,
+  type ProductSafetyWastePolicy,
+} from '../../domain/safetyWastePolicy';
 import type { MixPresetRepository } from '../mixPresets/MixPresetRepository';
 import type { ProductRepository } from './ProductRepository';
 
@@ -95,6 +99,11 @@ export class ProductService {
   async getProduct(id: string): Promise<Product | null> {
     const product = await this.repository.findById(id);
     return product ? cloneProduct(product) : null;
+  }
+
+  async getSafetyWastePolicy(id: string): Promise<ProductSafetyWastePolicy> {
+    const product = await this.requireProduct(id);
+    return deriveProductSafetyWastePolicy(product);
   }
 
   async listProducts(filter: ProductListFilter = {}): Promise<Product[]> {
