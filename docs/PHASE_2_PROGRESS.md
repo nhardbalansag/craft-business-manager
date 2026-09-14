@@ -12,7 +12,7 @@ Planning baseline: `docs/PHASE_2_PRODUCT_RECIPES_MOLD_YIELD_PLAN.md`
 
 2.2 — Yield Evidence & Per-Good-Piece Learning        IN PROGRESS
     2.2A — Yield Sample Evidence Contract             COMPLETE
-    2.2B — Good / Rejected Output & Learning          NEXT
+    2.2B — Good / Rejected Output & Learning          VALIDATION / MERGE GATE
     2.2C — Effective Yield Selection & History        NOT STARTED
 
 2.3 — Recipe Requirement Synthesis                    NOT STARTED
@@ -98,3 +98,5 @@ Evidence:
 ## Current active task
 
 **2.2B — Good / Rejected Output & Learned Requirements**
+
+Implementation is complete on `feature/phase-2-2b-yield-learning` and is awaiting CI / merge validation.
