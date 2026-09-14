@@ -50,7 +50,7 @@ Implementation sequence:
 1.2 — Material Master Domain
     1.2A — Material Contract & Classification     COMPLETE
     1.2B — Material Application CRUD Services     COMPLETE
-    1.2C — Materials UI                           IMPLEMENTED / VALIDATION PENDING
+    1.2C — Materials UI                           FEATURE CI PASSED / MERGE GATE
 1.3 — Purchase Costing & Inventory Quantity       NOT STARTED
     1.3A — Package Cost / Base-Unit Costing        NEXT AFTER 1.2C
     1.3B — On-Hand Quantity Normalization         NOT STARTED
@@ -62,9 +62,9 @@ Implementation sequence:
 
 Phase 1.1 established one authoritative unit catalog, standard same-dimension conversion engine, runtime unit validation, and exhaustive conversion tests. Dry `cup → g` remains explicitly material-specific.
 
-Phase 1.2A establishes the authoritative material source-data contract and classification taxonomy, including standard measurement units vs non-standard package labels. Derived spreadsheet-style fields are removed from the source of truth. Implementation detail: `docs/PHASE_1_2A_MATERIAL_CONTRACT.md`.
+Phase 1.2A established the authoritative material source-data contract and classification taxonomy, including standard measurement units vs non-standard package labels. Implementation detail: `docs/PHASE_1_2A_MATERIAL_CONTRACT.md`.
 
-Phase 1.2B adds the material application/repository boundary and operational CRUD workflow: create, update, retrieve, list/filter/search, archive, duplicate handling, stable identity rules, and an in-memory repository. Implementation detail: `docs/PHASE_1_2B_MATERIAL_CRUD_SERVICES.md`.
+Phase 1.2B added the material application/repository boundary and operational CRUD workflow: create, update, retrieve, list/filter/search, archive, duplicate handling, stable identity rules, and an in-memory repository. Implementation detail: `docs/PHASE_1_2B_MATERIAL_CRUD_SERVICES.md`.
 
 Phase 1.2B validation evidence:
 
@@ -78,14 +78,19 @@ Phase 1.2B validation evidence:
 
 Phase 1.2C delivers the first visible Materials workspace. It includes add/edit material forms, group/base-unit/purchase-unit/on-hand inputs, conditional manual package conversion input, material listing, search, filters, soft archive, responsive styling, and explicit session-only persistence messaging. Implementation detail: `docs/PHASE_1_2C_MATERIALS_UI.md`.
 
-Current 1.2C validation gate:
+Phase 1.2C feature validation evidence:
 
-- TypeScript typecheck
-- existing domain/application tests
-- production build
-- feature PR CI
-- merge to `develop`
-- post-merge `develop` CI
+- PR: `#9`
+- dependency install passed
+- TypeScript typecheck passed
+- existing domain/application tests passed
+- production build passed
+- feature PR CI passed
+
+Remaining gate:
+
+- merge PR `#9` to `develop`
+- confirm post-merge `develop` CI
 
 When this gate passes, **Phase 1.2 — Material Master Domain** is complete.
 
