@@ -154,7 +154,7 @@ export function validateMixPresetContract(preset: MixPreset): void {
       throw new MixPresetError('INVALID_MATERIAL_ID', 'Mix preset material ID is required.', line.materialId);
     }
 
-    const materialKey = materialId.toLocaleLowerCase();
+    const materialKey = materialId.toLowerCase();
     if (seenMaterials.has(materialKey)) {
       throw new MixPresetError(
         'DUPLICATE_MATERIAL',
@@ -197,9 +197,9 @@ export function validateMixPresetContract(preset: MixPreset): void {
 export function resolveMixRatio(preset: MixPreset, anchor: MixRatioAnchor): ResolvedMixRatio {
   validateMixPresetContract(preset);
 
-  const anchorMaterialKey = anchor.materialId.trim().toLocaleLowerCase();
+  const anchorMaterialKey = anchor.materialId.trim().toLowerCase();
   const anchorLine = preset.lines.find(
-    (line) => line.materialId.trim().toLocaleLowerCase() === anchorMaterialKey,
+    (line) => line.materialId.trim().toLowerCase() === anchorMaterialKey,
   );
 
   if (!anchorLine) {
