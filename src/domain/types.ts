@@ -1,23 +1,12 @@
 import type { Material } from './materials';
+import type { MixPreset, RatioBasis } from './mixPresets';
 import type { Product, ProductCategory } from './products';
 
 export type { Material } from './materials';
+export type { MixPreset, RatioBasis } from './mixPresets';
 export type { Product, ProductCategory } from './products';
 export type { BaseUnit, InputUnit } from './units';
-export type RatioBasis = 'weight' | 'volume';
 export type PricingMethod = 'profit-amount' | 'markup-percent' | 'margin-percent';
-
-/** Prototype Phase 2.1B scaffold; replaced/refined by the dedicated mix domain in 2.1B. */
-export interface MixPreset {
-  id: string;
-  name: string;
-  category: ProductCategory;
-  basis: RatioBasis;
-  primaryMaterialId: string;
-  secondaryMaterialId?: string;
-  primaryParts: number;
-  secondaryParts: number;
-}
 
 /** Prototype Phase 2.2 scaffold; replaced/refined by the yield evidence domain in 2.2A. */
 export interface MoldYieldSample {
