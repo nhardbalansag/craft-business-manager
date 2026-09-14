@@ -1,23 +1,14 @@
 import type { Material } from './materials';
 import type { MixPreset, RatioBasis } from './mixPresets';
 import type { Product, ProductCategory } from './products';
+import type { YieldSample } from './yieldSamples';
 
 export type { Material } from './materials';
 export type { MixPreset, RatioBasis } from './mixPresets';
 export type { Product, ProductCategory } from './products';
+export type { YieldSample, YieldSampleMaterialInput } from './yieldSamples';
 export type { BaseUnit, InputUnit } from './units';
 export type PricingMethod = 'profit-amount' | 'markup-percent' | 'margin-percent';
-
-/** Prototype Phase 2.2 scaffold; replaced/refined by the yield evidence domain in 2.2A. */
-export interface MoldYieldSample {
-  id: string;
-  productId: string;
-  primaryMaterialId: string;
-  primaryBaseQuantityUsed: number;
-  goodPieces: number;
-  rejectedPieces?: number;
-  recordedAt: string;
-}
 
 /** Prototype Phase 2.3 scaffold; replaced/refined by the fixed recipe domain in 2.3A. */
 export interface ProductRecipeItem {
@@ -48,5 +39,5 @@ export interface BusinessDataset {
   materials: Material[];
   mixPresets: MixPreset[];
   products: Product[];
-  moldYieldSamples: MoldYieldSample[];
+  yieldSamples: YieldSample[];
 }
