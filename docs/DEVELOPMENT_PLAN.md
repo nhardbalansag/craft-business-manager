@@ -54,7 +54,7 @@ Implementation sequence:
 1.3 — Purchase Costing & Inventory Quantity       IN PROGRESS
     1.3A — Package Cost / Base-Unit Costing        COMPLETE
     1.3B — On-Hand Quantity Normalization         COMPLETE
-    1.3C — Inventory Valuation & Validation       IMPLEMENTED / VALIDATION PENDING
+    1.3C — Inventory Valuation & Validation       FEATURE CI PASSED / MERGE GATE
 1.4 — Material-Specific Calibration               NOT STARTED
     1.4A — Cup-to-Weight Calibration Model        NEXT AFTER 1.3C
     1.4B — Effective Conversion Precedence        NOT STARTED
@@ -107,15 +107,21 @@ Phase 1.3B validation evidence:
 
 Phase 1.3C adds current inventory valuation and formal inventory-state validation. Inventory value is derived as normalized stock multiplied by cost/base-unit. Negative stock is rejected at the valuation/persistence boundary, while lower-level normalization remains mathematically pure. The Materials UI displays the current derived inventory value. Implementation detail: `docs/PHASE_1_3C_INVENTORY_VALUATION.md`.
 
-Current 1.3C validation gate:
+Phase 1.3C feature validation evidence:
 
-- TypeScript typecheck
-- inventory valuation domain tests
-- MaterialService inventory-boundary tests
-- full regression test suite
-- production build
-- feature PR CI
-- merge to `develop`
+- PR #12
+- dependency installation passed
+- TypeScript typecheck passed
+- inventory valuation domain tests passed
+- MaterialService inventory-boundary tests passed
+- full regression test suite passed
+- production build passed
+- feature PR CI passed
+
+Remaining 1.3C gate:
+
+- final PR-head CI after documentation update
+- merge PR #12 to `develop`
 - post-merge `develop` CI
 
 When 1.3C passes, **Phase 1.3 — Purchase Costing & Inventory Quantity** is complete.
