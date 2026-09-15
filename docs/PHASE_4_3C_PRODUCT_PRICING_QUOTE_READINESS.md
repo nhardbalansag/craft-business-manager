@@ -2,7 +2,7 @@
 
 ## Status
 
-**IMPLEMENTED — FEATURE VALIDATION GREEN — PENDING PR / MERGE**
+**COMPLETE — MERGED — POST-MERGE VALIDATED**
 
 Authoritative starting base:
 
@@ -31,6 +31,30 @@ Implementation commit:
 Implementation CI:
 
 `34948566213 — SUCCESS`
+
+Final documented feature head:
+
+`d5edb5f1e939d132cb1ef5b88a939ddce9e53e75`
+
+Final feature-head CI:
+
+`34948683874 — SUCCESS`
+
+Implementation PR:
+
+`#112 — MERGED`
+
+PR CI:
+
+`34948784081 — SUCCESS`
+
+Implementation merge:
+
+`43d2caeea2b8192f306d4ffb5cd0b13805bfea07`
+
+Post-merge `develop` CI:
+
+`34948917659 — SUCCESS`
 
 ## Delivered capability
 
@@ -206,12 +230,16 @@ profitMarkupMarginMetricsService
 
 ## Validation
 
-Implementation-head CI `34948566213` passed:
+All implementation gates passed:
 
 ```text
-TypeScript typecheck — PASS
-full Vitest suite — PASS
-production Vite build — PASS
+Implementation CI              34948566213 — SUCCESS
+Final feature-head CI          34948683874 — SUCCESS
+PR #112 CI                     34948784081 — SUCCESS
+Post-merge develop CI          34948917659 — SUCCESS
+TypeScript typecheck           PASS
+full Vitest suite              PASS
+production Vite build          PASS
 ```
 
 Focused Phase 4.3C coverage added:
@@ -243,20 +271,20 @@ Phase 4.3C does not implement:
 - tax/VAT/discount/marketplace-fee logic;
 - presentation rounding or formatting.
 
-## Remaining completion gates
+## Completion gate
 
-Before 4.3C may be marked COMPLETE:
+All Phase 4.3C implementation completion gates are satisfied.
+
+Completion of 4.3C completes the entire:
 
 ```text
-final documented feature-head CI
-implementation PR CI
-expected-head merge to develop
-exact post-merge develop CI
-documentation-only closeout
+4.3 — Selling Price & Unit Economics
 ```
 
-After those gates, the Phase 4.3 group becomes COMPLETE and the next task advances to:
+The next roadmap task is:
 
 ```text
 4.4A — Physical Planned Batch Production Cost — NEXT / NOT STARTED
 ```
+
+Do not begin 4.4A implementation until its dedicated scope/split assessment and development plan are established.

@@ -23,13 +23,13 @@ Planning post-merge CI:
     4.2B — Recursive Fully Loaded Product Component Cost  COMPLETE
     4.2C — Total Fully Loaded Unit Cost & Readiness       COMPLETE
 
-4.3 — Selling Price & Unit Economics                      IN PROGRESS
+4.3 — Selling Price & Unit Economics                      COMPLETE
     4.3A — Selling Price Derivation                       COMPLETE
     4.3B — Profit / Markup / Margin Metrics               COMPLETE
-    4.3C — Product Pricing Quote & Readiness Service      NEXT
+    4.3C — Product Pricing Quote & Readiness Service      COMPLETE
 
 4.4 — Planned Batch Financials & Capacity                 NOT STARTED
-    4.4A — Physical Planned Batch Production Cost         NOT STARTED
+    4.4A — Physical Planned Batch Production Cost         NEXT
     4.4B — Expected Revenue / Profit / Batch Margin       NOT STARTED
     4.4C — Capacity Feasibility & Warning Synthesis       NOT STARTED
 
@@ -85,6 +85,11 @@ Planning post-merge CI:
 - 4.3B preserves the configured pricing method/value trace and exposes deterministic cost-to-price reconciliation.
 - Partial/not-ready or internally contradictory 4.3A evidence never publishes authoritative 4.3B metrics.
 - Unit-economics diagnostics remain derived, full-precision, non-persisted evidence; presentation percentage/currency formatting remains a UI concern.
+- 4.3C is an orchestration/read-model boundary only; it does not duplicate cost, selling-price, profit, markup, or margin formulas.
+- 4.3C retains complete defensively cloned financial-profile evidence, the complete 4.2C cost result, and the complete 4.3B unit-economics result for UI/reporting inspection.
+- 4.3C validates Product identity, cost status, authoritative total cost, known subtotal, and configured pricing-policy consistency across independently retrieved sources and fails closed on contradictions.
+- 4.3C quote readiness is `ready`, `partial`, or `not-ready`; zero-denominator diagnostics inherited from 4.3B do not downgrade an otherwise ready quote.
+- 4.3C top-level cost/price/profit/markup/margin fields are convenience mirrors of authoritative nested evidence and remain non-persisted derived data.
 - Recursive and root component costing remains independent of ProductStock/current availability.
 - Observed yield defects are not re-applied.
 - Parent safety waste does not inflate discrete component counts.
@@ -339,12 +344,55 @@ Plan: `docs/PHASE_4_3B_PROFIT_MARKUP_MARGIN_METRICS_PLAN.md`
 
 Record: `docs/PHASE_4_3B_PROFIT_MARKUP_MARGIN_METRICS.md`
 
+### 4.3C — Product Pricing Quote & Readiness Service
+
+**COMPLETE**
+
+Delivered:
+
+- consolidated Product pricing quote/readiness read model over existing Phase 4 boundaries;
+- complete Product financial-profile evidence;
+- complete nested 4.2C fully loaded cost evidence;
+- complete nested 4.3B unit-economics evidence carrying 4.3A selling-price semantics;
+- top-level convenience mirrors for cost, policy, price, profit, markup, and margin;
+- deterministic ready/partial/not-ready quote status;
+- fail-closed cross-source Product identity, status, cost, subtotal, and pricing-policy consistency checks;
+- Product-not-found error translation;
+- defensive cloning of nested evidence;
+- shared application-session wiring;
+- no 4.4+ leakage.
+
+Evidence:
+
+```text
+Starting develop                c19307ba99b18b35e1edbc46b3dede159700714e
+Starting develop CI             34945306955 — SUCCESS
+Plan-before-code commit         f0101386aee8162110e62350f2f4831720eb2469
+Implementation head             bc55598cce76d8c28a8fc50ad4aab114f073b4cd
+Implementation CI               34948566213 — SUCCESS
+Final feature head              d5edb5f1e939d132cb1ef5b88a939ddce9e53e75
+Final feature-head CI           34948683874 — SUCCESS
+PR #112                         MERGED
+PR CI                           34948784081 — SUCCESS
+Implementation merge            43d2caeea2b8192f306d4ffb5cd0b13805bfea07
+Post-merge develop CI           34948917659 — SUCCESS
+71 test files / 853 tests
+25 ProductPricingQuoteService tests
+1 4.3C shared-session wiring test
+TypeScript typecheck passed
+production Vite build passed
+```
+
+Plan: `docs/PHASE_4_3C_PRODUCT_PRICING_QUOTE_READINESS_PLAN.md`
+
+Record: `docs/PHASE_4_3C_PRODUCT_PRICING_QUOTE_READINESS.md`
+
 ## Current active task
 
-**4.3C — Product Pricing Quote & Readiness Service — NEXT / NOT STARTED**
+**4.4A — Physical Planned Batch Production Cost — NEXT / NOT STARTED**
 
-Do not begin 4.3C implementation until:
+Do not begin 4.4A implementation until:
 
-1. this 4.3B documentation-only closeout is merged to `develop`;
+1. this 4.3C documentation-only closeout is merged to `develop`;
 2. exact final closeout `develop` CI is green;
-3. a dedicated 4.3C scope/split assessment and development plan are established before implementation.
+3. a dedicated 4.4A scope/split assessment and development plan are established before implementation.

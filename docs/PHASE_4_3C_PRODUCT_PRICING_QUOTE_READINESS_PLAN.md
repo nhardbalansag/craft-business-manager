@@ -2,7 +2,7 @@
 
 ## Status
 
-**PLANNED — IMPLEMENTATION NOT STARTED**
+**COMPLETE — IMPLEMENTED, MERGED, AND POST-MERGE VALIDATED**
 
 Authoritative starting base:
 
@@ -23,6 +23,21 @@ Previous completed task:
 Master plan:
 
 `docs/PHASE_4_PRICING_PRODUCTION_PLANNING_PLAN.md`
+
+Completion evidence:
+
+```text
+Plan-before-code commit         f0101386aee8162110e62350f2f4831720eb2469
+Implementation commit           bc55598cce76d8c28a8fc50ad4aab114f073b4cd
+Implementation CI               34948566213 — SUCCESS
+Final documented feature head   d5edb5f1e939d132cb1ef5b88a939ddce9e53e75
+Final feature-head CI           34948683874 — SUCCESS
+PR #112                         MERGED
+PR CI                           34948784081 — SUCCESS
+Implementation merge            43d2caeea2b8192f306d4ffb5cd0b13805bfea07
+Post-merge develop CI           34948917659 — SUCCESS
+71 test files / 853 tests
+```
 
 ## Objective
 
@@ -238,7 +253,7 @@ No currency formatting, human-percentage conversion, charm-price rounding, or pe
 
 ## Planned service contract
 
-Create:
+Create a dedicated service in:
 
 ```text
 src/application/pricing/ProductPricingQuoteService.ts
@@ -380,3 +395,5 @@ Because completion of 4.3C completes the entire 4.3 Selling Price & Unit Economi
 - exact post-merge `develop` CI passes;
 - documentation closeout is merged and validated;
 - only then is 4.3 marked COMPLETE and 4.4A advanced to NEXT.
+
+All implementation-side completion gates are satisfied. This documentation-only closeout records that evidence; final closeout PR/merge validation completes the documentation gate.
