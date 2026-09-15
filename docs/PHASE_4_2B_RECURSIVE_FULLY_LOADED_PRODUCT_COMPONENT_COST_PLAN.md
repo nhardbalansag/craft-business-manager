@@ -2,9 +2,9 @@
 
 ## Status
 
-**IMPLEMENTED — MERGE GATE PENDING**
+**COMPLETE**
 
-Authoritative base:
+Authoritative starting base:
 
 `develop` @ `03f56a7636bc4c8519fb392e6e01a16e0e6f011a`
 
@@ -79,35 +79,11 @@ ProductFinancialProfileService
 
 No Phase 3 service was repurposed as Phase 4 authority.
 
-## Delivered result semantics
+## Delivered semantics
 
-Each Product-backed edge exposes:
+Each Product-backed edge exposes identity, quantity multiplier, normalized path, readiness, the nested 4.2A direct-material result, direct-material mode, Material-backed subtotal, nested Product-backed subtotal, child labor/overhead, known partial subtotal, authoritative fully loaded total, known/authoritative parent-edge contribution, recursive breakdown, and controlled issues.
 
-```text
-componentId
-parentProductId
-role
-childProductId
-childProductName
-quantityPerParent
-path
-status
-
-childDirectMaterialCost
-childDirectMaterialMode
-childMaterialComponentCostSubtotal
-childProductComponentCostSubtotal
-childLaborCostPerUnit
-childOverheadCostPerUnit
-knownChildProductionCostSubtotal
-childFullyLoadedUnitCost
-knownComponentCostContribution
-componentCostContribution
-breakdown[]
-issues[]
-```
-
-Readiness:
+Readiness remains:
 
 ```text
 ready
@@ -125,9 +101,7 @@ The direct-material contribution is:
 pricingDirectMaterialCostPerUnit
 ```
 
-The child safety-waste reserve is therefore included exactly once.
-
-4.2B does not multiply safety waste again.
+The child safety-waste reserve is therefore included exactly once. 4.2B does not multiply safety waste again.
 
 ## Financial-profile semantics
 
@@ -138,19 +112,11 @@ laborCostPerUnit
 overheadCostPerUnit
 ```
 
-Explicit zero is valid.
-
-Missing profile is unresolved.
-
-Imported/corrupted negative or non-finite financial adders fail closed.
-
-Profile Product identity mismatch fails closed.
+Explicit zero is valid. Missing profile is unresolved. Imported/corrupted negative or non-finite financial adders and profile Product identity mismatches fail closed.
 
 `pricingPolicy` is ignored for production-cost roll-up. A null policy does not block cost readiness, and changing only pricing policy does not alter recursive production cost.
 
 ## Component-only child semantics
-
-The dedicated plan established a controlled interpretation for real component-only Products.
 
 4.2A itself remains unchanged and still reports:
 
@@ -173,9 +139,7 @@ The result exposes:
 childDirectMaterialMode = neutral-component-only
 ```
 
-No-direct/no-component Products remain unresolved.
-
-Partial/broken direct-material evidence is never neutralized.
+No-direct/no-component Products remain unresolved. Partial/broken direct-material evidence is never neutralized.
 
 ## Recursive component semantics
 
@@ -185,9 +149,7 @@ Material-backed children continue through:
 
 Product-backed children recurse through 4.2B itself.
 
-Nested edge quantity multipliers apply at each Product relationship.
-
-Child labor/overhead and child safety-waste direct cost are each included exactly once.
+Nested edge quantity multipliers apply at each Product relationship. Child labor/overhead and child safety-waste direct cost are each included exactly once.
 
 ProductStock/current stock availability does not participate in cost mathematics.
 
@@ -213,44 +175,9 @@ This prevents an incomplete subtotal from becoming an authoritative pricing inpu
 
 ## Deterministic graph behavior
 
-Immediate components are ordered by:
+Immediate components are ordered by source type, normalized source ID, then normalized component ID. Paths use normalized Product IDs.
 
-1. source type;
-2. normalized source ID;
-3. normalized component ID.
-
-Paths use normalized Product IDs.
-
-The reader defensively checks immediate source uniqueness and tracks an active recursion path.
-
-Corrupted direct/transitive cycles fail closed with deterministic:
-
-```text
-path
-cyclePath
-```
-
-## Controlled issue classes
-
-Implemented issue coverage includes:
-
-```text
-INVALID_COMPONENT
-NOT_PRODUCT_BACKED_COMPONENT
-SOURCE_PRODUCT_NOT_FOUND
-SOURCE_PRODUCT_INACTIVE
-DIRECT_MATERIAL_COST_PARTIAL
-DIRECT_MATERIAL_COST_NOT_READY
-FINANCIAL_PROFILE_MISSING
-FINANCIAL_PROFILE_PRODUCT_MISMATCH
-FINANCIAL_PROFILE_COST_INVALID
-COMPONENT_GRAPH_INVALID
-MATERIAL_COMPONENT_NOT_READY
-NESTED_PRODUCT_COMPONENT_PARTIAL
-NESTED_PRODUCT_COMPONENT_NOT_READY
-CYCLE_DETECTED
-DERIVED_COST_INVALID
-```
+The reader defensively checks immediate source uniqueness and tracks an active recursion path. Corrupted direct/transitive cycles fail closed with deterministic `path` and `cyclePath` evidence.
 
 ## Shared session wiring
 
@@ -261,8 +188,6 @@ Updated:
 Added:
 
 `recursiveFullyLoadedProductComponentCostService`
-
-using the existing shared repositories/services.
 
 This becomes the Product-backed fully loaded cost input for 4.2C.
 
@@ -279,13 +204,19 @@ src/application/session.ts
 
 ## Validation evidence
 
-Implementation head:
-
-`fbf804234896d92a18c7721dfe53470d801f89fd`
-
-Implementation CI:
-
-`34938739599 — SUCCESS`
+```text
+Starting develop                  03f56a7636bc4c8519fb392e6e01a16e0e6f011a
+Starting develop CI               34937778015 — SUCCESS
+Plan commit                       06bb9aa4cffde4da050fda8be4c1faa17dc3d9f1
+Implementation head               fbf804234896d92a18c7721dfe53470d801f89fd
+Implementation CI                 34938739599 — SUCCESS
+Final documented feature head     df0e6b406c0ef82763b6870b81e8d01aac34c10c
+Final feature-head CI              34938953338 — SUCCESS
+Implementation PR                 #104 — MERGED
+PR CI                             34939051807 — SUCCESS
+Implementation merge              43248152960681afb23d3c56f08712918ae58d06
+Post-merge develop CI             34939144860 — SUCCESS
+```
 
 Observed automated surface:
 
@@ -304,26 +235,7 @@ No corrective implementation cycle was required.
 
 ## Focused coverage completed
 
-- direct + labor + overhead fully loaded cost;
-- explicit zero financial adders;
-- parent edge multiplier;
-- child safety-waste direct cost exactly once;
-- purchased Material-backed child cost;
-- two-level Product recursion and nested multipliers;
-- child pricing-policy exclusion;
-- missing/invalid/mismatched financial profiles;
-- component-only neutral direct cost;
-- no-direct/no-component unresolved case;
-- partial direct evidence preservation;
-- unresolved Material-backed component propagation;
-- nested Product partial propagation;
-- missing/inactive child Product;
-- non-Product-backed root rejection;
-- direct/transitive cycle detection;
-- duplicate-source graph corruption;
-- deterministic traversal;
-- partial known subtotal versus authoritative total separation;
-- shared session wiring.
+Coverage includes direct + labor + overhead cost, explicit zero financial adders, edge multipliers, child safety waste exactly once, purchased Material-backed child cost, nested Product recursion, pricing-policy exclusion, financial-profile readiness, component-only semantics, partial evidence handling, structural/cycle protection, deterministic traversal, and shared session wiring.
 
 ## Scope retained
 
@@ -343,7 +255,7 @@ No corrective implementation cycle was required.
 - payroll/timekeeping;
 - global overhead allocation.
 
-## Lifecycle state
+## Lifecycle completion
 
 Completed:
 
@@ -363,30 +275,18 @@ Completed:
 14. focused tests ✅
 15. full implementation CI ✅
 16. implementation record ✅
+17. clean exact documented-head CI ✅
+18. exact scope compare ✅
+19. implementation PR #104 ✅
+20. independent PR CI ✅
+21. expected-head protected merge ✅
+22. exact post-merge `develop` CI ✅
+23. documentation-only closeout prepared ✅
 
-Remaining:
-
-17. clean CI on exact documented feature head;
-18. exact scope compare against starting `develop`;
-19. implementation PR to `develop`;
-20. independent PR CI;
-21. merge with expected-head protection;
-22. exact post-merge `develop` CI;
-23. documentation-only closeout;
-24. mark 4.2B COMPLETE / 4.2C NEXT;
-25. closeout PR CI and exact final `develop` CI.
-
-## Completion gate
-
-4.2B is complete only when all implementation and closeout gates pass and the tracker advances to:
-
-```text
-4.2B — Recursive Fully Loaded Product Component Cost  COMPLETE
-4.2C — Total Fully Loaded Unit Cost & Readiness       NEXT
-```
+4.2B is complete once the closeout PR and its exact final `develop` CI pass.
 
 ## Next task after completion
 
 **4.2C — Total Fully Loaded Unit Cost & Readiness — NEXT / NOT STARTED**
 
-Do not begin 4.2C until 4.2B is fully merged, closed out, and exact final `develop` CI is green.
+Do not begin 4.2C until the 4.2B closeout is merged, exact final `develop` CI is green, and a dedicated 4.2C development plan/scope review is established before implementation.
