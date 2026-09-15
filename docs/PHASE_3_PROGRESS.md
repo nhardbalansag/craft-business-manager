@@ -26,8 +26,8 @@ Planning baseline: `docs/PHASE_3_PRODUCT_COMPONENTS_VESSELS_PLAN.md`
     3.4C — Limiting Resource Trace & Readiness            COMPLETE
 
 3.5 — Component / Stock / Production UI                   IN PROGRESS
-    3.5A — Product Composition Editor                     NEXT
-    3.5B — Finished Component Stock UI                    NOT STARTED
+    3.5A — Product Composition Editor                     COMPLETE
+    3.5B — Finished Component Stock UI                    NEXT
     3.5C — Component-Aware Production Estimate UI         NOT STARTED
 
 3.6 — Integration & Completion Gate                       NOT STARTED
@@ -51,6 +51,9 @@ Planning baseline: `docs/PHASE_3_PRODUCT_COMPONENTS_VESSELS_PLAN.md`
 - every resource tied at the final assembly-capacity minimum must remain visible;
 - limiting-resource identity is typed as direct Material requirement, Material-backed component, or Product-backed component;
 - capacity limiter paths terminate at the immediate current parent input used for assembly capacity and do not imply recursive manufacture;
+- Product composition UI must use `ProductComponentService` for authoritative writes;
+- UI source filtering is convenience only and cannot replace application/domain validation;
+- nested composition preview is read-only and corruption-guarded;
 - labor, overhead, and selling price remain Phase 4;
 - Excel persistence remains Phase 5;
 - no stock reservation, automatic deduction, or stock transaction ledger is introduced in Phase 3.
@@ -102,14 +105,6 @@ post-merge CI 34918526564 — SUCCESS
 
 #### 3.4A — Per-Component Availability & Capacity
 
-- one component line derives `floor(availableQuantity / quantityPerParent)`;
-- Material/Product availability delegates to Phase 3.2C;
-- Product-backed availability uses explicit ProductStock only;
-- explicit zero is ready zero capacity;
-- unresolved quantity remains null.
-
-Evidence:
-
 ```text
 PR #79 merged
 implementation merge 3c2e788935baebf5154fb3080534baba9ff3f94a
@@ -123,23 +118,10 @@ Implementation record: `docs/PHASE_3_4A_PER_COMPONENT_CAPACITY.md`
 
 #### 3.4B — Direct-Material + Component Capacity Synthesis
 
-- synthesizes authoritative Phase 2.4C direct capacity with every immediate Phase 3.4A component capacity;
-- supports direct-material-only, component-only, and mixed Products;
-- final assembly capacity is the minimum of all applicable reliable candidates;
-- genuine `NO_REQUIREMENTS` is neutral for valid component-only Products;
-- unresolved resources retain diagnostics and suppress final capacity;
-- duplicate component sources are guarded;
-- zero remains authoritative.
-
-Evidence:
-
 ```text
 PR #81 merged
 implementation merge c598eb81b1521e63773c163f6aef1a3004cafbdb
-Fully wired feature CI 34920239411 — SUCCESS
-Final feature-head CI  34920325840 — SUCCESS
-PR CI                  34920392445 — SUCCESS
-Post-merge develop CI  34920455875 — SUCCESS
+Post-merge develop CI 34920455875 — SUCCESS
 50 test files / 551 tests
 27 dedicated 3.4B tests
 ```
@@ -150,38 +132,58 @@ Implementation record: `docs/PHASE_3_4B_DIRECT_MATERIAL_COMPONENT_CAPACITY_SYNTH
 
 #### 3.4C — Limiting Resource Trace & Readiness
 
-- `AssemblyCapacityTraceService` reports every resource tied at the authoritative 3.4B final minimum;
-- limiter identities are typed as `material-requirement`, `material-backed-component`, or `product-backed-component`;
-- cross-category, multiple-resource, and zero-capacity ties are all preserved;
-- direct Material limiter evidence reuses Phase 2.4C limiter IDs/capacity lines;
-- component limiter evidence reuses Phase 3.4A capacity and Phase 3.2C availability/ProductStock evidence;
-- Product/Material names and typed immediate-parent paths are exposed for later UI use;
-- incomplete/inconsistent traces fail closed and publish no misleading limiter subset;
-- Product-backed capacity remains explicit ProductStock-based only;
-- no recursive manufacture, source mutation, or derived-capacity persistence is introduced;
-- shared `assemblyCapacityTraceService` is wired in the application session.
-
-Evidence:
-
 ```text
 PR #83 merged
 implementation merge 2abd09b743cc88f4db06dc52916eb39b2bc9a52e
-Fully wired feature CI 34921412641 — SUCCESS
-Final feature-head CI  34921498304 — SUCCESS
-PR CI                  34921565665 — SUCCESS
-Post-merge develop CI  34921631005 — SUCCESS
+Post-merge develop CI 34921631005 — SUCCESS
 51 test files / 586 tests
 35 dedicated 3.4C tests
-TypeScript typecheck passed
-production build passed
 ```
 
 Development plan: `docs/PHASE_3_4C_LIMITING_RESOURCE_TRACE_READINESS_PLAN.md`
 
 Implementation record: `docs/PHASE_3_4C_LIMITING_RESOURCE_TRACE_READINESS.md`
 
+### 3.5A — Product Composition Editor
+
+**COMPLETE**
+
+Delivered:
+
+- Products workspace now exposes `Products`, `Mix presets`, and `Components` views;
+- active parent Product supports component add/edit/remove;
+- archived parent Product remains read-only for historical inspection;
+- component writes route through `ProductComponentService`;
+- Material candidates filter active/count-based/duplicate-invalid sources;
+- Product candidates filter active/self/duplicate/cycle-invalid sources for UX while save-time service validation remains authoritative;
+- authoritative roles and positive whole-piece quantities are exposed;
+- immediate composition cards provide readable source/role/quantity identity;
+- nested Product composition preview is deterministic, read-only, and guarded against corrupted cycles;
+- archived/missing source evidence remains inspectable;
+- no ProductStock UI, Production component UI, pricing, stock mutation, or persistence work leaked into 3.5A.
+
+Evidence:
+
+```text
+PR #85 merged
+implementation merge b4ab27f7620de4e2d255a1816f6bfd216a954173
+Corrected implementation CI 34923251592 — SUCCESS
+Final feature-head CI        34923392945 — SUCCESS
+PR CI                        34923453562 — SUCCESS
+Post-merge develop CI        34923517417 — SUCCESS
+52 test files / 596 tests
+9 dedicated composition-preview tests
+6 React workspace smoke tests
+TypeScript typecheck passed
+production build passed
+```
+
+Development plan: `docs/PHASE_3_5A_PRODUCT_COMPOSITION_EDITOR_PLAN.md`
+
+Implementation record: `docs/PHASE_3_5A_PRODUCT_COMPOSITION_EDITOR.md`
+
 ## Current active task
 
-**3.5A — Product Composition Editor — NEXT / NOT STARTED**
+**3.5B — Finished Component Stock UI — NEXT / NOT STARTED**
 
-Do not begin 3.5A until a dedicated development plan/scope review is established for that task.
+Do not begin 3.5B until a dedicated development plan/scope review is established for that task.
