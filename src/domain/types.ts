@@ -14,6 +14,7 @@ export type {
   ProductComponentSourceType,
   ProductComponentSourceType as ProductComponentSource,
 } from './productComponents';
+export type { ProductStock } from './productStock';
 export type { Product, ProductCategory } from './products';
 export type { YieldSample, YieldSampleMaterialInput } from './yieldSamples';
 export type { BaseUnit, InputUnit } from './units';
