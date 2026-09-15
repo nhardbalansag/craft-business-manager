@@ -2,7 +2,7 @@
 
 ## Status
 
-**IN PROGRESS**
+**IMPLEMENTED — MERGE GATE PENDING**
 
 Authoritative base:
 
@@ -12,11 +12,13 @@ Feature branch:
 
 `feature/phase-3-3b-recursive-product-component-cost`
 
+Implementation record:
+
+`docs/PHASE_3_3B_RECURSIVE_PRODUCT_COMPONENT_COST.md`
+
 ## Objective
 
-Derive the current component-aware cost of a Product-backed `ProductComponent` line recursively.
-
-For each Product-backed edge:
+Derive Product-backed component cost recursively:
 
 ```text
 child component-aware unit cost
@@ -27,98 +29,56 @@ parent contribution
 = child component-aware unit cost × quantityPerParent
 ```
 
-The recursive result must expose enough structure to explain every contributing direct-material line, material-backed component, and nested Product-backed component without persisting derived cost.
+The result is derived only and is never persisted.
 
 ## Split assessment
 
-No deeper formal split is required.
+No deeper formal split was required.
 
-3.3B remains one cohesive application-service task. Internal implementation order:
-
-1. define the Product-backed recursive cost/readiness/tree contract;
-2. reuse Phase 2 direct-material cost preview for each child Product;
-3. reuse 3.3A for material-backed child components;
-4. recursively cost Product-backed child components;
-5. add deterministic reachable-path/cycle protection for corrupted data;
-6. propagate `ready | partial | not-ready` status through the tree;
-7. preserve edge quantities, Product identity/name, and leaf cost evidence;
-8. add shared session wiring and focused/full validation.
-
-These are implementation steps, not new sub-phases.
+3.3B remained one cohesive application-service task covering recursive tree derivation, readiness propagation, local corruption guards, and shared session wiring.
 
 ## Scope boundary
 
-3.3B is **Product-backed component recursive costing only**.
+3.3B is Product-backed component recursive costing only.
 
-It does not:
+Explicitly excluded:
 
-- create the root Product total cost view from Phase 2 + all Phase 3 components;
-- expose the final Phase 4 pricing input;
-- use ProductStock or current stock quantity in cost mathematics;
-- calculate assembly capacity or limiting resources;
-- manufacture missing child stock from raw materials;
-- reserve, deduct, or transact inventory;
-- apply safety-waste as a permanent cost markup;
-- add labor, overhead, selling price, markup, margin, or profit;
-- add React UI;
-- add Excel persistence.
+- final root Product total-cost synthesis;
+- final Phase 4 pricing input;
+- ProductStock/current-stock effects on cost;
+- capacity/limiting-resource math;
+- recursive make-to-order stock optimization;
+- inventory reservation/deduction/transactions;
+- safety-waste cost markup;
+- labor/overhead/selling price/markup/margin/profit;
+- UI;
+- Excel persistence.
 
-Root Product synthesis remains 3.3C. Capacity remains 3.4. Pricing remains Phase 4. UI remains 3.5. Persistence remains Phase 5.
+These remain 3.3C, 3.4+, Phase 4, 3.5, or Phase 5.
 
 ## Authoritative cost sources
 
-3.3B must compose existing derived services rather than reimplement them.
+Implemented composition reuses existing derived services:
 
-### Child direct-material cost
+- Phase 2 direct-material cost: `RecipeMaterialCostPreviewService.previewForProduct()`;
+- material-backed component cost: 3.3A `MaterialBackedComponentCostService.costComponent()`;
+- Product-backed nested component cost: recursive 3.3B traversal.
 
-Use:
+No package-cost conversion rule was reimplemented.
 
-`RecipeMaterialCostPreviewService.previewForProduct(productId)`
+ProductStock is deliberately not a dependency because current stock availability is not a Product cost input.
 
-This remains the authoritative Phase 2 direct-material cost view.
+## Active relationship policy
 
-Preserve its:
+Product-backed costing resolves the current child Product directly through `ProductRepository`.
 
-- `status`;
-- `requirementStatus`;
-- material cost lines;
-- total direct-material cost;
-- requirement issues;
-- cost issues;
-- yield/calibration traceability already represented by the preview.
+Missing or inactive child Products return controlled `not-ready` results.
 
-### Material-backed child component cost
-
-Use:
-
-`MaterialBackedComponentCostService.costComponent(component)`
-
-This remains the authoritative 3.3A line-cost view.
-
-3.3B must not reimplement Material package-cost conversion rules.
-
-### Product-backed child component cost
-
-Recurse through the same 3.3B service.
-
-No ProductStock dependency is introduced because stock availability is a capacity/readiness concern, not a Product cost input.
-
-## Active Product relationship policy
-
-A Product-backed component must currently resolve to an active child Product.
-
-Read-time recursive costing returns controlled `not-ready` output when the child Product is:
-
-- missing; or
-- inactive/archived.
-
-This mirrors the active dependency rule already enforced at save time while still protecting against corrupted/imported source data.
-
-Do not call `ComponentSourceAvailabilityService` for Product cost eligibility because that service also evaluates ProductStock. Product cost must remain independent of current finished-stock quantity.
+`ComponentSourceAvailabilityService` is not used for Product cost eligibility because it also evaluates ProductStock.
 
 ## Recursive tree contract
 
-Recommended Product-backed line result:
+Implemented Product-backed line result:
 
 ```text
 ProductBackedComponentCostLine
@@ -126,177 +86,100 @@ ProductBackedComponentCostLine
 - parentProductId
 - role
 - childProductId
-- childProductName: string | null
+- childProductName
 - quantityPerParent
-- path: string[]
+- path
 - status: ready | partial | not-ready
-- childDirectMaterialCost: RecipeMaterialCostPreviewResult | null
-- childComponentCostSubtotal: number
-- childComponentAwareUnitCost: number | null
-- componentCostContribution: number | null
-- breakdown: RecursiveComponentCostBreakdown[]
+- childDirectMaterialCost
+- childComponentCostSubtotal
+- childComponentAwareUnitCost
+- componentCostContribution
+- breakdown[]
 - issues[]
 ```
 
-Recursive child breakdown:
+`breakdown[]` recursively contains either:
 
-```text
-RecursiveComponentCostBreakdown
-= material-backed 3.3A line
-| product-backed 3.3B line
-```
+- a 3.3A material-backed cost line; or
+- another 3.3B Product-backed cost line.
 
-Each Product-backed line therefore carries the edge multiplier to its parent, while each 3.3A material-backed line already carries its `quantityPerParent`.
-
-The hierarchy plus per-edge quantity preserves the full multiplication path.
+Every edge therefore preserves its quantity multiplier.
 
 ## Readiness contract
 
-3.3B uses:
+### Ready
 
-```text
-ready
-partial
-not-ready
-```
+The child Product is active, its Phase 2 direct-material preview is ready, and every nested component cost is ready.
 
-### `ready`
+### Partial
 
-The child Product is active, its Phase 2 direct-material cost is `ready`, and every nested Phase 3 component cost is `ready`.
+At least one reliable numeric cost contribution is derivable, but one or more required direct/component inputs are unresolved.
 
-The complete `childComponentAwareUnitCost` and parent contribution are known.
-
-### `partial`
-
-At least one reliable numeric cost contribution is derivable, but one or more required child cost inputs are unresolved or partial.
+The returned numeric value is the **known subtotal only**, never silently presented as complete.
 
 Examples:
 
-- child Phase 2 direct-material preview is `partial` while valid direct-material lines remain;
-- child Phase 2 direct-material preview is `not-ready`, but one or more child components have valid costs;
-- direct-material cost is ready but a nested component is unresolved;
-- a nested Product child itself is partial.
+- partial Phase 2 direct-material preview;
+- no direct-material cost lines but valid component cost;
+- ready direct-material cost plus unresolved nested component;
+- partial nested Product cost;
+- one reachable cyclic branch while another sibling contribution remains valid;
+- reachable duplicate-source corruption while direct-material cost remains valid.
 
-For `partial`, the service returns the **known current subtotal only** and clearly marks it incomplete. It must never silently relabel that subtotal as complete.
+### Not ready
 
-### `not-ready`
-
-No reliable child unit-cost evidence can currently be produced, or the relationship itself is invalid.
+No reliable child unit-cost evidence exists, or the relationship itself is invalid.
 
 Examples:
 
-- invalid ProductComponent contract;
-- non-Product-backed input;
+- invalid/non-Product component input;
 - missing/inactive child Product;
-- reachable composition cycle;
-- reachable duplicate/corrupted component graph prevents safe aggregation and no other reliable cost evidence exists;
-- child direct-material preview has no derivable lines and no child component contribution is derivable.
+- direct/reachable cycle edge;
+- no derivable direct-material or nested component contribution;
+- invalid aggregate numeric result.
 
-`childComponentAwareUnitCost` and `componentCostContribution` are `null` when no reliable numeric cost evidence exists.
+## Zero-versus-missing evidence
 
-## Known-cost aggregation semantics
+Cost evidence is tracked separately from numeric value.
 
-For one child Product:
+Therefore:
 
-```text
-known direct-material subtotal
-= Phase 2 preview total when it contains derivable cost lines
-= 0 when Phase 2 has no derivable lines
-
-known component subtotal
-= sum of non-null nested component contributions
-
-known child unit cost
-= known direct-material subtotal + known component subtotal
-```
-
-A numeric zero can still be reliable evidence.
-
-Examples:
-
-- a ready zero-cost direct-material line counts as known evidence;
-- a ready zero-cost component counts as known evidence;
-- `not-ready` direct-material preview with zero lines is unresolved, not authoritative zero.
-
-A separate internal evidence flag must distinguish authoritative/derived zero from absence of cost evidence.
-
-## Direct-material readiness propagation
-
-Preserve the complete Phase 2 preview result on the child node.
-
-Recommended summary issue mapping:
-
-```text
-DIRECT_MATERIAL_COST_PARTIAL
-DIRECT_MATERIAL_COST_NOT_READY
-```
-
-Do not discard the detailed Phase 2 `requirementIssues` or `costIssues`; downstream 3.3C/UI must be able to inspect the original evidence without parsing summary messages.
-
-## Nested component readiness propagation
-
-For each child component:
-
-- material-backed -> delegate to 3.3A;
-- Product-backed -> recurse through 3.3B.
-
-If a nested line is `partial` or `not-ready`, the current Product node cannot be `ready`.
-
-Known numeric nested contributions may still participate in the partial subtotal.
+- ready zero direct cost is valid evidence;
+- ready zero nested component contribution is valid evidence;
+- a not-ready Phase 2 preview with zero lines is unresolved, not authoritative zero.
 
 ## Cycle/path guard
 
-Write-time graph validation from 3.1B remains authoritative, but 3.3B must independently guard its active recursive path so corrupted/imported data cannot recurse forever.
+Recursive Product identity uses trimmed, case-insensitive IDs.
 
-Canonical Product path identity:
+The service maintains its own active path even though 3.1B already validates writes.
 
-```text
-trim + case-insensitive
-```
+When recursion revisits a Product in the active path:
 
-Example:
+- that edge stops immediately;
+- the edge returns `not-ready`;
+- `CYCLE_DETECTED` carries a closed canonical path;
+- unaffected sibling evidence remains available to the parent.
 
-```text
-A -> B -> C -> A
-```
+This prevents infinite recursion from corrupted/imported data.
 
-When a recursive edge attempts to revisit a Product already in the active path:
+## Reachable duplicate-source guard
 
-- stop recursion immediately for that edge;
-- return controlled `not-ready` output for that edge;
-- preserve a closed canonical cycle path such as `[a, b, c, a]`;
-- allow unaffected sibling lines to remain available so the parent can become `partial` rather than losing all valid evidence.
+Each traversed Product validates only its immediate child component collection with the existing 3.1B uniqueness rule.
 
-The service must not depend solely on save-time validation.
-
-## Reachable duplicate-source corruption
-
-A corrupted parent composition containing duplicate source identity must not be double-counted.
-
-For each currently traversed parent Product:
-
-- validate its immediate component collection with the 3.1B source-uniqueness rule;
-- if invalid, mark that Product's component aggregation unresolved;
-- preserve direct-material cost evidence when available;
-- do not let unrelated duplicate corruption elsewhere in the repository block a safe root.
-
-This keeps corruption handling local to the reachable tree.
+This prevents duplicate source records from being double-counted without letting unrelated repository corruption globally block a safe requested root.
 
 ## Deterministic traversal
 
-For every parent Product, component lines must be processed in deterministic order.
+Immediate child components are ordered by:
 
-Recommended ordering:
-
-1. normalized source type;
+1. source type;
 2. normalized source ID;
 3. normalized component ID.
 
-This makes tree output and tests stable regardless of repository insertion order.
+## Controlled issues
 
-## Issue contract
-
-Baseline Product-backed issue codes:
+Implemented summary codes:
 
 ```text
 INVALID_COMPONENT
@@ -312,112 +195,72 @@ CYCLE_DETECTED
 DERIVED_COST_INVALID
 ```
 
-Issue records may preserve:
+Detailed Phase 2 and nested component evidence remains on the tree.
 
-- component/product IDs;
-- current Product path;
-- cycle path;
-- underlying ProductComponent or 3.1B graph error code;
-- direct-material issue summary.
+## Application/session implementation
 
-Detailed nested/direct evidence remains available on the tree itself.
+Added:
 
-## Application service
+`src/application/productComponents/ProductBackedComponentCostService.ts`
 
-Add:
+Shared session instance:
 
-```text
-ProductBackedComponentCostService
-```
+`productBackedComponentCostService`
 
-Primary public operation:
+Dependencies:
 
-```text
-costComponent(component: ProductComponent)
-```
+- `productRepository`;
+- `productComponentRepository`;
+- `recipeMaterialCostPreviewService`;
+- `materialBackedComponentCostService`.
 
-Recommended dependencies:
+The component collection is loaded once per top-level cost request and traversed in memory.
 
-- `ProductRepository`;
-- `ProductComponentRepository`;
-- Phase 2 direct-material cost preview provider;
-- 3.3A material-backed component cost provider.
+No new repository or BusinessDataset collection was introduced.
 
-The service should load the current component collection once per top-level call, then traverse the reachable tree in memory so recursion does not repeatedly fetch the full repository.
+## Validation
 
-## Shared application session
+Dedicated suite:
 
-Add one shared instance:
+`src/application/productComponents/ProductBackedComponentCostService.test.ts`
+
+Focused suite: **26 tests**.
+
+Feature-head CI:
 
 ```text
-productBackedComponentCostService
+run 34917053692 — SUCCESS
+46 test files passed
+464 tests passed
+TypeScript typecheck passed
+production build passed
 ```
 
-Reuse:
-
-```text
-productRepository
-productComponentRepository
-recipeMaterialCostPreviewService
-materialBackedComponentCostService
-```
-
-No new repository or BusinessDataset collection is introduced.
-
-## Test plan
-
-Focused tests must cover at minimum:
-
-- one Product-backed child with ready Phase 2 direct-material cost and no nested components;
-- parent edge quantity multiplier;
-- child Product identity/name/path preservation;
-- child with one 3.3A material-backed component;
-- two-level Product nesting;
-- three-level/deep acyclic nesting;
-- mixed direct materials + material-backed + Product-backed nested components;
-- complete recursive breakdown tree and edge multipliers;
-- ready zero direct/component cost evidence remains numeric zero;
-- Phase 2 partial direct-material cost -> partial child cost with known subtotal;
-- Phase 2 not-ready/no direct lines + ready component -> partial child cost;
-- Phase 2 not-ready/no direct lines + no derivable components -> not-ready/null cost;
-- nested material component not-ready -> propagated partial/not-ready state;
-- nested Product component partial -> propagated partial state;
-- missing child Product -> controlled not-ready;
-- inactive child Product -> controlled not-ready;
-- top-level non-Product component -> controlled not-ready;
-- invalid ProductComponent -> controlled not-ready;
-- direct self-cycle corruption;
-- deep reachable cycle corruption with closed path;
-- unaffected sibling cost remains available when another branch cycles;
-- reachable duplicate component source is not double-counted;
-- unrelated duplicate/cycle corruption does not block a safe root where practical;
-- deterministic tree ordering independent of insertion order;
-- no ProductStock dependency/current stock influence;
-- source Product/ProductComponent records are not mutated.
+Coverage includes direct-cost composition, edge multipliers, deep nesting, mixed Material/Product children, full breakdown trees, zero-cost evidence, partial/not-ready propagation, missing/inactive Products, invalid inputs, direct/deep cycles, sibling preservation around a cycle, duplicate-source protection, unrelated corruption isolation, deterministic ordering, and immutability.
 
 ## Completion gate
 
-3.3B is complete only when:
+Implemented feature gates passed:
 
-- Product-backed component cost recursively combines child Phase 2 direct-material cost and child Phase 3 component cost;
-- 3.3A remains the sole Material-backed component cost implementation;
-- nested Product cost supports arbitrary finite acyclic depth;
-- full recursive breakdown tree is returned;
-- Product IDs/names and edge quantity multipliers are preserved;
-- Phase 2 direct-material lines and nested leaf component costs remain inspectable;
+- Product-backed child cost combines Phase 2 direct cost and Phase 3 component cost recursively;
+- 3.3A remains the sole material-backed component cost path;
+- arbitrary finite acyclic nesting is supported;
+- recursive tree/edge multipliers and leaf evidence remain inspectable;
 - ready/partial/not-ready propagates deterministically;
-- partial known subtotal is distinguishable from complete cost;
-- zero cost is distinguishable from absence of cost evidence;
-- missing/inactive child Products are controlled not-ready results;
-- reachable corrupted cycles cannot recurse indefinitely;
-- reachable duplicate component sources are not double-counted;
-- ProductStock/current stock does not affect Product cost;
-- no derived recursive cost is persisted;
+- partial known subtotal remains visibly incomplete;
+- zero remains distinct from missing evidence;
+- missing/inactive child Products are controlled;
+- reachable cycles cannot recurse indefinitely;
+- reachable duplicate sources are not double-counted;
+- unrelated corruption does not globally block safe roots;
+- ProductStock is excluded from cost dependencies;
+- derived recursive cost is not persisted;
 - shared session wiring exists;
-- focused tests pass;
-- full repository tests pass;
-- TypeScript typecheck passes;
-- production build passes;
+- 46 test files / 464 tests pass;
+- TypeScript typecheck and production build pass.
+
+Remaining gate:
+
 - implementation PR merges to `develop`;
 - exact post-merge `develop` CI is green.
 
