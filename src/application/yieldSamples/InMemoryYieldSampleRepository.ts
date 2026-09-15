@@ -1,13 +1,16 @@
 import type { YieldSample } from '../../domain/yieldSamples';
 import { cloneYieldSample } from '../../domain/yieldSamples';
+import type { CollectionReplacementPort } from '../persistence/CollectionReplacementPort';
 import type { YieldSampleRepository } from './YieldSampleRepository';
 
 function key(id: string): string {
   return id.trim().toLowerCase();
 }
 
-export class InMemoryYieldSampleRepository implements YieldSampleRepository {
-  private readonly samples = new Map<string, YieldSample>();
+export class InMemoryYieldSampleRepository
+  implements YieldSampleRepository, CollectionReplacementPort<YieldSample>
+{
+  private samples = new Map<string, YieldSample>();
 
   constructor(seed: YieldSample[] = []) {
     for (const sample of seed) {
@@ -30,5 +33,13 @@ export class InMemoryYieldSampleRepository implements YieldSampleRepository {
 
   async delete(id: string): Promise<void> {
     this.samples.delete(key(id));
+  }
+
+  async replaceAll(records: readonly YieldSample[]): Promise<void> {
+    const next = new Map<string, YieldSample>();
+    for (const sample of records) {
+      next.set(key(sample.id), cloneYieldSample(sample));
+    }
+    this.samples = next;
   }
 }

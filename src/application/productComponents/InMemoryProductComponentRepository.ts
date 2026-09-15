@@ -1,13 +1,16 @@
 import type { ProductComponent } from '../../domain/productComponents';
 import { cloneProductComponent } from '../../domain/productComponents';
+import type { CollectionReplacementPort } from '../persistence/CollectionReplacementPort';
 import type { ProductComponentRepository } from './ProductComponentRepository';
 
 function key(id: string): string {
   return id.trim().toLowerCase();
 }
 
-export class InMemoryProductComponentRepository implements ProductComponentRepository {
-  private readonly components = new Map<string, ProductComponent>();
+export class InMemoryProductComponentRepository
+  implements ProductComponentRepository, CollectionReplacementPort<ProductComponent>
+{
+  private components = new Map<string, ProductComponent>();
 
   constructor(seed: ProductComponent[] = []) {
     for (const component of seed) {
@@ -34,5 +37,13 @@ export class InMemoryProductComponentRepository implements ProductComponentRepos
 
   async delete(id: string): Promise<void> {
     this.components.delete(key(id));
+  }
+
+  async replaceAll(records: readonly ProductComponent[]): Promise<void> {
+    const next = new Map<string, ProductComponent>();
+    for (const component of records) {
+      next.set(key(component.id), cloneProductComponent(component));
+    }
+    this.components = next;
   }
 }
