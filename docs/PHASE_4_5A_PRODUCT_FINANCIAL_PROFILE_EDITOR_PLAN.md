@@ -2,7 +2,7 @@
 
 ## Status
 
-**IMPLEMENTED — FEATURE VALIDATED — PR NOT YET MERGED**
+**COMPLETE — IMPLEMENTED, MERGED, AND POST-MERGE VALIDATED**
 
 Authoritative starting base:
 
@@ -28,7 +28,7 @@ Master plan:
 
 Add the first Phase 4 user-facing Pricing workspace so the business owner can configure the authoritative Product financial source profile through the completed Phase 4.1C application service.
 
-The editor must let the user select a Product and manage only source configuration:
+The editor manages only source configuration:
 
 ```text
 labor cost per finished unit
@@ -38,7 +38,7 @@ pricing policy value
 optional notes
 ```
 
-The editor must preserve the distinction between:
+It preserves the distinction between:
 
 ```text
 missing profile
@@ -47,11 +47,11 @@ configured pricing policy
 explicitly unconfigured pricing policy
 ```
 
-4.5A does not display or recalculate the fully loaded quote, selling price, profit, markup, margin, planned batch financials, or capacity warnings. Those belong to 4.5B/4.5C.
+4.5A does not display or recalculate the fully loaded quote, selling price, profit, markup, margin, planned batch financials, or capacity warnings. Those remain 4.5B/4.5C responsibilities.
 
 ## Split assessment
 
-No deeper roadmap split is required.
+No deeper roadmap split was required.
 
 4.5A is one cohesive UI capability because:
 
@@ -61,7 +61,7 @@ No deeper roadmap split is required.
 - the master plan explicitly defines one dedicated Product financial profile editor;
 - the new top-level Pricing navigation entry and the editor are inseparable parts of the same user workflow.
 
-Implementation uses ordinary checkpoints for UI view-model helpers, Pricing page, App navigation, tests, and documentation. These are not additional roadmap phases.
+Implementation used ordinary checkpoints for UI view-model helpers, Pricing page, App navigation, tests, and documentation. These are not additional roadmap phases.
 
 ## Authoritative existing contracts
 
@@ -101,9 +101,9 @@ productService.listProducts(...)
 
 ## New top-level Pricing workspace
 
-`pricing` is added to the App section/navigation contract and renders a dedicated `PricingPage`.
+`pricing` is part of the App section/navigation contract and renders a dedicated `PricingPage`.
 
-The top-level nav is conceptually:
+The top-level nav is:
 
 ```text
 Materials
@@ -166,7 +166,7 @@ pricingValue = ''
 notes = ''
 ```
 
-Missing profile labor/overhead are never initialized to `0`, because that would visually erase the source distinction between missing configuration and explicit zero.
+Missing profile labor/overhead are never initialized to `0`, because that would erase the source distinction between missing configuration and explicit zero.
 
 A user may intentionally enter:
 
@@ -419,7 +419,7 @@ Implemented:
 
 ### PricingPage smoke validation
 
-`src/App.smoke.test.tsx` now verifies the browser-independent Pricing shell includes:
+`src/App.smoke.test.tsx` verifies the browser-independent Pricing shell includes:
 
 - Phase 4 Pricing / Financial profiles heading;
 - Product catalog/search;
@@ -533,45 +533,72 @@ Implementation record commit:
 
 `ff1e9b335d7e462d279daacc85f7b7b44b7fae6c`
 
-No implementation checkpoint failure occurred before this validated state.
+Final documented feature head:
+
+`bf458d9057e8045957c5612cbec997b19ba8ea50`
+
+Final feature-head CI:
+
+`34962405867 — SUCCESS`
+
+Implementation PR:
+
+`#120 — MERGED`
+
+PR CI:
+
+`34962602159 — SUCCESS`
+
+Implementation merge:
+
+`86268804911f3fc6a8f39adadf8ac16164f0e332`
+
+Exact post-merge `develop` CI:
+
+`34962679838 — SUCCESS`
+
+No implementation checkpoint failure occurred before the validated state.
 
 ## Validation gates
 
-Before implementation PR merge:
+Completed before implementation merge:
 
-- dedicated form/view-model tests pass;
-- PricingPage/App smoke tests pass;
-- existing 4.1A/4.1B/4.1C financial-profile/pricing tests remain green;
-- full repository test suite passes;
-- TypeScript typecheck passes;
-- production Vite build passes;
-- final documented feature-head CI is green;
-- PR CI is green.
+- dedicated form/view-model tests passed;
+- PricingPage/App smoke tests passed;
+- existing financial-profile/pricing tests remained green;
+- full repository test suite passed;
+- TypeScript typecheck passed;
+- production Vite build passed;
+- final documented feature-head CI passed;
+- implementation PR CI passed;
+- guarded merge used the exact expected feature head;
+- exact implementation-merge `develop` CI passed.
 
-After merge:
+Remaining closeout gate:
 
-- exact merged `develop` CI must be green before documentation closeout;
-- closeout must preserve the full Phase 4 audit trail;
-- roadmap advances to `4.5B — Unit Economics / Pricing Calculator UI — NEXT` only after closeout CI is green.
+- documentation-only closeout PR must pass CI and merge;
+- exact final closeout `develop` CI must pass before 4.5B becomes the active NEXT task.
 
 ## Completion gate
 
-4.5A is complete only when:
+The implementation portion of the 4.5A completion gate is satisfied:
 
-- a dedicated top-level Pricing workspace exists;
+- dedicated top-level Pricing workspace exists;
 - Products, including archived Products, can be selected for financial configuration;
-- missing profile is visibly different from explicit zero profile;
+- missing profile remains visibly different from explicit zero profile;
 - labor and overhead use explicit PHP-per-unit inputs;
 - pricing policy supports unconfigured, fixed-profit, markup, and target-margin choices;
 - percentage inputs use human `%` presentation and canonical decimal-rate persistence;
 - all writes go through `ProductFinancialProfileService`;
 - validation failures are visible and never silently clamped/sanitized;
-- existing profile values reload correctly after save/selection;
-- no 4.5B/4.5C derived financial UI is leaked into the editor;
-- focused/full tests, typecheck, build, PR CI, exact post-merge CI, and documentation closeout all pass.
+- existing profile values reload after save/selection;
+- no 4.5B/4.5C derived financial UI leaked into the editor;
+- focused/full tests, typecheck, build, feature CI, PR CI, guarded merge, and exact post-merge CI all passed.
+
+The final documentation-closeout CI is the only remaining administrative completion gate.
 
 ## Next task after completion
 
 `4.5B — Unit Economics / Pricing Calculator UI — NEXT / NOT STARTED`
 
-Do not begin 4.5B implementation until 4.5A is fully merged, post-merge validated, documentation-closeout complete, and 4.5B receives its own scope/split assessment and development plan.
+Do not begin 4.5B implementation until this documentation closeout is merged, exact final closeout `develop` CI is green, and 4.5B receives its own scope/split assessment and development plan.

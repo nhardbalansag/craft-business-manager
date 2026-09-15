@@ -2,7 +2,7 @@
 
 ## Status
 
-**IMPLEMENTED — FEATURE VALIDATED — PR NOT YET MERGED**
+**COMPLETE — MERGED — POST-MERGE VALIDATED**
 
 Feature branch:
 
@@ -268,15 +268,39 @@ Those remain 4.5B/4.5C concerns.
 
 ## Validation
 
-Validated feature checkpoint:
+Validated implementation checkpoint:
 
 `8e8cdf8ac3cbede360b0212ac50421e398dce975`
 
-CI:
+Checkpoint CI:
 
 `34962216103 — SUCCESS`
 
-Validation result:
+Final documented feature head:
+
+`bf458d9057e8045957c5612cbec997b19ba8ea50`
+
+Final feature-head CI:
+
+`34962405867 — SUCCESS`
+
+Implementation PR:
+
+`#120 — MERGED`
+
+PR CI:
+
+`34962602159 — SUCCESS`
+
+Implementation merge:
+
+`86268804911f3fc6a8f39adadf8ac16164f0e332`
+
+Exact post-merge `develop` CI:
+
+`34962679838 — SUCCESS`
+
+Validated repository result:
 
 ```text
 TypeScript typecheck passed
@@ -308,7 +332,7 @@ The 13 focused tests verify:
 
 ### React smoke coverage
 
-The repository smoke suite now verifies:
+The repository smoke suite verifies:
 
 - top-level Pricing navigation exists;
 - Pricing workspace renders without browser-side effects;
@@ -320,15 +344,12 @@ The repository smoke suite now verifies:
 
 ## Completion state
 
-The application/UI implementation and full validation are complete on the feature branch.
+Phase 4.5A implementation is merged into `develop` and the exact implementation merge is post-merge validated.
 
-Remaining gates:
+The only remaining closeout gate is this documentation-only closeout PR and its exact final `develop` CI.
 
-1. record implementation evidence in the dedicated development plan;
-2. validate the final documented feature head;
-3. open implementation PR to `develop`;
-4. require green PR CI and merge with expected-head guarding;
-5. require exact post-merge `develop` CI success;
-6. merge a documentation-only closeout;
-7. require exact final closeout `develop` CI success;
-8. only then advance the roadmap to 4.5B.
+After that gate, the roadmap may advance to:
+
+`4.5B — Unit Economics / Pricing Calculator UI — NEXT / NOT STARTED`
+
+No Phase 4.5B implementation is included in this closeout.
