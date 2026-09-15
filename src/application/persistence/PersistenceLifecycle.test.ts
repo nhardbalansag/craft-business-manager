@@ -76,9 +76,9 @@ describe('PersistenceLifecycle diagnostics', () => {
       stage: 'hydrate',
       issues: [
         {
-          code: 'INVALID_DATASET',
-          message: 'Dataset is invalid.',
-          path: 'products',
+          code: 'INVALID_RECORD',
+          message: 'Dataset record is invalid.',
+          path: 'products[0]',
         },
       ],
     };
