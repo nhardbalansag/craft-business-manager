@@ -28,8 +28,8 @@ CI       34984709583 — SUCCESS
     5.1B — Workbook Schema / Sheet / Column Contracts     COMPLETE
     5.1C — Dataset Validation & Reference Integrity       COMPLETE
 
-5.2 — XLSX Workbook Codec                                 NOT STARTED
-    5.2A — XLSX Library Evaluation & Codec Boundary       NEXT / NOT STARTED
+5.2 — XLSX Workbook Codec                                 IN PROGRESS
+    5.2A — XLSX Library Evaluation & Codec Boundary       PLAN ESTABLISHED / IMPLEMENTATION NOT STARTED
     5.2B — Deterministic Dataset-to-XLSX Export           NOT STARTED
     5.2C — Strict XLSX-to-Dataset Import & Diagnostics    NOT STARTED
 
@@ -79,7 +79,7 @@ CI       34984709583 — SUCCESS
 - Concrete Tauri filesystem/dialog behavior remains Phase 6.
 - Unsupported future versions fail closed; migrations are explicit.
 - Round-trip validation must prove Phase 1–4 service-derived behavior remains equivalent after restore.
-- The concrete XLSX library remains deliberately deferred to 5.2A.
+- The concrete XLSX library remains deliberately deferred to 5.2A until its implementation spike passes all hard gates.
 
 ---
 
@@ -250,10 +250,97 @@ Repository hydration            not implemented
 Native filesystem               Phase 6
 ```
 
+---
+
+## Phase 5.2A — XLSX Library Evaluation & Codec Boundary
+
+Status: **PLAN ESTABLISHED — IMPLEMENTATION NOT STARTED**
+
+Dedicated plan:
+
+`docs/PHASE_5_2A_XLSX_LIBRARY_EVALUATION_CODEC_BOUNDARY_PLAN.md`
+
+Planning base:
+
+```text
+develop  7efef34fac309f9d9745631a54bc8a8ba404415f
+CI       34998382050 — SUCCESS
+```
+
+### Split assessment
+
+5.2A does **not** require deeper formal numbered sub-phases.
+
+It remains one bounded technology-selection and adapter-spike gate with internal checkpoints for:
+
+1. candidate verification / decision matrix;
+2. library-neutral codec contract;
+3. in-memory browser-compatible XLSX spike;
+4. formula/literal-text/primitive safety tests;
+5. bundle/dependency/security/license review;
+6. selected-library decision record.
+
+### Candidate pre-screen
+
+Primary implementation-spike candidate:
+
+**SheetJS Community Edition — current upstream release**
+
+Reasons:
+
+- browser/bundler support;
+- direct `Uint8Array` / `ArrayBuffer` workbook APIs;
+- explicit formula metadata suitable for deterministic formula-cell rejection;
+- permissive Apache-2.0 commercial-use terms;
+- current upstream release is newer than the known prototype-pollution and ReDoS remediation thresholds.
+
+Important constraint:
+
+The maintained SheetJS release is distributed from the upstream authoritative package/CDN rather than the stale public npm registry `xlsx` release. The implementation must pin and document the actual upstream artifact and must not mistake npm `xlsx@0.18.5` for the current version.
+
+Approved fallback:
+
+**`@excel.js/exceljs` — current maintained fork**
+
+Pre-screened but not preferred:
+
+- original `exceljs` — mature API but stale current npm release and current dependency/browser maintenance concerns;
+- `read-excel-file` + `write-excel-file` — actively maintained but authoritative import is ineligible because formula cells are not supported by the reader;
+- `xlsx-populate` — maintenance age too high for a new persistence dependency handling user-supplied files;
+- emerging pre-1.0 XLSX libraries — watchlist only unless both approved candidates fail.
+
+### Locked implementation boundary
+
+5.2A must establish a storage-only, library-neutral codec contract around in-memory XLSX bytes.
+
+Third-party library types must not leak into domain, application services, repositories, React, `StoragePort`, or future Tauri transport contracts.
+
+### Hard gates
+
+The selected library must prove:
+
+- TypeScript/Vite/browser compatibility;
+- in-memory XLSX encode/decode;
+- `Uint8Array` / `ArrayBuffer` compatibility as applicable;
+- string/number/boolean/blank cell behavior;
+- exact sheet-name/order handling;
+- formula-cell visibility without formula evaluation;
+- formula-looking literal text preservation;
+- acceptable commercial license obligations;
+- current security/advisory posture;
+- documented dependency/bundle impact;
+- no required native filesystem access.
+
+### Stop point
+
+No XLSX dependency, codec production code, or spike tests are included in this planning step.
+
+Implementation may begin only after this planning documentation is merged to `develop`, exact post-merge CI is green, and the user separately says to proceed.
+
+---
+
 ## Current active task
 
-**5.2A — XLSX Library Evaluation & Codec Boundary — NEXT / NOT STARTED**
+**5.2A — XLSX Library Evaluation & Codec Boundary — PLAN ESTABLISHED / IMPLEMENTATION NOT STARTED**
 
-5.2A must evaluate the concrete XLSX library and establish the codec boundary before any export/import implementation. It must remain browser/Tauri-compatible and filesystem-independent.
-
-Do **not** begin 5.2A implementation until separately requested from the exact final green 5.1C closeout baseline.
+Do not begin 5.2A implementation until the dedicated planning PR is merged and exact post-merge `develop` CI is successful, followed by a separate user instruction to proceed.
