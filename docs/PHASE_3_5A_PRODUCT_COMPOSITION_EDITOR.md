@@ -2,320 +2,132 @@
 
 ## Status
 
-**IMPLEMENTATION COMPLETE — MERGE GATE PENDING**
+**COMPLETE**
 
-Feature branch:
+Implementation PR:
 
-`feature/phase-3-5a-product-composition-editor`
+`#85 — Phase 3.5A — Product Composition Editor`
 
-Authoritative implementation base:
+Implementation merge:
 
-`develop` @ `bce15180204eb9094b484994060c18ec9b2885c5`
+`b4ab27f7620de4e2d255a1816f6bfd216a954173`
 
 Development plan:
 
 `docs/PHASE_3_5A_PRODUCT_COMPOSITION_EDITOR_PLAN.md`
 
-## Implementation summary
+## Delivered
 
-Phase 3.5A extends the existing Products workspace with a third **Components** view for managing the discrete Material/Product composition of a parent Product.
+Phase 3.5A adds a dedicated **Components** view to the Products workspace while keeping all authoritative writes behind the completed `ProductComponentService` boundary.
 
-The UI remains a thin application client: all authoritative create/update/remove operations continue through `ProductComponentService`, so React does not bypass domain/application validation.
+The UI now supports:
 
-## Products workspace integration
+- parent Product selection;
+- add/edit/remove component lines;
+- Material or Product source type;
+- authoritative component roles;
+- positive whole-piece `quantityPerParent`;
+- optional notes;
+- readable immediate composition summary;
+- service/domain validation feedback;
+- guarded nested Product composition preview.
 
-Updated:
-
-`src/ui/products/ProductsPage.tsx`
-
-The workspace now exposes:
-
-```text
-Products
-Mix presets
-Components
-```
-
-The heading now reflects the Phase 3 composition scope while preserving the existing Product and Mix functionality.
-
-The Components tab delegates to a dedicated view instead of expanding the already-large `ProductsPage` further.
-
-## Component editor view
-
-Added:
-
-`src/ui/products/ProductComponentsView.tsx`
-
-The editor supports:
-
-- selecting one parent Product;
-- adding component lines;
-- editing component lines;
-- removing component lines;
-- choosing Material or Product source type;
-- choosing a source;
-- choosing an authoritative component role;
-- entering positive whole `quantityPerParent`;
-- optional component notes;
-- readable current composition cards;
-- controlled service/domain error feedback;
-- guarded nested composition preview.
-
-### Parent Product behavior
+## Parent and mutation behavior
 
 - first active Product is selected by default when available;
-- all Products remain selectable for historical inspection;
-- active parent Products are writable;
-- archived parent Products are read-only;
-- changing parent resets edit/feedback state.
+- archived parent Products remain inspectable but read-only;
+- create/update/remove operations use `ProductComponentService`;
+- React does not bypass application/domain validation;
+- changing the selected parent clears edit/feedback state.
 
-## Authoritative mutation boundary
+## Source filtering
 
-Writes map directly to the completed Phase 3.1C service:
+Material candidates are limited to active, canonical `pc` Materials that are not already used by another Material-backed line for the same parent.
 
-```text
-create -> productComponentService.createComponent(...)
-update -> productComponentService.updateComponent(...)
-remove -> productComponentService.removeComponent(...)
-```
+Product candidates are limited to active, non-self, non-duplicate Product sources that are advisory graph-safe according to the existing composition graph validator.
 
-The UI displays the resulting `Error.message` when validation fails.
+Save-time duplicate/cycle/relationship validation remains authoritative in `ProductComponentService`.
 
-This keeps authoritative enforcement for:
+## Composition preview
 
-- parent/source existence;
-- active-state relationships;
-- Material count-unit rules;
-- duplicate component-source identity;
-- direct self-reference;
-- transitive cycle prevention;
-- component contract validation.
-
-## Source candidate filtering
-
-Candidate filtering improves UX without replacing service validation.
-
-### Material-backed candidates
-
-The selector shows only Materials that are:
-
-- active;
-- canonical count-based (`baseUnit === 'pc'`);
-- not already used by another Material-backed component line for the same parent, except the line currently being edited.
-
-### Product-backed candidates
-
-The selector shows only Products that are:
-
-- active;
-- not the selected parent Product;
-- not already used by another Product-backed component line for the same parent, except the line currently being edited;
-- compatible with the current composition graph when tested through the existing graph validator.
-
-This graph filtering is advisory UI filtering only. Save-time validation still runs through `ProductComponentService`.
-
-Changing source type clears the source selection.
-
-## Role and quantity semantics
-
-Role options come from:
-
-`PRODUCT_COMPONENT_ROLES`
-
-Quantity input uses:
-
-```text
-type=number
-min=1
-step=1
-```
-
-The submitted value is converted with `Number(...)`; authoritative positive finite integer validation remains in the domain/application layer.
-
-## Current composition summary
-
-For the selected parent, each immediate component card shows:
-
-- Material/Product type;
-- quantity × readable source name;
-- role;
-- source ID;
-- component ID;
-- optional notes;
-- Edit/Remove actions when the parent is writable.
-
-This summary is derived UI only and is never persisted separately.
-
-## Guarded nested composition preview
-
-Added pure helper:
+Added:
 
 `src/ui/products/productCompositionPreview.ts`
 
-The preview expands Product-backed component relationships recursively for inspection and renders Material-backed lines as leaves.
+The preview:
 
-Preview nodes preserve:
+- recursively expands Product-backed saved composition;
+- renders Material-backed components as leaves;
+- preserves role, quantity, IDs/names, notes and active state;
+- uses deterministic ordering;
+- keeps archived sources visible;
+- uses stored IDs when a historical source is missing;
+- stops corrupted recursive paths with a controlled cycle marker.
 
-- component ID;
-- parent Product ID;
-- source type/ID/name;
-- role;
-- quantity per parent;
-- notes;
-- active/archived source state;
-- child nodes;
-- controlled `missing-source` / `cycle` issue markers.
+It is read-only and does not calculate cost/capacity, mutate ProductStock, or recursively manufacture missing child Products.
 
-### Deterministic ordering
+## UI files
 
-Preview children are sorted by:
-
-1. source type;
-2. canonical source ID;
-3. canonical component ID.
-
-### Corruption guard
-
-The helper keeps an active Product path. If a Product is encountered again on the same path, it emits a `cycle` node and stops recursion.
-
-This protects read-only inspection from corrupted/imported legacy data even though normal component writes already reject cycles.
-
-### Preview scope boundary
-
-The nested preview does **not**:
-
-- calculate cost;
-- calculate capacity;
-- inspect/augment ProductStock;
-- manufacture missing child Products;
-- mutate composition;
-- replace graph validation.
-
-## Archived and missing historical sources
-
-Historical inspection remains readable:
-
-- archived sources retain their name and are marked archived;
-- missing sources fall back to their stored source ID and receive a `missing-source` marker.
-
-Archived parent Products remain read-only.
-
-## Styling and responsive behavior
-
-Updated:
-
-`src/ui/products/products.css`
-
-Added styles for:
-
-- parent Product panel;
-- component editor/list layout;
-- component cards/type pills;
-- read-only nested tree;
-- corruption/missing-source emphasis;
-- tablet/mobile stacking.
-
-The implementation reuses the existing visual system and introduces no CSS framework or new design-system dependency.
-
-## Tests
-
-Added:
-
-`src/ui/products/productCompositionPreview.test.ts`
-
-Dedicated preview-helper tests: **9**.
-
-Coverage:
-
-- empty composition;
-- Material leaf;
-- Product recursion;
-- deep nested Product composition;
-- quantity/role preservation;
-- deterministic ordering;
-- missing Material fallback;
-- missing Product fallback;
-- archived source visibility;
-- cycle/corruption guard.
-
-Updated:
-
-`src/App.smoke.test.tsx`
-
-React server-render smoke coverage now verifies:
-
-- Products workspace exposes the Components tab;
-- updated Phase 3 Products heading;
-- composition editor shell renders with a parent Product;
-- component ID/source/quantity controls render;
-- nested composition preview panel renders.
-
-No browser testing dependency was added. Existing `ProductComponentService` tests continue to cover authoritative mutation validation.
-
-## Validation evidence
-
-Fully corrected implementation head:
+Implemented/updated:
 
 ```text
-c96c631e2938108225b0f3efbdb77f8ff29ddb09
+src/ui/products/ProductsPage.tsx
+src/ui/products/ProductComponentsView.tsx
+src/ui/products/productCompositionPreview.ts
+src/ui/products/productCompositionPreview.test.ts
+src/ui/products/products.css
+src/App.smoke.test.tsx
 ```
 
-CI:
+No new application/domain contract was required.
+
+## Validation
 
 ```text
-run 34923251592 — SUCCESS
+Corrected implementation CI   34923251592 — SUCCESS
+Final feature-head CI          34923392945 — SUCCESS
+PR #85 CI                      34923453562 — SUCCESS
+Post-merge develop CI          34923517417 — SUCCESS
+
 52 test files passed
 596 tests passed
-9 dedicated productCompositionPreview tests
+9 dedicated composition-preview tests
 6 React workspace smoke tests
 TypeScript typecheck passed
 production build passed
 ```
 
-Two earlier branch runs failed only on stale/case-sensitive smoke-text assertions while the implementation typechecked and the new helper tests passed. Both assertions were corrected before this merge gate. No production logic change was required for those failures.
+Two earlier intermediate feature runs exposed only stale/case-sensitive smoke-text assertions. Those test expectations were corrected before the merge gate; no production-logic correction was required.
+
+## Completion gates
+
+All Phase 3.5A completion gates passed:
+
+- Products workspace exposes Components;
+- active parent CRUD is available;
+- archived parent is read-only;
+- Material/Product source filtering exists;
+- roles and positive whole-piece quantity semantics are exposed;
+- writes remain service-backed;
+- validation/cycle feedback is visible;
+- immediate summary and guarded nested preview exist;
+- responsive styling is included;
+- no 3.5B/3.5C/Phase 4/Phase 5 leakage occurred;
+- implementation PR merged;
+- exact post-merge `develop` CI passed.
 
 ## Explicit deferrals
 
-Not implemented in 3.5A:
+Still deferred:
 
-- ProductStock editing/list UI — Phase 3.5B;
-- component-aware Production estimate UI — Phase 3.5C;
-- new cost calculations;
-- new capacity calculations;
-- limiter visualization in Production;
-- recursive manufacturing of child Products;
-- stock reservation/deduction/transactions;
+- ProductStock UI — 3.5B;
+- component-aware Production estimate UI — 3.5C;
+- stock transactions/reservations/deductions;
 - labor/overhead/pricing/profit — Phase 4;
 - Excel persistence — Phase 5.
 
-## Completion gate state
+## Next task
 
-Feature implementation gates passed:
+**3.5B — Finished Component Stock UI — NEXT / NOT STARTED**
 
-- Components view exists in Products workspace;
-- active parent can add/edit/remove through `ProductComponentService`;
-- archived parent is read-only;
-- Material/Product source types supported;
-- Material candidates filter active/count-based/duplicate-invalid options;
-- Product candidates filter active/self/duplicate/cycle-invalid options;
-- authoritative roles and whole-piece quantity semantics exposed;
-- service validation feedback remains visible;
-- immediate composition summary exists;
-- nested preview is guarded and read-only;
-- no Phase 3.5B/3.5C/Phase 4/Phase 5 leakage exists;
-- 52 test files / 596 tests pass;
-- TypeScript typecheck passes;
-- production build passes.
-
-Remaining before 3.5A can be marked fully complete:
-
-- final documented feature-head CI must be green;
-- implementation PR must pass its own CI and merge to `develop`;
-- exact post-merge `develop` CI must pass;
-- documentation-only closeout must mark 3.5A COMPLETE and advance 3.5B to NEXT / NOT STARTED.
-
-## Next task after closeout
-
-**3.5B — Finished Component Stock UI**
-
-Do not begin 3.5B until 3.5A is formally closed and a dedicated 3.5B scope review/development plan is established.
+Do not begin 3.5B until a dedicated development plan/scope review is established.
