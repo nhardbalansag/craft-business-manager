@@ -24,8 +24,8 @@ Planning post-merge CI:
     4.2C — Total Fully Loaded Unit Cost & Readiness       COMPLETE
 
 4.3 — Selling Price & Unit Economics                      IN PROGRESS
-    4.3A — Selling Price Derivation                       NEXT
-    4.3B — Profit / Markup / Margin Metrics               NOT STARTED
+    4.3A — Selling Price Derivation                       COMPLETE
+    4.3B — Profit / Markup / Margin Metrics               NEXT
     4.3C — Product Pricing Quote & Readiness Service      NOT STARTED
 
 4.4 — Planned Batch Financials & Capacity                 NOT STARTED
@@ -67,11 +67,18 @@ Planning post-merge CI:
 - Child `pricingPolicy` does not participate in recursive production-cost roll-up.
 - Missing or invalid child labor/overhead evidence blocks an authoritative fully loaded child total while preserving known partial cost evidence.
 - Partial known recursive cost is exposed separately from authoritative `childFullyLoadedUnitCost` / `componentCostContribution`.
-- 4.2C now provides the authoritative root Product fully loaded unit-cost synthesis from 4.2A direct materials, Phase 3 Material-backed components, 4.2B Product-backed components, root labor, and root overhead.
+- 4.2C provides the authoritative root Product fully loaded unit-cost synthesis from 4.2A direct materials, Phase 3 Material-backed components, 4.2B Product-backed components, root labor, and root overhead.
 - Root `pricingPolicy` does not participate in 4.2C production-cost math or readiness.
 - Genuine component-only root Products can use the controlled neutral-direct interpretation; no-direct/no-component roots remain unresolved.
 - Missing/invalid root financial profile or unresolved component/direct evidence preserves known subtotal but blocks authoritative `totalFullyLoadedUnitCost`.
 - `totalFullyLoadedUnitCost` is the authoritative cost basis for Phase 4.3 only when 4.2C status is `ready`.
+- 4.3A derives selling price only from ready 4.2C `totalFullyLoadedUnitCost`; `knownFullyLoadedUnitCostSubtotal` is never a price basis.
+- 4.3A uses the Product's configured 4.1C pricing policy and delegates all pricing formulas/validation to the authoritative 4.1B pricing engine.
+- A ready unit cost with `pricingPolicy = null` remains visible while selling price stays unresolved; no default markup/profit/margin is invented.
+- Partial or not-ready unit-cost evidence is never priced, even when a valid pricing policy exists.
+- Invalid/corrupted pricing policy or contradictory cost/profile identity fails closed with controlled issues.
+- Selling-price derivation retains full numeric precision; presentation rounding remains a UI concern.
+- Archived root Products remain inspectable/priceable when cost and pricing evidence are otherwise valid.
 - Recursive and root component costing remains independent of ProductStock/current availability.
 - Observed yield defects are not re-applied.
 - Parent safety waste does not inflate discrete component counts.
@@ -207,25 +214,6 @@ Record: `docs/PHASE_4_2B_RECURSIVE_FULLY_LOADED_PRODUCT_COMPONENT_COST.md`
 
 **COMPLETE**
 
-Delivered:
-
-- authoritative root Product fully loaded unit-cost service;
-- 4.2A waste-adjusted direct material included exactly once;
-- Phase 3 Material-backed component costs;
-- 4.2B Product-backed fully loaded component costs;
-- root labor and overhead;
-- known partial subtotal kept distinct from authoritative total;
-- component-only root neutral-direct semantics;
-- financial-profile fail-closed readiness;
-- pricing-policy independence;
-- immediate component source-uniqueness guard;
-- deterministic component trace;
-- archived-root inspectability;
-- defensive cloning;
-- shared application-session wiring.
-
-Evidence:
-
 ```text
 Plan commit                     f1fdf1957e3b17a07bc8ca756135c35d48b6d22c
 Initial implementation head     6a52451b7db593563cd747f7926dceeed82c4f76
@@ -253,12 +241,60 @@ Plan: `docs/PHASE_4_2C_TOTAL_FULLY_LOADED_UNIT_COST_READINESS_PLAN.md`
 
 Record: `docs/PHASE_4_2C_TOTAL_FULLY_LOADED_UNIT_COST_READINESS.md`
 
+### 4.3A — Selling Price Derivation
+
+**COMPLETE**
+
+Delivered:
+
+- authoritative Product-level selling-price derivation service;
+- ready Phase 4.2C `totalFullyLoadedUnitCost` as the only priceable cost basis;
+- configured Product pricing policy from 4.1C;
+- all formulas/validation delegated to the 4.1B pricing engine;
+- fixed-profit, markup, and target-margin support;
+- unconfigured policy preserves ready cost but leaves selling price unresolved;
+- partial/not-ready cost is never priced;
+- no default pricing policy;
+- Product/profile identity guards and corrupted-policy fail-closed behavior;
+- full precision with no presentation rounding;
+- archived Product inspectability/priceability;
+- defensive policy cloning;
+- shared application-session wiring;
+- no 4.3B+ leakage.
+
+Evidence:
+
+```text
+Plan-before-code commit         4ae338331cf4f28d6ec6f997ab94339af9b4d056
+Implementation head             3cded1826b18aa46195e9d87e60cafcafc1d9cd6
+Implementation CI               34942368270 — SUCCESS
+Final feature head              258eca03d64325631e04b776ab9d1a42d377e87b
+Final feature-head CI           34942557415 — SUCCESS
+PR #108                         MERGED
+PR CI                           34942666927 — SUCCESS
+Implementation merge            4a2d28ef7be757a2fe4f4f2e037ad4a6abef11fd
+Post-merge develop CI           34942765862 — SUCCESS
+67 test files / 807 tests
+27 SellingPriceDerivationService tests
+1 4.3A shared-session wiring test
+50 pricing-domain tests
+24 Phase 4.2C cost tests
+7 React smoke tests
+TypeScript typecheck passed
+production Vite build passed
+104 modules transformed
+```
+
+Plan: `docs/PHASE_4_3A_SELLING_PRICE_DERIVATION_PLAN.md`
+
+Record: `docs/PHASE_4_3A_SELLING_PRICE_DERIVATION.md`
+
 ## Current active task
 
-**4.3A — Selling Price Derivation — NEXT / NOT STARTED**
+**4.3B — Profit / Markup / Margin Metrics — NEXT / NOT STARTED**
 
-Do not begin 4.3A until:
+Do not begin 4.3B until:
 
-1. the 4.2C documentation-only closeout is merged to `develop`;
+1. this 4.3A documentation-only closeout is merged to `develop`;
 2. exact final closeout `develop` CI is green;
-3. a dedicated 4.3A development plan/scope review is established before implementation.
+3. a dedicated 4.3B development plan/scope review is established before implementation.
