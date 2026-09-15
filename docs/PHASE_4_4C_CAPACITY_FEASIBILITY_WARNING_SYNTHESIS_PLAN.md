@@ -2,7 +2,7 @@
 
 ## Status
 
-**PLAN ESTABLISHED — IMPLEMENTATION NOT STARTED**
+**IMPLEMENTED — FEATURE VALIDATED — PR NOT YET MERGED**
 
 Authoritative starting base:
 
@@ -446,6 +446,74 @@ After merge:
 
 - exact merged `develop` CI must be green before documentation closeout;
 - documentation closeout must preserve the full Phase 4 audit trail and advance the roadmap only after implementation evidence is verified.
+
+## Implementation evidence
+
+Implementation service:
+
+`src/application/production/PlannedBatchCapacityFeasibilityService.ts`
+
+Shared-session export:
+
+`plannedBatchCapacityFeasibilityService`
+
+Implementation record:
+
+`docs/PHASE_4_4C_CAPACITY_FEASIBILITY_WARNING_SYNTHESIS.md`
+
+Plan-before-code commit:
+
+`ebc4a47ffb87c6ab318a583ee55cb90a607d893c`
+
+Service implementation commit:
+
+`61ea9a03b5621b277d0b016a10c95f5e15f2dc10`
+
+Shared-session wiring commit:
+
+`7c33ed1ff635185a8464392968d2f72786294b47`
+
+Initial focused-test head:
+
+`7d7e645700526644a84f641e70c49b04a286f92f`
+
+Initial focused-test CI:
+
+`34959784315 — FAILURE`
+
+Failure classification:
+
+```text
+strict TypeScript fixture/clone typing only
+no service behavior test executed before failure
+no feasibility/capacity semantics weakened in the fix
+```
+
+Corrected validated checkpoint:
+
+`aa294854e55289343683776d0607cc0ada2675d3`
+
+Corrected checkpoint CI:
+
+`34960081875 — SUCCESS`
+
+Validated repository state:
+
+```text
+TypeScript typecheck passed
+77 test files passed
+941 tests passed
+33 dedicated 4.4C service tests passed
+1 dedicated 4.4C session-wiring test passed
+production Vite build passed
+109 modules transformed
+```
+
+Implementation-record commit:
+
+`f37865be56c582c98f21b9b1107080210744ba93`
+
+The remaining feature gate is green CI on the final documented feature head, followed by a green implementation PR, guarded merge, exact post-merge `develop` CI, and documentation closeout.
 
 ## Completion gate
 
