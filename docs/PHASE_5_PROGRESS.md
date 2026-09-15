@@ -35,7 +35,10 @@ CI       34984709583 — SUCCESS
 
 5.3 — Snapshot, Hydration & Persistence Coordination      IN PROGRESS
     5.3A — Complete Source Snapshot Service               COMPLETE
-    5.3B — Validated Atomic Dataset Hydration             NEXT / NOT STARTED
+    5.3B — Validated Atomic Dataset Hydration             PLAN ESTABLISHED / IMPLEMENTATION NOT STARTED
+        5.3B1 — Hydration Replacement Port & Bulk Replace NEXT / NOT STARTED
+        5.3B2 — Validated Atomic Hydration + Rollback     NOT STARTED
+        5.3B3 — Session/Fault Injection/Completion Gate   NOT STARTED
     5.3C — Persistence Coordinator / Load-Save Lifecycle  NOT STARTED
 
 5.4 — Version Compatibility, Backup & Recovery Safety     NOT STARTED
@@ -75,6 +78,12 @@ CI       34984709583 — SUCCESS
 - 5.3A canonicalizes top-level source collection ordering without importing storage/workbook code into the application layer.
 - 5.3A preserves no-row vs explicit zero/null source semantics and does not synthesize missing evidence.
 - 5.3A rejects the whole snapshot when any source read fails and never performs repository writes.
+- 5.3B treats an accepted `BusinessDataset` as complete replacement state, never as a patch/merge.
+- 5.3B reuses the 5.1C validator before writes and the 5.3A snapshot service for rollback evidence.
+- 5.3B requires a persistence-only whole-collection replacement capability for all nine live repositories because current CRUD APIs cannot remove every stale source row safely.
+- 5.3B preserves repository object identity so already-wired Phase 1–4 services observe hydrated state without service-graph reconstruction.
+- 5.3B must automatically restore the pre-hydration snapshot when a replacement fails; rollback failure is a distinct severe diagnostic and is never reported as success.
+- Hydration does not replay ordinary business service create/update/delete workflows and does not synthesize defaults or derived outputs.
 - Tauri filesystem/dialog behavior remains Phase 6.
 
 ## Phase 5.1 — Persisted Dataset & Workbook Contract Foundation
@@ -221,6 +230,57 @@ Full test suite passed
 Production Vite build passed
 ```
 
+## Phase 5.3B — Validated Atomic Dataset Hydration
+
+Status: **PLAN ESTABLISHED — IMPLEMENTATION NOT STARTED**
+
+Dedicated plan:
+
+`docs/PHASE_5_3B_VALIDATED_ATOMIC_DATASET_HYDRATION_PLAN.md`
+
+Planning base:
+
+```text
+develop  37eae3f97ae44bc439d90d215a199debcf933b4c
+CI       35019405824 — SUCCESS
+```
+
+### Split assessment
+
+5.3B requires three formal implementation sub-phases:
+
+```text
+5.3B1 — Hydration Replacement Port & Repository Bulk Replace
+5.3B2 — Validated Atomic Hydration Service & Rollback
+5.3B3 — Session Integration, Fault Injection & Completion Gate
+```
+
+The split is required because the existing repository CRUD APIs cannot express complete replacement safely. Some repositories cannot delete stale records, some intentionally omit normal update behavior, and none currently expose a whole-collection transactional hydration capability.
+
+### Locked planning decisions
+
+- the candidate is a complete replacement dataset, not a patch;
+- validate with `validateBusinessDatasetIntegrity(...)` before any write;
+- use a dedicated persistence-only `CollectionReplacementPort<T>`-style capability rather than teaching React to call repository CRUD directly;
+- every repository replacement must stage/clone its complete next collection before exposing it as live state;
+- stale rows absent from the candidate must be removed;
+- empty candidate collections clear their repositories;
+- use `cloneBusinessDataset(...)` for hydration-owned candidate state;
+- use `CompleteSourceSnapshotService` for the pre-hydration rollback dataset;
+- preserve repository object identity so existing services remain wired correctly;
+- do not replay business service create/update/delete workflows during hydration;
+- preserve missing-vs-zero/null/false semantics;
+- on apply failure, automatically restore the previous complete snapshot;
+- distinguish safe restored apply failure from rollback failure;
+- do not report rollback failure as successful hydration;
+- keep load/save lifecycle orchestration in 5.3C and file backup/atomic transport in 5.4B.
+
+### Stop point
+
+This planning step contains no 5.3B runtime implementation.
+
+After the planning PR is merged and its exact post-merge `develop` CI is green, a separate implementation feature branch may begin with 5.3B1 only after a separate user instruction to proceed.
+
 ## Current persistence boundary
 
 ```text
@@ -231,7 +291,7 @@ XLSX library / byte codec             COMPLETE — SheetJS CE 0.20.3
 Dataset -> workbook/XLSX export       COMPLETE
 Workbook -> dataset reconstruction    COMPLETE
 Repository snapshot service           COMPLETE — 5.3A
-Validated repository hydration        NOT STARTED — 5.3B
+Validated repository hydration        PLAN ESTABLISHED — 5.3B / 5.3B1 NEXT
 Persistence coordinator/load-save     NOT STARTED — 5.3C
 ExcelStorage.load/save                placeholder
 Native filesystem                     Phase 6
@@ -239,6 +299,6 @@ Native filesystem                     Phase 6
 
 ## Current active task
 
-**5.3B — Validated Atomic Dataset Hydration — NEXT / NOT STARTED**
+**5.3B1 — Hydration Replacement Port & Repository Bulk Replace — NEXT / NOT STARTED**
 
-5.3B must begin with its own dedicated scope/decomposition review and development plan from the exact final green 5.3A closeout `develop` baseline. Do not start 5.3B implementation automatically as part of the 5.3A closeout.
+Do not begin 5.3B1 implementation until the dedicated 5.3B planning PR is merged and the exact post-merge `develop` CI is successful, followed by a separate user instruction to proceed.
