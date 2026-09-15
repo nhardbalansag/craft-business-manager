@@ -102,7 +102,7 @@ function financials(
       safetyWasteRate: 0,
       safetyWastePercentage: 0,
       safetyWasteMultiplier: 1,
-      observedDefectRateIncluded: false,
+      observedDefectRateIncluded: false as const,
       requirements: [],
     },
     unitCostEvidence: unitCost,
