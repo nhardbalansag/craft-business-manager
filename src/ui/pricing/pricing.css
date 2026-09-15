@@ -145,15 +145,240 @@
 .compact-pricing-empty { min-height: 310px; }
 .pricing-editor-empty { min-height: 360px; }
 
+.pricing-quote-section {
+  display: grid;
+  gap: 18px;
+  margin-top: 28px;
+  padding-top: 28px;
+  border-top: 1px solid #d8d1c4;
+}
+.pricing-quote-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 22px;
+}
+.pricing-quote-heading h2 {
+  margin: 5px 0 7px;
+  font-size: 1.75rem;
+  letter-spacing: -.035em;
+}
+.pricing-quote-heading p:not(.panel-kicker) {
+  margin: 0;
+  max-width: 760px;
+  color: #70685f;
+  line-height: 1.55;
+}
+.pricing-readiness-pill {
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #ede8e0;
+  color: #6f665d;
+  font-size: .73rem;
+  font-weight: 850;
+  white-space: nowrap;
+}
+.pricing-readiness-pill.status-ready { background: #e8f1e6; color: #426340; }
+.pricing-readiness-pill.status-partial { background: #fff0d5; color: #7b5b2d; }
+.pricing-readiness-pill.status-not-ready { background: #f8e6e3; color: #8a3029; }
+.pricing-quote-feedback { margin: 0; }
+
+.pricing-quote-grid,
+.pricing-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+.pricing-quote-panel,
+.pricing-detail-panel,
+.pricing-issues-panel {
+  min-width: 0;
+  padding: 22px;
+}
+.pricing-quote-panel .panel-heading,
+.pricing-detail-panel .panel-heading,
+.pricing-issues-panel .panel-heading { margin-bottom: 16px; }
+.pricing-quote-panel h3,
+.pricing-detail-panel h3,
+.pricing-issues-panel h3 {
+  margin: 5px 0 0;
+  font-size: 1.25rem;
+  letter-spacing: -.02em;
+}
+
+.pricing-summary-list {
+  display: grid;
+  border-top: 1px solid #e8e1d7;
+}
+.pricing-summary-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 13px 2px;
+  border-bottom: 1px solid #eee8df;
+  align-items: center;
+}
+.pricing-summary-row > div { display: grid; gap: 3px; min-width: 0; }
+.pricing-summary-row strong { color: #4c463f; font-size: .85rem; }
+.pricing-summary-row small { color: #93897d; font-size: .72rem; line-height: 1.35; }
+.pricing-summary-row > span {
+  color: #24211d;
+  font-weight: 850;
+  text-align: right;
+  white-space: nowrap;
+}
+.pricing-summary-row:last-child {
+  margin-top: 3px;
+  padding-top: 16px;
+  border-bottom: 0;
+}
+.pricing-summary-row:last-child strong,
+.pricing-summary-row:last-child > span { font-size: .98rem; color: #211e1a; }
+
+.pricing-status-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 16px;
+}
+.pricing-status-strip > div {
+  display: grid;
+  gap: 3px;
+  padding: 10px;
+  border: 1px solid #e4ddd2;
+  border-radius: 11px;
+  background: #faf7f1;
+}
+.pricing-status-strip span { color: #8b8278; font-size: .68rem; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; }
+.pricing-status-strip strong { color: #4b443c; font-size: .78rem; }
+
+.pricing-detail-empty {
+  margin: 0;
+  padding: 16px;
+  border: 1px dashed #d7cec1;
+  border-radius: 12px;
+  background: #faf7f1;
+  color: #81786e;
+  font-size: .82rem;
+  line-height: 1.5;
+}
+.pricing-component-lines,
+.pricing-component-trace-list { display: grid; gap: 9px; }
+.pricing-component-line {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 7px 14px;
+  padding: 13px;
+  border: 1px solid #e4ddd2;
+  border-radius: 12px;
+  background: #faf7f1;
+}
+.pricing-component-line > div:first-child { display: grid; gap: 3px; min-width: 0; }
+.pricing-component-line strong { color: #3f3932; }
+.pricing-component-line small { color: #8a8176; font-size: .73rem; line-height: 1.4; }
+.pricing-component-line-values { display: grid; gap: 3px; text-align: right; align-content: start; }
+.pricing-component-line-values span { color: #8a8176; font-size: .73rem; }
+.pricing-component-line-values strong { font-size: .86rem; }
+.pricing-inline-issues {
+  grid-column: 1 / -1;
+  margin: 2px 0 0;
+  padding: 8px 10px 8px 26px;
+  border-radius: 9px;
+  background: #fff1ec;
+  color: #8a4437;
+  font-size: .75rem;
+  line-height: 1.4;
+}
+
+.pricing-component-trace {
+  border: 1px solid #e2dbd0;
+  border-radius: 13px;
+  background: #fcfaf6;
+  overflow: hidden;
+}
+.pricing-component-trace > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 13px 14px;
+  cursor: pointer;
+  list-style-position: inside;
+}
+.pricing-component-trace[open] > summary { border-bottom: 1px solid #e7e0d6; background: #fffdf8; }
+.pricing-trace-title { display: inline-grid; gap: 3px; min-width: 0; }
+.pricing-trace-title strong { color: #38332d; }
+.pricing-trace-title small { color: #8a8176; font-size: .72rem; line-height: 1.35; }
+.pricing-trace-summary-values { display: inline-flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+.pricing-trace-summary-values > strong { color: #302b26; font-size: .84rem; }
+.pricing-trace-body { display: grid; gap: 13px; padding: 14px; }
+.pricing-trace-path { margin: 0; color: #7a7167; font-size: .76rem; line-height: 1.45; overflow-wrap: anywhere; }
+.pricing-mini-cost-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  margin: 0;
+}
+.pricing-mini-cost-grid > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: 9px;
+  background: #f5f1ea;
+}
+.pricing-mini-cost-grid dt { color: #776e64; font-size: .71rem; }
+.pricing-mini-cost-grid dd { margin: 0; color: #403a34; font-size: .73rem; font-weight: 800; text-align: right; }
+.pricing-trace-group { display: grid; gap: 8px; }
+.pricing-trace-group h5 { margin: 0; color: #655c52; font-size: .76rem; letter-spacing: .02em; }
+.pricing-component-trace-list.nested { padding-left: 12px; border-left: 2px solid #ebe4d9; }
+.pricing-trace-issues { padding: 10px 12px; border-radius: 10px; background: #fff1ec; }
+.pricing-trace-issues h5 { color: #874a40; }
+.pricing-trace-issues ul { margin: 0; padding-left: 19px; color: #8a4437; font-size: .75rem; line-height: 1.45; }
+
+.pricing-issues-columns {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.pricing-issues-columns > div {
+  padding: 13px;
+  border: 1px solid #e5ded3;
+  border-radius: 12px;
+  background: #faf7f1;
+}
+.pricing-issues-columns h4 { margin: 0 0 8px; color: #4a433c; font-size: .84rem; }
+.pricing-issues-columns p,
+.pricing-issues-columns ul { margin: 0; color: #7b7268; font-size: .76rem; line-height: 1.5; }
+.pricing-issues-columns ul { padding-left: 18px; }
+
 @media (max-width: 1040px) {
-  .pricing-layout { grid-template-columns: 1fr; }
+  .pricing-layout,
+  .pricing-quote-grid,
+  .pricing-detail-grid { grid-template-columns: 1fr; }
   .pricing-editor-panel { position: static; }
   .pricing-product-list { max-height: none; }
 }
 
 @media (max-width: 760px) {
-  .pricing-source-note { flex-direction: column; }
+  .pricing-source-note,
+  .pricing-quote-heading { flex-direction: column; }
   .pricing-filters,
-  .pricing-unit-guide { grid-template-columns: 1fr; }
-  .pricing-product-card { align-items: flex-start; flex-direction: column; }
+  .pricing-unit-guide,
+  .pricing-status-strip,
+  .pricing-mini-cost-grid,
+  .pricing-issues-columns { grid-template-columns: 1fr; }
+  .pricing-product-card,
+  .pricing-component-trace > summary { align-items: flex-start; flex-direction: column; }
+  .pricing-component-line { grid-template-columns: 1fr; }
+  .pricing-component-line-values { text-align: left; }
+  .pricing-inline-issues { grid-column: auto; }
+  .pricing-trace-summary-values { width: 100%; justify-content: space-between; }
+  .pricing-summary-row { align-items: flex-start; }
+  .pricing-summary-row > span { white-space: normal; }
 }

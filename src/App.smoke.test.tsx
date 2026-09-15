@@ -124,7 +124,7 @@ describe('React workspace smoke validation', () => {
     expect(html).toContain('Issues to resolve');
   });
 
-  it('renders the Phase 4 Product financial profile editor shell without browser-side effects', () => {
+  it('renders the Phase 4 financial profile editor and unit-economics calculator shell without browser-side effects', () => {
     const html = renderToStaticMarkup(<PricingPage />);
 
     expect(html).toContain('PHASE 4 · PRICING');
@@ -137,5 +137,22 @@ describe('React workspace smoke validation', () => {
     expect(html).toContain('Not configured');
     expect(html).toContain('Save financial profile');
     expect(html).toContain('human percentages');
+    expect(html).toContain('UNIT ECONOMICS');
+    expect(html).toContain('Pricing calculator');
+    expect(html).toContain('COST COMPOSITION');
+    expect(html).toContain('Direct materials');
+    expect(html).toContain('Safety reserve');
+    expect(html).toContain('Purchased components');
+    expect(html).toContain('Handmade Product components');
+    expect(html).toContain('Labor');
+    expect(html).toContain('Overhead');
+    expect(html).toContain('Total unit cost');
+    expect(html).toContain('Pricing policy');
+    expect(html).toContain('Selling price');
+    expect(html).toContain('Profit per unit');
+    expect(html).toContain('Effective markup');
+    expect(html).toContain('Effective margin');
+    expect(html).toContain('READINESS &amp; ISSUES');
+    expect(html).toContain('Issues to resolve');
   });
 });
