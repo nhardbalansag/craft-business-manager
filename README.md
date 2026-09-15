@@ -33,7 +33,7 @@ Tauri filesystem boundary (planned Phase 6)
 
 React components do not directly read or write spreadsheet cells.
 
-## Implemented through Phase 5.2B
+## Implemented through Phase 5.2
 
 ### Materials, products, production and pricing
 
@@ -69,22 +69,20 @@ Phase 5.1 is complete and provides:
 
 Phase 5.2A is complete.
 
-- **SheetJS Community Edition 0.20.3** is selected and pinned from the exact maintained upstream tarball;
+- **SheetJS Community Edition 0.20.3** is selected and pinned from the maintained upstream tarball;
 - `WorkbookCodec` provides a library-neutral workbook-byte boundary;
 - `SheetJsWorkbookCodec` is the only SheetJS-specific production adapter;
 - XLSX encode/decode is fully in memory;
 - encode returns `Uint8Array`;
 - decode accepts `Uint8Array | ArrayBuffer`;
 - authoritative formula writes are rejected;
-- real inbound formulas are surfaced as formula metadata instead of being evaluated;
+- real inbound formulas surface as formula metadata rather than being evaluated;
 - formula-looking strings remain literal text;
 - 12 focused real-XLSX tests cover the codec boundary.
 
 ### Phase 5.2B deterministic XLSX export
 
 Phase 5.2B is complete.
-
-The application now has a complete authoritative export direction:
 
 ```text
 BusinessDataset
@@ -95,30 +93,47 @@ BusinessDataset
    -> Uint8Array XLSX bytes
 ```
 
-Delivered behavior includes:
+Export covers all 13 canonical sheets, explicit metadata, deterministic rows/columns, normalized child sheets, source-metadata flattening, null-vs-zero fidelity, high-precision source numbers, ISO timestamp text, literal formula-looking text, and generated-workbook self-validation.
 
-- all 13 canonical workbook sheets, including empty required sheets;
-- exact schema-owned column ordering;
-- `_Meta` written first with explicit `exportedAt` metadata and no hidden clock;
-- deterministic top-level row ordering independent of source-array order;
-- MixPreset categories/lines and YieldSample inputs normalized into ordered child sheets;
-- Material supplier/source metadata flattened into explicit source columns;
-- Product pricing policy flattened without conflating null and numeric zero;
-- missing ProductStock/profile evidence preserved as missing;
-- explicit zero and boolean false preserved;
-- full source numeric precision and ISO timestamp text preserved;
-- formula-looking user/source text preserved literally through real `.xlsx` bytes;
-- invalid datasets rejected before codec invocation with structured validation issues;
-- generated neutral workbook self-validated before byte encoding;
-- exporter does not mutate input source data.
+### Phase 5.2C strict XLSX import
+
+Phase 5.2C is complete.
+
+```text
+XLSX bytes
+   -> WorkbookCodec decode
+   -> workbook schema + current metadata validation
+   -> reconstruct all nine source collections
+   -> reconstruct normalized child arrays
+   -> orphan/order integrity checks
+   -> Phase 5.1C dataset validation
+   -> accepted BusinessDataset + imported workbook metadata
+```
+
+Import behavior includes:
+
+- controlled codec/schema/metadata/reconstruction/dataset diagnostics;
+- current-version-only fail-closed validation;
+- Material source metadata reconstructed only when evidence exists;
+- nullable pricing policy reconstructed without conflating null and explicit zero;
+- MixPreset categories/lines and YieldSample inputs rebuilt by explicit order;
+- trim-aware case-insensitive child-parent matching while preserving authoritative parent IDs;
+- orphan child, duplicate order, gap, and non-1-starting sequence rejection;
+- formula cells rejected before reconstruction; cached formula values are never accepted as source data;
+- formula-looking literal text remains literal through real XLSX bytes;
+- complete 5.2B export -> XLSX -> 5.2C import semantic round-trip;
+- no repository/session mutation during import.
 
 ## Current phase boundaries
 
 The following remain intentionally not implemented:
 
-- strict workbook-to-dataset reconstruction/import diagnostics — **Phase 5.2C**;
-- complete repository snapshot/hydration and load/save coordination — **Phase 5.3+**;
-- `ExcelStorage.load/save` runtime wiring — later Phase 5;
+- complete source snapshot operation — **Phase 5.3A**;
+- validated atomic repository/session hydration — **Phase 5.3B**;
+- persistence coordinator and `ExcelStorage.load/save` lifecycle — **Phase 5.3C**;
+- older-workbook migration — **Phase 5.4A**;
+- backup/atomic-write transport — **Phase 5.4B**;
+- full hostile-workbook corruption/resource-limit hardening — **Phase 5.4C**;
 - browser persistence UI — **Phase 5.5**;
 - native Tauri filesystem workflow — **Phase 6**;
 - stock reservation, automatic stock deduction, stock transaction history, or production posting — separate future planning;
@@ -133,11 +148,12 @@ The following remain intentionally not implemented:
 
 ## Validation status
 
-Latest integrated technical baseline after Phase 5.2B implementation:
+Latest integrated technical baseline after Phase 5.2C implementation:
 
 ```text
-86 test files passed
-1073 tests passed
+87 test files passed
+1091 tests passed
+18 Phase 5.2C focused import tests
 13 Phase 5.2B focused export tests
 12 Phase 5.2A real-XLSX codec tests
 30 Phase 5.1C dataset validation tests
@@ -149,24 +165,24 @@ Production Vite build passed
 117 modules transformed
 ```
 
-Phase 5.2B implementation PR: **#143 — MERGED**
+Phase 5.2C implementation PR: **#146 — MERGED**
 
 Implementation merge:
 
-`296960ee2f6e70999f4d279d59f977f4cf1c1d22`
+`3cd2bb280ef463b2267cafbbd28b9b9aba1fb656`
 
 Exact post-merge CI:
 
-`35007932757 — SUCCESS`
+`35012385953 — SUCCESS`
 
-The existing Vite warning for the minified main JavaScript chunk being slightly above 500 kB remains non-blocking. Persistence is not yet wired into the React application entry path, so later UI/runtime integration should remeasure bundle impact and may use deferred/dynamic loading.
+The existing Vite warning for the minified main JavaScript chunk being slightly above 500 kB remains non-blocking. Persistence is not yet wired into the React application entry path, so later runtime/UI integration should remeasure bundle impact and may use deferred/dynamic loading.
 
 See:
 
 - `docs/DEVELOPMENT_PLAN.md`
 - `docs/PHASE_5_EXCEL_PERSISTENCE_PLAN.md`
 - `docs/PHASE_5_PROGRESS.md`
-- `docs/PHASE_5_2B_DETERMINISTIC_DATASET_TO_XLSX_EXPORT.md`
+- `docs/PHASE_5_2C_STRICT_XLSX_TO_DATASET_IMPORT_DIAGNOSTICS.md`
 
 ## Current status
 
@@ -177,10 +193,10 @@ See:
 **Phase 4 — COMPLETE**  
 **Phase 5 — IN PROGRESS**
 
-Phase 5.1, 5.2A, and 5.2B are complete.
+Phase 5.1 and Phase 5.2 are complete.
 
 Current next task:
 
-**Phase 5.2C — Strict XLSX-to-Dataset Import & Diagnostics — NEXT / NOT STARTED**
+**Phase 5.3A — Complete Source Snapshot Service — NEXT / NOT STARTED**
 
-5.2C must first receive a dedicated scope/decomposition review and development plan from the exact final green 5.2B closeout baseline before implementation begins.
+5.3A must first receive a dedicated scope/decomposition review and development plan from the exact final green Phase 5.2C closeout baseline before implementation begins.
