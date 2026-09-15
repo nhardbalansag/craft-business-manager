@@ -2,15 +2,27 @@
 
 ## Status
 
-**IMPLEMENTED — MERGE GATE PENDING**
+**COMPLETE**
 
-Authoritative base:
+Authoritative starting base:
 
 `develop` @ `cf5661003e575d45b82143b109cc72b8bad6d0e9`
 
 Feature branch:
 
 `feature/phase-4-2a-waste-adjusted-direct-material-unit-cost`
+
+Implementation PR:
+
+`#102 — MERGED`
+
+Implementation merge:
+
+`5603fac7d8263e4b242a7d5a7bc76a8a9da84de3`
+
+Post-merge `develop` CI:
+
+`34937447317 — SUCCESS`
 
 Development plan:
 
@@ -39,7 +51,7 @@ It deliberately uses:
 plannedBaseQuantityPerProduct
 ```
 
-and never uses physical one-piece:
+and never physical one-piece:
 
 ```text
 plannedBatchBaseQuantity
@@ -66,9 +78,7 @@ pricingDirectMaterialCostPerUnit
 = plannedBaseQuantityPerProduct × costPerBaseUnit
 ```
 
-The service validates that base cost plus reserve cost reconciles to pricing direct-material cost within a floating-point tolerance.
-
-No UI/currency rounding occurs.
+The service validates that base cost plus reserve cost reconciles to pricing direct-material cost within floating-point tolerance. Domain/application math remains full precision; currency formatting is a later presentation concern.
 
 ## Safety-waste protection
 
@@ -79,9 +89,9 @@ It does not:
 - multiply safety waste again;
 - re-apply observed defect loss;
 - apply parent safety waste to discrete components;
-- perform batch count rounding.
+- perform physical batch count rounding.
 
-For fractional count requirements, precise per-product quantity remains authoritative for standard unit economics.
+For fractional count requirements, precise per-product quantity remains authoritative for standard unit economics. Physical count rounding remains a future 4.4A batch concern.
 
 ## Readiness
 
@@ -99,9 +109,9 @@ Behavior:
 - `partial` preserves known line/subtotal evidence while any source/integrity issue remains;
 - `not-ready` publishes no pricing direct total when no valid direct-material line can be derived.
 
-Existing `NO_REQUIREMENTS` behavior remains `not-ready` in 4.2A. The service does not invent component-only neutral semantics because Product-component context belongs to later synthesis.
+Existing `NO_REQUIREMENTS` behavior remains `not-ready` in 4.2A. This phase does not invent component-only neutral semantics because Product-component context belongs to later fully loaded synthesis.
 
-## Per-material traceability
+## Per-material traceability and integrity
 
 Each line carries:
 
@@ -114,8 +124,7 @@ Each line carries:
 - base/reserve/pricing costs;
 - package cost basis evidence;
 - calibration/conversion evidence;
-- requirement contributions;
-- cost contributions;
+- requirement and cost contributions;
 - line readiness/issues.
 
 Material joins are trimmed and case-insensitive.
@@ -171,7 +180,7 @@ Focused coverage includes:
 - defensive cloning;
 - shared session wiring.
 
-## Validation evidence
+## Complete validation evidence
 
 Initial implementation/session head:
 
@@ -184,7 +193,7 @@ Initial CI:
 Cause:
 
 ```text
-Test fixture used invalid lowercase base unit "ml" instead of canonical BaseUnit "mL".
+A test fixture used invalid lowercase BaseUnit "ml" instead of canonical "mL".
 TypeScript correctly failed before tests/build.
 ```
 
@@ -194,11 +203,35 @@ Corrected implementation head:
 
 `6cd4579d6599e459b591c6f15ba8dc7a63850fc1`
 
-Corrected CI:
+Corrected implementation CI:
 
 `34937058854 — SUCCESS`
 
-Observed automated surface:
+Final documented feature head:
+
+`565e519b034a53edec525440f56b6996f17097d3`
+
+Final feature-head CI:
+
+`34937207673 — SUCCESS`
+
+Implementation PR:
+
+`#102 — MERGED`
+
+Independent PR CI:
+
+`34937298973 — SUCCESS`
+
+Implementation merge:
+
+`5603fac7d8263e4b242a7d5a7bc76a8a9da84de3`
+
+Exact post-merge `develop` CI:
+
+`34937447317 — SUCCESS`
+
+Validated automated surface:
 
 ```text
 61 test files passed
@@ -226,21 +259,24 @@ production Vite build passed
 - Excel/Tauri persistence;
 - stock reservation/deduction/production posting.
 
-## Remaining lifecycle gates
+## Completion statement
 
-1. Update development plan to merge-gate-pending.
-2. Require clean CI on the exact documented feature head.
-3. Verify scope diff against starting `develop`.
-4. Open implementation PR to `develop`.
-5. Require independent PR CI.
-6. Merge with expected-head protection.
-7. Require exact post-merge `develop` CI.
-8. Create documentation-only closeout.
-9. Mark 4.2A COMPLETE / 4.2B NEXT.
-10. Require closeout PR CI and exact final `develop` CI.
+All implementation gates are complete:
+
+1. dedicated development plan before code ✅
+2. implementation and focused tests ✅
+3. corrected full implementation CI ✅
+4. final documented feature-head CI ✅
+5. scope compare against exact starting `develop` ✅
+6. implementation PR #102 CI ✅
+7. merge with expected-head protection ✅
+8. exact post-merge `develop` CI ✅
+9. documentation-only closeout prepared ✅
+
+The remaining repository lifecycle gate is the closeout PR and exact final `develop` CI.
 
 ## Next task
 
-**4.2B — Recursive Fully Loaded Product Component Cost — NOT STARTED**
+**4.2B — Recursive Fully Loaded Product Component Cost — NEXT / NOT STARTED**
 
-Do not begin 4.2B until every 4.2A merge/closeout gate passes.
+Do not begin 4.2B until this documentation-only closeout is merged, exact final `develop` CI is green, and a dedicated 4.2B development plan/scope review is established.
