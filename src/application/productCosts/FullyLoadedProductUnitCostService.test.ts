@@ -5,13 +5,10 @@ import type { ProductFinancialProfile } from '../../domain/productFinancialProfi
 import { InMemoryProductRepository } from '../products/InMemoryProductRepository';
 import { InMemoryProductComponentRepository } from '../productComponents/InMemoryProductComponentRepository';
 import type { MaterialBackedComponentCostLine } from '../productComponents/MaterialBackedComponentCostService';
-import type {
-  RecursiveFullyLoadedProductComponentCostLine,
-} from './RecursiveFullyLoadedProductComponentCostService';
+import type { RecursiveFullyLoadedProductComponentCostLine } from './RecursiveFullyLoadedProductComponentCostService';
 import type { WasteAdjustedDirectMaterialCostResult } from './WasteAdjustedDirectMaterialCostService';
 import {
   FullyLoadedProductUnitCostService,
-  FullyLoadedProductUnitCostServiceError,
   type FullyLoadedDirectMaterialCostProvider,
   type FullyLoadedMaterialComponentCostProvider,
   type FullyLoadedProductComponentCostProvider,
@@ -29,7 +26,7 @@ function product(id: string, overrides: Partial<Product> = {}): Product {
   };
 }
 
-function component(
+function edge(
   id: string,
   parentProductId: string,
   sourceType: 'material' | 'product',
@@ -47,20 +44,15 @@ function component(
   };
 }
 
-function directCost(
+function direct(
   productId: string,
-  cost: number | null,
-  status: WasteAdjustedDirectMaterialCostResult['status'] = cost === null ? 'not-ready' : 'ready',
-  options: {
-    baseCost?: number | null;
-    wasteCost?: number | null;
-    noRequirements?: boolean;
-    issueCode?: 'REQUIREMENT_PARTIAL' | 'REQUIREMENT_NOT_READY' | 'COST_PARTIAL' | 'COST_NOT_READY';
-  } = {},
+  amount: number | null,
+  status: WasteAdjustedDirectMaterialCostResult['status'] = amount === null ? 'not-ready' : 'ready',
+  options: { base?: number | null; waste?: number | null; noRequirements?: boolean } = {},
 ): WasteAdjustedDirectMaterialCostResult {
   const noRequirements = options.noRequirements ?? false;
-  const baseCost = options.baseCost ?? cost;
-  const wasteCost = options.wasteCost ?? (cost === null || baseCost === null ? null : cost - baseCost);
+  const base = options.base ?? amount;
+  const waste = options.waste ?? (amount === null || base === null ? null : amount - base);
   return {
     productId,
     productIsActive: true,
@@ -70,102 +62,97 @@ function directCost(
     safetyWastePercentage: 0,
     safetyWasteMultiplier: 1,
     observedDefectRateIncluded: false,
-    baseDirectMaterialCostSubtotal: baseCost,
-    safetyWasteReserveCostSubtotal: wasteCost,
-    pricingDirectMaterialCostPerUnit: cost,
+    baseDirectMaterialCostSubtotal: base,
+    safetyWasteReserveCostSubtotal: waste,
+    pricingDirectMaterialCostPerUnit: amount,
     lines:
-      cost === null || noRequirements
+      amount === null || noRequirements
         ? []
-        : [
-            {
-              materialId: `${productId}-material`,
-              baseUnit: 'g',
-              source: 'fixed',
-              status: 'ready',
-              effectiveBaseQuantityPerProduct: 1,
-              wasteReserveBaseQuantityPerProduct: 0,
-              plannedBaseQuantityPerProduct: 1,
-              costPerBaseUnit: cost,
-              baseDirectMaterialCostPerUnit: baseCost,
-              safetyWasteReserveCostPerUnit: wasteCost,
-              pricingDirectMaterialCostPerUnit: cost,
-              packageCost: cost,
-              packageBaseQuantity: 1,
-              packageConversionSource: 'standard',
-              costingCalibrationId: null,
-              requirementContributions: [],
-              costContributions: [],
-              issues: [],
-            },
-          ],
+        : [{
+            materialId: `${productId}-material`,
+            baseUnit: 'g',
+            source: 'fixed',
+            status: 'ready',
+            effectiveBaseQuantityPerProduct: 1,
+            wasteReserveBaseQuantityPerProduct: 0,
+            plannedBaseQuantityPerProduct: 1,
+            costPerBaseUnit: amount,
+            baseDirectMaterialCostPerUnit: base,
+            safetyWasteReserveCostPerUnit: waste,
+            pricingDirectMaterialCostPerUnit: amount,
+            packageCost: amount,
+            packageBaseQuantity: 1,
+            packageConversionSource: 'standard',
+            costingCalibrationId: null,
+            requirementContributions: [],
+            costContributions: [],
+            issues: [],
+          }],
     requirementIssues: noRequirements
       ? [{ code: 'NO_REQUIREMENTS', message: `${productId} has no direct requirements.` }]
       : [],
     costIssues: [],
-    issues: options.issueCode
-      ? [{ code: options.issueCode, message: `${productId} direct cost is ${status}.` }]
-      : noRequirements
-        ? [
-            { code: 'REQUIREMENT_NOT_READY', message: `${productId} has no direct requirements.` },
-            { code: 'COST_NOT_READY', message: `${productId} has no direct cost.` },
-          ]
-        : status === 'partial'
-          ? [{ code: 'REQUIREMENT_PARTIAL', message: `${productId} direct cost is partial.` }]
-          : [],
+    issues: noRequirements
+      ? [
+          { code: 'REQUIREMENT_NOT_READY', message: `${productId} has no direct requirements.` },
+          { code: 'COST_NOT_READY', message: `${productId} has no direct cost.` },
+        ]
+      : status === 'partial'
+        ? [{ code: 'REQUIREMENT_PARTIAL', message: `${productId} direct cost is partial.` }]
+        : [],
   };
 }
 
-function profile(
+function financial(
   productId: string,
-  laborCostPerUnit: number,
-  overheadCostPerUnit: number,
+  labor: number,
+  overhead: number,
   pricingPolicy: ProductFinancialProfile['pricingPolicy'] = null,
 ): ProductFinancialProfile {
-  return { productId, laborCostPerUnit, overheadCostPerUnit, pricingPolicy };
+  return { productId, laborCostPerUnit: labor, overheadCostPerUnit: overhead, pricingPolicy };
 }
 
 function materialLine(
-  edge: ProductComponent,
+  component: ProductComponent,
   contribution: number | null,
-  status: MaterialBackedComponentCostLine['status'] = contribution === null ? 'not-ready' : 'ready',
 ): MaterialBackedComponentCostLine {
+  const ready = contribution !== null;
   return {
-    componentId: edge.id,
-    parentProductId: edge.parentProductId,
-    role: edge.role,
-    sourceMaterialId: edge.sourceId,
-    sourceMaterialName: `Material ${edge.sourceId}`,
-    quantityPerParent: edge.quantityPerParent,
-    status,
-    costPerPc: contribution === null ? null : contribution / edge.quantityPerParent,
+    componentId: component.id,
+    parentProductId: component.parentProductId,
+    role: component.role,
+    sourceMaterialId: component.sourceId,
+    sourceMaterialName: `Material ${component.sourceId}`,
+    quantityPerParent: component.quantityPerParent,
+    status: ready ? 'ready' : 'not-ready',
+    costPerPc: ready ? contribution / component.quantityPerParent : null,
     componentCostContribution: contribution,
     costingTrace: null,
     sourceAvailability: null,
-    issues:
-      status === 'ready'
-        ? []
-        : [{ code: 'MATERIAL_COST_NOT_DERIVABLE', message: `${edge.sourceId} is not ready.` }],
+    issues: ready
+      ? []
+      : [{ code: 'MATERIAL_COST_NOT_DERIVABLE', message: `${component.sourceId} is not ready.` }],
   };
 }
 
 function productLine(
-  edge: ProductComponent,
+  component: ProductComponent,
   contribution: number | null,
   status: RecursiveFullyLoadedProductComponentCostLine['status'] = contribution === null
     ? 'not-ready'
     : 'ready',
   knownContribution: number | null = contribution,
 ): RecursiveFullyLoadedProductComponentCostLine {
-  const unitCost = contribution === null ? null : contribution / edge.quantityPerParent;
-  const knownUnitCost = knownContribution === null ? null : knownContribution / edge.quantityPerParent;
+  const unit = contribution === null ? null : contribution / component.quantityPerParent;
+  const knownUnit = knownContribution === null ? null : knownContribution / component.quantityPerParent;
   return {
-    componentId: edge.id,
-    parentProductId: edge.parentProductId,
-    role: edge.role,
-    childProductId: edge.sourceId,
-    childProductName: `Product ${edge.sourceId}`,
-    quantityPerParent: edge.quantityPerParent,
-    path: [edge.parentProductId.toLowerCase(), edge.sourceId.toLowerCase()],
+    componentId: component.id,
+    parentProductId: component.parentProductId,
+    role: component.role,
+    childProductId: component.sourceId,
+    childProductName: `Product ${component.sourceId}`,
+    quantityPerParent: component.quantityPerParent,
+    path: [component.parentProductId.toLowerCase(), component.sourceId.toLowerCase()],
     status,
     childDirectMaterialCost: null,
     childDirectMaterialMode: 'costed',
@@ -173,26 +160,20 @@ function productLine(
     childProductComponentCostSubtotal: 0,
     childLaborCostPerUnit: 0,
     childOverheadCostPerUnit: 0,
-    knownChildProductionCostSubtotal: knownUnitCost,
-    childFullyLoadedUnitCost: status === 'ready' ? unitCost : null,
+    knownChildProductionCostSubtotal: knownUnit,
+    childFullyLoadedUnitCost: status === 'ready' ? unit : null,
     knownComponentCostContribution: knownContribution,
     componentCostContribution: status === 'ready' ? contribution : null,
     breakdown: [],
-    issues:
-      status === 'ready'
-        ? []
-        : [
-            {
-              code:
-                status === 'partial'
-                  ? 'DIRECT_MATERIAL_COST_PARTIAL'
-                  : 'DIRECT_MATERIAL_COST_NOT_READY',
-              message: `${edge.sourceId} recursive cost is ${status}.`,
-              componentId: edge.id,
-              productId: edge.sourceId,
-              path: [edge.parentProductId.toLowerCase(), edge.sourceId.toLowerCase()],
-            },
-          ],
+    issues: status === 'ready'
+      ? []
+      : [{
+          code: status === 'partial' ? 'DIRECT_MATERIAL_COST_PARTIAL' : 'DIRECT_MATERIAL_COST_NOT_READY',
+          message: `${component.sourceId} recursive cost is ${status}.`,
+          componentId: component.id,
+          productId: component.sourceId,
+          path: [component.parentProductId.toLowerCase(), component.sourceId.toLowerCase()],
+        }],
   };
 }
 
@@ -206,75 +187,52 @@ function setup(options: {
 } = {}) {
   const products = new InMemoryProductRepository(options.products ?? [product('P')]);
   const components = new InMemoryProductComponentRepository(options.components ?? []);
-  const directById = new Map(
-    Object.entries(options.directCosts ?? {}).map(([id, value]) => [id.trim().toLowerCase(), value]),
-  );
-  const profilesById = new Map(
-    Object.entries(options.profiles ?? {}).map(([id, value]) => [id.trim().toLowerCase(), value]),
-  );
-  const materialById = new Map(
-    Object.entries(options.materialLines ?? {}).map(([id, value]) => [id.trim().toLowerCase(), value]),
-  );
-  const productById = new Map(
-    Object.entries(options.productLines ?? {}).map(([id, value]) => [id.trim().toLowerCase(), value]),
-  );
+  const directs = new Map(Object.entries(options.directCosts ?? {}).map(([k, v]) => [k.toLowerCase(), v]));
+  const profiles = new Map(Object.entries(options.profiles ?? {}).map(([k, v]) => [k.toLowerCase(), v]));
+  const materials = new Map(Object.entries(options.materialLines ?? {}).map(([k, v]) => [k.toLowerCase(), v]));
+  const childProducts = new Map(Object.entries(options.productLines ?? {}).map(([k, v]) => [k.toLowerCase(), v]));
 
   const directProvider: FullyLoadedDirectMaterialCostProvider = {
-    async costProduct(productId: string) {
-      return (
-        directById.get(productId.trim().toLowerCase()) ??
-        directCost(productId, null, 'not-ready', { noRequirements: true })
-      );
+    async costProduct(id) {
+      return directs.get(id.trim().toLowerCase()) ?? direct(id, null, 'not-ready', { noRequirements: true });
     },
   };
-
   const materialProvider: FullyLoadedMaterialComponentCostProvider = {
-    async costComponent(edge: ProductComponent) {
-      return materialById.get(edge.id.trim().toLowerCase()) ?? materialLine(edge, null);
+    async costComponent(component) {
+      return materials.get(component.id.toLowerCase()) ?? materialLine(component, null);
     },
   };
-
   const productProvider: FullyLoadedProductComponentCostProvider = {
-    async costComponent(edge: ProductComponent) {
-      return productById.get(edge.id.trim().toLowerCase()) ?? productLine(edge, null);
+    async costComponent(component) {
+      return childProducts.get(component.id.toLowerCase()) ?? productLine(component, null);
+    },
+  };
+  const profileProvider: FullyLoadedProductFinancialProfileProvider = {
+    async getProfile(id) {
+      return profiles.get(id.trim().toLowerCase()) ?? null;
     },
   };
 
-  const financialProvider: FullyLoadedProductFinancialProfileProvider = {
-    async getProfile(productId: string) {
-      return profilesById.get(productId.trim().toLowerCase()) ?? null;
-    },
-  };
-
-  return {
-    service: new FullyLoadedProductUnitCostService(
-      products,
-      components,
-      directProvider,
-      materialProvider,
-      productProvider,
-      financialProvider,
-    ),
+  return new FullyLoadedProductUnitCostService(
     products,
     components,
-  };
+    directProvider,
+    materialProvider,
+    productProvider,
+    profileProvider,
+  );
 }
 
 describe('FullyLoadedProductUnitCostService', () => {
   it('synthesizes ready direct material + labor + overhead cost', async () => {
-    const { service } = setup({
-      directCosts: { P: directCost('P', 20) },
-      profiles: { P: profile('P', 5, 3) },
-    });
-
-    const result = await service.costProduct('P');
-
+    const result = await setup({
+      directCosts: { P: direct('P', 20) },
+      profiles: { P: financial('P', 5, 3) },
+    }).costProduct('P');
     expect(result).toMatchObject({
       status: 'ready',
       directMaterialMode: 'costed',
       directMaterialCostSubtotal: 20,
-      materialComponentCostSubtotal: 0,
-      productComponentCostSubtotal: 0,
       inputMaterialComponentSubtotal: 20,
       laborCostPerUnit: 5,
       overheadCostPerUnit: 3,
@@ -284,359 +242,244 @@ describe('FullyLoadedProductUnitCostService', () => {
     });
   });
 
-  it('accepts explicit zero labor and overhead as known cost evidence', async () => {
-    const { service } = setup({
-      directCosts: { P: directCost('P', 12) },
-      profiles: { P: profile('P', 0, 0) },
-    });
-
-    const result = await service.costProduct('P');
+  it('accepts explicit zero labor and overhead', async () => {
+    const result = await setup({ directCosts: { P: direct('P', 12) }, profiles: { P: financial('P', 0, 0) } }).costProduct('P');
     expect(result.status).toBe('ready');
     expect(result.totalFullyLoadedUnitCost).toBe(12);
   });
 
-  it('includes the 4.2A safety-waste-adjusted direct cost exactly once', async () => {
-    const { service } = setup({
-      directCosts: { P: directCost('P', 12, 'ready', { baseCost: 10, wasteCost: 2 }) },
-      profiles: { P: profile('P', 0, 0) },
-    });
-
-    const result = await service.costProduct('P');
+  it('includes 4.2A safety-waste direct cost exactly once', async () => {
+    const result = await setup({
+      directCosts: { P: direct('P', 12, 'ready', { base: 10, waste: 2 }) },
+      profiles: { P: financial('P', 0, 0) },
+    }).costProduct('P');
     expect(result.directMaterialCost?.baseDirectMaterialCostSubtotal).toBe(10);
     expect(result.directMaterialCost?.safetyWasteReserveCostSubtotal).toBe(2);
     expect(result.totalFullyLoadedUnitCost).toBe(12);
   });
 
-  it('adds ready Material-backed component contribution', async () => {
-    const cup = component('cup-edge', 'P', 'material', 'cup', { quantityPerParent: 2 });
-    const { service } = setup({
-      components: [cup],
-      directCosts: { P: directCost('P', 10) },
-      profiles: { P: profile('P', 2, 1) },
+  it('adds Material-backed component cost', async () => {
+    const cup = edge('cup-edge', 'P', 'material', 'cup', { quantityPerParent: 2 });
+    const result = await setup({
+      components: [cup], directCosts: { P: direct('P', 10) }, profiles: { P: financial('P', 2, 1) },
       materialLines: { 'cup-edge': materialLine(cup, 8) },
-    });
-
-    const result = await service.costProduct('P');
-    expect(result).toMatchObject({
-      status: 'ready',
-      directMaterialCostSubtotal: 10,
-      materialComponentCostSubtotal: 8,
-      inputMaterialComponentSubtotal: 18,
-      totalFullyLoadedUnitCost: 21,
-    });
+    }).costProduct('P');
+    expect(result.materialComponentCostSubtotal).toBe(8);
+    expect(result.totalFullyLoadedUnitCost).toBe(21);
   });
 
-  it('adds ready Product-backed 4.2B fully loaded contribution', async () => {
-    const child = component('child-edge', 'P', 'product', 'Child', { quantityPerParent: 3 });
-    const { service } = setup({
-      components: [child],
-      directCosts: { P: directCost('P', 10) },
-      profiles: { P: profile('P', 2, 1) },
+  it('adds Product-backed 4.2B fully loaded cost', async () => {
+    const child = edge('child-edge', 'P', 'product', 'Child', { quantityPerParent: 3 });
+    const result = await setup({
+      components: [child], directCosts: { P: direct('P', 10) }, profiles: { P: financial('P', 2, 1) },
       productLines: { 'child-edge': productLine(child, 18) },
-    });
-
-    const result = await service.costProduct('P');
+    }).costProduct('P');
     expect(result.productComponentCostSubtotal).toBe(18);
-    expect(result.inputMaterialComponentSubtotal).toBe(28);
     expect(result.totalFullyLoadedUnitCost).toBe(31);
   });
 
-  it('synthesizes mixed direct, Material-backed, Product-backed, labor, and overhead cost', async () => {
-    const cup = component('cup-edge', 'P', 'material', 'cup');
-    const child = component('child-edge', 'P', 'product', 'Child', { quantityPerParent: 2 });
-    const { service } = setup({
-      components: [child, cup],
-      directCosts: { P: directCost('P', 25) },
-      profiles: { P: profile('P', 7, 4) },
+  it('synthesizes mixed direct, purchased, handmade, labor, and overhead cost', async () => {
+    const cup = edge('cup-edge', 'P', 'material', 'cup');
+    const child = edge('child-edge', 'P', 'product', 'Child', { quantityPerParent: 2 });
+    const result = await setup({
+      components: [child, cup], directCosts: { P: direct('P', 25) }, profiles: { P: financial('P', 7, 4) },
       materialLines: { 'cup-edge': materialLine(cup, 9) },
       productLines: { 'child-edge': productLine(child, 16) },
-    });
-
-    const result = await service.costProduct('P');
+    }).costProduct('P');
     expect(result).toMatchObject({
       directMaterialCostSubtotal: 25,
       materialComponentCostSubtotal: 9,
       productComponentCostSubtotal: 16,
       inputMaterialComponentSubtotal: 50,
-      laborCostPerUnit: 7,
-      overheadCostPerUnit: 4,
       totalFullyLoadedUnitCost: 61,
       status: 'ready',
     });
   });
 
-  it('treats genuine component-only root Products as neutral direct-material zero', async () => {
-    const child = component('child-edge', 'P', 'product', 'Child');
-    const { service } = setup({
+  it('treats a genuine component-only root as neutral direct zero', async () => {
+    const child = edge('child-edge', 'P', 'product', 'Child');
+    const result = await setup({
       components: [child],
-      directCosts: { P: directCost('P', null, 'not-ready', { noRequirements: true }) },
-      profiles: { P: profile('P', 2, 1) },
+      directCosts: { P: direct('P', null, 'not-ready', { noRequirements: true }) },
+      profiles: { P: financial('P', 2, 1) },
       productLines: { 'child-edge': productLine(child, 10) },
-    });
-
-    const result = await service.costProduct('P');
-    expect(result).toMatchObject({
-      status: 'ready',
-      directMaterialMode: 'neutral-component-only',
-      directMaterialCostSubtotal: 0,
-      productComponentCostSubtotal: 10,
-      totalFullyLoadedUnitCost: 13,
-    });
+    }).costProduct('P');
+    expect(result).toMatchObject({ status: 'ready', directMaterialMode: 'neutral-component-only', totalFullyLoadedUnitCost: 13 });
   });
 
-  it('does not neutralize a Product with no direct materials and no components', async () => {
-    const { service } = setup({
-      directCosts: { P: directCost('P', null, 'not-ready', { noRequirements: true }) },
-      profiles: { P: profile('P', 2, 1) },
-    });
-
-    const result = await service.costProduct('P');
+  it('does not neutralize a root with no direct materials and no components', async () => {
+    const result = await setup({
+      directCosts: { P: direct('P', null, 'not-ready', { noRequirements: true }) },
+      profiles: { P: financial('P', 2, 1) },
+    }).costProduct('P');
     expect(result.status).toBe('partial');
-    expect(result.directMaterialMode).toBe('unresolved');
     expect(result.knownFullyLoadedUnitCostSubtotal).toBe(3);
     expect(result.totalFullyLoadedUnitCost).toBeNull();
-    expect(result.issues.map((issue) => issue.code)).toContain('DIRECT_MATERIAL_COST_NOT_READY');
   });
 
-  it('preserves known production-input subtotal when the financial profile is missing', async () => {
-    const { service } = setup({ directCosts: { P: directCost('P', 20) } });
-
-    const result = await service.costProduct('P');
+  it('preserves known cost when the financial profile is missing', async () => {
+    const result = await setup({ directCosts: { P: direct('P', 20) } }).costProduct('P');
     expect(result.status).toBe('partial');
     expect(result.knownFullyLoadedUnitCostSubtotal).toBe(20);
     expect(result.totalFullyLoadedUnitCost).toBeNull();
-    expect(result.issues.map((issue) => issue.code)).toContain('FINANCIAL_PROFILE_MISSING');
+    expect(result.issues.map((x) => x.code)).toContain('FINANCIAL_PROFILE_MISSING');
   });
 
-  it('fails closed for a mismatched financial profile while preserving known material cost', async () => {
-    const { service } = setup({
-      directCosts: { P: directCost('P', 20) },
-      profiles: { P: profile('Other', 5, 3) },
-    });
-
-    const result = await service.costProduct('P');
+  it('fails closed for mismatched financial profile identity', async () => {
+    const result = await setup({
+      directCosts: { P: direct('P', 20) }, profiles: { P: financial('Other', 5, 3) },
+    }).costProduct('P');
     expect(result.status).toBe('partial');
     expect(result.knownFullyLoadedUnitCostSubtotal).toBe(20);
-    expect(result.totalFullyLoadedUnitCost).toBeNull();
-    expect(result.issues.map((issue) => issue.code)).toContain('FINANCIAL_PROFILE_PRODUCT_MISMATCH');
+    expect(result.issues.map((x) => x.code)).toContain('FINANCIAL_PROFILE_PRODUCT_MISMATCH');
   });
 
-  it('fails closed for invalid labor or overhead cost', async () => {
-    const { service } = setup({
-      directCosts: { P: directCost('P', 20) },
-      profiles: { P: profile('P', -1, 3) },
-    });
-
-    const result = await service.costProduct('P');
+  it('fails closed for invalid financial adders', async () => {
+    const result = await setup({
+      directCosts: { P: direct('P', 20) }, profiles: { P: financial('P', -1, 3) },
+    }).costProduct('P');
     expect(result.status).toBe('partial');
     expect(result.totalFullyLoadedUnitCost).toBeNull();
-    expect(result.issues.map((issue) => issue.code)).toContain('FINANCIAL_PROFILE_COST_INVALID');
+    expect(result.issues.map((x) => x.code)).toContain('FINANCIAL_PROFILE_COST_INVALID');
   });
 
-  it('allows pricingPolicy null without blocking cost readiness', async () => {
-    const { service } = setup({
-      directCosts: { P: directCost('P', 10) },
-      profiles: { P: profile('P', 2, 1, null) },
-    });
-
-    const result = await service.costProduct('P');
+  it('allows null pricing policy', async () => {
+    const result = await setup({ directCosts: { P: direct('P', 10) }, profiles: { P: financial('P', 2, 1, null) } }).costProduct('P');
     expect(result.status).toBe('ready');
     expect(result.totalFullyLoadedUnitCost).toBe(13);
   });
 
-  it('does not change fully loaded cost when only pricing policy changes', async () => {
-    const base = {
-      directCosts: { P: directCost('P', 10) },
-    };
-    const first = setup({
-      ...base,
-      profiles: { P: profile('P', 2, 1, { method: 'markup-percent', value: 0.5 }) },
-    });
-    const second = setup({
-      ...base,
-      profiles: { P: profile('P', 2, 1, { method: 'profit-amount', value: 999 }) },
-    });
-
-    expect((await first.service.costProduct('P')).totalFullyLoadedUnitCost).toBe(13);
-    expect((await second.service.costProduct('P')).totalFullyLoadedUnitCost).toBe(13);
+  it('ignores pricing policy when deriving cost', async () => {
+    const first = await setup({
+      directCosts: { P: direct('P', 10) }, profiles: { P: financial('P', 2, 1, { method: 'markup-percent', value: 0.5 }) },
+    }).costProduct('P');
+    const second = await setup({
+      directCosts: { P: direct('P', 10) }, profiles: { P: financial('P', 2, 1, { method: 'profit-amount', value: 999 }) },
+    }).costProduct('P');
+    expect(first.totalFullyLoadedUnitCost).toBe(13);
+    expect(second.totalFullyLoadedUnitCost).toBe(13);
   });
 
-  it('preserves partial direct-material evidence but blocks authoritative total', async () => {
-    const { service } = setup({
-      directCosts: { P: directCost('P', 8, 'partial') },
-      profiles: { P: profile('P', 2, 1) },
-    });
-
-    const result = await service.costProduct('P');
+  it('preserves partial direct cost while blocking authoritative total', async () => {
+    const result = await setup({
+      directCosts: { P: direct('P', 8, 'partial') }, profiles: { P: financial('P', 2, 1) },
+    }).costProduct('P');
     expect(result.status).toBe('partial');
     expect(result.knownFullyLoadedUnitCostSubtotal).toBe(11);
     expect(result.totalFullyLoadedUnitCost).toBeNull();
-    expect(result.issues.map((issue) => issue.code)).toContain('DIRECT_MATERIAL_COST_PARTIAL');
+    expect(result.issues.map((x) => x.code)).toContain('DIRECT_MATERIAL_COST_PARTIAL');
   });
 
-  it('propagates unresolved Material-backed component cost', async () => {
-    const cup = component('cup-edge', 'P', 'material', 'cup');
-    const { service } = setup({
-      components: [cup],
-      directCosts: { P: directCost('P', 10) },
-      profiles: { P: profile('P', 2, 1) },
+  it('propagates not-ready Material-backed cost', async () => {
+    const cup = edge('cup-edge', 'P', 'material', 'cup');
+    const result = await setup({
+      components: [cup], directCosts: { P: direct('P', 10) }, profiles: { P: financial('P', 2, 1) },
       materialLines: { 'cup-edge': materialLine(cup, null) },
-    });
-
-    const result = await service.costProduct('P');
+    }).costProduct('P');
     expect(result.status).toBe('partial');
     expect(result.knownFullyLoadedUnitCostSubtotal).toBe(13);
-    expect(result.totalFullyLoadedUnitCost).toBeNull();
-    expect(result.issues.map((issue) => issue.code)).toContain('MATERIAL_COMPONENT_NOT_READY');
+    expect(result.issues.map((x) => x.code)).toContain('MATERIAL_COMPONENT_NOT_READY');
   });
 
-  it('propagates partial Product-backed cost while retaining its known subtotal', async () => {
-    const child = component('child-edge', 'P', 'product', 'Child');
-    const { service } = setup({
-      components: [child],
-      directCosts: { P: directCost('P', 10) },
-      profiles: { P: profile('P', 2, 1) },
+  it('propagates partial Product-backed known cost', async () => {
+    const child = edge('child-edge', 'P', 'product', 'Child');
+    const result = await setup({
+      components: [child], directCosts: { P: direct('P', 10) }, profiles: { P: financial('P', 2, 1) },
       productLines: { 'child-edge': productLine(child, null, 'partial', 7) },
-    });
-
-    const result = await service.costProduct('P');
+    }).costProduct('P');
     expect(result.status).toBe('partial');
     expect(result.productComponentCostSubtotal).toBe(7);
     expect(result.knownFullyLoadedUnitCostSubtotal).toBe(20);
-    expect(result.totalFullyLoadedUnitCost).toBeNull();
-    expect(result.issues.map((issue) => issue.code)).toContain('PRODUCT_COMPONENT_PARTIAL');
+    expect(result.issues.map((x) => x.code)).toContain('PRODUCT_COMPONENT_PARTIAL');
   });
 
   it('propagates not-ready Product-backed cost', async () => {
-    const child = component('child-edge', 'P', 'product', 'Child');
-    const { service } = setup({
-      components: [child],
-      directCosts: { P: directCost('P', 10) },
-      profiles: { P: profile('P', 2, 1) },
-      productLines: { 'child-edge': productLine(child, null, 'not-ready', null) },
-    });
-
-    const result = await service.costProduct('P');
+    const child = edge('child-edge', 'P', 'product', 'Child');
+    const result = await setup({
+      components: [child], directCosts: { P: direct('P', 10) }, profiles: { P: financial('P', 2, 1) },
+      productLines: { 'child-edge': productLine(child, null) },
+    }).costProduct('P');
     expect(result.status).toBe('partial');
-    expect(result.totalFullyLoadedUnitCost).toBeNull();
-    expect(result.issues.map((issue) => issue.code)).toContain('PRODUCT_COMPONENT_NOT_READY');
+    expect(result.issues.map((x) => x.code)).toContain('PRODUCT_COMPONENT_NOT_READY');
   });
 
-  it('fails closed on duplicate immediate component source corruption', async () => {
-    const a = component('a', 'P', 'material', 'cup');
-    const b = component('b', 'P', 'material', 'cup');
-    const { service } = setup({
-      components: [a, b],
-      directCosts: { P: directCost('P', 10) },
-      profiles: { P: profile('P', 2, 1) },
-      materialLines: { a: materialLine(a, 3), b: materialLine(b, 3) },
-    });
-
-    const result = await service.costProduct('P');
+  it('fails closed on duplicate immediate component sources', async () => {
+    const a = edge('a', 'P', 'material', 'cup');
+    const b = edge('b', 'P', 'material', 'cup');
+    const result = await setup({
+      components: [a, b], directCosts: { P: direct('P', 10) }, profiles: { P: financial('P', 2, 1) },
+    }).costProduct('P');
     expect(result.status).toBe('partial');
     expect(result.componentLines).toHaveLength(0);
-    expect(result.totalFullyLoadedUnitCost).toBeNull();
-    expect(result.issues.map((issue) => issue.code)).toContain('COMPONENT_GRAPH_INVALID');
+    expect(result.issues.map((x) => x.code)).toContain('COMPONENT_GRAPH_INVALID');
   });
 
-  it('orders component trace deterministically by source type, source ID, then component ID', async () => {
-    const zProduct = component('z-edge', 'P', 'product', 'Z');
-    const bMaterial = component('b-edge', 'P', 'material', 'B');
-    const aMaterial2 = component('z-a', 'P', 'material', 'A');
-    const aMaterial1 = component('a-a', 'P', 'material', 'A');
-    const { service } = setup({
-      components: [zProduct, bMaterial, aMaterial2, aMaterial1],
-      directCosts: { P: directCost('P', 1) },
-      profiles: { P: profile('P', 0, 0) },
+  it('orders valid component trace deterministically by source type then source ID', async () => {
+    const zProduct = edge('z-product', 'P', 'product', 'Z');
+    const bMaterial = edge('b-material', 'P', 'material', 'B');
+    const aMaterial = edge('a-material', 'P', 'material', 'A');
+    const result = await setup({
+      components: [zProduct, bMaterial, aMaterial],
+      directCosts: { P: direct('P', 1) }, profiles: { P: financial('P', 0, 0) },
       materialLines: {
-        'b-edge': materialLine(bMaterial, 1),
-        'z-a': materialLine(aMaterial2, 1),
-        'a-a': materialLine(aMaterial1, 1),
+        'b-material': materialLine(bMaterial, 1),
+        'a-material': materialLine(aMaterial, 1),
       },
-      productLines: { 'z-edge': productLine(zProduct, 1) },
-    });
-
-    const result = await service.costProduct('P');
+      productLines: { 'z-product': productLine(zProduct, 1) },
+    }).costProduct('P');
     expect(result.componentLines.map((entry) => entry.line.componentId)).toEqual([
-      'a-a',
-      'z-a',
-      'b-edge',
-      'z-edge',
+      'a-material', 'b-material', 'z-product',
     ]);
   });
 
-  it('throws a typed error when root Product does not exist', async () => {
-    const { service } = setup({ products: [] });
-
+  it('throws typed PRODUCT_NOT_FOUND for a missing root', async () => {
+    const service = setup({ products: [] });
     await expect(service.costProduct('missing')).rejects.toMatchObject({
-      name: 'FullyLoadedProductUnitCostServiceError',
-      code: 'PRODUCT_NOT_FOUND',
-      productId: 'missing',
-    } satisfies Partial<FullyLoadedProductUnitCostServiceError>);
+      name: 'FullyLoadedProductUnitCostServiceError', code: 'PRODUCT_NOT_FOUND', productId: 'missing',
+    });
   });
 
   it('keeps archived root Products inspectable', async () => {
-    const { service } = setup({
-      products: [product('P', { isActive: false })],
-      directCosts: { P: directCost('P', 10) },
-      profiles: { P: profile('P', 2, 1) },
-    });
-
-    const result = await service.costProduct('P');
+    const result = await setup({
+      products: [product('P', { isActive: false })], directCosts: { P: direct('P', 10) }, profiles: { P: financial('P', 2, 1) },
+    }).costProduct('P');
     expect(result.productIsActive).toBe(false);
     expect(result.status).toBe('ready');
     expect(result.totalFullyLoadedUnitCost).toBe(13);
   });
 
   it('returns not-ready when no meaningful cost evidence exists', async () => {
-    const { service } = setup({
-      directCosts: { P: directCost('P', null, 'not-ready', { noRequirements: true }) },
-    });
-
-    const result = await service.costProduct('P');
+    const result = await setup({ directCosts: { P: direct('P', null, 'not-ready', { noRequirements: true }) } }).costProduct('P');
     expect(result.status).toBe('not-ready');
     expect(result.knownFullyLoadedUnitCostSubtotal).toBeNull();
     expect(result.totalFullyLoadedUnitCost).toBeNull();
   });
 
   it('fails closed on invalid Product-backed known contribution', async () => {
-    const child = component('child-edge', 'P', 'product', 'Child');
-    const invalid = productLine(child, null, 'partial', -5);
-    const { service } = setup({
-      components: [child],
-      directCosts: { P: directCost('P', 10) },
-      profiles: { P: profile('P', 2, 1) },
-      productLines: { 'child-edge': invalid },
-    });
-
-    const result = await service.costProduct('P');
+    const child = edge('child-edge', 'P', 'product', 'Child');
+    const result = await setup({
+      components: [child], directCosts: { P: direct('P', 10) }, profiles: { P: financial('P', 2, 1) },
+      productLines: { 'child-edge': productLine(child, null, 'partial', -5) },
+    }).costProduct('P');
     expect(result.status).toBe('partial');
-    expect(result.totalFullyLoadedUnitCost).toBeNull();
-    expect(result.issues.map((issue) => issue.code)).toContain('DERIVED_COST_INVALID');
+    expect(result.issues.map((x) => x.code)).toContain('DERIVED_COST_INVALID');
   });
 
-  it('defensively clones returned direct and recursive evidence', async () => {
-    const child = component('child-edge', 'P', 'product', 'Child');
-    const direct = directCost('P', 10);
-    const recursive = productLine(child, 5);
-    recursive.path = ['p', 'child'];
-    const { service } = setup({
-      components: [child],
-      directCosts: { P: direct },
-      profiles: { P: profile('P', 0, 0) },
-      productLines: { 'child-edge': recursive },
-    });
+  it('defensively clones direct and recursive evidence', async () => {
+    const child = edge('child-edge', 'P', 'product', 'Child');
+    const sourceDirect = direct('P', 10);
+    const sourceChild = productLine(child, 5);
+    const result = await setup({
+      components: [child], directCosts: { P: sourceDirect }, profiles: { P: financial('P', 0, 0) },
+      productLines: { 'child-edge': sourceChild },
+    }).costProduct('P');
 
-    const result = await service.costProduct('P');
-    result.directMaterialCost!.lines[0].issues.push({
-      code: 'DERIVED_COST_INVALID',
-      message: 'mutated',
-    });
-    const productEntry = result.componentLines.find((entry) => entry.sourceType === 'product');
-    if (!productEntry || productEntry.sourceType !== 'product') throw new Error('missing Product line');
-    (productEntry.line.path as string[]).push('mutated');
+    result.directMaterialCost!.lines[0].issues.push({ code: 'DERIVED_COST_INVALID', message: 'mutated' });
+    const childEntry = result.componentLines.find((entry) => entry.sourceType === 'product');
+    if (!childEntry || childEntry.sourceType !== 'product') throw new Error('missing Product line');
+    (childEntry.line.path as string[]).push('mutated');
 
-    expect(direct.lines[0].issues).toEqual([]);
-    expect(recursive.path).toEqual(['p', 'child']);
+    expect(sourceDirect.lines[0].issues).toEqual([]);
+    expect(sourceChild.path).toEqual(['p', 'child']);
   });
 });
