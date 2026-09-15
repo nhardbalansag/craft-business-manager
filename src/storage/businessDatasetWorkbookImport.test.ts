@@ -229,7 +229,8 @@ describe('BusinessDataset workbook import', () => {
   it('accepts ArrayBuffer input through the real codec boundary', () => {
     const codec = new SheetJsWorkbookCodec();
     const bytes = exportBusinessDatasetToXlsx(datasetFixture(), METADATA, codec);
-    const buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+    const buffer = new ArrayBuffer(bytes.byteLength);
+    new Uint8Array(buffer).set(bytes);
     const result = importBusinessDatasetFromXlsx(buffer, codec);
     expect(result.ok).toBe(true);
   });
