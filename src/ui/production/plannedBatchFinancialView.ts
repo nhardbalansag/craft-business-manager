@@ -94,7 +94,7 @@ function limiterRow(resource: LimitingResource): FinancialLimiterRow {
  * publishes no authoritative top-level limiter explanation.
  */
 export function buildFinancialLimiterRows(
-  result: PlannedBatchCapacityFeasibilityResult | null,
+  result: Pick<PlannedBatchCapacityFeasibilityResult, 'limitingResources'> | null,
 ): FinancialLimiterRow[] {
   return result ? result.limitingResources.map(limiterRow) : [];
 }
