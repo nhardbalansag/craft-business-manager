@@ -2,7 +2,7 @@
 
 ## Status
 
-**IMPLEMENTED — FEATURE-HEAD VALIDATION COMPLETE — MERGE GATE PENDING**
+**COMPLETE — IMPLEMENTATION MERGED AND POST-MERGE VALIDATED**
 
 Authoritative starting base:
 
@@ -20,9 +20,13 @@ Development plan:
 
 `docs/PHASE_4_3A_SELLING_PRICE_DERIVATION_PLAN.md`
 
+Implementation PR:
+
+`#108 — Phase 4.3A — Selling Price Derivation`
+
 ## Delivered
 
-### Authoritative application service
+### Authoritative selling-price application service
 
 Added:
 
@@ -39,34 +43,34 @@ The service combines only:
 ```text
 Phase 4.2C ready totalFullyLoadedUnitCost
 +
-Phase 4.1C configured Product pricingPolicy
+Phase 4.1C Product pricingPolicy
 +
-Phase 4.1B validated deriveSellingPrice()
+Phase 4.1B validatePricingPolicy()/deriveSellingPrice()
 ```
 
 No pricing formula is duplicated in the application layer.
 
-### Authoritative cost-basis rule
+### Authoritative price basis
 
-Selling price is derived only when 4.2C reports:
+Selling price is derived only from a Phase 4.2C result where:
 
 ```text
 status = ready
 ```
 
-and exposes a finite non-negative:
+and:
 
 ```text
 totalFullyLoadedUnitCost
 ```
 
-`knownFullyLoadedUnitCostSubtotal` remains visible as diagnostic cost evidence but is never used as an authoritative selling-price basis.
+is finite and non-negative.
 
-This prevents partial production cost from becoming a misleading sale price.
+`knownFullyLoadedUnitCostSubtotal` remains diagnostic partial evidence and is never used to derive an authoritative selling price.
 
-### Supported pricing policies
+### Pricing methods
 
-4.3A delegates to the completed 4.1B pricing engine for:
+The completed Phase 4.1B engine remains authoritative for:
 
 ```text
 profit-amount
@@ -74,19 +78,13 @@ markup-percent
 margin-percent
 ```
 
-The domain remains authoritative for:
+including validation, full-precision formulas, invalid-margin rejection, and non-finite result rejection.
 
-- pricing-policy validation;
-- target-margin bounds;
-- full-precision formulas;
-- non-finite/negative cost rejection;
-- non-finite/negative derived price rejection.
-
-4.3A performs no monetary rounding.
+4.3A performs no currency rounding or charm pricing.
 
 ### Unconfigured pricing policy
 
-When a Product has a valid cost basis but:
+When cost is ready but:
 
 ```text
 pricingPolicy = null
@@ -99,73 +97,46 @@ status = partial
 sellingPrice = null
 ```
 
-The ready total unit cost remains visible.
+The ready fully loaded cost remains visible. No default markup, fixed profit, or margin is invented.
 
-No default markup, default profit amount, or default margin is invented.
+### Fail-closed readiness
 
-### Missing/corrupted profile handling
+The service blocks selling-price publication for:
 
-The service fails closed for:
-
+- partial or not-ready 4.2C cost;
 - missing financial profile;
-- financial profile whose Product identity does not match the cost result Product;
+- Product/profile identity mismatch;
 - invalid/corrupted pricing method;
 - negative fixed-profit amount;
 - negative markup;
-- target margin >= 1;
-- non-finite pricing-policy value.
+- target margin outside `[0, 1)`;
+- non-finite policy value;
+- contradictory ready cost with null/non-finite/negative authoritative total;
+- requested Product/cost-evidence identity mismatch;
+- non-finite/invalid derived selling price.
 
-Underlying Phase 4.1B `PricingError.code` is preserved on controlled 4.3A issues.
+Underlying Phase 4.1B `PricingError.code` remains available in controlled 4.3A issue evidence.
 
-### Cost readiness propagation
-
-If 4.2C is:
+### Readiness result
 
 ```text
+ready
+  authoritative ready cost + valid configured policy + valid derived price
+
 partial
-```
+  meaningful cost evidence exists, but selling price is unresolved
 
-4.3A preserves the known cost subtotal and returns:
-
-```text
-status = partial
-sellingPrice = null
-```
-
-If 4.2C is:
-
-```text
 not-ready
+  no trustworthy authoritative priceable cost basis
 ```
 
-4.3A returns:
+### Product state and defensive behavior
 
-```text
-status = not-ready
-sellingPrice = null
-```
-
-A configured pricing policy never makes an unresolved production-cost basis priceable.
-
-### Defensive evidence checks
-
-4.3A also fails closed when:
-
-- requested Product identity and 4.2C Product identity mismatch;
-- 4.2C claims `ready` while `totalFullyLoadedUnitCost` is null/non-finite/negative;
-- 4.1B derivation produces a non-finite/invalid selling price.
-
-The financial profile is not read when cost evidence belongs to another Product.
-
-### Archived Product behavior
-
-Archived root Products remain inspectable/priceable when cost and pricing evidence are otherwise valid.
-
-The result preserves:
-
-`productIsActive`
-
-and performs no Product-state mutation.
+- archived root Products remain inspectable/priceable when cost and pricing policy are otherwise valid;
+- `productIsActive` is preserved;
+- source pricing policy is defensively cloned;
+- canonical 4.2C Product identity is used for profile lookup;
+- no Product/profile/source state is mutated.
 
 ### Shared session wiring
 
@@ -173,13 +144,13 @@ Updated:
 
 `src/application/session.ts`
 
-Added shared:
+Added:
 
 ```text
 sellingPriceDerivationService
 ```
 
-using:
+constructed from:
 
 ```text
 fullyLoadedProductUnitCostService
@@ -188,34 +159,7 @@ productFinancialProfileService
 
 No React changes were required.
 
-## Result contract
-
-4.3A exposes:
-
-```text
-productId
-productName
-productIsActive
-status
-costStatus
-totalFullyLoadedUnitCost
-knownFullyLoadedUnitCostSubtotal
-pricingPolicy
-sellingPrice
-issues[]
-```
-
-Readiness:
-
-```text
-ready      = authoritative cost + valid configured policy + valid derived price
-partial    = meaningful cost evidence exists, but price is unresolved
-not-ready  = no trustworthy priceable production-cost basis
-```
-
-## Controlled issues
-
-Implemented issue categories:
+## Controlled issue categories
 
 ```text
 COST_PARTIAL
@@ -229,63 +173,23 @@ PRICING_POLICY_INVALID
 SELLING_PRICE_DERIVATION_FAILED
 ```
 
-## Tests
-
-Added:
-
-`src/application/pricing/SellingPriceDerivationService.test.ts`
-
-with **27 focused tests** covering:
-
-- fixed-profit derivation;
-- markup derivation;
-- target-margin derivation;
-- repeating/full-precision margin result;
-- zero fixed-profit/markup/margin policies;
-- zero ready unit cost;
-- unconfigured pricing policy;
-- missing/mismatched profile;
-- negative profit/markup policy;
-- invalid 100% target margin;
-- non-finite policy values;
-- unsupported imported pricing method;
-- partial cost preservation without pricing;
-- not-ready cost blocking;
-- contradictory ready/null cost evidence;
-- non-finite ready cost evidence;
-- requested/cost Product identity mismatch;
-- authoritative total versus known subtotal protection;
-- policy-change price recomputation with stable cost evidence;
-- archived Product inspectability;
-- selling-price overflow failure;
-- defensive pricing-policy cloning;
-- canonical Product identity for profile lookup.
-
-Added:
-
-`src/application/pricing/SellingPriceDerivationSession.test.ts`
-
-with **1 shared-session wiring test**.
-
 ## Validation evidence
 
-Implementation head:
-
-`3cded1826b18aa46195e9d87e60cafcafc1d9cd6`
-
-Implementation CI:
-
-`34942368270 — SUCCESS`
-
-Observed validation surface:
-
 ```text
-67 test files passed
-807 tests passed
+Plan-before-code commit         4ae338331cf4f28d6ec6f997ab94339af9b4d056
+Implementation head             3cded1826b18aa46195e9d87e60cafcafc1d9cd6
+Implementation CI               34942368270 — SUCCESS
+Final feature head              258eca03d64325631e04b776ab9d1a42d377e87b
+Final feature-head CI           34942557415 — SUCCESS
+PR #108                         MERGED
+PR CI                           34942666927 — SUCCESS
+Implementation merge            4a2d28ef7be757a2fe4f4f2e037ad4a6abef11fd
+Post-merge develop CI           34942765862 — SUCCESS
+67 test files / 807 tests
 27 SellingPriceDerivationService tests
 1 4.3A shared-session wiring test
 50 pricing-domain tests
-24 4.2C fully loaded cost tests
+24 Phase 4.2C fully loaded cost tests
 7 React smoke tests
 TypeScript typecheck passed
 production Vite build passed
@@ -296,36 +200,41 @@ No implementation CI failure occurred.
 
 ## Scope retained
 
-4.3A did not add:
+4.3A did **not** add:
 
 - profit per unit;
 - effective markup;
 - effective margin;
-- consolidated Product pricing quote service;
+- consolidated Product pricing quote/readiness service;
 - batch production cost;
 - expected revenue/profit;
 - batch margin;
-- capacity warnings;
+- capacity feasibility/warnings;
 - React pricing UI;
-- financial-profile editing;
+- source-profile editing;
 - stock reservation/deduction;
 - production posting;
 - Excel/Tauri persistence;
-- tax/VAT/discount/fee logic;
-- price rounding/charm-pricing policy.
+- tax/VAT/discount/marketplace-fee logic;
+- price rounding/charm pricing.
 
-## Current merge gate
+Those remain in 4.3B+, 4.4+, 4.5+, or later work.
 
-Before PR creation:
+## Completion result
 
-1. update the dedicated plan with implementation evidence;
-2. require clean CI on the exact final documented feature head;
-3. compare the feature branch against starting `develop`;
-4. verify no 4.3B+ leakage;
-5. open the implementation PR only if all gates pass.
+Phase 4.3A implementation, feature-head validation, PR validation, merge, and exact post-merge `develop` validation are complete.
 
-## Next task after full closeout
+The documentation-only closeout advances the Phase 4 tracker to:
+
+```text
+4.3 — Selling Price & Unit Economics                 IN PROGRESS
+    4.3A — Selling Price Derivation                       COMPLETE
+    4.3B — Profit / Markup / Margin Metrics               NEXT
+    4.3C — Product Pricing Quote & Readiness Service      NOT STARTED
+```
+
+## Next task
 
 **4.3B — Profit / Markup / Margin Metrics — NEXT / NOT STARTED**
 
-Do not begin 4.3B until 4.3A implementation and documentation closeout are merged and exact final `develop` CI is green.
+Do not begin 4.3B until this documentation-only closeout is merged and the exact final `develop` CI is green.
