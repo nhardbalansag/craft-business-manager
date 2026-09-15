@@ -8,6 +8,7 @@ import { ProductionCapacityService } from './production/ProductionCapacityServic
 import { ProductionRequirementService } from './production/ProductionRequirementService';
 import { ComponentSourceAvailabilityService } from './productComponents/ComponentSourceAvailabilityService';
 import { InMemoryProductComponentRepository } from './productComponents/InMemoryProductComponentRepository';
+import { MaterialBackedComponentCostService } from './productComponents/MaterialBackedComponentCostService';
 import { ProductComponentService } from './productComponents/ProductComponentService';
 import { InMemoryProductRepository } from './products/InMemoryProductRepository';
 import { ProductService } from './products/ProductService';
@@ -50,6 +51,11 @@ export const componentSourceAvailabilityService = new ComponentSourceAvailabilit
   materialRepository,
   productRepository,
   productStockRepository,
+  materialCalibrationEvidenceProvider,
+);
+export const materialBackedComponentCostService = new MaterialBackedComponentCostService(
+  materialRepository,
+  componentSourceAvailabilityService,
   materialCalibrationEvidenceProvider,
 );
 
