@@ -25,9 +25,9 @@ Master plan:
         5.3B1 — Hydration Replacement Port & Bulk Replace COMPLETE
         5.3B2 — Validated Atomic Hydration + Rollback     COMPLETE
         5.3B3 — Session/Fault Injection/Completion Gate   COMPLETE
-    5.3C — Persistence Coordinator / Load-Save Lifecycle  PLANNING ESTABLISHED
-        5.3C1 — Persistence Lifecycle & Workbook Transport Contract  NEXT / NOT STARTED
-        5.3C2 — Snapshot-to-XLSX Export / Save Orchestration         NOT STARTED
+    5.3C — Persistence Coordinator / Load-Save Lifecycle  IN PROGRESS
+        5.3C1 — Persistence Lifecycle & Workbook Transport Contract  COMPLETE
+        5.3C2 — Snapshot-to-XLSX Export / Save Orchestration         NEXT / NOT STARTED
         5.3C3 — XLSX Load / Import / Hydrate & Completion Gate       NOT STARTED
 
 5.4 — Version Compatibility, Backup & Recovery Safety     NOT STARTED
@@ -68,7 +68,9 @@ Master plan:
 - Rollback failure remains a distinct severe diagnostic and may never be reported as successful hydration.
 - 5.3C is formally split into C1 lifecycle/transport contract, C2 export/save orchestration, and C3 load/import/hydrate completion.
 - 5.3C transport is workbook-byte oriented; it must not expose a second dataset-level `load(): BusinessDataset` / `save(dataset)` persistence path.
-- 5.3C may carry only narrow backup-request/receipt semantics; 5.4B remains owner of detailed backup creation, staged writes, atomic replacement, cleanup, and recovery policy.
+- 5.3C1 removed the obsolete `StoragePort` / placeholder `ExcelStorage` scaffold and established `WorkbookTransport` over defensive workbook-byte ownership.
+- 5.3C1 defines only neutral backup request/receipt semantics; detailed backup creation, staged writes, atomic replacement, cleanup, and recovery remain 5.4B.
+- 5.3C1 defines stable lifecycle stages/codes and preserves structured import rejection plus distinct severe rollback-failure context.
 - 5.3C owns load/save lifecycle orchestration; 5.4B owns backup/atomic filesystem transport; Phase 6 owns native Tauri filesystem behavior.
 
 ## Completed persistence foundation
@@ -231,7 +233,7 @@ Final CI                   35034624914 — SUCCESS
 
 ## Phase 5.3C — Persistence Coordinator / Load-Save Lifecycle
 
-Status: **PLANNING ESTABLISHED — IMPLEMENTATION NOT STARTED**
+Status: **IN PROGRESS**
 
 Dedicated plan:
 
@@ -242,21 +244,53 @@ Planning baseline:
 ```text
 develop  8e6935d4abcebd3c31e8c1237fc71995130793fa
 CI       35034624914 — SUCCESS
+Planning PR #158            MERGED
+Planning merge              a9eae16a2439fc8fbb458b4e370d858674ac087d
+Planning post-merge CI      35035328007 — SUCCESS
 ```
 
 Locked decomposition:
 
 ```text
-5.3C1 — Persistence Lifecycle & Workbook Transport Contract  NEXT / NOT STARTED
-5.3C2 — Snapshot-to-XLSX Export / Save Orchestration         NOT STARTED
+5.3C1 — Persistence Lifecycle & Workbook Transport Contract  COMPLETE
+5.3C2 — Snapshot-to-XLSX Export / Save Orchestration         NEXT / NOT STARTED
 5.3C3 — XLSX Load / Import / Hydrate & Completion Gate       NOT STARTED
 ```
 
-Planning audit finding:
+### 5.3C1 — Persistence Lifecycle & Workbook Transport Contract
 
-The early `StoragePort` / `ExcelStorage` scaffold is dataset-level and predates the completed workbook architecture. 5.3C must establish one workbook-byte transport/lifecycle path so persistence orchestration cannot bypass the existing 5.2 codec/import/export contracts.
+Status: **COMPLETE**
 
-No 5.3C runtime implementation has started in the planning branch.
+Completion record:
+
+`docs/PHASE_5_3C1_PERSISTENCE_LIFECYCLE_WORKBOOK_TRANSPORT.md`
+
+```text
+Authoritative baseline     a9eae16a2439fc8fbb458b4e370d858674ac087d
+Baseline CI                35035328007 — SUCCESS
+Feature head               b3bbb9b2a524289f73940ab951cbd96d61d9bc6c
+Implementation PR #159     MERGED
+PR CI                      35036181681 — SUCCESS
+Implementation merge       5f37670d0b1865ceb691980c6c6f6864771ca07c
+Post-merge develop CI      35036255261 — SUCCESS
+93 test files / 1140 tests
+12 focused 5.3C1 tests
+TypeScript typecheck passed
+Production Vite build passed
+121 modules transformed
+```
+
+Delivered:
+
+- byte-only `WorkbookTransport` contract;
+- defensive workbook-byte ownership helper;
+- neutral backup request/receipt vocabulary without implementing Phase 5.4B semantics;
+- reusable `InMemoryWorkbookTransport` for later coordinator integration tests;
+- stable persistence lifecycle stages and operational codes;
+- structured workbook-import and hydration rejection result vocabulary;
+- distinct severe hydration rollback-failure code;
+- removal of obsolete dataset-level `StoragePort` and placeholder `ExcelStorage`;
+- regression proof that the removed scaffold had no active compile-time consumers.
 
 ## Current persistence boundary
 
@@ -272,8 +306,8 @@ Repository bulk replacement primitive COMPLETE — 5.3B1
 Validated atomic hydration/rollback   COMPLETE — 5.3B2
 Hydration session completion gate     COMPLETE — 5.3B3
 Persistence coordinator plan          ESTABLISHED — 5.3C
-Workbook transport/lifecycle contract NEXT / NOT STARTED — 5.3C1
-Export/save orchestration             NOT STARTED — 5.3C2
+Workbook transport/lifecycle contract COMPLETE — 5.3C1
+Export/save orchestration             NEXT / NOT STARTED — 5.3C2
 Load/import/hydrate orchestration     NOT STARTED — 5.3C3
 Detailed backup/atomic write          NOT STARTED — 5.4B
 Native filesystem                     Phase 6
@@ -281,6 +315,6 @@ Native filesystem                     Phase 6
 
 ## Current active task
 
-**5.3C1 — Persistence Lifecycle & Workbook Transport Contract — NEXT / NOT STARTED**
+**5.3C2 — Snapshot-to-XLSX Export / Save Orchestration — NEXT / NOT STARTED**
 
-Do not begin 5.3C1 implementation until the 5.3C planning PR is merged, exact final `develop` CI is green, and the user separately says to proceed.
+Do not begin 5.3C2 implementation until the 5.3C1 closeout PR is merged, exact final `develop` CI is green, and the user separately says to proceed.
