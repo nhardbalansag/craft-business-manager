@@ -29,8 +29,8 @@ CI       34984709583 — SUCCESS
     5.1C — Dataset Validation & Reference Integrity       COMPLETE
 
 5.2 — XLSX Workbook Codec                                 IN PROGRESS
-    5.2A — XLSX Library Evaluation & Codec Boundary       PLAN ESTABLISHED / IMPLEMENTATION NOT STARTED
-    5.2B — Deterministic Dataset-to-XLSX Export           NOT STARTED
+    5.2A — XLSX Library Evaluation & Codec Boundary       COMPLETE
+    5.2B — Deterministic Dataset-to-XLSX Export           NEXT / NOT STARTED
     5.2C — Strict XLSX-to-Dataset Import & Diagnostics    NOT STARTED
 
 5.3 — Snapshot, Hydration & Persistence Coordination      NOT STARTED
@@ -58,172 +58,97 @@ CI       34984709583 — SUCCESS
 ## Locked Phase 5 decisions
 
 - `.xlsx` is the authoritative Phase 5 workbook format; `.xls`, `.xlsm`, and CSV are not complete v1 database formats.
-- Persist authoritative source evidence only; derived costing, yield-learning, capacity, pricing, revenue, and profit outputs are recalculated.
+- Persist authoritative source evidence only. Derived costing, yield-learning, capacity, pricing, revenue, and profit outputs are recalculated after restore.
 - `BusinessDataset` covers all nine current authoritative source repositories.
 - Dataset schema version and workbook-format/layout version are distinct version concepts.
-- Phase 5.1B established a 13-sheet normalized workbook contract, including child sheets for MixPreset categories/lines and YieldSample inputs.
+- Workbook v1 has 13 required normalized canonical sheets, including `MixPresetCategories`, `MixPresetLines`, and `YieldSampleInputs` child sheets.
 - All canonical schema sheets are required even when source collections are empty.
 - Unknown extra workbook sheets/columns are non-authoritative and must not be guessed as application source state.
-- Child arrays preserve order with workbook-only 1-based `categoryOrder`, `lineOrder`, and `inputOrder` fields.
-- Do not invent a Settings sheet until the application has a real authoritative Settings source contract.
+- Child source arrays preserve order with workbook-only 1-based `categoryOrder`, `lineOrder`, and `inputOrder` fields.
+- No Settings sheet is invented until a real authoritative Settings source model exists.
 - Free text is literal source data; formulas/macros are never authoritative business logic.
-- Formula-typed cells in authoritative fields fail closed; formula-looking text must remain literal text.
-- Import validates the entire reconstructed candidate dataset before any live repository mutation.
+- Formula-looking source text must remain literal; formula cells in authoritative source fields fail closed.
+- Import validates a complete reconstructed candidate before any live repository mutation.
 - Failed validation/import must leave current live state unchanged.
 - Missing evidence remains distinct from explicit zero/null source values.
-- Source numeric precision is not silently rounded.
-- Source timestamps preserve deterministic ISO text semantics.
-- Export ordering must be deterministic.
-- Workbook codec, source-dataset validation, repository hydration, and filesystem transport are separate boundaries.
-- React must use an application persistence coordinator rather than reading/writing workbook cells or repositories directly.
-- Concrete Tauri filesystem/dialog behavior remains Phase 6.
+- Numeric source precision is not silently rounded and timestamps use deterministic ISO text semantics.
+- Export sheet/column/row ordering must be deterministic.
+- Workbook codec, dataset semantic validation, repository hydration, and filesystem transport are separate boundaries.
+- React must use application persistence coordination rather than directly reading/writing spreadsheet cells or repositories.
+- Native Tauri paths/dialogs/filesystem behavior remains Phase 6.
 - Unsupported future versions fail closed; migrations are explicit.
-- Round-trip validation must prove Phase 1–4 service-derived behavior remains equivalent after restore.
-- The concrete XLSX library remains deliberately deferred to 5.2A until its implementation spike passes all hard gates.
+- Round-trip validation must prove Phase 1–4 derived behavior remains equivalent after restore.
+- **SheetJS Community Edition 0.20.3 is the selected Phase 5 XLSX byte-codec library.**
+- The selected SheetJS package is pinned to the exact upstream tarball `https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz`; do not substitute the stale public npm `xlsx` registry release.
+- SheetJS is hidden behind the library-neutral `WorkbookCodec`; third-party workbook types must not leak into domain/application/React/StoragePort/Tauri contracts.
+- The codec is in-memory only: `Uint8Array` output and `Uint8Array | ArrayBuffer` input.
+- The codec refuses outbound formula objects and surfaces inbound formulas as neutral `WorkbookFormulaCell` metadata for later fail-closed schema validation.
+- Reassess vendoring the pinned SheetJS tarball plus Apache-2.0 attribution before production packaging/distribution.
+- Re-measure client bundle impact when persistence becomes reachable from the React application and prefer deferred/dynamic loading if useful.
 
 ---
 
-## Phase 5.1A — Source Inventory & Dataset Completeness
+## Phase 5.1 — Persisted Dataset & Workbook Contract Foundation
 
 Status: **COMPLETE**
 
-Plan:
+### 5.1A — Source Inventory & Dataset Completeness
 
+Plan:
 `docs/PHASE_5_1A_PERSISTED_DATASET_SOURCE_INVENTORY_CONTRACT_COMPLETENESS_PLAN.md`
 
 Completion record:
-
 `docs/PHASE_5_1A_PERSISTED_DATASET_SOURCE_INVENTORY_CONTRACT_COMPLETENESS.md`
 
-Delivered:
+Delivered the complete nine-collection, versioned `BusinessDataset`, added `materialCalibrations`, established completeness/clone/normalize helpers, and preserved missing-vs-zero/null source semantics.
 
-- complete nine-collection `BusinessDataset`;
-- `materialCalibrations` added to persisted source state;
-- `CURRENT_BUSINESS_DATASET_SCHEMA_VERSION = 1`;
-- `BUSINESS_DATASET_SOURCE_COLLECTION_KEYS`;
-- complete-envelope fail-closed validation;
-- empty/clone/normalize helpers with defensive ownership;
-- missing-vs-zero/null source semantics preserved;
-- row/reference/graph validation explicitly deferred to 5.1C;
-- no XLSX, UI, hydration, backup, or Tauri behavior introduced.
-
-Completion evidence:
+Final closeout:
 
 ```text
-Starting develop                  5cf12188b8ec2d727aa5debe6a131a10168244ab
-Starting CI                       34984709583 — SUCCESS
-Implementation merge              467341eafe36e37812eb65f4cd4683dd9153868b
-Post-merge CI                     34986286733 — SUCCESS
-Final closeout develop            8a1fdc2bbc5a24c20689c933b9964903d380e37c
-Final closeout CI                 34986791114 — SUCCESS
+develop  8a1fdc2bbc5a24c20689c933b9964903d380e37c
+CI       34986791114 — SUCCESS
 82 test files / 996 tests
 ```
 
----
-
-## Phase 5.1B — Workbook Schema / Sheet / Column Contracts
-
-Status: **COMPLETE**
+### 5.1B — Workbook Schema / Sheet / Column Contracts
 
 Plan:
-
 `docs/PHASE_5_1B_WORKBOOK_SCHEMA_SHEET_COLUMN_CONTRACTS_PLAN.md`
 
 Completion record:
-
 `docs/PHASE_5_1B_WORKBOOK_SCHEMA_SHEET_COLUMN_CONTRACTS.md`
 
-Delivered:
+Delivered the library-independent 13-sheet workbook v1 schema, exact columns, normalized child relationships, canonical value representation, deterministic ordering, formula policy, and workbook-neutral structural diagnostics.
 
-- library-independent workbook schema contract under `src/storage`;
-- workbook format ID `craft-business-manager` and format version `1`;
-- exact 13-sheet registry and exact ordered columns;
-- normalized child-sheet relationships;
-- canonical enum/unit/value representation;
-- literal-only authoritative text/formula rejection;
-- deterministic row/sheet order metadata;
-- workbook-neutral structural diagnostics;
-- no XLSX dependency or `ExcelStorage` runtime implementation.
-
-Completion evidence:
+Final closeout:
 
 ```text
-Starting develop                  ad11e171ab7a49ea978372a3879222db8f6b112e
-Starting CI                       34988367766 — SUCCESS
-Implementation merge              9b5ca56f8574f922218fafa18540e7b11606d4b9
-Post-merge CI                     34993623712 — SUCCESS
-Docs PR #135                      MERGED
-Final closeout develop            656add851d6eeb6841f2f6e11816bbd52f5028c1
-Final closeout CI                 34994087842 — SUCCESS
+develop  656add851d6eeb6841f2f6e11816bbd52f5028c1
+CI       34994087842 — SUCCESS
 83 test files / 1018 tests
 22 Phase 5.1B focused tests
-8 React workspace smoke tests
-7 Phase 4.6A integration tests
-TypeScript typecheck passed
-Production Vite build passed
-117 modules transformed
 ```
 
----
-
-## Phase 5.1C — Dataset Validation & Reference Integrity
-
-Status: **COMPLETE**
+### 5.1C — Dataset Validation & Reference Integrity
 
 Plan:
-
 `docs/PHASE_5_1C_DATASET_VALIDATION_REFERENCE_INTEGRITY_PLAN.md`
 
 Completion record:
-
 `docs/PHASE_5_1C_DATASET_VALIDATION_REFERENCE_INTEGRITY.md`
 
-Delivered:
+Delivered complete pre-hydration semantic validation across all nine collections, duplicate identity detection before repository construction, durable cross-references, Product graph integrity reuse, deterministic diagnostics, historical archived-state preservation, and no silent repair.
 
-- pure complete-candidate `validateBusinessDatasetIntegrity(...)` boundary;
-- controlled structured diagnostics with collection/index/entity/field/path context;
-- authoritative row/source validation across all nine persisted collections;
-- intrinsic `validateMaterialCalibrationEvidence(...)` extraction preserving existing material-specific derivation semantics;
-- trim-aware, case-insensitive duplicate identity validation before repository hydration;
-- complete durable cross-reference validation across Materials, MixPresets, Products, yield evidence, recipes, components, stock, and financial profiles;
-- authoritative Phase 3 Product composition source-uniqueness/self/cycle validation reused rather than duplicated;
-- deterministic issue ordering;
-- archived historical relationships preserved when active-state restrictions are only live-edit eligibility rules;
-- missing-vs-zero/null semantics preserved without repair/defaulting;
-- invalid candidate rows are not silently dropped and the candidate is not mutated;
-- no XLSX, workbook reconstruction, repository hydration, ExcelStorage runtime, backup, UI, or Tauri behavior introduced.
-
-Completion evidence:
+Final closeout:
 
 ```text
-Starting develop                  9fc8c9b48ebc896e57e8e25e312e88f68f6af070
-Starting CI                       34995743207 — SUCCESS
-First implementation checkpoint   03dfb5ca8bb4089321df312c5b31e2a151dbbfe9
-First implementation CI           34997206352 — SUCCESS
-Documented feature head           de7e297e9654625c2a6162acbec822b470c0760a
-Documented feature-head CI        34997361899 — SUCCESS
-PR #137                           MERGED
-PR CI                             34997498206 — SUCCESS
-Implementation merge              95b6cb35a85dbc1e71a2b4d71bc3dba8de23b40a
-Post-merge develop CI             34997700828 — SUCCESS
+develop  7efef34fac309f9d9745631a54bc8a8ba404415f
+CI       34998382050 — SUCCESS
 84 test files / 1048 tests
 30 Phase 5.1C focused tests
-8 React workspace smoke tests
-7 Phase 4.6A real-service integration tests
-TypeScript typecheck passed
-Production Vite build passed
-117 modules transformed
 ```
 
-The existing Vite warning for the minified main JavaScript chunk slightly above 500 kB remains non-blocking and is unchanged in scope.
-
----
-
-## Phase 5.1 completion result
-
-**Phase 5.1 — Persisted Dataset & Workbook Contract Foundation — COMPLETE**
-
-The persistence foundation now provides three distinct, testable layers:
+### Phase 5.1 completion result
 
 ```text
 BusinessDataset contract
@@ -239,108 +164,84 @@ Dataset integrity contract
     duplicate/reference/graph diagnostics
 ```
 
-Current boundaries remain intentional:
-
-```text
-ExcelStorage.load/save          placeholder
-XLSX dependency                 not selected/installed
-XLSX byte codec                 not implemented
-Workbook row reconstruction     not implemented
-Repository hydration            not implemented
-Native filesystem               Phase 6
-```
-
 ---
 
 ## Phase 5.2A — XLSX Library Evaluation & Codec Boundary
 
-Status: **PLAN ESTABLISHED — IMPLEMENTATION NOT STARTED**
+Status: **COMPLETE**
 
-Dedicated plan:
+Plan:
 
 `docs/PHASE_5_2A_XLSX_LIBRARY_EVALUATION_CODEC_BOUNDARY_PLAN.md`
 
-Planning base:
+Completion record:
+
+`docs/PHASE_5_2A_XLSX_LIBRARY_EVALUATION_CODEC_BOUNDARY.md`
+
+### Delivered
+
+- selected **SheetJS Community Edition 0.20.3** after current maintenance/license/security/browser/byte/formula evaluation;
+- pinned the exact maintained upstream release tarball in `package.json`;
+- established `src/storage/workbookCodec.ts` as a library-neutral byte codec boundary;
+- implemented `src/storage/sheetJsWorkbookCodec.ts` as the SheetJS-only adapter;
+- proved fully in-memory XLSX encode/decode;
+- proved `Uint8Array` output and `Uint8Array | ArrayBuffer` input;
+- preserved worksheet order;
+- preserved formula-looking user strings as literal text;
+- prohibited authoritative formula writes;
+- surfaced inbound XLSX formulas as neutral metadata without evaluating them;
+- connected formula metadata to the existing `FORMULA_CELL_NOT_ALLOWED` workbook-schema policy;
+- added controlled codec errors;
+- introduced no filesystem/Tauri dependency;
+- added 12 focused real-XLSX codec tests;
+- left `BusinessDataset -> workbook` mapping, workbook reconstruction, and `ExcelStorage` runtime behavior for later tasks.
+
+### Validation history
 
 ```text
-develop  7efef34fac309f9d9745631a54bc8a8ba404415f
-CI       34998382050 — SUCCESS
+Planning baseline               e5707cc297887a9817957c2ac658caeb18d42d21
+Planning baseline CI            35001226969 — SUCCESS
+Initial spike head              62feaef38bebbe52bc903f5b17da6572e5495550
+Initial spike CI                35002241556 — FAILURE (strict TS callback typing only)
+Corrected spike head            e1ae246b7d31c35330a2f1fb7d1624797700c004
+Corrected spike CI              35002380964 — SUCCESS
+Documented feature head         44a60d0032391ee99c6550fd4c6ae1b0d651ad94
+Documented feature CI           35002575999 — SUCCESS
+PR #140                         MERGED
+PR CI                           35002720788 — SUCCESS
+Implementation merge            8468edf288b014a00f4f1529442fa043084f1102
+Post-merge develop CI           35002844064 — SUCCESS
+85 test files / 1060 tests
+12 Phase 5.2A focused tests
+8 React workspace smoke tests
+7 Phase 4.6A integration tests
+TypeScript typecheck passed
+Production Vite build passed
+117 modules transformed
 ```
 
-### Split assessment
+The first 5.2A checkpoint failed only because one strict TypeScript callback parameter became implicit `any` after `Array.isArray` narrowing. The SheetJS package installation itself succeeded; typing was corrected without changing behavior.
 
-5.2A does **not** require deeper formal numbered sub-phases.
+### Current persistence boundary after 5.2A
 
-It remains one bounded technology-selection and adapter-spike gate with internal checkpoints for:
-
-1. candidate verification / decision matrix;
-2. library-neutral codec contract;
-3. in-memory browser-compatible XLSX spike;
-4. formula/literal-text/primitive safety tests;
-5. bundle/dependency/security/license review;
-6. selected-library decision record.
-
-### Candidate pre-screen
-
-Primary implementation-spike candidate:
-
-**SheetJS Community Edition — current upstream release**
-
-Reasons:
-
-- browser/bundler support;
-- direct `Uint8Array` / `ArrayBuffer` workbook APIs;
-- explicit formula metadata suitable for deterministic formula-cell rejection;
-- permissive Apache-2.0 commercial-use terms;
-- current upstream release is newer than the known prototype-pollution and ReDoS remediation thresholds.
-
-Important constraint:
-
-The maintained SheetJS release is distributed from the upstream authoritative package/CDN rather than the stale public npm registry `xlsx` release. The implementation must pin and document the actual upstream artifact and must not mistake npm `xlsx@0.18.5` for the current version.
-
-Approved fallback:
-
-**`@excel.js/exceljs` — current maintained fork**
-
-Pre-screened but not preferred:
-
-- original `exceljs` — mature API but stale current npm release and current dependency/browser maintenance concerns;
-- `read-excel-file` + `write-excel-file` — actively maintained but authoritative import is ineligible because formula cells are not supported by the reader;
-- `xlsx-populate` — maintenance age too high for a new persistence dependency handling user-supplied files;
-- emerging pre-1.0 XLSX libraries — watchlist only unless both approved candidates fail.
-
-### Locked implementation boundary
-
-5.2A must establish a storage-only, library-neutral codec contract around in-memory XLSX bytes.
-
-Third-party library types must not leak into domain, application services, repositories, React, `StoragePort`, or future Tauri transport contracts.
-
-### Hard gates
-
-The selected library must prove:
-
-- TypeScript/Vite/browser compatibility;
-- in-memory XLSX encode/decode;
-- `Uint8Array` / `ArrayBuffer` compatibility as applicable;
-- string/number/boolean/blank cell behavior;
-- exact sheet-name/order handling;
-- formula-cell visibility without formula evaluation;
-- formula-looking literal text preservation;
-- acceptable commercial license obligations;
-- current security/advisory posture;
-- documented dependency/bundle impact;
-- no required native filesystem access.
-
-### Stop point
-
-No XLSX dependency, codec production code, or spike tests are included in this planning step.
-
-Implementation may begin only after this planning documentation is merged to `develop`, exact post-merge CI is green, and the user separately says to proceed.
+```text
+BusinessDataset source contract       COMPLETE
+Workbook schema contract              COMPLETE
+Dataset integrity validator           COMPLETE
+XLSX library selection                COMPLETE — SheetJS CE 0.20.3
+Library-neutral workbook byte codec   COMPLETE
+SheetJS in-memory byte adapter        COMPLETE
+Dataset -> workbook export mapping    NOT STARTED — 5.2B
+Workbook -> dataset reconstruction    NOT STARTED — 5.2C
+ExcelStorage.load/save                placeholder
+Repository snapshot/hydration         NOT STARTED — 5.3
+Native filesystem                     Phase 6
+```
 
 ---
 
 ## Current active task
 
-**5.2A — XLSX Library Evaluation & Codec Boundary — PLAN ESTABLISHED / IMPLEMENTATION NOT STARTED**
+**5.2B — Deterministic Dataset-to-XLSX Export — NEXT / NOT STARTED**
 
-Do not begin 5.2A implementation until the dedicated planning PR is merged and exact post-merge `develop` CI is successful, followed by a separate user instruction to proceed.
+5.2B must begin separately from the exact final green 5.2A closeout baseline. Before implementation, perform its dedicated scope/decomposition review and create its development plan. Do not start 5.2B automatically as part of this closeout.
