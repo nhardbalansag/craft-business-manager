@@ -4,6 +4,7 @@ import { InMemoryMaterialRepository } from './materials/InMemoryMaterialReposito
 import { MaterialService } from './materials/MaterialService';
 import { InMemoryMixPresetRepository } from './mixPresets/InMemoryMixPresetRepository';
 import { MixPresetService } from './mixPresets/MixPresetService';
+import { WasteAdjustedDirectMaterialCostService } from './productCosts/WasteAdjustedDirectMaterialCostService';
 import { AssemblyCapacitySynthesisService } from './production/AssemblyCapacitySynthesisService';
 import { AssemblyCapacityTraceService } from './production/AssemblyCapacityTraceService';
 import { ProductionCapacityService } from './production/ProductionCapacityService';
@@ -140,6 +141,10 @@ export const componentAwareProductCostService = new ComponentAwareProductCostSer
 export const productionRequirementService = new ProductionRequirementService(
   effectiveRecipeRequirementService,
   productService,
+);
+export const wasteAdjustedDirectMaterialCostService = new WasteAdjustedDirectMaterialCostService(
+  productionRequirementService,
+  recipeMaterialCostPreviewService,
 );
 export const productionCapacityService = new ProductionCapacityService(
   productionRequirementService,
