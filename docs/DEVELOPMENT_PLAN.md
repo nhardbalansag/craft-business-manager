@@ -282,20 +282,50 @@ The existing Vite warning for a minified main chunk slightly above 500 kB is non
 
 ## Phase 5 — Excel Persistence
 
-Status: **PLANNED — NEXT FOR SCOPE REVIEW / NOT STARTED**
+Status: **IN PROGRESS**
 
-Planned direction:
+Master plan: `docs/PHASE_5_EXCEL_PERSISTENCE_PLAN.md`
 
-- workbook schema/versioning;
-- load/save `.xlsx` through the storage adapter;
-- workbook validation;
-- atomic save strategy;
-- timestamped backups;
-- import existing workbook data where feasible.
+Live tracker: `docs/PHASE_5_PROGRESS.md`
 
-Candidate sheets include Materials, Calibrations, MixPresets, Products, RecipeItems, ProductComponents, ProductStocks, YieldSamples, financial-profile source data, and Settings.
+```text
+5.1 Persisted Dataset & Workbook Contract Foundation    IN PROGRESS
+    5.1A Source Inventory & Dataset Completeness         COMPLETE
+    5.1B Workbook Schema / Sheet / Column Contracts      COMPLETE
+    5.1C Dataset Validation & Reference Integrity        PLAN ESTABLISHED / IMPLEMENTATION NOT STARTED
 
-Phase 5 must receive its own dedicated scope/decomposition review and development plan before implementation begins. No Phase 5 code is started by the Phase 4 closeout.
+5.2 XLSX Workbook Codec                                  NOT STARTED
+5.3 Snapshot, Hydration & Persistence Coordination       NOT STARTED
+5.4 Version Compatibility, Backup & Recovery Safety      NOT STARTED
+5.5 Excel Persistence UI                                 NOT STARTED
+5.6 Integration & Completion Gate                        NOT STARTED
+```
+
+### Phase 5 progress so far
+
+Phase 5.1A established the complete versioned persisted `BusinessDataset` covering all nine authoritative Phase 1–4 source repositories, including Material calibration evidence.
+
+Phase 5.1B established the library-independent workbook v1 schema:
+
+- format ID/version metadata;
+- 13 canonical normalized sheets;
+- exact ordered columns and source mappings;
+- normalized child rows for MixPreset/YieldSample arrays;
+- canonical enum/unit/value representation;
+- deterministic sheet/row order metadata;
+- formula-cell rejection and workbook-neutral structural diagnostics.
+
+Phase 5.1C now has a dedicated plan for one pre-hydration complete-dataset integrity gate covering:
+
+- authoritative per-record source validation;
+- case-insensitive duplicate identities before repository construction;
+- durable cross-references across all nine source collections;
+- Product component source uniqueness and authoritative composition cycle validation;
+- deterministic structured dataset diagnostics;
+- preservation of missing-vs-zero/null semantics;
+- separation of persistence integrity from live-edit active-state eligibility.
+
+No XLSX codec dependency is installed yet, `ExcelStorage` remains an intentional placeholder, repository hydration is not implemented, and native filesystem behavior remains Phase 6.
 
 ---
 
@@ -337,10 +367,11 @@ No React component should read or write spreadsheet cells directly.
 **Phase 1 — COMPLETE**  
 **Phase 2 — COMPLETE**  
 **Phase 3 — COMPLETE**  
-**Phase 4 — COMPLETE**
+**Phase 4 — COMPLETE**  
+**Phase 5 — IN PROGRESS**
 
-Current next phase:
+Current active task:
 
-**Phase 5 — Excel Persistence — NEXT FOR SCOPE REVIEW / NOT STARTED**
+**Phase 5.1C — Dataset Validation & Reference Integrity — PLAN ESTABLISHED / IMPLEMENTATION NOT STARTED**
 
-Do not begin Phase 5 implementation until a dedicated scope/decomposition review and development plan are established from the exact current green `develop` baseline.
+Do not begin 5.1C implementation until its dedicated planning documentation is merged to `develop` and exact post-merge `develop` CI is green.
