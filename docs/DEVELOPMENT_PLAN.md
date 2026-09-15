@@ -100,12 +100,12 @@ Final completion record: `docs/PHASE_2_6B_REGRESSION_BUILD_COMPLETION.md`
 
 - product categories for paintable art, candle pots, and candles;
 - reusable weight/volume mix presets and anchor-based ratio resolution;
-- immutable multi-material real-production yield evidence;
-- learned material usage based on total consumed divided by good pieces;
-- separate rejected-piece diagnostic rate without double-counting waste;
-- deterministic latest-derivable yield selection with safe fallback;
-- fixed per-product recipe materials with roles and source-unit preservation;
-- derived yield + fixed canonical material requirements with traceability;
+- immutable multi-material yield samples;
+- good/rejected output tracking;
+- latest-derivable yield selection and fallback;
+- learned canonical material requirement per good piece;
+- fixed recipe materials and roles;
+- yield + fixed requirement synthesis with source traceability;
 - direct-material cost preview using Phase 1 purchase costing;
 - explicit product safety-waste planning reserve;
 - waste-adjusted per-piece and planned-batch requirements;
@@ -214,20 +214,66 @@ Production Vite build passed
 
 ## Phase 4 — Pricing & Production Planning
 
-Status: **PLANNED — NEXT / NOT STARTED**
+Status: **MASTER PLAN ESTABLISHED — IMPLEMENTATION NOT STARTED**
 
-Planned:
+Planning baseline: `docs/PHASE_4_PRICING_PRODUCTION_PLANNING_PLAN.md`
 
-- total unit cost using the completed component-aware Phase 3 cost input;
-- fixed-profit pricing;
-- markup percentage;
-- target margin;
-- selling price;
-- planned batch cost;
-- expected revenue and profit;
-- production-capacity warnings.
+Live tracker: `docs/PHASE_4_PROGRESS.md`
 
-Phase 4 requires a dedicated scope review/development plan before implementation begins.
+```text
+4.1 Financial Profile & Pricing Policy Foundation      NOT STARTED
+    4.1A Product Financial Profile Contract             NEXT
+    4.1B Pricing Formula & Validation Engine            NOT STARTED
+    4.1C Profile Repository & Application Services      NOT STARTED
+
+4.2 Fully Loaded Product Unit Cost                      NOT STARTED
+    4.2A Waste-Adjusted Direct-Material Unit Cost       NOT STARTED
+    4.2B Recursive Fully Loaded Product Component Cost  NOT STARTED
+    4.2C Total Fully Loaded Unit Cost & Readiness       NOT STARTED
+
+4.3 Selling Price & Unit Economics                      NOT STARTED
+    4.3A Selling Price Derivation                       NOT STARTED
+    4.3B Profit / Markup / Margin Metrics               NOT STARTED
+    4.3C Product Pricing Quote & Readiness Service      NOT STARTED
+
+4.4 Planned Batch Financials & Capacity                 NOT STARTED
+    4.4A Physical Planned Batch Production Cost         NOT STARTED
+    4.4B Expected Revenue / Profit / Batch Margin       NOT STARTED
+    4.4C Capacity Feasibility & Warning Synthesis       NOT STARTED
+
+4.5 Pricing & Production Planning UI                    NOT STARTED
+    4.5A Product Financial Profile Editor               NOT STARTED
+    4.5B Unit Economics / Pricing Calculator UI         NOT STARTED
+    4.5C Production Financial Summary & Warnings UI     NOT STARTED
+
+4.6 Integration & Completion Gate                       NOT STARTED
+    4.6A Integrated Pricing / Production Workflow       NOT STARTED
+    4.6B Regression / Build / Completion                NOT STARTED
+```
+
+### Phase 4 planning decisions
+
+- financial configuration remains separate from the Product recipe/composition contract;
+- one product financial profile records explicit per-unit labor, explicit per-unit overhead, and an independently configurable pricing policy;
+- missing profile is unresolved while explicit zero labor/overhead is known zero;
+- supported pricing methods are fixed profit amount, markup percentage, and target margin;
+- percentage rates are stored canonically as decimals and invalid margin >= 100% fails closed;
+- standard pricing cost includes the Product's explicit direct-material safety-waste reserve once;
+- observed rejected-output loss is not re-applied;
+- parent safety waste does not inflate discrete component quantities;
+- Product-backed child components contribute recursively fully loaded production cost, including their own safety reserve/labor/overhead, but never their retail selling price/profit;
+- standard unit economics retain full precision; currency rounding is presentation-only;
+- physical planned batch cost uses final-batch whole-piece rounding and can differ from unit cost × quantity;
+- expected batch profit uses physical planned production cost;
+- capacity feasibility consumes Phase 3 capacity/limiter evidence and never auto-clamps the user's requested quantity;
+- derived prices, totals, revenue, and profit remain non-persisted views;
+- payroll/timekeeping, global overhead allocation, tax/VAT, discounts/fees, accounting posting, stock deduction, Excel persistence, and Tauri integration remain outside Phase 4.
+
+### Current Phase 4 task
+
+**4.1A — Product Financial Profile Contract — NEXT / NOT STARTED**
+
+Do not begin 4.1A until the Phase 4 master-plan documentation is merged, exact post-merge `develop` CI is green, and a dedicated 4.1A scope review/development plan has been established.
 
 ---
 
@@ -244,7 +290,7 @@ Planned:
 - timestamped backups;
 - import existing workbook data where feasible.
 
-Proposed sheets include Materials, Calibrations, MixPresets, Products, RecipeItems, ProductComponents, ProductStocks, YieldSamples, and Settings.
+Proposed sheets include Materials, Calibrations, MixPresets, Products, RecipeItems, ProductComponents, ProductStocks, YieldSamples, financial-profile source data, and Settings.
 
 ---
 
@@ -284,8 +330,10 @@ No React component should read or write spreadsheet cells directly.
 
 **Phase 3 is COMPLETE.**
 
-Next planned phase:
+Phase 4 master planning is established, but implementation has not started.
 
-**Phase 4 — Pricing & Production Planning — NEXT / NOT STARTED**
+Current next task:
 
-Do not begin Phase 4 implementation without a dedicated scope review/development plan.
+**4.1A — Product Financial Profile Contract — NEXT / NOT STARTED**
+
+Do not begin 4.1A without its dedicated scope review/development plan.
