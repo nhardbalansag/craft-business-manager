@@ -15,8 +15,8 @@ Planning post-merge CI:
 ```text
 4.1 — Financial Profile & Pricing Policy Foundation      IN PROGRESS
     4.1A — Product Financial Profile Contract             COMPLETE
-    4.1B — Pricing Formula & Validation Engine            NEXT
-    4.1C — Profile Repository & Application Services      NOT STARTED
+    4.1B — Pricing Formula & Validation Engine            COMPLETE
+    4.1C — Profile Repository & Application Services      NEXT
 
 4.2 — Fully Loaded Product Unit Cost                      NOT STARTED
     4.2A — Waste-Adjusted Direct-Material Unit Cost       NOT STARTED
@@ -51,7 +51,7 @@ Planning post-merge CI:
 - `pricingPolicy: null` explicitly represents unconfigured pricing while known cost adders remain valid source evidence.
 - Pricing methods are fixed profit amount, markup percentage, and target margin.
 - Internal percentage rates use canonical decimals; UI may later present human percentages.
-- Target margin must satisfy `0 <= rate < 1`; authoritative numeric validation belongs to 4.1B.
+- Target margin must satisfy `0 <= rate < 1`; 4.1B now enforces this fail-closed.
 - Standard unit economics include direct-material safety waste exactly once.
 - Observed yield defects are not re-applied.
 - Parent safety waste does not inflate discrete component counts.
@@ -108,8 +108,58 @@ Implementation record:
 
 `docs/PHASE_4_1A_PRODUCT_FINANCIAL_PROFILE_CONTRACT.md`
 
+### 4.1B — Pricing Formula & Validation Engine
+
+**COMPLETE**
+
+Delivered:
+
+- typed fail-closed `PricingError` validation;
+- fixed-profit, markup, and target-margin formulas;
+- canonical decimal-rate semantics;
+- finite/non-negative policy and financial input validation;
+- invalid target margin rejection instead of fake zero price;
+- full-precision domain math with no UI rounding;
+- profit-per-unit, effective-markup, and effective-margin diagnostics;
+- explicit `null` zero-denominator diagnostics;
+- consolidated `deriveUnitEconomics()` result;
+- legacy `costing.ts` pricing wrappers delegated to the authoritative engine;
+- no 4.1C repository/service or 4.2 cost-roll-up leakage.
+
+Evidence:
+
+```text
+Implementation head           d699f1ac11794a47a026290aa3ef2e963d84f2f4
+Implementation CI             34934079592 — SUCCESS
+Final feature head             e4252a4d6c4939cc4d32cd7ba0ad74b9a9701c49
+Final feature-head CI          34934177928 — SUCCESS
+PR #98                         MERGED
+PR CI                          34934241244 — SUCCESS
+Implementation merge           408398a01c7a9002849694db504df7e25309c138
+Post-merge develop CI          34934307289 — SUCCESS
+57 test files / 698 tests
+50 pricing engine tests
+12 costing regression tests
+18 ProductFinancialProfile tests
+7 React smoke tests
+TypeScript typecheck passed
+production build passed
+```
+
+Development plan:
+
+`docs/PHASE_4_1B_PRICING_FORMULA_VALIDATION_ENGINE_PLAN.md`
+
+Implementation record:
+
+`docs/PHASE_4_1B_PRICING_FORMULA_VALIDATION_ENGINE.md`
+
 ## Current active task
 
-**4.1B — Pricing Formula & Validation Engine — NEXT / NOT STARTED**
+**4.1C — Financial Profile Repository & Application Services — NEXT / NOT STARTED**
 
-Do not begin 4.1B until a dedicated 4.1B development plan/scope review is established after the 4.1A closeout is merged and exact final `develop` CI is green.
+Do not begin 4.1C until:
+
+1. the 4.1B documentation-only closeout is merged to `develop`;
+2. exact final closeout `develop` CI is green;
+3. a dedicated 4.1C development plan/scope review is created.
