@@ -11,9 +11,9 @@ import type { ProductFinancialProfile } from '../../domain/productFinancialProfi
 import type { ProductRepository } from '../products/ProductRepository';
 import type { ProductComponentRepository } from '../productComponents/ProductComponentRepository';
 import type { MaterialBackedComponentCostLine } from '../productComponents/MaterialBackedComponentCostService';
-import {
-  type RecursiveFullyLoadedProductComponentCostIssue,
-  type RecursiveFullyLoadedProductComponentCostLine,
+import type {
+  RecursiveFullyLoadedProductComponentCostIssue,
+  RecursiveFullyLoadedProductComponentCostLine,
 } from './RecursiveFullyLoadedProductComponentCostService';
 import {
   WasteAdjustedDirectMaterialCostServiceError,
@@ -33,7 +33,6 @@ export type FullyLoadedProductUnitCostIssueCode =
   | 'FINANCIAL_PROFILE_PRODUCT_MISMATCH'
   | 'FINANCIAL_PROFILE_COST_INVALID'
   | 'COMPONENT_GRAPH_INVALID'
-  | 'MATERIAL_COMPONENT_PARTIAL'
   | 'MATERIAL_COMPONENT_NOT_READY'
   | 'PRODUCT_COMPONENT_PARTIAL'
   | 'PRODUCT_COMPONENT_NOT_READY'
@@ -88,11 +87,7 @@ export class FullyLoadedProductUnitCostServiceError extends Error {
   readonly code: FullyLoadedProductUnitCostServiceErrorCode;
   readonly productId: string;
 
-  constructor(
-    code: FullyLoadedProductUnitCostServiceErrorCode,
-    message: string,
-    productId: string,
-  ) {
+  constructor(code: FullyLoadedProductUnitCostServiceErrorCode, message: string, productId: string) {
     super(message);
     this.name = 'FullyLoadedProductUnitCostServiceError';
     this.code = code;
@@ -120,39 +115,31 @@ function comparable(value: string): string {
   return value.trim().toLowerCase();
 }
 
-function compareText(left: string, right: string): number {
-  if (left < right) return -1;
-  if (left > right) return 1;
-  return 0;
-}
-
 function finiteNonNegative(value: number): boolean {
   return Number.isFinite(value) && value >= 0;
 }
 
 function deterministicComponents(components: readonly ProductComponent[]): ProductComponent[] {
   return [...components].sort((left, right) => {
-    const sourceType = compareText(String(left.sourceType), String(right.sourceType));
-    if (sourceType !== 0) return sourceType;
+    const leftType = String(left.sourceType);
+    const rightType = String(right.sourceType);
+    if (leftType !== rightType) return leftType < rightType ? -1 : 1;
 
-    const sourceId = compareText(comparable(left.sourceId), comparable(right.sourceId));
-    if (sourceId !== 0) return sourceId;
+    const leftSource = comparable(left.sourceId);
+    const rightSource = comparable(right.sourceId);
+    if (leftSource !== rightSource) return leftSource < rightSource ? -1 : 1;
 
-    return compareText(comparable(left.id), comparable(right.id));
+    return comparable(left.id).localeCompare(comparable(right.id));
   });
 }
 
-function cloneDirectCost(
-  value: WasteAdjustedDirectMaterialCostResult,
-): WasteAdjustedDirectMaterialCostResult {
+function cloneDirectCost(value: WasteAdjustedDirectMaterialCostResult): WasteAdjustedDirectMaterialCostResult {
   return {
     ...value,
     lines: value.lines.map((line) => ({
       ...line,
-      requirementContributions: line.requirementContributions.map((contribution) => ({
-        ...contribution,
-      })),
-      costContributions: line.costContributions.map((contribution) => ({ ...contribution })),
+      requirementContributions: line.requirementContributions.map((entry) => ({ ...entry })),
+      costContributions: line.costContributions.map((entry) => ({ ...entry })),
       issues: line.issues.map((issue) => ({ ...issue })),
     })),
     requirementIssues: value.requirementIssues.map((issue) => ({ ...issue })),
@@ -209,38 +196,25 @@ function cloneRecursiveLine(
   };
 }
 
-function cloneIssue(issue: FullyLoadedProductUnitCostIssue): FullyLoadedProductUnitCostIssue {
-  return { ...issue };
-}
-
 function isNeutralComponentOnlyDirectCost(
   directCost: WasteAdjustedDirectMaterialCostResult,
   components: readonly ProductComponent[],
 ): boolean {
-  if (components.length === 0) return false;
-  if (directCost.status !== 'not-ready') return false;
-  if (directCost.lines.length !== 0) return false;
-  if (directCost.pricingDirectMaterialCostPerUnit !== null) return false;
-  if (directCost.costIssues.length !== 0) return false;
-  if (
-    directCost.requirementIssues.length === 0 ||
-    directCost.requirementIssues.some((issue) => issue.code !== 'NO_REQUIREMENTS')
-  ) {
-    return false;
-  }
-
-  return directCost.issues.every(
-    (issue) => issue.code === 'REQUIREMENT_NOT_READY' || issue.code === 'COST_NOT_READY',
+  return (
+    components.length > 0 &&
+    directCost.status === 'not-ready' &&
+    directCost.lines.length === 0 &&
+    directCost.pricingDirectMaterialCostPerUnit === null &&
+    directCost.costIssues.length === 0 &&
+    directCost.requirementIssues.length > 0 &&
+    directCost.requirementIssues.every((issue) => issue.code === 'NO_REQUIREMENTS') &&
+    directCost.issues.every(
+      (issue) => issue.code === 'REQUIREMENT_NOT_READY' || issue.code === 'COST_NOT_READY',
+    )
   );
 }
 
-/**
- * Phase 4.2C authoritative root-Product fully loaded unit cost.
- *
- * The service composes 4.2A direct-material cost, Phase 3 Material-backed component
- * cost, 4.2B Product-backed fully loaded component cost, and root labor/overhead.
- * Pricing policy is deliberately excluded from production-cost readiness.
- */
+/** Phase 4.2C authoritative root-Product fully loaded unit cost. */
 export class FullyLoadedProductUnitCostService {
   constructor(
     private readonly products: ProductRepository,
@@ -262,13 +236,11 @@ export class FullyLoadedProductUnitCostService {
       );
     }
 
-    const allComponents = await this.components.list();
     const rootComponents = deterministicComponents(
-      allComponents.filter(
+      (await this.components.list()).filter(
         (component) => comparable(component.parentProductId) === comparable(product.id),
       ),
     );
-
     const issues: FullyLoadedProductUnitCostIssue[] = [];
 
     let directMaterialCost: WasteAdjustedDirectMaterialCostResult | null = null;
@@ -292,8 +264,7 @@ export class FullyLoadedProductUnitCostService {
     }
 
     if (directMaterialCost) {
-      const neutralDirect = isNeutralComponentOnlyDirectCost(directMaterialCost, rootComponents);
-      if (neutralDirect) {
+      if (isNeutralComponentOnlyDirectCost(directMaterialCost, rootComponents)) {
         directMaterialMode = 'neutral-component-only';
         directKnownCost = 0;
         directResolved = true;
@@ -304,39 +275,33 @@ export class FullyLoadedProductUnitCostService {
         directMaterialMode = 'costed';
         directKnownCost = directMaterialCost.pricingDirectMaterialCostPerUnit;
         directResolved = directMaterialCost.status === 'ready';
-
-        if (directMaterialCost.status === 'partial') {
+        if (!directResolved) {
           issues.push({
-            code: 'DIRECT_MATERIAL_COST_PARTIAL',
-            message: `Product ${product.id} has only partial Phase 4.2A direct-material cost evidence.`,
-            productId: product.id,
-          });
-        } else if (directMaterialCost.status === 'not-ready') {
-          issues.push({
-            code: 'DIRECT_MATERIAL_COST_NOT_READY',
-            message: `Product ${product.id} has no ready Phase 4.2A direct-material cost.`,
+            code:
+              directMaterialCost.status === 'partial'
+                ? 'DIRECT_MATERIAL_COST_PARTIAL'
+                : 'DIRECT_MATERIAL_COST_NOT_READY',
+            message:
+              directMaterialCost.status === 'partial'
+                ? `Product ${product.id} has only partial Phase 4.2A direct-material cost evidence.`
+                : `Product ${product.id} has no ready Phase 4.2A direct-material cost.`,
             productId: product.id,
           });
         }
-      } else if (
-        directMaterialCost.pricingDirectMaterialCostPerUnit !== null &&
-        !finiteNonNegative(directMaterialCost.pricingDirectMaterialCostPerUnit)
-      ) {
-        issues.push({
-          code: 'DERIVED_COST_INVALID',
-          message: `Product ${product.id} produced an invalid direct-material cost subtotal.`,
-          productId: product.id,
-        });
       } else {
         issues.push({
           code:
-            directMaterialCost.status === 'partial'
-              ? 'DIRECT_MATERIAL_COST_PARTIAL'
-              : 'DIRECT_MATERIAL_COST_NOT_READY',
+            directMaterialCost.pricingDirectMaterialCostPerUnit !== null
+              ? 'DERIVED_COST_INVALID'
+              : directMaterialCost.status === 'partial'
+                ? 'DIRECT_MATERIAL_COST_PARTIAL'
+                : 'DIRECT_MATERIAL_COST_NOT_READY',
           message:
-            directMaterialCost.status === 'partial'
-              ? `Product ${product.id} has only partial Phase 4.2A direct-material cost evidence.`
-              : `Product ${product.id} has no ready Phase 4.2A direct-material cost.`,
+            directMaterialCost.pricingDirectMaterialCostPerUnit !== null
+              ? `Product ${product.id} produced an invalid direct-material cost subtotal.`
+              : directMaterialCost.status === 'partial'
+                ? `Product ${product.id} has only partial Phase 4.2A direct-material cost evidence.`
+                : `Product ${product.id} has no ready Phase 4.2A direct-material cost.`,
           productId: product.id,
         });
       }
@@ -403,21 +368,15 @@ export class FullyLoadedProductUnitCostService {
       for (const component of rootComponents) {
         if (component.sourceType === 'material') {
           const rawLine = await this.materialComponentCosts.costComponent(component);
-          const line = cloneMaterialLine(rawLine);
-          componentLines.push({ sourceType: 'material', line });
+          componentLines.push({ sourceType: 'material', line: cloneMaterialLine(rawLine) });
 
-          if (
-            rawLine.componentCostContribution !== null &&
-            finiteNonNegative(rawLine.componentCostContribution)
-          ) {
+          const contribution = rawLine.componentCostContribution;
+          if (contribution !== null && finiteNonNegative(contribution)) {
             materialKnown = true;
-            materialSubtotal += rawLine.componentCostContribution;
+            materialSubtotal += contribution;
           }
 
-          if (
-            rawLine.componentCostContribution !== null &&
-            !finiteNonNegative(rawLine.componentCostContribution)
-          ) {
+          if (contribution !== null && !finiteNonNegative(contribution)) {
             componentUnresolved = true;
             issues.push({
               code: 'DERIVED_COST_INVALID',
@@ -427,14 +386,11 @@ export class FullyLoadedProductUnitCostService {
               sourceType: 'material',
               sourceId: rawLine.sourceMaterialId,
             });
-          } else if (rawLine.status !== 'ready' || rawLine.componentCostContribution === null) {
+          } else if (rawLine.status !== 'ready' || contribution === null) {
             componentUnresolved = true;
             issues.push({
-              code: rawLine.status === 'partial' ? 'MATERIAL_COMPONENT_PARTIAL' : 'MATERIAL_COMPONENT_NOT_READY',
-              message:
-                rawLine.status === 'partial'
-                  ? `Material-backed component ${rawLine.componentId} has only partial cost evidence.`
-                  : `Material-backed component ${rawLine.componentId} is not ready for fully loaded costing.`,
+              code: 'MATERIAL_COMPONENT_NOT_READY',
+              message: `Material-backed component ${rawLine.componentId} is not ready for fully loaded costing.`,
               productId: product.id,
               componentId: rawLine.componentId,
               sourceType: 'material',
@@ -444,21 +400,15 @@ export class FullyLoadedProductUnitCostService {
           }
         } else {
           const rawLine = await this.productComponentCosts.costComponent(component);
-          const line = cloneRecursiveLine(rawLine);
-          componentLines.push({ sourceType: 'product', line });
+          componentLines.push({ sourceType: 'product', line: cloneRecursiveLine(rawLine) });
 
-          if (
-            rawLine.knownComponentCostContribution !== null &&
-            finiteNonNegative(rawLine.knownComponentCostContribution)
-          ) {
+          const knownContribution = rawLine.knownComponentCostContribution;
+          if (knownContribution !== null && finiteNonNegative(knownContribution)) {
             productKnown = true;
-            productSubtotal += rawLine.knownComponentCostContribution;
+            productSubtotal += knownContribution;
           }
 
-          if (
-            rawLine.knownComponentCostContribution !== null &&
-            !finiteNonNegative(rawLine.knownComponentCostContribution)
-          ) {
+          if (knownContribution !== null && !finiteNonNegative(knownContribution)) {
             componentUnresolved = true;
             issues.push({
               code: 'DERIVED_COST_INVALID',
@@ -495,20 +445,19 @@ export class FullyLoadedProductUnitCostService {
       ? (directKnownCost ?? 0) + materialSubtotal + productSubtotal
       : null;
     const hasKnownEvidence = hasProductionInputEvidence || profileResolved;
-    const knownFullyLoadedSubtotal = hasKnownEvidence
+    const knownTotal = hasKnownEvidence
       ? (inputSubtotal ?? 0) + (profileResolved ? (labor ?? 0) + (overhead ?? 0) : 0)
       : null;
 
     if (
       (inputSubtotal !== null && !finiteNonNegative(inputSubtotal)) ||
-      (knownFullyLoadedSubtotal !== null && !finiteNonNegative(knownFullyLoadedSubtotal))
+      (knownTotal !== null && !finiteNonNegative(knownTotal))
     ) {
       issues.push({
         code: 'DERIVED_COST_INVALID',
         message: `Product ${product.id} produced an invalid fully loaded unit-cost subtotal.`,
         productId: product.id,
       });
-
       return {
         productId: product.id,
         productName: product.name,
@@ -525,7 +474,7 @@ export class FullyLoadedProductUnitCostService {
         knownFullyLoadedUnitCostSubtotal: null,
         totalFullyLoadedUnitCost: null,
         componentLines: [...componentLines],
-        issues: issues.map(cloneIssue),
+        issues: issues.map((issue) => ({ ...issue })),
       };
     }
 
@@ -549,10 +498,10 @@ export class FullyLoadedProductUnitCostService {
       inputMaterialComponentSubtotal: inputSubtotal,
       laborCostPerUnit: labor,
       overheadCostPerUnit: overhead,
-      knownFullyLoadedUnitCostSubtotal: knownFullyLoadedSubtotal,
-      totalFullyLoadedUnitCost: status === 'ready' ? knownFullyLoadedSubtotal : null,
+      knownFullyLoadedUnitCostSubtotal: knownTotal,
+      totalFullyLoadedUnitCost: status === 'ready' ? knownTotal : null,
       componentLines: [...componentLines],
-      issues: issues.map(cloneIssue),
+      issues: issues.map((issue) => ({ ...issue })),
     };
   }
 }
