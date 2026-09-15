@@ -107,7 +107,7 @@ Planning post-merge CI:
 **COMPLETE**
 
 ```text
-Corrected implementation head  79c3f51f27b957721219a80a08078f603d7be214
+Corrected implementation head 79c3f51f27b957721219a80a08078f603d7be214
 Implementation CI              34932357351 — SUCCESS
 Final feature head             8162732a7bbee01e92ce952c8c5d83a8b0d8041a
 Final feature-head CI          34932475789 — SUCCESS
@@ -256,6 +256,25 @@ Record: `docs/PHASE_4_2C_TOTAL_FULLY_LOADED_UNIT_COST_READINESS.md`
 
 **COMPLETE**
 
+Delivered:
+
+- authoritative Product-level selling-price derivation service;
+- ready Phase 4.2C `totalFullyLoadedUnitCost` as the only priceable cost basis;
+- configured Product pricing policy from 4.1C;
+- all formulas/validation delegated to the 4.1B pricing engine;
+- fixed-profit, markup, and target-margin support;
+- unconfigured policy preserves ready cost but leaves selling price unresolved;
+- partial/not-ready cost is never priced;
+- no default pricing policy;
+- Product/profile identity guards and corrupted-policy fail-closed behavior;
+- full precision with no presentation rounding;
+- archived Product inspectability/priceability;
+- defensive policy cloning;
+- shared application-session wiring;
+- no 4.3B+ leakage.
+
+Evidence:
+
 ```text
 Plan-before-code commit         4ae338331cf4f28d6ec6f997ab94339af9b4d056
 Implementation head             3cded1826b18aa46195e9d87e60cafcafc1d9cd6
@@ -269,8 +288,12 @@ Post-merge develop CI           34942765862 — SUCCESS
 67 test files / 807 tests
 27 SellingPriceDerivationService tests
 1 4.3A shared-session wiring test
+50 pricing-domain tests
+24 Phase 4.2C cost tests
+7 React smoke tests
 TypeScript typecheck passed
 production Vite build passed
+104 modules transformed
 ```
 
 Plan: `docs/PHASE_4_3A_SELLING_PRICE_DERIVATION_PLAN.md`
@@ -280,6 +303,23 @@ Record: `docs/PHASE_4_3A_SELLING_PRICE_DERIVATION.md`
 ### 4.3B — Profit / Markup / Margin Metrics
 
 **COMPLETE**
+
+Delivered:
+
+- authoritative Product-level profit-per-unit diagnostics over the completed 4.3A selling-price result;
+- effective markup and effective margin through the completed 4.1B pricing-domain formulas;
+- pricing method/value trace without presentation conversion;
+- deterministic cost-to-price reconciliation;
+- explicit zero-denominator ratio diagnostics instead of Infinity/NaN;
+- partial/not-ready upstream propagation without authoritative metrics;
+- Product identity and contradictory-ready-evidence fail-closed guards;
+- archived Product inspectability;
+- defensive pricing-policy and upstream-issue cloning;
+- full precision with no presentation rounding;
+- shared application-session wiring;
+- no 4.3C+ leakage.
+
+Evidence:
 
 ```text
 Starting develop                57f0e339c88f2bb2a1a5ffbdc142e1a5a1c996e9
