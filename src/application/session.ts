@@ -9,6 +9,7 @@ import { ProductionRequirementService } from './production/ProductionRequirement
 import { ComponentSourceAvailabilityService } from './productComponents/ComponentSourceAvailabilityService';
 import { InMemoryProductComponentRepository } from './productComponents/InMemoryProductComponentRepository';
 import { MaterialBackedComponentCostService } from './productComponents/MaterialBackedComponentCostService';
+import { ProductBackedComponentCostService } from './productComponents/ProductBackedComponentCostService';
 import { ProductComponentService } from './productComponents/ProductComponentService';
 import { InMemoryProductRepository } from './products/InMemoryProductRepository';
 import { ProductService } from './products/ProductService';
@@ -108,6 +109,12 @@ export const recipeMaterialCostPreviewService = new RecipeMaterialCostPreviewSer
   effectiveRecipeRequirementService,
   materialRepository,
   calibrationRepository,
+);
+export const productBackedComponentCostService = new ProductBackedComponentCostService(
+  productRepository,
+  productComponentRepository,
+  recipeMaterialCostPreviewService,
+  materialBackedComponentCostService,
 );
 export const productionRequirementService = new ProductionRequirementService(
   effectiveRecipeRequirementService,
