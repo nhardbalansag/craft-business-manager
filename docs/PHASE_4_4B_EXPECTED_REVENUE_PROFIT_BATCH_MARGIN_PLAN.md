@@ -2,7 +2,7 @@
 
 ## Status
 
-**PLANNED — IMPLEMENTATION NOT STARTED**
+**IMPLEMENTED — FEATURE VALIDATION GREEN — PENDING PR / MERGE**
 
 Authoritative starting base:
 
@@ -454,6 +454,32 @@ Then advance to:
 - Excel persistence;
 - Tauri integration;
 - presentation rounding/formatting.
+
+## Implementation evidence
+
+Implementation followed this plan without introducing a deeper roadmap split.
+
+```text
+Plan-before-code commit         8f19b98bcfc6c0a5f20c2459cc0d19bc0ec21463
+Service implementation          3283328c21c36f25cfafa739aaa0e235001ec603
+Session/wiring checkpoint       d6eaf6abd464306ea9eed0fd02c35588af9696f6
+Checkpoint CI                   34953761406 — SUCCESS
+Focused service-test commit     4d26032126c00df78973fcd1294b0ec42b4b710f
+Initial session-test head       1a1a31a35b448f8ff64739d178e7208adc216ea5
+Initial focused-test CI         34953949082 — FAILURE (test fixture typing only: notes null vs optional string)
+Corrected validation head       d8ca649aee3f4c782a74c707b000025145f5f0e9
+Corrected validation CI         34954110739 — SUCCESS
+75 test files / 907 tests
+22 ExpectedBatchFinancialsService tests
+1 4.4B shared-session wiring test
+TypeScript typecheck passed
+production Vite build passed
+108 modules transformed
+```
+
+Implementation record:
+
+`docs/PHASE_4_4B_EXPECTED_REVENUE_PROFIT_BATCH_MARGIN.md`
 
 ## Completion gate
 
