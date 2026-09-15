@@ -6,6 +6,7 @@ import { InMemoryMixPresetRepository } from './mixPresets/InMemoryMixPresetRepos
 import { MixPresetService } from './mixPresets/MixPresetService';
 import { ProductionCapacityService } from './production/ProductionCapacityService';
 import { ProductionRequirementService } from './production/ProductionRequirementService';
+import { ComponentAwareProductCostService } from './productComponents/ComponentAwareProductCostService';
 import { ComponentSourceAvailabilityService } from './productComponents/ComponentSourceAvailabilityService';
 import { InMemoryProductComponentRepository } from './productComponents/InMemoryProductComponentRepository';
 import { MaterialBackedComponentCostService } from './productComponents/MaterialBackedComponentCostService';
@@ -115,6 +116,13 @@ export const productBackedComponentCostService = new ProductBackedComponentCostS
   productComponentRepository,
   recipeMaterialCostPreviewService,
   materialBackedComponentCostService,
+);
+export const componentAwareProductCostService = new ComponentAwareProductCostService(
+  productRepository,
+  productComponentRepository,
+  recipeMaterialCostPreviewService,
+  materialBackedComponentCostService,
+  productBackedComponentCostService,
 );
 export const productionRequirementService = new ProductionRequirementService(
   effectiveRecipeRequirementService,
