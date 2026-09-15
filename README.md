@@ -1,6 +1,6 @@
 # Craft Business Manager
 
-Desktop-first business costing, inventory, production-yield, production-planning, pricing, and persistence-foundation manager for a craft business producing:
+Desktop-first business costing, inventory, production-yield, production-planning, pricing, and persistence manager for a craft business producing:
 
 - paintable plaster art and mold toys for kids;
 - handmade candle pots / vessels;
@@ -11,7 +11,7 @@ Desktop-first business costing, inventory, production-yield, production-planning
 
 The application uses **React + TypeScript + Vite** and is intended to be wrapped by **Tauri** for safe local desktop file access.
 
-The business/domain layer remains storage-agnostic. Excel (`.xlsx`) is the first planned persisted business-data format through storage/persistence adapters, with SQLite as a later migration option without rewriting business rules.
+The business/domain layer remains storage-agnostic. Excel (`.xlsx`) is the first persisted business-data format through storage/persistence adapters, with SQLite as a later migration option without rewriting business rules.
 
 ## Architecture
 
@@ -23,6 +23,7 @@ Application / Business Services
 Domain Models + Costing / Production / Pricing Engines
    ↓
 Persistence Boundaries
+   ├── BusinessDataset ↔ Workbook mapping
    ├── WorkbookCodec -> SheetJsWorkbookCodec
    ├── ExcelStorage (Phase 5 wiring still in progress)
    └── SQLiteStorage (future)
@@ -32,73 +33,21 @@ Tauri filesystem boundary (planned Phase 6)
 
 React components do not directly read or write spreadsheet cells.
 
-## Implemented through Phase 5.2A
+## Implemented through Phase 5.2B
 
-### Materials, units, costing, inventory and calibration
+### Materials, products, production and pricing
 
-- canonical `g`, `mL`, and `pc` internal units;
-- standard measurement conversion;
-- package costing and cost per base unit;
-- current inventory normalization and valuation;
-- material-specific cup-to-weight calibration/manual fallback;
-- supplier/source metadata;
-- Materials and Calibration workspaces.
+The completed Phase 1–4 foundation includes:
 
-### Products, mixes and real-production yield learning
-
-- paintable-art, candle-pot, and candle product categories;
-- reusable weight/volume mix presets;
-- immutable multi-material yield samples;
-- good/rejected output tracking;
-- latest-derivable yield selection and fallback;
-- learned canonical material requirement per good piece;
-- fixed recipe materials and roles;
-- yield + fixed requirement synthesis with source traceability.
-
-### Production planning foundation
-
-- direct-material cost preview;
-- product safety-waste reserve;
-- waste-adjusted per-piece and planned-batch requirements;
-- whole-count physical batch rounding for indivisible `pc` materials;
-- normalized-inventory producible-piece capacity;
-- all tied direct-material limiters;
-- Products, Yield, and Production workspaces.
-
-Mold volume remains optional. Real sample production evidence is authoritative.
-
-### Product components, vessels and nested products
-
-- typed Product components backed by either a Material or another Product;
-- purchased glass/plastic/stainless vessels handled as count-based Material components;
-- handmade plaster pots and molded parts handled as Product-backed components;
-- positive whole-piece component quantities;
-- structural component roles;
-- direct and transitive cycle prevention;
-- nested Product composition with corruption-safe traversal guards;
-- active-source/dependency safeguards.
-
-### Finished component stock and assembly capacity
-
-- explicit finished ProductStock in whole `pc` counts;
-- missing stock distinguished from explicit `0 pc`;
-- archived historical stock remains inspectable/correctable;
-- Material-backed and recursive Product-backed component cost;
-- component-aware Product cost/readiness;
-- direct-material plus component assembly capacity;
-- no silent recursive manufacture of missing child stock;
-- all tied limiting resources preserved with typed identity.
-
-### Phase 4 pricing and production planning
-
-- Product financial profiles with explicit labor/overhead and configurable pricing policy;
-- fixed-profit, markup, and target-margin pricing;
-- recursively fully loaded production cost;
-- selling price, profit, markup, and margin metrics;
-- Q-specific physical planned batch production cost;
-- expected revenue/profit/margin;
-- capacity feasibility and advisory warnings;
-- Pricing and Production financial workflows.
+- canonical `g`, `mL`, and `pc` units and standard/material-specific conversions;
+- Material purchasing, costing, inventory and supplier/source metadata;
+- Product categories, MixPresets, real-production YieldSamples, fixed recipes and safety waste;
+- stock-based production capacity and limiting-resource analysis;
+- purchased and handmade Product components/vessels with cycle-safe nested composition;
+- explicit finished ProductStock and component-aware cost/capacity;
+- Product financial profiles, fully loaded costs, fixed-profit/markup/margin pricing;
+- planned-batch cost, revenue, profit, margin and capacity warnings;
+- Materials, Products, Yield, Production and Pricing workflows.
 
 ### Phase 5.1 persistence contract foundation
 
@@ -111,11 +60,9 @@ Phase 5.1 is complete and provides:
 - deterministic workbook ordering/source-representation rules;
 - formula-cell rejection policy and literal-text semantics;
 - complete pre-hydration dataset semantic validation;
-- case-insensitive duplicate identity detection before repository hydration;
-- durable cross-reference and Product composition graph validation;
+- duplicate identity, durable cross-reference and Product composition graph validation;
 - deterministic diagnostics;
 - missing-vs-zero/null semantics preserved;
-- legitimate historical archived relationships remain round-trippable;
 - no silent repair or partial hydration.
 
 ### Phase 5.2A XLSX codec foundation
@@ -123,25 +70,52 @@ Phase 5.1 is complete and provides:
 Phase 5.2A is complete.
 
 - **SheetJS Community Edition 0.20.3** is selected and pinned from the exact maintained upstream tarball;
-- public npm `xlsx` is intentionally not used as the authoritative dependency source;
 - `WorkbookCodec` provides a library-neutral workbook-byte boundary;
 - `SheetJsWorkbookCodec` is the only SheetJS-specific production adapter;
 - XLSX encode/decode is fully in memory;
 - encode returns `Uint8Array`;
 - decode accepts `Uint8Array | ArrayBuffer`;
-- worksheet order and primitive cells round-trip through real `.xlsx` bytes;
-- formula-looking strings such as `=1+1` remain literal text;
 - authoritative formula writes are rejected;
-- real inbound formulas are surfaced as formula metadata rather than evaluated as source data;
-- decoded formulas feed the existing `FORMULA_CELL_NOT_ALLOWED` validation policy;
-- no Node filesystem, Tauri filesystem, or browser file-picker dependency is required by the codec;
-- 12 focused real-XLSX tests cover the codec boundary and safety behavior.
+- real inbound formulas are surfaced as formula metadata instead of being evaluated;
+- formula-looking strings remain literal text;
+- 12 focused real-XLSX tests cover the codec boundary.
+
+### Phase 5.2B deterministic XLSX export
+
+Phase 5.2B is complete.
+
+The application now has a complete authoritative export direction:
+
+```text
+BusinessDataset
+   -> validate complete source state
+   -> canonical WorkbookNeutralDocument
+   -> validate workbook schema
+   -> WorkbookCodec / SheetJS
+   -> Uint8Array XLSX bytes
+```
+
+Delivered behavior includes:
+
+- all 13 canonical workbook sheets, including empty required sheets;
+- exact schema-owned column ordering;
+- `_Meta` written first with explicit `exportedAt` metadata and no hidden clock;
+- deterministic top-level row ordering independent of source-array order;
+- MixPreset categories/lines and YieldSample inputs normalized into ordered child sheets;
+- Material supplier/source metadata flattened into explicit source columns;
+- Product pricing policy flattened without conflating null and numeric zero;
+- missing ProductStock/profile evidence preserved as missing;
+- explicit zero and boolean false preserved;
+- full source numeric precision and ISO timestamp text preserved;
+- formula-looking user/source text preserved literally through real `.xlsx` bytes;
+- invalid datasets rejected before codec invocation with structured validation issues;
+- generated neutral workbook self-validated before byte encoding;
+- exporter does not mutate input source data.
 
 ## Current phase boundaries
 
 The following remain intentionally not implemented:
 
-- deterministic `BusinessDataset -> WorkbookNeutralDocument -> XLSX` export mapping — **Phase 5.2B**;
 - strict workbook-to-dataset reconstruction/import diagnostics — **Phase 5.2C**;
 - complete repository snapshot/hydration and load/save coordination — **Phase 5.3+**;
 - `ExcelStorage.load/save` runtime wiring — later Phase 5;
@@ -159,12 +133,15 @@ The following remain intentionally not implemented:
 
 ## Validation status
 
-Latest integrated technical baseline after Phase 5.2A implementation:
+Latest integrated technical baseline after Phase 5.2B implementation:
 
 ```text
-85 test files passed
-1060 tests passed
-12 Phase 5.2A focused tests
+86 test files passed
+1073 tests passed
+13 Phase 5.2B focused export tests
+12 Phase 5.2A real-XLSX codec tests
+30 Phase 5.1C dataset validation tests
+22 Phase 5.1B workbook schema tests
 8 React workspace smoke tests
 7 Phase 4.6A real-service integration tests
 TypeScript typecheck passed
@@ -172,24 +149,24 @@ Production Vite build passed
 117 modules transformed
 ```
 
-Phase 5.2A implementation PR: **#140 — MERGED**
+Phase 5.2B implementation PR: **#143 — MERGED**
 
 Implementation merge:
 
-`8468edf288b014a00f4f1529442fa043084f1102`
+`296960ee2f6e70999f4d279d59f977f4cf1c1d22`
 
 Exact post-merge CI:
 
-`35002844064 — SUCCESS`
+`35007932757 — SUCCESS`
 
-The existing Vite warning for the minified main JavaScript chunk being slightly above 500 kB remains non-blocking. SheetJS has not yet entered the React application entry bundle because the codec is not yet UI/application-reachable; later persistence wiring must remeasure bundle impact and may use deferred/dynamic loading.
+The existing Vite warning for the minified main JavaScript chunk being slightly above 500 kB remains non-blocking. Persistence is not yet wired into the React application entry path, so later UI/runtime integration should remeasure bundle impact and may use deferred/dynamic loading.
 
 See:
 
 - `docs/DEVELOPMENT_PLAN.md`
 - `docs/PHASE_5_EXCEL_PERSISTENCE_PLAN.md`
 - `docs/PHASE_5_PROGRESS.md`
-- `docs/PHASE_5_2A_XLSX_LIBRARY_EVALUATION_CODEC_BOUNDARY.md`
+- `docs/PHASE_5_2B_DETERMINISTIC_DATASET_TO_XLSX_EXPORT.md`
 
 ## Current status
 
@@ -200,10 +177,10 @@ See:
 **Phase 4 — COMPLETE**  
 **Phase 5 — IN PROGRESS**
 
-Phase 5.1 is complete. Phase 5.2A is complete.
+Phase 5.1, 5.2A, and 5.2B are complete.
 
 Current next task:
 
-**Phase 5.2B — Deterministic Dataset-to-XLSX Export — NEXT / NOT STARTED**
+**Phase 5.2C — Strict XLSX-to-Dataset Import & Diagnostics — NEXT / NOT STARTED**
 
-Do not begin 5.2B implementation until separately requested from the exact final green Phase 5.2A closeout baseline. It should first receive a dedicated scope/decomposition review and development plan.
+5.2C must first receive a dedicated scope/decomposition review and development plan from the exact final green 5.2B closeout baseline before implementation begins.
