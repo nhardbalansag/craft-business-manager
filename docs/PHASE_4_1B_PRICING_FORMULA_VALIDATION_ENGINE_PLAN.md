@@ -2,7 +2,7 @@
 
 ## Status
 
-**PLANNED — IMPLEMENTATION NOT STARTED**
+**IMPLEMENTED — MERGE GATE PENDING**
 
 Authoritative base:
 
@@ -16,89 +16,31 @@ Feature branch:
 
 `feature/phase-4-1b-pricing-formula-validation-engine`
 
+Implementation record:
+
+`docs/PHASE_4_1B_PRICING_FORMULA_VALIDATION_ENGINE.md`
+
 Master plan:
 
 `docs/PHASE_4_PRICING_PRODUCTION_PLANNING_PLAN.md`
 
 ## Objective
 
-Turn the Phase 4 pricing source vocabulary established in 4.1A into the authoritative pure-domain pricing formula and validation engine.
+Make the Phase 4 pricing source vocabulary authoritative for validated fixed-profit, markup, and target-margin formulas plus unit-profit/markup/margin diagnostics.
 
-4.1B must provide deterministic, full-precision formulas for:
-
-- fixed profit amount;
-- markup rate;
-- target margin rate;
-- selling price;
-- profit per unit;
-- effective markup;
-- effective margin;
-- explicit zero-denominator handling.
-
-Invalid pricing inputs must fail closed with typed domain errors. No invalid target margin may become a fake `0` selling price.
+Invalid financial input must fail closed. Domain calculations retain full precision and never round for UI display.
 
 ## Split assessment
 
-No deeper formal roadmap split is required.
+No deeper formal split was required.
 
-4.1B is one cohesive pure-domain task. Internal slices are:
+4.1B remained one cohesive pure-domain task. Application readiness/quote orchestration remains 4.3; profile persistence/application services remain 4.1C; fully loaded Product cost remains 4.2.
 
-1. typed pricing error/validation contract;
-2. validated selling-price formulas;
-3. unit-profit and ratio diagnostics;
-4. compatibility delegation from legacy `costing.ts` pricing helpers;
-5. focused deterministic tests and regression validation.
+## Delivered architecture
 
-Application readiness/quote orchestration belongs to 4.3. Financial-profile persistence/application services belong to 4.1C. Fully loaded product cost belongs to 4.2.
+### Typed pricing errors and validation
 
-## Existing architecture reviewed
-
-### Phase 4 pricing source domain
-
-`src/domain/pricing.ts` currently owns:
-
-```text
-PRICING_METHODS
-PricingMethod
-PricingPolicy
-isPricingMethod()
-clonePricingPolicy()
-```
-
-4.1A intentionally deferred numeric policy validation and formulas to this task.
-
-### Legacy generic costing helpers
-
-`src/domain/costing.ts` currently exposes:
-
-```text
-sellingPrice(unitCost, pricing)
-profitPerPiece(unitCost, price)
-```
-
-The current legacy behavior is not acceptable as the authoritative Phase 4 contract because:
-
-- negative policy values are silently clamped to zero;
-- target margin `>= 1` returns a fake `0` price;
-- non-finite financial inputs are not rejected explicitly;
-- zero-denominator ratio diagnostics do not exist.
-
-`totalUnitCost()` and `plannedTotals()` are deliberately out of scope:
-
-- authoritative fully loaded unit cost is 4.2;
-- physical batch economics is 4.4.
-
-4.1B must not repurpose those legacy helpers into later-phase behavior.
-
-## Authoritative validation contract
-
-Introduce a typed error such as:
-
-```text
-PricingError
-```
-
-with stable codes covering at least:
+`src/domain/pricing.ts` now exposes `PricingError` with stable codes for:
 
 ```text
 INVALID_PRICING_METHOD
@@ -111,14 +53,7 @@ NON_FINITE_SELLING_PRICE
 NEGATIVE_SELLING_PRICE
 ```
 
-### Policy validation
-
-For all policies:
-
-- method must be one of the 4.1A supported methods;
-- `value` must be finite.
-
-Method-specific rules:
+Authoritative policy rules:
 
 ```text
 profit-amount:   value >= 0
@@ -126,254 +61,164 @@ markup-percent:  value >= 0
 margin-percent:  0 <= value < 1
 ```
 
-Canonical percentage values are decimal rates:
+All values must be finite. Unit cost and selling price must be non-negative.
+
+Percentage values use canonical decimal rates such as `0.50` for 50%.
+
+### Authoritative formulas
 
 ```text
-0.50 = 50% markup
-0.25 = 25% target margin
-```
-
-4.1B does not accept human `50` as 50%; UI conversion belongs later.
-
-### Unit-cost validation
-
-Any authoritative pricing calculation receiving `unitCost` must require:
-
-```text
-finite
->= 0
-```
-
-No clamping, coercion, or rounding.
-
-### Selling-price validation for diagnostics
-
-Any public diagnostic accepting an externally supplied selling price must require:
-
-```text
-finite
->= 0
-```
-
-Derived selling price from a valid unit cost/policy should naturally satisfy this condition.
-
-## Authoritative formulas
-
-### Fixed profit amount
-
-```text
+fixed profit:
 sellingPrice = unitCost + profitAmount
-```
 
-### Markup
-
-```text
+markup:
 sellingPrice = unitCost × (1 + markupRate)
-```
 
-### Target margin
-
-```text
+target margin:
 sellingPrice = unitCost / (1 - targetMarginRate)
 ```
 
-A target margin of `1`, above `1`, or below `0` is invalid and must throw/fail closed.
+Invalid target margin fails closed instead of returning fake zero.
 
-### Profit per unit
+Negative pricing values fail instead of being silently clamped.
 
-```text
-profitPerUnit = sellingPrice - unitCost
-```
+Derived non-finite prices are rejected.
 
-### Effective markup
+### Unit economics
 
-```text
-effectiveMarkup = profitPerUnit / unitCost
-```
-
-when `unitCost > 0`.
-
-When `unitCost === 0`, return `null` rather than `Infinity`, `NaN`, or an invented ratio.
-
-### Effective margin
+Delivered:
 
 ```text
-effectiveMargin = profitPerUnit / sellingPrice
+calculateProfitPerUnit()
+calculateEffectiveMarkup()
+calculateEffectiveMargin()
+deriveUnitEconomics()
 ```
 
-when `sellingPrice > 0`.
+Zero-denominator policy:
 
-When `sellingPrice === 0`, return `null`.
-
-## Proposed pure-domain API
-
-The exact names may be refined during implementation, but the contract should remain equivalent to:
-
-```ts
-validatePricingPolicy(policy): void
-validatePricingUnitCost(unitCost): void
-validatePricingSellingPrice(price): void
-
-deriveSellingPrice(unitCost, policy): number
-calculateProfitPerUnit(unitCost, sellingPrice): number
-calculateEffectiveMarkup(unitCost, sellingPrice): number | null
-calculateEffectiveMargin(unitCost, sellingPrice): number | null
-
-deriveUnitEconomics(unitCost, policy): {
-  sellingPrice: number;
-  profitPerUnit: number;
-  effectiveMarkup: number | null;
-  effectiveMargin: number | null;
-}
+```text
+unitCost == 0      -> effectiveMarkup = null
+sellingPrice == 0  -> effectiveMargin = null
 ```
 
-A consolidated economics helper is useful because it guarantees all diagnostics are derived from one validated price result without repeated caller formulas.
+No Infinity/NaN sentinel is produced.
 
-## Precision policy
+### Precision
 
-4.1B must not round monetary values or rates.
+No domain rounding was added. Repeating target-margin results retain full JavaScript numeric precision.
 
-Examples such as a 25% target margin may produce repeating decimal prices. Full JavaScript numeric precision is retained in domain/application math.
+### Legacy compatibility
 
-PHP two-decimal formatting belongs to presentation/UI phases.
-
-## Legacy compatibility policy
-
-`src/domain/costing.ts` may retain the existing exports:
+`src/domain/costing.ts` retains:
 
 ```text
 sellingPrice()
 profitPerPiece()
 ```
 
-for source compatibility, but they must delegate to the authoritative `pricing.ts` implementation rather than retain duplicate formulas.
+but both now delegate to `pricing.ts`.
 
-Behavioral hardening is intentional:
+This intentionally changes invalid legacy behavior from sanitize/fake-zero to typed failure.
 
-- invalid negative policy values must now fail rather than clamp;
-- invalid margin must now fail rather than return `0`;
-- invalid non-finite unit cost/price must fail.
+`totalUnitCost()` and `plannedTotals()` remain unchanged because authoritative replacements belong to 4.2 and 4.4.
 
-No compatibility wrapper may preserve the old misleading invalid behavior.
-
-## Focused test matrix
-
-### Policy validation
-
-- all three supported methods accepted with valid values;
-- non-finite value rejected for every method;
-- negative fixed profit rejected;
-- negative markup rejected;
-- negative target margin rejected;
-- target margin exactly `1` rejected;
-- target margin above `1` rejected;
-- corrupted unsupported method rejected.
-
-### Unit-cost validation
-
-- zero unit cost accepted;
-- positive unit cost accepted;
-- negative unit cost rejected;
-- `NaN`, `Infinity`, `-Infinity` rejected.
-
-### Selling price formulas
-
-- fixed-profit deterministic example;
-- zero fixed profit;
-- markup deterministic example;
-- zero markup;
-- target-margin deterministic example;
-- zero target margin;
-- no domain rounding.
-
-### Profit and diagnostics
-
-- profit per unit derived correctly;
-- effective markup derived correctly;
-- effective margin derived correctly;
-- zero unit cost returns `null` effective markup;
-- zero selling price returns `null` effective margin;
-- invalid external selling price rejected.
-
-### Consolidated unit economics
-
-- result contains one derived selling price plus consistent profit/markup/margin values;
-- zero-cost/zero-price cases produce explicit null diagnostics.
-
-### Legacy wrappers
-
-- `costing.sellingPrice()` delegates to authoritative valid formula behavior;
-- invalid margin no longer returns fake zero;
-- `costing.profitPerPiece()` follows authoritative validated profit behavior.
-
-## Expected files
-
-Likely source changes:
+## Files changed
 
 ```text
+docs/PHASE_4_1B_PRICING_FORMULA_VALIDATION_ENGINE_PLAN.md
+docs/PHASE_4_1B_PRICING_FORMULA_VALIDATION_ENGINE.md
 src/domain/pricing.ts
 src/domain/pricing.test.ts
 src/domain/costing.ts
 src/domain/costing.test.ts
-docs/PHASE_4_1B_PRICING_FORMULA_VALIDATION_ENGINE.md
-docs/PHASE_4_1B_PRICING_FORMULA_VALIDATION_ENGINE_PLAN.md
 ```
 
-No repository/application/session/React file should be required.
+## Test coverage
 
-## Explicit non-goals
+```text
+src/domain/pricing.test.ts  50 tests
+src/domain/costing.test.ts  12 tests
+```
 
-4.1B does not implement:
+Coverage includes policy validation, finite/non-negative numeric validation, all three price formulas, zero policies, invalid margins, full precision, non-finite result rejection, profit/loss diagnostics, zero-denominator null behavior, consolidated unit economics, and legacy wrapper delegation.
+
+## Validation evidence
+
+Implementation head:
+
+`d699f1ac11794a47a026290aa3ef2e963d84f2f4`
+
+Implementation CI:
+
+`34934079592 — SUCCESS`
+
+Observed automated surface:
+
+```text
+57 test files passed
+698 tests passed
+50 pricing engine tests
+12 costing regression tests
+18 ProductFinancialProfile tests
+7 React smoke tests
+TypeScript typecheck passed
+production Vite build passed
+96 modules transformed
+```
+
+No implementation CI failure occurred.
+
+## Scope retained
+
+4.1B did not implement:
 
 - financial-profile repository/service/session wiring;
-- Product reference existence checks;
-- fully loaded product unit cost;
+- Product reference checks;
+- fully loaded Product cost;
 - safety-waste pricing cost;
 - recursive child financial cost;
 - readiness-aware pricing quote service;
-- batch production cost;
-- revenue/profit plan;
-- capacity feasibility synthesis;
+- batch production financials;
+- capacity warnings;
 - React pricing UI;
 - Excel/Tauri persistence;
-- tax/VAT, discounts, marketplace fees, charm-price rounding, or accounting posting.
+- tax/VAT, discounts, marketplace fees, price-rounding policy, or accounting posting.
 
-## Implementation order
+## Remaining lifecycle
 
-1. Create this plan before formula changes. ✅
-2. Add typed pricing validation/error contract.
-3. Add authoritative selling-price formulas.
-4. Add unit-profit and effective markup/margin diagnostics.
-5. Add consolidated unit-economics helper.
-6. Delegate legacy `costing.ts` pricing exports to the new engine.
-7. Add/update focused tests.
-8. Run full CI.
-9. Create implementation record and advance plan to merge-gate-pending.
-10. Require clean documented-head CI.
-11. Verify diff against exact starting `develop`.
-12. Open implementation PR to `develop`.
-13. Require independent PR CI.
-14. Merge with expected-head protection.
-15. Require exact post-merge `develop` CI.
-16. Create documentation-only closeout.
-17. Mark 4.1B COMPLETE / 4.1C NEXT in `docs/PHASE_4_PROGRESS.md`.
-18. Require closeout PR CI and exact final `develop` CI.
+Completed:
+
+1. dedicated plan before formula changes ✅
+2. typed pricing validation/error contract ✅
+3. authoritative selling-price formulas ✅
+4. profit/markup/margin diagnostics ✅
+5. consolidated unit-economics helper ✅
+6. legacy compatibility delegation ✅
+7. focused tests ✅
+8. full implementation CI ✅
+9. implementation record ✅
+
+Remaining:
+
+10. clean documented feature-head CI;
+11. scope compare against exact starting `develop`;
+12. implementation PR to `develop`;
+13. independent PR CI;
+14. merge with expected-head protection;
+15. exact post-merge `develop` CI;
+16. documentation-only closeout;
+17. mark 4.1B COMPLETE / 4.1C NEXT;
+18. closeout PR CI and exact final `develop` CI.
 
 ## Completion gate
 
-4.1B is complete only when:
+4.1B is complete only when all implementation and closeout gates pass and the tracker advances to:
 
-- policy numeric validation is authoritative and fail-closed;
-- all three pricing methods use canonical decimal-rate semantics;
-- invalid target margin never yields fake zero selling price;
-- unit cost and externally supplied selling price reject invalid/non-finite values;
-- selling-price, profit, markup, and margin formulas are deterministic;
-- zero denominator diagnostics return explicit `null`;
-- domain math does not round;
-- legacy pricing wrappers delegate rather than duplicate formulas;
-- focused tests, full tests, typecheck, and production build pass;
-- implementation PR and exact post-merge `develop` CI pass;
-- closeout PR and exact final `develop` CI pass.
+```text
+4.1B — Pricing Formula & Validation Engine            COMPLETE
+4.1C — Financial Profile Repository & Application Services NEXT
+```
 
 ## Next task after completion
 
