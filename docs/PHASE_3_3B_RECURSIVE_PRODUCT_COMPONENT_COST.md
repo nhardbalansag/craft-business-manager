@@ -2,7 +2,7 @@
 
 ## Status
 
-**IMPLEMENTATION COMPLETE — MERGE GATE PENDING**
+**COMPLETE**
 
 Feature branch:
 
@@ -11,6 +11,14 @@ Feature branch:
 Authoritative implementation base:
 
 `develop` @ `e84be8cb15cf4bd7be3379ebd76302a4087376c9`
+
+Implementation PR:
+
+`#75 — Phase 3.3B — Recursive Product-Backed Component Cost`
+
+Implementation merge commit:
+
+`14bf14436f159fcfd40d40dad8dd9ab0cf3ddc41`
 
 Development plan:
 
@@ -28,9 +36,9 @@ Primary operation:
 costComponent(component: ProductComponent)
 ```
 
-The service derives the component-aware cost of a Product-backed component edge recursively without persisting derived cost.
+The service derives one Product-backed component edge recursively without persisting derived cost.
 
-## Authoritative composition
+## Authoritative cost composition
 
 For every child Product:
 
@@ -43,17 +51,17 @@ parent contribution
 = known child unit cost × ProductComponent.quantityPerParent
 ```
 
-Authoritative sources are composed, not duplicated:
+The implementation composes existing authoritative services:
 
 - Phase 2 direct-material cost -> `RecipeMaterialCostPreviewService`;
 - material-backed discrete component cost -> 3.3A `MaterialBackedComponentCostService`;
 - Product-backed component cost -> recursive 3.3B traversal.
 
-ProductStock/current stock is intentionally absent from the service dependencies and cost mathematics.
+ProductStock/current stock is intentionally absent from Product cost dependencies and mathematics.
 
 ## Recursive breakdown contract
 
-Product-backed results expose:
+Product-backed results preserve:
 
 ```text
 componentId
@@ -72,100 +80,45 @@ breakdown[]
 issues[]
 ```
 
-`breakdown[]` is a recursive union of:
-
-- material-backed 3.3A cost lines;
-- Product-backed 3.3B cost lines.
-
-Every edge therefore preserves its own quantity multiplier and the hierarchy retains the complete multiplication path.
+`breakdown[]` recursively contains either a material-backed 3.3A line or another Product-backed 3.3B line. Every edge therefore preserves its own quantity multiplier and full multiplication path.
 
 ## Readiness propagation
 
 ### Ready
 
-A Product-backed line is `ready` only when:
-
-- the child Product exists and is active;
-- its Phase 2 direct-material preview is ready;
-- every reachable nested component line is ready.
+A line is `ready` only when the child Product exists and is active, the Phase 2 direct-material preview is ready, and every reachable nested component cost is ready.
 
 ### Partial
 
-A Product-backed line is `partial` when at least one reliable numeric contribution is known but some required direct/component evidence is unresolved.
+A line is `partial` when at least one reliable numeric contribution is known but one or more required direct/component inputs are unresolved.
 
-Examples covered by implementation:
-
-- Phase 2 direct-material preview is partial;
-- direct-material preview is not-ready but nested component cost is known;
-- nested material component is not-ready while direct material is known;
-- nested Product cost is partial;
-- one reachable branch is cyclic while unaffected sibling cost remains derivable;
-- reachable duplicate component-source corruption blocks component aggregation but valid direct-material evidence remains.
-
-The returned numeric cost is explicitly the known current subtotal only.
+The returned numeric value is explicitly the known current subtotal only. Examples include partial direct-material cost, component-only known cost when direct cost is unresolved, unresolved nested components, partial nested Products, one cyclic branch with unaffected siblings, and reachable duplicate-source corruption with valid direct evidence.
 
 ### Not ready
 
-A line is `not-ready` when no reliable numeric child-cost evidence can be produced or the relationship itself is invalid.
-
-Examples:
-
-- invalid/non-Product component input;
-- missing/inactive child Product;
-- direct/reachable cycle edge;
-- no derivable direct-material lines and no derivable child component contribution;
-- invalid aggregate numeric result.
+A line is `not-ready` when no reliable numeric child-cost evidence can be produced or the relationship itself is invalid, including missing/inactive child Products, invalid/non-Product inputs, reachable cycle edges, or no derivable direct/component evidence.
 
 ## Zero-versus-missing cost evidence
 
-The implementation tracks cost evidence separately from numeric value.
+The implementation tracks cost evidence separately from numeric value:
 
-Therefore:
-
-- a ready zero direct-material cost is valid numeric evidence;
-- a ready zero-cost nested component is valid numeric evidence;
-- a Phase 2 not-ready preview with zero lines is unresolved and is not silently interpreted as authoritative zero.
-
-This allows partial zero subtotal to remain distinguishable from no cost evidence.
+- ready zero direct-material cost is valid evidence;
+- ready zero-cost nested component contribution is valid evidence;
+- a not-ready Phase 2 preview with zero lines remains unresolved rather than being interpreted as authoritative zero.
 
 ## Active Product relationship guard
 
-Each Product-backed edge resolves the current child Product directly through `ProductRepository`.
+Each Product-backed edge resolves its child directly through `ProductRepository`. Missing or inactive child Products return controlled `not-ready` lines.
 
-Missing or inactive child Products return controlled `not-ready` lines.
+`ComponentSourceAvailabilityService` is intentionally not used because it also evaluates ProductStock, and current stock must not affect Product cost.
 
-The service intentionally does **not** use `ComponentSourceAvailabilityService` for Product cost eligibility because that resolver also evaluates ProductStock; current stock must not affect derived Product cost.
+## Corrupted-data guards
 
-## Corrupted-data path/cycle guard
+Recursive Product identity is trimmed and case-insensitive.
 
-The recursive active path uses canonical Product identity:
+The service maintains an independent active path, so corrupted/imported reachable cycles cannot recurse indefinitely. A cycle returns `CYCLE_DETECTED` with a closed canonical cycle path while unaffected sibling evidence remains available.
 
-```text
-trim + case-insensitive
-```
-
-If a child attempts to revisit a Product already in the active path, recursion stops for that edge and returns:
-
-```text
-CYCLE_DETECTED
-```
-
-with a closed canonical cycle path.
-
-Unrelated corruption does not block a safe requested root, and unaffected sibling cost evidence remains available when another reachable branch cycles.
-
-## Duplicate-source guard
-
-Each currently traversed Product validates only its immediate child component collection with the existing 3.1B source-uniqueness rule.
-
-This prevents corrupted duplicate source records from being double-counted while avoiding global failure caused by unrelated corruption elsewhere in the repository.
-
-When immediate composition is invalid:
-
-- nested component aggregation is not performed;
-- direct Phase 2 cost evidence remains available;
-- result is partial when direct evidence exists;
-- result is not-ready when no evidence exists.
+Each traversed Product also validates only its immediate child source uniqueness through the existing 3.1B rule. Reachable duplicates are not double-counted, while unrelated corruption elsewhere does not globally block a safe requested root.
 
 ## Deterministic traversal
 
@@ -174,8 +127,6 @@ Immediate child components are ordered by:
 1. source type;
 2. normalized source ID;
 3. normalized component ID.
-
-Recursive tree output is therefore deterministic regardless of repository insertion order.
 
 ## Controlled issues
 
@@ -195,11 +146,11 @@ CYCLE_DETECTED
 DERIVED_COST_INVALID
 ```
 
-Detailed Phase 2 issues and nested line evidence remain attached to the recursive tree.
+Detailed Phase 2 and nested cost evidence remains attached to the recursive tree.
 
 ## Shared session wiring
 
-`src/application/session.ts` now exports:
+`src/application/session.ts` exports:
 
 ```text
 productBackedComponentCostService
@@ -224,38 +175,25 @@ Added:
 
 Dedicated 3.3B suite: **26 tests**.
 
-Coverage includes:
+Coverage includes direct Phase 2 cost, edge multipliers, canonical identities/paths, material-backed children, two-level/deep nesting, mixed recursive composition, full breakdown trees, zero-cost evidence, partial/not-ready propagation, missing/inactive Products, invalid inputs, self/deep cycles, sibling preservation around cycles, duplicate-source protection, unrelated corruption isolation, deterministic ordering, and source immutability.
 
-- ready Phase 2 direct-material child;
-- parent quantity multiplication;
-- canonical child identity/name/path;
-- 3.3A material-backed child component;
-- two-level and deeper Product nesting;
-- mixed direct/material/Product nested costs;
-- recursive breakdown tree and edge multipliers;
-- ready zero direct cost;
-- partial Phase 2 direct cost;
-- component-only partial cost when direct cost is unresolved;
-- zero component evidence;
-- nested material/Product readiness propagation;
-- missing/inactive child Product;
-- invalid/non-Product input;
-- direct self-cycle and deep reachable cycle;
-- unaffected sibling evidence around a cyclic branch;
-- reachable duplicate source protection;
-- unrelated corruption isolation;
-- deterministic tree ordering;
-- source immutability.
-
-Feature-head CI:
+## Validation evidence
 
 ```text
-run 34917053692 — SUCCESS
+Test-bearing feature CI: 34917053692 — SUCCESS
+Final feature-head CI:    34917215482 — SUCCESS
+PR #75 CI:                34917269363 — SUCCESS
+Post-merge develop CI:    34917371932 — SUCCESS
+
 46 test files passed
 464 tests passed
 TypeScript typecheck passed
 production build passed
 ```
+
+Exact validated implementation merge commit:
+
+`14bf14436f159fcfd40d40dad8dd9ab0cf3ddc41`
 
 ## Explicit deferrals
 
@@ -275,36 +213,31 @@ Not implemented in 3.3B:
 
 These remain 3.3C, 3.4+, Phase 4, 3.5, or Phase 5.
 
-## Completion gate state
+## Completion gate
 
-Feature implementation gates passed:
+All 3.3B gates passed:
 
-- recursive Product-backed child cost combines Phase 2 direct cost and Phase 3 component cost;
+- recursive Product-backed cost combines authoritative Phase 2 direct cost and Phase 3 component cost;
 - 3.3A remains the sole material-backed component cost path;
-- arbitrary finite acyclic nesting is supported;
-- recursive breakdown tree and edge quantities are preserved;
-- Product names/IDs and Phase 2 leaf evidence remain inspectable;
-- ready/partial/not-ready propagates through the tree;
+- finite acyclic nesting is supported;
+- recursive tree, edge quantities, Product identities, and leaf evidence remain inspectable;
+- ready/partial/not-ready propagates deterministically;
 - partial known subtotal remains visibly incomplete;
-- zero cost remains distinct from absence of evidence;
+- zero cost remains distinct from missing evidence;
 - missing/inactive child Products are controlled;
 - reachable cycles cannot recurse indefinitely;
-- duplicate sources are not double-counted;
+- reachable duplicate sources are not double-counted;
 - unrelated corruption does not globally block safe roots;
-- ProductStock is excluded from cost dependencies;
+- ProductStock is excluded from Product cost dependencies;
 - derived recursive cost is not persisted;
 - shared session wiring exists;
 - 46 test files / 464 tests pass;
-- TypeScript typecheck passes;
-- production build passes.
+- TypeScript typecheck and production build pass;
+- PR #75 merged to `develop`;
+- exact post-merge `develop` CI `34917371932` passed.
 
-Remaining before 3.3B may be marked fully complete:
+## Next task
 
-- implementation PR must merge to `develop`;
-- exact post-merge `develop` CI must pass.
+**3.3C — Total Component-Aware Product Cost & Readiness — NEXT / NOT STARTED**
 
-## Next task after closeout
-
-**3.3C — Total Component-Aware Product Cost & Readiness**
-
-Do not begin 3.3C until 3.3B is merged, exact post-merge `develop` CI is green, and a dedicated 3.3C plan/scope review is established.
+Do not begin 3.3C until a dedicated development plan/scope review is established for that task.
