@@ -2,11 +2,17 @@
 
 ## Status
 
-**IMPLEMENTED — MERGE GATE PENDING**
+**COMPLETE**
 
-Authoritative base:
+Authoritative implementation base:
 
 `develop` @ `badef95776f8ef4ce23edfdcee84210802dbc71f`
+
+Implementation PR: `#69`
+
+Implementation merge commit:
+
+`827217607ac53dc286c6f0e64110b5d93d8672fd`
 
 ## Objective
 
@@ -14,20 +20,18 @@ Add the storage-agnostic repository and application-service layer for the Phase 
 
 ## Split assessment
 
-No deeper formal split is required.
+No deeper formal split was required.
 
-3.2B is a cohesive repository/application boundary. Implementation proceeded in this order:
+3.2B remained a cohesive repository/application boundary covering:
 
-1. add `ProductStockRepository`;
-2. add defensive `InMemoryProductStockRepository` keyed by Product identity;
-3. add `ProductStockService` with Product existence validation and set/update/get/list behavior;
-4. add `BusinessDataset.productStocks` as authoritative source data;
-5. wire repository/service into `application/session.ts`;
-6. add focused application/repository tests;
-7. run full typecheck/test/build validation;
-8. merge only after PR and exact post-merge `develop` CI are green.
-
-These are implementation steps, not additional sub-phases.
+1. `ProductStockRepository`;
+2. defensive `InMemoryProductStockRepository` keyed by Product identity;
+3. `ProductStockService` with Product existence validation and set/get/list behavior;
+4. `BusinessDataset.productStocks` authoritative source data;
+5. shared application-session wiring;
+6. focused application/repository tests;
+7. full typecheck/test/build validation;
+8. PR and exact post-merge `develop` gates.
 
 ## Locked domain/application policy
 
@@ -35,46 +39,41 @@ These are implementation steps, not additional sub-phases.
 
 `productId` is the identity of a ProductStock record.
 
-The repository exposes a single record for a Product identity. Application operations use upsert semantics rather than creating duplicate stock rows.
+The repository exposes a single record per normalized Product identity and uses upsert semantics rather than duplicate stock rows.
 
-Trimmed/case-insensitive Product identity is used for repository lookup consistency with the existing application architecture.
+Trimmed/case-insensitive Product identity is used for repository lookup consistency.
 
 ### Product existence
 
-Before stock is created or replaced, the service resolves the Product through `ProductRepository`.
+Before stock is created or replaced, `ProductStockService` resolves the Product through `ProductRepository`.
 
-Missing Product identity is rejected with a typed application error.
+Missing Product identity is rejected with `PRODUCT_NOT_FOUND`.
 
-The Product does **not** need to be active in 3.2B. Stock for archived Products remains legitimate source/history data and may remain inspectable or correctable.
+The Product does not need to be active in 3.2B. Stock for archived Products remains legitimate source/history data and may remain inspectable or correctable.
 
-Whether archived Product stock is eligible as a source for an active parent belongs to **3.2C**.
+Whether archived Product stock is eligible as a source for an active parent remains 3.2C.
 
 ### Current stock semantics
 
 `ProductStock.onHandQuantity` remains current authoritative finished stock source data.
 
-It is not derived from:
+It is not derived from Phase 1 raw-material inventory, Phase 2 recipe capacity, hypothetical production capacity, or later component calculations.
 
-- Phase 1 raw-material inventory;
-- Phase 2 recipe capacity;
-- hypothetical production capacity;
-- component cost/capacity calculations.
-
-`setStock()` creates the ProductStock record when missing and replaces the current record when one already exists.
+`setStock()` creates a ProductStock record when missing and replaces the current record when one already exists.
 
 Explicit zero remains distinct from a missing ProductStock record.
 
 ### Archive preservation
 
-No Product archive path deletes ProductStock.
+Product archive paths do not delete ProductStock.
 
-3.2B does not add a Product archive guard because stock is historical/current source data rather than a dependency constraint. Existing stock simply remains in the ProductStock repository after the Product becomes archived.
+3.2B adds no Product archive guard because stock is source/history data rather than a dependency constraint.
 
 ### Removal policy
 
-The locked Phase 3 plan requires set/update/retrieve/list operations but does not require ProductStock deletion.
+No stock delete operation is exposed.
 
-3.2B therefore does **not expose a stock delete operation**. A missing record carries meaningful semantics for 3.2C (unresolved availability), while explicit zero means known zero stock.
+A missing record carries meaningful 3.2C semantics (unresolved availability), while explicit zero means known zero stock.
 
 ## Repository contract
 
@@ -85,16 +84,11 @@ ProductStockRepository
 - upsert(stock)
 ```
 
-Repository requirements:
-
-- defensive cloning on input and output;
-- one stored record per normalized Product identity;
-- storage-agnostic interface;
-- no Excel/filesystem concerns.
+Repository behavior is defensive, storage-agnostic, and independent of Excel/filesystem concepts.
 
 ## Application service
 
-Operations:
+Implemented operations:
 
 ```text
 setStock(productId, onHandQuantity, notes?)
@@ -103,76 +97,45 @@ getStock(productId)
 listStocks(filter?)
 ```
 
-All writes:
-
-1. normalize using the 3.2A contract;
-2. validate the 3.2A contract;
-3. resolve the referenced Product;
-4. persist by Product identity through repository upsert;
-5. return a defensive clone.
+Writes normalize/validate through 3.2A, resolve Product existence, canonicalize Product identity, upsert the source record, and return a defensive clone.
 
 ## Filtering
 
-Baseline useful filters:
+Baseline filters implemented:
 
 - exact Product ID;
-- free-text query over Product ID / notes.
+- free-text Product ID / notes query.
 
-Product active-state availability filtering is not required here because source eligibility is a 3.2C concern.
+Product active-state eligibility remains a 3.2C concern.
 
 ## BusinessDataset
 
-Authoritative source data added:
+Added:
 
 ```text
 productStocks: ProductStock[]
 ```
 
-No derived availability, capacity, costing, reservations, or production history is stored in this array.
+This is authoritative source data only. Derived availability, capacity, cost, reservations, or production history are excluded.
 
 Excel persistence remains Phase 5.
 
 ## Shared session wiring
 
-Shared application-session instances added:
+Added:
 
 ```text
 productStockRepository
 productStockService
 ```
 
-`ProductStockService` depends on the existing shared `productRepository`.
+`ProductStockService` uses the shared `productRepository`.
 
-## Application error contract
+## Validation result
 
-Typed application error:
-
-```text
-PRODUCT_NOT_FOUND
-```
-
-3.2A `ProductStockError` remains authoritative for malformed ProductStock records/quantities.
-
-## Test plan/result
-
-Focused tests cover:
-
-- set stock creates a record;
-- set stock replaces the same Product record rather than duplicating it;
-- case-insensitive/trimmed Product identity lookup;
-- explicit zero is persisted and retrievable;
-- missing stock returns `null`, distinguishable from zero;
-- missing Product rejection;
-- archived Product stock can be read/preserved and may be corrected;
-- list/filter/search behavior;
-- repository defensive cloning;
-- service defensive cloning;
-- 3.2A validation remains enforced through the service;
-- no Product archive operation deletes ProductStock.
-
-Feature-head validation:
-
-- CI run `34913228450` — SUCCESS;
+- feature CI `34913228450` — SUCCESS;
+- PR CI `34913387142` — SUCCESS;
+- post-merge `develop` CI `34913435571` — SUCCESS;
 - 43 test files passed;
 - 404 tests passed;
 - TypeScript typecheck passed;
@@ -185,7 +148,7 @@ Not part of 3.2B:
 - component source availability resolver;
 - active-parent availability eligibility;
 - Material/Product source readiness synthesis;
-- stock reservations;
+- reservations;
 - automatic deductions;
 - stock transaction ledger;
 - production history;
@@ -194,33 +157,14 @@ Not part of 3.2B:
 - React stock UI;
 - Excel persistence.
 
-These remain 3.2C, 3.3+, 3.4+, 3.5, or Phase 5 according to the roadmap.
+These remain 3.2C, 3.3+, 3.4+, 3.5, or Phase 5.
 
 ## Completion gate
 
-Implemented feature gates passed:
+All 3.2B gates are green.
 
-- one ProductStock record per Product identity is enforced by repository/upsert behavior;
-- all stock writes validate Product existence;
-- set/update/get/list behavior is testable without React;
-- missing stock remains distinguishable from explicit zero;
-- archived Product stock is preserved;
-- repository/service cloning is defensive;
-- `BusinessDataset.productStocks` is authoritative source data;
-- shared application-session wiring exists;
-- storage implementation does not leak into domain/application logic;
-- focused tests pass;
-- full repository tests pass;
-- TypeScript typecheck passes;
-- production build passes.
-
-Remaining gate:
-
-- implementation PR merges to `develop`;
-- exact post-merge `develop` CI is green.
-
-## Next task after closeout
+## Next task
 
 **3.2C — Component Source Availability & Relationship Guards**
 
-Do not begin 3.2C until 3.2B is merged and exact post-merge `develop` CI is green.
+Do not begin 3.2C until its dedicated development plan/scope review is established.

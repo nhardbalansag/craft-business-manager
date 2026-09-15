@@ -2,7 +2,9 @@
 
 ## Status
 
-**IMPLEMENTATION COMPLETE — MERGE GATE PENDING**
+**COMPLETE**
+
+Implementation PR: `#69`
 
 Feature branch: `feature/phase-3-2b-product-stock-services`
 
@@ -10,13 +12,19 @@ Authoritative implementation base:
 
 `develop` @ `badef95776f8ef4ce23edfdcee84210802dbc71f`
 
+Implementation merge commit:
+
+`827217607ac53dc286c6f0e64110b5d93d8672fd`
+
 Development plan:
 
 `docs/PHASE_3_2B_PRODUCT_STOCK_REPOSITORY_SERVICES_PLAN.md`
 
-Feature validation evidence:
+Validation evidence:
 
-- CI run `34913228450` — SUCCESS;
+- feature CI run `34913228450` — SUCCESS;
+- PR CI run `34913387142` — SUCCESS;
+- post-merge `develop` CI run `34913435571` — SUCCESS;
 - 43 test files passed;
 - 404 tests passed;
 - TypeScript typecheck passed;
@@ -164,7 +172,7 @@ The dedicated 3.2B suite adds 10 tests covering:
 - 3.2A validation enforcement through service writes;
 - Product archive preservation of ProductStock.
 
-Feature-head validation passes:
+Full validated repository state:
 
 ```text
 43 test files
@@ -172,8 +180,6 @@ Feature-head validation passes:
 TypeScript typecheck
 production build
 ```
-
-CI run: `34913228450`.
 
 ## Explicit deferrals
 
@@ -192,28 +198,24 @@ Not implemented in 3.2B:
 
 These remain 3.2C and later roadmap phases.
 
-## Completion gate state
+## Completion gate result
 
-Feature-head gates passed:
+Passed:
 
 - one stock record per Product identity through upsert behavior;
 - writes validate Product existence;
-- CRUD-equivalent set/get/list behavior works without React;
+- set/get/list behavior works without React;
 - missing stock remains distinct from explicit zero;
 - archived Product stock is preserved;
 - repository/service cloning is defensive;
 - `BusinessDataset.productStocks` is source data;
 - session wiring exists;
 - storage technology remains outside domain/application logic;
-- typecheck/tests/build are green.
+- feature-head typecheck/tests/build;
+- PR #69 CI;
+- merge to `develop`;
+- exact post-merge `develop` CI `34913435571`.
 
-Remaining before 3.2B may be marked fully complete:
-
-- merge implementation PR to `develop`;
-- verify exact post-merge `develop` CI is green.
-
-## Next task after closeout
+## Next task
 
 **3.2C — Component Source Availability & Relationship Guards**
-
-Do not begin 3.2C until the 3.2B merge/post-merge gate is green.
