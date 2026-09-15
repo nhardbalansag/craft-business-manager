@@ -20,13 +20,13 @@ Planning baseline: `docs/PHASE_3_PRODUCT_COMPONENTS_VESSELS_PLAN.md`
     3.3B — Recursive Product-Backed Component Cost        COMPLETE
     3.3C — Total Product Cost & Readiness                  COMPLETE
 
-3.4 — Component-Limited Assembly Capacity                 IN PROGRESS
+3.4 — Component-Limited Assembly Capacity                 COMPLETE
     3.4A — Per-Component Availability & Capacity          COMPLETE
     3.4B — Direct-Material + Component Capacity           COMPLETE
-    3.4C — Limiting Resource Trace & Readiness            NEXT
+    3.4C — Limiting Resource Trace & Readiness            COMPLETE
 
-3.5 — Component / Stock / Production UI                   NOT STARTED
-    3.5A — Product Composition Editor                     NOT STARTED
+3.5 — Component / Stock / Production UI                   IN PROGRESS
+    3.5A — Product Composition Editor                     NEXT
     3.5B — Finished Component Stock UI                    NOT STARTED
     3.5C — Component-Aware Production Estimate UI         NOT STARTED
 
@@ -48,7 +48,9 @@ Planning baseline: `docs/PHASE_3_PRODUCT_COMPONENTS_VESSELS_PLAN.md`
 - a true Phase 2 `NO_REQUIREMENTS` direct side may be neutral for a valid component-only Product;
 - broken/unresolved direct-material requirements remain blocking;
 - unresolved required resources must not be silently treated as zero;
-- all tied limiting resources must remain visible when 3.4C limiting-resource synthesis is implemented;
+- every resource tied at the final assembly-capacity minimum must remain visible;
+- limiting-resource identity is typed as direct Material requirement, Material-backed component, or Product-backed component;
+- capacity limiter paths terminate at the immediate current parent input used for assembly capacity and do not imply recursive manufacture;
 - labor, overhead, and selling price remain Phase 4;
 - Excel persistence remains Phase 5;
 - no stock reservation, automatic deduction, or stock transaction ledger is introduced in Phase 3.
@@ -94,16 +96,17 @@ post-merge CI 34918526564 — SUCCESS
 47 test files / 489 tests
 ```
 
-### 3.4A — Per-Component Availability & Capacity
+### 3.4 — Component-Limited Assembly Capacity
 
 **COMPLETE**
+
+#### 3.4A — Per-Component Availability & Capacity
 
 - one component line derives `floor(availableQuantity / quantityPerParent)`;
 - Material/Product availability delegates to Phase 3.2C;
 - Product-backed availability uses explicit ProductStock only;
 - explicit zero is ready zero capacity;
-- unresolved quantity remains null;
-- no Product-level synthesis or limiter logic is included.
+- unresolved quantity remains null.
 
 Evidence:
 
@@ -118,22 +121,15 @@ Development plan: `docs/PHASE_3_4A_PER_COMPONENT_CAPACITY_PLAN.md`
 
 Implementation record: `docs/PHASE_3_4A_PER_COMPONENT_CAPACITY.md`
 
-### 3.4B — Direct-Material + Component Capacity Synthesis
+#### 3.4B — Direct-Material + Component Capacity Synthesis
 
-**COMPLETE**
-
-- `AssemblyCapacitySynthesisService` synthesizes authoritative Phase 2.4C direct capacity with every immediate Phase 3.4A component capacity;
-- direct-material-only, component-only, and mixed Products are supported;
-- a sole Phase 2 `NO_REQUIREMENTS` state is neutral for legitimate component-only composition;
-- unresolved/broken direct requirements remain blocking;
-- final assembly capacity is published only when every actually-required resource is reliable;
-- final capacity is the minimum of all applicable reliable candidates;
-- authoritative zero participates normally;
-- known diagnostics are retained for partial/not-ready results;
-- duplicate root component sources are guarded before synthesis;
-- no typed overall limiting-resource/tie synthesis is included yet;
-- no inventory/stock mutation or derived-capacity persistence is introduced;
-- shared `assemblyCapacitySynthesisService` is wired in the application session.
+- synthesizes authoritative Phase 2.4C direct capacity with every immediate Phase 3.4A component capacity;
+- supports direct-material-only, component-only, and mixed Products;
+- final assembly capacity is the minimum of all applicable reliable candidates;
+- genuine `NO_REQUIREMENTS` is neutral for valid component-only Products;
+- unresolved resources retain diagnostics and suppress final capacity;
+- duplicate component sources are guarded;
+- zero remains authoritative.
 
 Evidence:
 
@@ -146,16 +142,46 @@ PR CI                  34920392445 — SUCCESS
 Post-merge develop CI  34920455875 — SUCCESS
 50 test files / 551 tests
 27 dedicated 3.4B tests
-TypeScript typecheck passed
-production build passed
 ```
 
 Development plan: `docs/PHASE_3_4B_DIRECT_MATERIAL_COMPONENT_CAPACITY_SYNTHESIS_PLAN.md`
 
 Implementation record: `docs/PHASE_3_4B_DIRECT_MATERIAL_COMPONENT_CAPACITY_SYNTHESIS.md`
 
+#### 3.4C — Limiting Resource Trace & Readiness
+
+- `AssemblyCapacityTraceService` reports every resource tied at the authoritative 3.4B final minimum;
+- limiter identities are typed as `material-requirement`, `material-backed-component`, or `product-backed-component`;
+- cross-category, multiple-resource, and zero-capacity ties are all preserved;
+- direct Material limiter evidence reuses Phase 2.4C limiter IDs/capacity lines;
+- component limiter evidence reuses Phase 3.4A capacity and Phase 3.2C availability/ProductStock evidence;
+- Product/Material names and typed immediate-parent paths are exposed for later UI use;
+- incomplete/inconsistent traces fail closed and publish no misleading limiter subset;
+- Product-backed capacity remains explicit ProductStock-based only;
+- no recursive manufacture, source mutation, or derived-capacity persistence is introduced;
+- shared `assemblyCapacityTraceService` is wired in the application session.
+
+Evidence:
+
+```text
+PR #83 merged
+implementation merge 2abd09b743cc88f4db06dc52916eb39b2bc9a52e
+Fully wired feature CI 34921412641 — SUCCESS
+Final feature-head CI  34921498304 — SUCCESS
+PR CI                  34921565665 — SUCCESS
+Post-merge develop CI  34921631005 — SUCCESS
+51 test files / 586 tests
+35 dedicated 3.4C tests
+TypeScript typecheck passed
+production build passed
+```
+
+Development plan: `docs/PHASE_3_4C_LIMITING_RESOURCE_TRACE_READINESS_PLAN.md`
+
+Implementation record: `docs/PHASE_3_4C_LIMITING_RESOURCE_TRACE_READINESS.md`
+
 ## Current active task
 
-**3.4C — Limiting Resource Trace & Readiness — NEXT / NOT STARTED**
+**3.5A — Product Composition Editor — NEXT / NOT STARTED**
 
-Do not begin 3.4C until a dedicated development plan/scope review is established for that task.
+Do not begin 3.5A until a dedicated development plan/scope review is established for that task.
