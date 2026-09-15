@@ -1,8 +1,10 @@
 # Phase 3 — Product Components, Vessels & Nested Molded Products Progress
 
-Status: **IN PROGRESS**
+Status: **COMPLETE**
 
 Planning baseline: `docs/PHASE_3_PRODUCT_COMPONENTS_VESSELS_PLAN.md`
+
+Final completion record: `docs/PHASE_3_6B_REGRESSION_BUILD_COMPLETION.md`
 
 ```text
 3.1 — Composition Foundation                              COMPLETE
@@ -30,12 +32,12 @@ Planning baseline: `docs/PHASE_3_PRODUCT_COMPONENTS_VESSELS_PLAN.md`
     3.5B — Finished Component Stock UI                    COMPLETE
     3.5C — Component-Aware Production Estimate UI         COMPLETE
 
-3.6 — Integration & Completion Gate                       IN PROGRESS
+3.6 — Integration & Completion Gate                       COMPLETE
     3.6A — Integrated Multi-Component Workflow            COMPLETE
-    3.6B — Regression / Build / Completion                NEXT
+    3.6B — Regression / Build / Completion                COMPLETE
 ```
 
-## Locked planning decisions
+## Locked Phase 3 decisions
 
 - component sources are explicitly `material` or `product`;
 - component quantities are positive whole `pc` counts;
@@ -57,15 +59,15 @@ Planning baseline: `docs/PHASE_3_PRODUCT_COMPONENTS_VESSELS_PLAN.md`
 - archived relevant ProductStock remains inspectable/correctable;
 - Production component counts do not inherit parent direct-material safety waste;
 - Production uses Phase 3 cost/capacity/trace services rather than recomputing authoritative formulas in React;
-- Phase 3 integration scenarios validate the real application service graph through isolated in-memory repositories;
 - ProductStock controls current Product-backed assembly capacity but does not alter recursive child Product cost;
 - transitive composition cycles are rejected through ProductComponentService before persistence;
 - no ProductStock delete/reset-to-missing shortcut exists without an application/domain contract;
-- no stock reservation, automatic deduction, or stock transaction ledger is introduced in Phase 3;
-- labor, overhead, selling price, markup, margin, and profit remain Phase 4;
-- Excel persistence remains Phase 5.
+- no stock reservation, automatic deduction, stock transaction ledger, or production posting is introduced in Phase 3;
+- labor, overhead, selling price, markup, margin, revenue, and profit remain Phase 4;
+- Excel persistence remains Phase 5;
+- native Tauri filesystem integration remains Phase 6.
 
-## Completed phase records
+## Completion evidence by major phase
 
 ### 3.1 — Composition Foundation
 
@@ -95,7 +97,7 @@ Implementation records:
 3.3C PR #77 merged
 implementation merge 742dd4d2e0882fc1d8f32904adad25a154082167
 post-merge CI 34918526564 — SUCCESS
-47 test files / 489 tests
+47 test files / 489 tests at 3.3C completion
 ```
 
 Implementation records:
@@ -127,100 +129,103 @@ post-merge CI 34921631005 — SUCCESS
 
 **COMPLETE**
 
-#### 3.5A — Product Composition Editor
-
 ```text
-PR #85 merged
+3.5A PR #85 merged
 implementation merge b4ab27f7620de4e2d255a1816f6bfd216a954173
-post-merge develop CI 34923517417 — SUCCESS
-52 test files / 596 tests
-9 dedicated composition-preview tests
-6 React workspace smoke tests
-```
+post-merge CI 34923517417 — SUCCESS
 
-Development plan: `docs/PHASE_3_5A_PRODUCT_COMPOSITION_EDITOR_PLAN.md`
-
-Implementation record: `docs/PHASE_3_5A_PRODUCT_COMPOSITION_EDITOR.md`
-
-#### 3.5B — Finished Component Stock UI
-
-```text
-PR #87 merged
+3.5B PR #87 merged
 implementation merge c542021c60e1e276782fc484db7aa84ad0ac3952
-post-merge develop CI 34924968637 — SUCCESS
-53 test files / 608 tests
-11 dedicated productStockRows tests
-7 React workspace smoke tests
-```
+post-merge CI 34924968637 — SUCCESS
 
-Development plan: `docs/PHASE_3_5B_FINISHED_COMPONENT_STOCK_UI_PLAN.md`
-
-Implementation record: `docs/PHASE_3_5B_FINISHED_COMPONENT_STOCK_UI.md`
-
-#### 3.5C — Component-Aware Production Estimate UI
-
-```text
-PR #89 merged
-implementation merge        1f2c5ee8a286104cfe0ac10a8b2fe8e414e92340
-Implementation CI           34928129692 — SUCCESS
-Final feature-head CI       34928305658 — SUCCESS
-PR CI                       34928439683 — SUCCESS
-Post-merge develop CI       34928507669 — SUCCESS
-54 test files / 623 tests
+3.5C PR #89 merged
+implementation merge 1f2c5ee8a286104cfe0ac10a8b2fe8e414e92340
+post-merge CI 34928507669 — SUCCESS
+54 test files / 623 tests at 3.5C completion
 15 dedicated componentAwareProductionView tests
-7 React workspace smoke tests
-TypeScript typecheck passed
-production build passed
+7 React smoke tests
 ```
 
-Development plan: `docs/PHASE_3_5C_COMPONENT_AWARE_PRODUCTION_ESTIMATE_UI_PLAN.md`
+Plans/records:
 
-Implementation record: `docs/PHASE_3_5C_COMPONENT_AWARE_PRODUCTION_ESTIMATE_UI.md`
+- `docs/PHASE_3_5A_PRODUCT_COMPOSITION_EDITOR_PLAN.md`
+- `docs/PHASE_3_5A_PRODUCT_COMPOSITION_EDITOR.md`
+- `docs/PHASE_3_5B_FINISHED_COMPONENT_STOCK_UI_PLAN.md`
+- `docs/PHASE_3_5B_FINISHED_COMPONENT_STOCK_UI.md`
+- `docs/PHASE_3_5C_COMPONENT_AWARE_PRODUCTION_ESTIMATE_UI_PLAN.md`
+- `docs/PHASE_3_5C_COMPONENT_AWARE_PRODUCTION_ESTIMATE_UI.md`
 
 ### 3.6 — Integration & Completion Gate
 
-**IN PROGRESS**
+**COMPLETE**
 
 #### 3.6A — Integrated Multi-Component Workflow
 
-**COMPLETE**
-
-Delivered:
-
-- one isolated real-service integration harness matching the application session architecture;
-- purchased Glass Cup vessel scenario validating Material-backed cost, inventory, capacity, and limiter identity;
-- handmade Plaster Pot scenario validating recursive child Product cost and explicit ProductStock-limited capacity;
-- multi-mold event set validating three tied Product-backed limiters and component-only numeric cost evidence;
-- nested Gift Set > Candle > Handmade Pot scenario validating recursive totals and deterministic finite paths;
-- invalid `A -> B -> C -> A` scenario validating transitive-cycle rejection before persistence;
-- no production/domain/UI source changes were required.
-
-Evidence:
-
 ```text
-Implementation test head     c3e6f2af4a1171c7cad95682caf4d75d02624a24
-Implementation CI            34929198360 — SUCCESS
-Final feature head           64aba880c07d6edd94026da804830fd6f2ab5b97
-Final feature-head CI        34929307992 — SUCCESS
-PR #91                       MERGED
-PR CI                        34929390004 — SUCCESS
-Implementation merge         f548fbe3cdbc792ca77aec85edd641879ada1ee4
-Post-merge develop CI        34929458894 — SUCCESS
+PR #91 merged
+implementation merge f548fbe3cdbc792ca77aec85edd641879ada1ee4
+post-merge CI 34929458894 — SUCCESS
 55 test files / 628 tests
 5 dedicated Phase 3.6A integration tests
-7 React workspace smoke tests
+7 React smoke tests
+```
+
+Validated scenarios:
+
+- purchased Glass Cup vessel;
+- handmade Plaster Pot Product-backed vessel;
+- multi-mold event set with three tied Product-backed limiters;
+- nested Gift Set > Candle > Handmade Pot recursive cost;
+- transitive `A -> B -> C -> A` cycle rejected before persistence.
+
+Plan: `docs/PHASE_3_6A_INTEGRATED_MULTI_COMPONENT_WORKFLOW_PLAN.md`
+
+Record: `docs/PHASE_3_6A_INTEGRATED_MULTI_COMPONENT_WORKFLOW.md`
+
+#### 3.6B — Regression, Build & Phase 3 Completion
+
+**COMPLETE**
+
+```text
+Starting develop                         6899f7a50ce25ff4744862fbf3af76b66b1862b4
+Starting develop CI                      34929784348 — SUCCESS
+Plan-head regression CI                  34930109422 — SUCCESS
+Final documented feature head            c3163c1761e4dfc36dc16845e173963e29ab7899
+Final feature-head CI                    34930240523 — SUCCESS
+PR #93                                   MERGED
+PR CI                                    34930317283 — SUCCESS
+Implementation merge                     ceef43e2181d8696e0408457860905da1b8e6b46
+Post-merge develop CI                    34930387721 — SUCCESS
+55 test files / 628 tests
+7 React smoke tests
 TypeScript typecheck passed
 production build passed
 ```
 
-Development plan: `docs/PHASE_3_6A_INTEGRATED_MULTI_COMPONENT_WORKFLOW_PLAN.md`
+No production/domain/UI/CI source change was required by the final completion gate.
 
-Implementation record: `docs/PHASE_3_6A_INTEGRATED_MULTI_COMPONENT_WORKFLOW.md`
+Plan: `docs/PHASE_3_6B_REGRESSION_BUILD_COMPLETION_PLAN.md`
 
-## Current active task
+Record: `docs/PHASE_3_6B_REGRESSION_BUILD_COMPLETION.md`
 
-**3.6B — Regression, Build & Phase 3 Completion — NEXT / NOT STARTED**
+## Phase 3 completion result
 
-Phase 3 remains **IN PROGRESS** until the final 3.6B regression/build/completion gate is fully validated and closed.
+Phase 3 now supports:
 
-Do not begin 3.6B until a dedicated development plan/scope review is established for that task.
+- purchased Material-backed vessels/components;
+- handmade Product-backed vessels/components;
+- multi-component Products with whole-piece quantities;
+- cycle-safe nested Product composition;
+- explicit current finished ProductStock;
+- recursive component-aware Product cost;
+- direct-material + component current assembly capacity;
+- all tied typed limiting resources;
+- composition and finished-stock management UI;
+- component-aware Production estimate UI;
+- real-service end-to-end integration validation.
+
+## Next phase
+
+**Phase 4 — Pricing & Production Planning — PLANNED / NOT STARTED**
+
+Do not begin Phase 4 implementation without a dedicated Phase 4 scope review/development plan.

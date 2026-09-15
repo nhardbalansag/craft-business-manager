@@ -13,7 +13,7 @@ The domain and application layers must remain storage-agnostic so Excel persiste
 - keep material-specific cross-dimension conversion behind calibration/manual evidence;
 - keep React behind application services rather than duplicating business rules in UI code;
 - keep production estimates derived rather than persisted as stale authoritative totals;
-- advance phases only after feature CI, merge, and post-merge `develop` CI succeed.
+- advance phases only after feature CI, PR CI, merge, and exact post-merge `develop` CI succeed.
 
 ---
 
@@ -116,113 +116,109 @@ Final completion record: `docs/PHASE_2_6B_REGRESSION_BUILD_COMPLETION.md`
 
 ### Phase 2 final gate
 
-PR #58 merged as:
-
-`e79303fdcad4fb298154be957f938584f164a61b`
-
-Post-merge CI run `34908149932` passed.
-
-Final observed automated surface:
-
 ```text
-38 test files passed
-349 tests passed
+PR #58 merged
+e79303fdcad4fb298154be957f938584f164a61b
+Post-merge CI 34908149932 — SUCCESS
+38 test files / 349 tests
 TypeScript typecheck passed
 Production Vite build passed
 ```
-
-### Boundaries intentionally deferred after Phase 2
-
-- purchased vessels and container/component semantics — Phase 3;
-- molded/nested child products and multi-component capacity — Phase 3;
-- selling price, markup, target margin, revenue, and profit — Phase 4;
-- Excel persistence/import/export — Phase 5;
-- native Tauri filesystem integration — Phase 6.
 
 ---
 
 ## Phase 3 — Product Components, Vessels & Nested Molded Products
 
-Status: **PLANNED — IMPLEMENTATION NOT STARTED**
+Status: **COMPLETE**
 
-Dedicated plan: `docs/PHASE_3_PRODUCT_COMPONENTS_VESSELS_PLAN.md`
+Planning baseline: `docs/PHASE_3_PRODUCT_COMPONENTS_VESSELS_PLAN.md`
 
-Live tracker: `docs/PHASE_3_PROGRESS.md`
+Completion tracker: `docs/PHASE_3_PROGRESS.md`
 
-Phase 3 extends Phase 2 direct-material products into typed sellable compositions containing purchased vessels/components and handmade child Products.
+Final completion record: `docs/PHASE_3_6B_REGRESSION_BUILD_COMPLETION.md`
 
 ```text
 3.1 Composition Foundation
-    3.1A Product Component Contract & Roles             NEXT
-    3.1B Composition Graph Integrity & Cycle Prevention NOT STARTED
-    3.1C Component Repository & Application Services    NOT STARTED
+    3.1A Product Component Contract & Roles             COMPLETE
+    3.1B Composition Graph Integrity & Cycle Prevention COMPLETE
+    3.1C Component Repository & Application Services    COMPLETE
 
 3.2 Finished Component Stock
-    3.2A Product Stock Contract & Validation            NOT STARTED
-    3.2B Product Stock Repository & Services            NOT STARTED
-    3.2C Source Availability & Relationship Guards      NOT STARTED
+    3.2A Product Stock Contract & Validation            COMPLETE
+    3.2B Product Stock Repository & Services            COMPLETE
+    3.2C Source Availability & Relationship Guards      COMPLETE
 
 3.3 Component-Aware Cost Roll-Up
-    3.3A Material-Backed Component Cost                 NOT STARTED
-    3.3B Recursive Product-Backed Component Cost        NOT STARTED
-    3.3C Total Product Cost & Readiness                  NOT STARTED
+    3.3A Material-Backed Component Cost                 COMPLETE
+    3.3B Recursive Product-Backed Component Cost        COMPLETE
+    3.3C Total Product Cost & Readiness                  COMPLETE
 
 3.4 Component-Limited Assembly Capacity
-    3.4A Per-Component Availability & Capacity          NOT STARTED
-    3.4B Direct-Material + Component Capacity           NOT STARTED
-    3.4C Limiting Resource Trace & Readiness            NOT STARTED
+    3.4A Per-Component Availability & Capacity          COMPLETE
+    3.4B Direct-Material + Component Capacity           COMPLETE
+    3.4C Limiting Resource Trace & Readiness            COMPLETE
 
 3.5 Component / Stock / Production UI
-    3.5A Product Composition Editor                     NOT STARTED
-    3.5B Finished Component Stock UI                    NOT STARTED
-    3.5C Component-Aware Production Estimate UI         NOT STARTED
+    3.5A Product Composition Editor                     COMPLETE
+    3.5B Finished Component Stock UI                    COMPLETE
+    3.5C Component-Aware Production Estimate UI         COMPLETE
 
 3.6 Integration & Completion Gate
-    3.6A Integrated Multi-Component Workflow            NOT STARTED
-    3.6B Regression / Build / Completion                NOT STARTED
+    3.6A Integrated Multi-Component Workflow            COMPLETE
+    3.6B Regression / Build / Completion                COMPLETE
 ```
 
-### Phase 3 architecture decisions
+### Phase 3 delivered behavior
 
-- component sources are explicitly typed as Material-backed or Product-backed;
-- component quantities are discrete positive whole-piece counts;
-- purchased material-backed components use Phase 1 count inventory/costing;
-- handmade Product-backed components use explicit finished Product stock for current assembly availability;
-- nested Product composition forms an acyclic directed graph;
-- direct and transitive composition cycles are prohibited;
-- child Product cost is recursively derived from its Phase 2 direct materials plus its own Phase 3 components;
-- current parent assembly capacity uses parent direct-material capacity plus current component availability;
-- parent capacity does not silently include hypothetical manufacture of missing child stock from shared raw materials;
-- all tied limiting resources remain visible with typed identity;
-- derived component cost/capacity is not persisted as source data;
-- labor/overhead/selling price remains Phase 4;
-- Excel persistence remains Phase 5;
-- stock reservations, automatic deductions, and movement history remain outside Phase 3.
+- typed ProductComponent relationships with `material` and `product` sources;
+- structural component roles and positive whole-piece quantities;
+- cycle-safe directed Product composition with direct and transitive cycle rejection;
+- Material-backed purchased vessels/components using Phase 1 inventory/costing;
+- Product-backed handmade vessels/components using explicit current finished ProductStock;
+- missing ProductStock distinguished from explicit zero stock;
+- source archive/dependency guards for active compositions;
+- recursive Product-backed component cost roll-up;
+- total component-aware Product cost/readiness;
+- current per-component capacity;
+- overall current assembly capacity synthesized from Phase 2 direct-material capacity plus immediate component availability;
+- no hypothetical recursive manufacture of missing child stock during parent-capacity calculation;
+- all tied limiting resources preserved with typed identity;
+- Product Composition editor with cycle/error feedback and nested composition preview;
+- Finished Component Stock editor;
+- component-aware Production estimate with separate direct-material and discrete-component sections;
+- nested component cost paths and readiness issues;
+- real-service integration scenarios for purchased vessels, handmade vessels, multi-mold sets, nested composition, and cycle rejection.
 
-### Phase 3 required business scenarios
+### Phase 3 final gate
 
-- candle using one purchased glass/plastic/stainless vessel;
-- candle using one handmade plaster-pot Product as its vessel;
-- product containing several molded child products in different quantities;
-- nested composition such as gift set -> candle -> handmade pot;
-- tied limiting components;
-- safe rejection of direct and transitive cycles.
+```text
+3.6B PR #93 merged
+Implementation merge ceef43e2181d8696e0408457860905da1b8e6b46
+Post-merge develop CI 34930387721 — SUCCESS
+55 test files / 628 tests
+7 React smoke tests
+5 dedicated 3.6A integration tests
+TypeScript typecheck passed
+Production Vite build passed
+```
 
-### Current Phase 3 task
+### Boundaries intentionally deferred after Phase 3
 
-**3.1A — Product Component Contract & Roles**
-
-Do not begin 3.1B until 3.1A is merged and post-merge `develop` CI is green.
+- labor and overhead costing — Phase 4;
+- selling price, fixed profit, markup, target margin, revenue, and profit — Phase 4;
+- Excel persistence/import/export — Phase 5;
+- native Tauri filesystem integration — Phase 6;
+- stock reservation, automatic stock deduction, stock transaction history, and production posting — not part of Phase 3 and require separate future planning.
 
 ---
 
 ## Phase 4 — Pricing & Production Planning
 
-Status: **PLANNED**
+Status: **PLANNED — NEXT / NOT STARTED**
 
 Planned:
 
-- total unit cost;
+- total unit cost using the completed component-aware Phase 3 cost input;
 - fixed-profit pricing;
 - markup percentage;
 - target margin;
@@ -230,6 +226,8 @@ Planned:
 - planned batch cost;
 - expected revenue and profit;
 - production-capacity warnings.
+
+Phase 4 requires a dedicated scope review/development plan before implementation begins.
 
 ---
 
@@ -282,6 +280,12 @@ StoragePort
 
 No React component should read or write spreadsheet cells directly.
 
-## Current active task
+## Current roadmap position
 
-**Phase 3.1A — Product Component Contract & Roles**
+**Phase 3 is COMPLETE.**
+
+Next planned phase:
+
+**Phase 4 — Pricing & Production Planning — NEXT / NOT STARTED**
+
+Do not begin Phase 4 implementation without a dedicated scope review/development plan.
