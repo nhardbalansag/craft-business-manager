@@ -2,101 +2,78 @@
 
 ## Status
 
-**IMPLEMENTATION COMPLETE — MERGE GATE PENDING**
+**COMPLETE**
 
-Feature branch:
+Implementation PR:
 
-`feature/phase-3-4a-per-component-capacity`
+`#79 — Phase 3.4A — Per-Component Availability & Capacity`
 
-Authoritative implementation base:
+Implementation merge commit:
 
-`develop` @ `7889846430ce672de232c8b9942ff7ce5bde7ffb`
+`3c2e788935baebf5154fb3080534baba9ff3f94a`
 
 Development plan:
 
 `docs/PHASE_3_4A_PER_COMPONENT_CAPACITY_PLAN.md`
 
-## Implementation
+## Completed implementation
 
-Added pure capacity math:
+Phase 3.4A adds one derived capacity view for a single ProductComponent line.
+
+Pure math:
 
 `src/domain/componentCapacity.ts`
 
-Added application service:
+Application service:
 
 `src/application/productComponents/ComponentCapacityService.ts`
 
-Primary operation:
+Shared session instance:
 
-```text
-capacityForComponent(component: ProductComponent)
-```
+`componentCapacityService`
 
-## Capacity formula
-
-For a reliable component source:
+## Formula
 
 ```text
 component parent capacity
 = floor(available component quantity / quantityPerParent)
 ```
 
-Examples:
+The formula is applied only after the existing ProductComponent contract and Phase 3.2C availability evidence are reliable.
 
-```text
-10 pc available / 2 per parent -> 5
-10 pc available / 3 per parent -> 3
-2 pc available / 3 per parent  -> 0
-0 pc available / 4 per parent  -> 0
-```
+## Availability authority
 
-Capacity is derived only and is never persisted.
-
-## Authoritative availability reuse
-
-`ComponentCapacityService` delegates all source quantity/readiness resolution to Phase 3.2C:
+3.4A delegates source resolution to:
 
 `ComponentSourceAvailabilityService.resolveComponent()`
 
-Therefore 3.4A does not directly read Material inventory or ProductStock.
+Therefore:
 
-3.2C remains authoritative for:
+- Material-backed quantity comes from normalized Phase 1 Material inventory through 3.2C;
+- Product-backed quantity comes from explicit ProductStock through 3.2C;
+- missing ProductStock is unresolved, never silently zero;
+- explicit zero Material/ProductStock is reliable zero availability;
+- Material conversion/calibration evidence and ProductStock evidence remain attached.
 
-- source existence and active state;
-- count-based Material compatibility;
-- Material inventory normalization/conversion evidence;
-- ProductStock existence and validation;
-- explicit zero versus missing stock;
-- `ready | partial | not-ready` source availability.
+3.4A does not directly read Material or ProductStock repositories.
 
-## Result contract
+## Result/readiness contract
 
-Each result preserves:
+Each result preserves component/source identity, role, quantity per parent, available quantity, canonical `pc` unit, capacity, complete source availability evidence, and controlled issues.
+
+Readiness:
 
 ```text
-componentId
-parentProductId
-role
-sourceType
-sourceId
-quantityPerParent
-status: ready | partial | not-ready
-availableQuantity
-unit = pc
-capacityPieces
-sourceAvailability
-issues
+ready
+partial
+not-ready
 ```
 
-The complete 3.2C availability snapshot remains attached for diagnostics.
+- `ready`: reliable availability; numeric capacity is published;
+- `partial`: source recognized but current quantity unresolved/corrupt; capacity is `null`;
+- `not-ready`: component/source relationship invalid for current capacity; capacity is `null`.
 
-## Readiness behavior
-
-### Ready
-
-A line is ready when the ProductComponent contract is valid, 3.2C availability is ready, the available quantity is finite/non-negative, and capacity can be derived safely.
-
-Explicit zero remains valid:
+Explicit zero is authoritative:
 
 ```text
 availableQuantity = 0
@@ -104,52 +81,13 @@ capacityPieces = 0
 status = ready
 ```
 
-### Partial
-
-A line is partial when the source relationship is recognized but current quantity is unresolved or a supposedly ready provider returns unusable quantity evidence.
-
-Examples:
-
-- missing ProductStock;
-- invalid ProductStock;
-- unresolved Material inventory conversion;
-- negative Material on-hand normalization;
-- corrupted ready availability with null/non-finite quantity.
-
-For partial lines:
-
-```text
-capacityPieces = null
-```
-
-### Not ready
-
-A line is not-ready when the component/source relationship cannot validly participate in current capacity calculation.
-
-Examples:
-
-- invalid ProductComponent contract;
-- missing/inactive source Material;
-- non-count Material source;
-- missing/inactive source Product.
-
-For not-ready lines:
-
-```text
-capacityPieces = null
-```
-
 ## Product-backed stock policy
 
-Product-backed capacity uses **current explicit ProductStock only**.
+Product-backed capacity uses current explicit ProductStock only.
 
-3.4A does not add recursive raw-material buildable quantity to ProductStock and does not manufacture missing children virtually.
-
-This preserves the Phase 3 baseline definition of current assembly capacity and avoids double-counting shared raw materials.
+No recursive raw-material buildable quantity is added to child stock. This preserves Phase 3 current **assembly capacity** semantics and avoids double-counting shared raw materials.
 
 ## Controlled issues
-
-Implemented summary issue codes:
 
 ```text
 INVALID_COMPONENT
@@ -159,116 +97,65 @@ AVAILABLE_QUANTITY_INVALID
 DERIVED_CAPACITY_INVALID
 ```
 
-Underlying ProductComponent and 3.2C availability issue codes are preserved where available.
+Underlying ProductComponent/3.2C/domain issue codes remain available where applicable.
 
-## Pure domain helper
+## Validation
 
-`deriveComponentCapacity()` validates:
+Dedicated coverage:
 
-- finite non-negative available quantity;
-- finite positive whole `quantityPerParent`;
-- finite non-negative integer derived capacity.
+- `ComponentCapacityService.test.ts` — 23 tests;
+- `componentCapacity.test.ts` — 12 tests.
 
-It then applies the floor formula exactly once.
-
-## Shared session wiring
-
-`src/application/session.ts` now exports:
+Full repository validation:
 
 ```text
-componentCapacityService
-```
-
-It reuses:
-
-```text
-componentSourceAvailabilityService
-```
-
-No new repository or BusinessDataset collection was introduced.
-
-## Validation coverage
-
-Added:
-
-- `src/application/productComponents/ComponentCapacityService.test.ts` — **23 tests**;
-- `src/domain/componentCapacity.test.ts` — **12 tests**.
-
-Coverage includes:
-
-- Material-backed capacity;
-- Product-backed ProductStock capacity;
-- floor/remainder behavior;
-- zero and below-one-parent capacity;
-- explicit zero Material/ProductStock;
-- missing/invalid ProductStock;
-- unresolved/negative Material inventory;
-- missing/inactive/non-count sources;
-- invalid ProductComponent contract;
-- source identity and `pc` unit preservation;
-- 3.2C trace preservation;
-- defensive corrupted-provider handling;
-- source immutability;
-- explicit exclusion of overall Product capacity and limiting-resource semantics.
-
-Test-bearing feature CI:
-
-```text
-run 34919279213 — SUCCESS
-```
-
-Fully wired feature CI:
-
-```text
-run 34919300250 — SUCCESS
 49 test files passed
 524 tests passed
 TypeScript typecheck passed
 production build passed
 ```
 
+Evidence:
+
+```text
+Test-bearing feature CI  34919279213 — SUCCESS
+Fully wired feature CI   34919300250 — SUCCESS
+Final feature-head CI    34919390258 — SUCCESS
+PR CI                    34919456454 — SUCCESS
+Implementation merge     3c2e788935baebf5154fb3080534baba9ff3f94a
+Post-merge develop CI    34919538278 — SUCCESS
+```
+
 ## Explicit deferrals
 
-Not implemented in 3.4A:
+3.4A does not implement:
 
-- Product-level component-capacity aggregation;
-- direct-material + component capacity synthesis;
-- overall assembly capacity;
+- Product-level capacity synthesis;
+- direct-material + component capacity combination;
 - limiting-resource trace/ties;
 - recursive make-to-order capacity;
-- inventory reservation/deduction/transactions;
-- cost/pricing changes;
+- inventory mutation/reservation/transactions;
+- pricing;
 - UI;
 - Excel persistence.
 
-These remain 3.4B, 3.4C, later Phase 3, Phase 4, and Phase 5 work.
+## Completion gate
 
-## Completion gate state
+All 3.4A gates passed:
 
-Feature implementation gates passed:
-
-- per-component capacity view exists;
-- Material/Product availability delegates to 3.2C;
-- floor formula is applied exactly once;
-- explicit zero produces ready zero capacity;
-- unresolved quantity remains null rather than silent zero;
-- readiness is deterministic;
-- source identity and availability trace are preserved;
+- per-line Material/Product component capacity exists;
+- availability delegates to 3.2C;
+- floor math is validated and deterministic;
+- explicit zero remains ready zero;
+- unresolved quantity remains null;
+- availability traceability is preserved;
 - ProductStock is not recursively augmented;
-- no Product-level synthesis or limiting-resource logic leaked into 3.4A;
-- no source data is mutated or capacity persisted;
-- shared session wiring exists;
-- 49 test files / 524 tests pass;
-- TypeScript typecheck passes;
-- production build passes.
+- no 3.4B/3.4C logic leaked into 3.4A;
+- no derived capacity is persisted;
+- tests, typecheck, build, PR CI, and exact post-merge `develop` CI are green.
 
-Remaining before 3.4A may be marked fully complete:
+## Next task
 
-- implementation PR must merge to `develop`;
-- exact post-merge `develop` CI must pass.
+**3.4B — Direct-Material + Component Capacity Synthesis — NEXT / NOT STARTED**
 
-## Next task after closeout
-
-**3.4B — Direct-Material + Component Capacity Synthesis**
-
-Do not begin 3.4B until 3.4A is merged, exact post-merge `develop` CI is green, and a dedicated 3.4B development plan/scope review is established.
+Do not begin 3.4B until a dedicated development plan/scope review is established.
