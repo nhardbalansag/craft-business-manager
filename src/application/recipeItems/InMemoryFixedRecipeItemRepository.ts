@@ -1,13 +1,16 @@
 import type { FixedRecipeItem } from '../../domain/fixedRecipeItems';
 import { cloneFixedRecipeItem } from '../../domain/fixedRecipeItems';
+import type { CollectionReplacementPort } from '../persistence/CollectionReplacementPort';
 import type { FixedRecipeItemRepository } from './FixedRecipeItemRepository';
 
 function key(id: string): string {
   return id.trim().toLowerCase();
 }
 
-export class InMemoryFixedRecipeItemRepository implements FixedRecipeItemRepository {
-  private readonly items = new Map<string, FixedRecipeItem>();
+export class InMemoryFixedRecipeItemRepository
+  implements FixedRecipeItemRepository, CollectionReplacementPort<FixedRecipeItem>
+{
+  private items = new Map<string, FixedRecipeItem>();
 
   constructor(seed: FixedRecipeItem[] = []) {
     for (const item of seed) {
@@ -34,5 +37,13 @@ export class InMemoryFixedRecipeItemRepository implements FixedRecipeItemReposit
 
   async delete(id: string): Promise<void> {
     this.items.delete(key(id));
+  }
+
+  async replaceAll(records: readonly FixedRecipeItem[]): Promise<void> {
+    const next = new Map<string, FixedRecipeItem>();
+    for (const item of records) {
+      next.set(key(item.id), cloneFixedRecipeItem(item));
+    }
+    this.items = next;
   }
 }
