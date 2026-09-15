@@ -64,7 +64,7 @@ describe('ProductStock contract', () => {
 
   it('rejects blank Product identity', () => {
     expect(() => validateProductStockContract(stock({ productId: '   ' }))).toThrowError(
-      expect.objectContaining<ProductStockError>({
+      expect.objectContaining({
         code: 'INVALID_PRODUCT_ID',
       }),
     );
@@ -72,7 +72,7 @@ describe('ProductStock contract', () => {
 
   it('rejects fractional stock', () => {
     expect(() => validateProductStockContract(stock({ onHandQuantity: 1.5 }))).toThrowError(
-      expect.objectContaining<ProductStockError>({
+      expect.objectContaining({
         code: 'NON_INTEGER_ON_HAND_QUANTITY',
       }),
     );
@@ -80,7 +80,7 @@ describe('ProductStock contract', () => {
 
   it('rejects negative stock', () => {
     expect(() => validateProductStockContract(stock({ onHandQuantity: -1 }))).toThrowError(
-      expect.objectContaining<ProductStockError>({
+      expect.objectContaining({
         code: 'NEGATIVE_ON_HAND_QUANTITY',
       }),
     );
@@ -90,7 +90,7 @@ describe('ProductStock contract', () => {
     'rejects non-finite stock %s',
     (onHandQuantity) => {
       expect(() => validateProductStockContract(stock({ onHandQuantity }))).toThrowError(
-        expect.objectContaining<ProductStockError>({
+        expect.objectContaining({
           code: 'NON_FINITE_ON_HAND_QUANTITY',
         }),
       );
