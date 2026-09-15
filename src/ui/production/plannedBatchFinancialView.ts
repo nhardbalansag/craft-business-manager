@@ -5,9 +5,15 @@ import type {
 } from '../../application/production/PlannedBatchCapacityFeasibilityService';
 import type { LimitingResource } from '../../application/production/AssemblyCapacityTraceService';
 
-const peso = new Intl.NumberFormat('en-PH', {
-  style: 'currency',
-  currency: 'PHP',
+export const UNAVAILABLE_BATCH_FINANCIAL_VALUE = 'Unavailable';
+
+const PHP_NUMBER_FORMAT = new Intl.NumberFormat('en-PH', {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+const PERCENT_NUMBER_FORMAT = new Intl.NumberFormat('en-PH', {
+  minimumFractionDigits: 0,
   maximumFractionDigits: 2,
 });
 
@@ -21,13 +27,20 @@ export interface FinancialLimiterRow {
   pathLabel: string;
 }
 
-export function formatBatchMoney(value: number | null): string {
-  return value !== null && Number.isFinite(value) ? peso.format(value) : '—';
+export function formatBatchMoney(value: number | null | undefined): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) {
+    return UNAVAILABLE_BATCH_FINANCIAL_VALUE;
+  }
+
+  return `PHP ${PHP_NUMBER_FORMAT.format(value)}`;
 }
 
-export function formatBatchPercent(value: number | null): string {
-  if (value === null || !Number.isFinite(value)) return '—';
-  return `${(value * 100).toLocaleString(undefined, { maximumFractionDigits: 2 })}%`;
+export function formatBatchPercent(value: number | null | undefined): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) {
+    return UNAVAILABLE_BATCH_FINANCIAL_VALUE;
+  }
+
+  return `${PERCENT_NUMBER_FORMAT.format(value * 100)}%`;
 }
 
 export function financialReadinessLabel(
