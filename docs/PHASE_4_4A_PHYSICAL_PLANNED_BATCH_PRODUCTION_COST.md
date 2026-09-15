@@ -2,7 +2,7 @@
 
 ## Status
 
-**IMPLEMENTED — FEATURE VALIDATION GREEN — PENDING PR / MERGE**
+**COMPLETE — MERGED — POST-MERGE VALIDATED**
 
 Authoritative starting base:
 
@@ -23,6 +23,29 @@ Development plan:
 Plan-before-code commit:
 
 `5fa6327d72766680b47b1ea95426e50ffc1f2c08`
+
+## Completion evidence
+
+```text
+Compile/wiring checkpoint       f286189dc9bbca1736f545fb75e60b80323b4a79
+Checkpoint CI                   34951009176 — SUCCESS
+Initial focused-test head       4145fb51eb84111804cb5ec3d394326579fce360
+Focused-test CI                 34951294935 — FAILURE (invalid-cost readiness classification corrected)
+Corrected implementation head   1306cc169d112049fc5fdc635c7ce0c68db44338
+Corrected CI                    34951713527 — SUCCESS
+Final documented feature head   a246b2f086da1a798dee09dbe319356e6561c834
+Final feature-head CI           34951843605 — SUCCESS
+PR #114                         MERGED
+PR CI                           34951946653 — SUCCESS
+Implementation merge            eec44812067740cc26f440f6751f4e34c5bd4f4e
+Post-merge develop CI           34952186409 — SUCCESS
+73 test files / 884 tests
+30 PhysicalPlannedBatchProductionCostService tests
+1 Phase 4.4A shared-session wiring test
+TypeScript typecheck passed
+production Vite build passed
+107 modules transformed
+```
 
 ## Delivered capability
 
@@ -292,6 +315,24 @@ production Vite build                PASS
 
 The corrected service now explicitly treats non-null invalid/non-finite direct-material cost evidence as an unsafe contradiction and returns `not-ready`.
 
+### PR and post-merge validation
+
+Implementation PR:
+
+`#114 — MERGED`
+
+PR CI:
+
+`34951946653 — SUCCESS`
+
+Implementation merge:
+
+`eec44812067740cc26f440f6751f4e34c5bd4f4e`
+
+Exact post-merge `develop` CI:
+
+`34952186409 — SUCCESS`
+
 ## Focused coverage
 
 4.4A tests cover:
@@ -342,21 +383,9 @@ Phase 4.4A does not implement:
 - Tauri integration;
 - presentation rounding/formatting.
 
-## Remaining completion gates
+## Next task
 
-Before 4.4A may be marked COMPLETE:
-
-```text
-final documented feature-head CI
-implementation PR CI
-expected-head merge to develop
-exact post-merge develop CI
-documentation-only closeout PR CI
-expected-head closeout merge
-exact final develop CI
-```
-
-Only after those gates should the roadmap advance to:
+After this documentation-only closeout is merged and the exact final `develop` CI is green, the next task is:
 
 ```text
 4.4B — Expected Revenue / Profit / Batch Margin — NEXT / NOT STARTED
