@@ -2,7 +2,7 @@
 
 ## Status
 
-**IMPLEMENTATION COMPLETE — MERGE GATE PENDING**
+**COMPLETE**
 
 Authoritative implementation base:
 
@@ -16,21 +16,25 @@ Development plan:
 
 `docs/PHASE_3_6A_INTEGRATED_MULTI_COMPONENT_WORKFLOW_PLAN.md`
 
+Implementation PR:
+
+`#91 — Phase 3.6A — Integrated Multi-Component Workflow`
+
+Implementation merge:
+
+`f548fbe3cdbc792ca77aec85edd641879ada1ee4`
+
 ## Delivered integration suite
 
 Added:
 
 `src/application/phase3MultiComponentWorkflow.test.ts`
 
-The suite creates isolated in-memory repositories and real application services matching the Phase 3 dependency graph in `src/application/session.ts`.
+The suite uses fresh in-memory repositories plus the real Phase 1/2/3 application service graph. No production/domain/UI source change was required.
 
-No application/domain production source change was required.
+Five authoritative end-to-end scenarios are validated.
 
-The suite validates the five authoritative 3.6A scenarios through real Phase 1/2/3 service composition.
-
-## Scenario A — Purchased vessel candle
-
-Fixture:
+### Scenario A — Purchased vessel candle
 
 ```text
 Purchased Vessel Candle
@@ -41,19 +45,15 @@ Purchased Vessel Candle
 
 Validated:
 
-- Phase 2 direct cost = 21;
-- Glass Cup component cost contribution = 20;
-- component-aware total cost = 41;
+- direct cost = 21;
+- Glass Cup contribution = 20;
+- component-aware total = 41;
 - direct-material capacity = 10;
-- Glass Cup component capacity = 6;
+- Glass Cup capacity = 6;
 - overall assembly capacity = 6;
-- final typed limiter is the Glass Cup `material-backed-component`.
+- typed limiter = Glass Cup `material-backed-component`.
 
-This proves count-based Material inventory participates as a discrete component without being flattened into the Phase 2 direct recipe.
-
-## Scenario B — Handmade pot candle
-
-Fixture:
+### Scenario B — Handmade pot candle
 
 ```text
 Handmade Pot Candle
@@ -67,58 +67,36 @@ Handmade Plaster Pot
 
 Validated:
 
-- child Handmade Pot unit cost = 20 from its own direct recipe;
+- child Product unit cost = 20;
 - parent direct cost = 21;
-- parent component-aware total cost = 41;
-- explicit Handmade Pot ProductStock = 4 pc;
+- parent total component-aware cost = 41;
+- child ProductStock = 4 pc;
 - parent direct-material capacity = 10;
-- Product-backed component capacity = 4;
+- child component capacity = 4;
 - overall assembly capacity = 4;
-- final typed limiter is the Handmade Pot `product-backed-component`.
+- typed limiter = Handmade Pot `product-backed-component`.
 
-The test then changes ProductStock from 4 pc to 0 pc and confirms component-aware cost remains 41.
+Changing ProductStock from 4 pc to 0 pc leaves the recursive Product cost at 41, proving stock affects current assembly availability/capacity but not cost mathematics.
 
-This proves ProductStock controls current assembly availability/capacity but does not participate in recursive cost mathematics.
-
-## Scenario C — Multi-mold event set
-
-Fixture:
+### Scenario C — Multi-mold event set
 
 ```text
-Multi-Mold Event Set
-├── Glass Cup ×1
-├── Mini Heart ×3
-├── Mini Star ×2
-└── Mini Flower ×4
+Glass Cup ×1      50 pc -> capacity 50
+Mini Heart ×3     30 pc -> capacity 10
+Mini Star ×2      20 pc -> capacity 10
+Mini Flower ×4    40 pc -> capacity 10
 ```
-
-Stock/capacity:
-
-```text
-Glass Cup   = 50 pc -> capacity 50
-Mini Heart  = 30 pc -> capacity 10
-Mini Star   = 20 pc -> capacity 10
-Mini Flower = 40 pc -> capacity 10
-```
-
-Child Products each use a real fixed plaster recipe.
 
 Validated:
 
-- component-only parent preserves current 3.3C `partial` cost readiness;
-- numeric component subtotal = 24;
-- numeric `totalComponentAwareCost = 24` remains available as known partial evidence;
-- direct-material dimension is neutral for assembly capacity;
+- component-only parent preserves authoritative 3.3C `partial` cost readiness;
+- numeric component subtotal / total = 24;
+- direct-material capacity dimension is neutral;
 - overall assembly capacity = 10;
-- all three tied Product-backed child limiters are preserved:
-  - Mini Heart;
-  - Mini Star;
-  - Mini Flower;
-- Glass Cup is correctly excluded from the limiter set because its capacity is 50.
+- all three tied Product-backed limiters are preserved: Mini Heart, Mini Star, Mini Flower;
+- Glass Cup is correctly excluded from the limiter set.
 
-## Scenario D — Nested composition
-
-Fixture:
+### Scenario D — Nested composition
 
 ```text
 Gift Set
@@ -130,7 +108,7 @@ Gift Set
         └── plaster 200 g
 ```
 
-Validated recursive cost:
+Validated recursive totals:
 
 ```text
 Nested Handmade Pot = 20
@@ -142,25 +120,23 @@ Gift Set Candle ×2 contribution = 82
 Gift Set total = 87
 ```
 
-Validated deterministic Product-backed paths:
+Validated deterministic finite paths:
 
 ```text
 gift-set -> nested-candle
 gift-set -> nested-candle -> nested-pot
 ```
 
-The recursive breakdown is finite and uses the existing Phase 3.3B path guard.
+### Scenario E — Invalid transitive cycle
 
-## Scenario E — Invalid transitive cycle
-
-Persisted valid relationships:
+Persisted valid graph:
 
 ```text
 A -> B
 B -> C
 ```
 
-Attempted:
+Rejected proposal:
 
 ```text
 C -> A
@@ -168,22 +144,19 @@ C -> A
 
 Validated:
 
-- `ProductComponentService.createComponent(...)` rejects with `ProductCompositionGraphError` code `CYCLE_DETECTED`;
-- deterministic cycle path is `a -> b -> c -> a`;
-- rejected `C -> A` line is not persisted;
+- error code `CYCLE_DETECTED`;
+- deterministic path `a -> b -> c -> a`;
+- rejected line is not persisted;
 - only the two valid relationships remain.
-
-This proves the cycle is rejected through the normal application write boundary before persistence.
 
 ## Scope retained
 
 3.6A introduced no:
 
-- ProductComponent contract changes;
-- ProductStock contract changes;
+- ProductComponent/ProductStock contract changes;
 - new cost or capacity formulas;
-- production posting/completion workflow;
-- reservation/deduction/stock movement logic;
+- production completion/posting;
+- stock reservation, deduction, or transaction history;
 - recursive make-to-order manufacture;
 - procurement automation;
 - Phase 4 pricing/profit logic;
@@ -192,50 +165,43 @@ This proves the cycle is rejected through the normal application write boundary 
 
 ## Validation evidence
 
-Implementation head:
-
-`c3e6f2af4a1171c7cad95682caf4d75d02624a24`
-
-CI:
-
 ```text
-34929198360 — SUCCESS
+Implementation test head     c3e6f2af4a1171c7cad95682caf4d75d02624a24
+Implementation CI            34929198360 — SUCCESS
+Final feature head           64aba880c07d6edd94026da804830fd6f2ab5b97
+Final feature-head CI        34929307992 — SUCCESS
+Implementation PR            #91 — MERGED
+PR CI                        34929390004 — SUCCESS
+Implementation merge         f548fbe3cdbc792ca77aec85edd641879ada1ee4
+Post-merge develop CI        34929458894 — SUCCESS
+
 55 test files passed
 628 tests passed
 5 dedicated Phase 3.6A integration tests
-7 React smoke tests
+7 React workspace smoke tests
 TypeScript typecheck passed
 production build passed
 ```
 
-All five authoritative scenarios passed on the first full implementation run. No production-source defect fix was required.
+All five authoritative scenarios passed. No Phase 3 correctness defect or production-source fix was required.
 
-## Completion gate state
+## Completion gate
 
-Implementation-side gates passed:
+All 3.6A implementation and merge gates are satisfied:
 
-- Scenario A purchased vessel integration passes;
-- Scenario B Product-backed vessel integration passes;
-- Scenario C tied multi-component limiter integration passes;
-- Scenario D nested recursive cost integration passes;
-- Scenario E transitive-cycle rejection passes before persistence;
-- full Phase 1/2/3 regression suite passes;
-- TypeScript typecheck passes;
-- production build passes;
-- no out-of-scope production behavior was introduced.
+- purchased Material-backed vessel integration validated;
+- Product-backed vessel cost and ProductStock capacity validated;
+- tied multi-component limiters validated;
+- nested recursive cost/path behavior validated;
+- transitive cycle rejection before persistence validated;
+- full Phase 1/2/3 regression suite green;
+- TypeScript typecheck green;
+- production build green;
+- implementation PR merged;
+- exact post-merge `develop` CI green.
 
-Remaining before 3.6A can be marked COMPLETE:
-
-- final documented feature-head CI;
-- implementation PR CI;
-- merge to `develop`;
-- exact post-merge `develop` CI;
-- documentation-only closeout;
-- advance 3.6B to NEXT / NOT STARTED;
-- exact final closeout `develop` CI.
-
-## Next task after closeout
+## Next task
 
 **3.6B — Regression, Build & Phase 3 Completion — NEXT / NOT STARTED**
 
-Do not begin 3.6B until 3.6A is fully merged/closed and a dedicated 3.6B development plan/scope review is established.
+Do not begin 3.6B until a dedicated development plan/scope review is established.
