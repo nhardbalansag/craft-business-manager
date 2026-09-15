@@ -2,7 +2,7 @@
 
 ## Status
 
-**IMPLEMENTED — FEATURE VALIDATION GREEN — PENDING PR / MERGE**
+**COMPLETE — MERGED — POST-MERGE VALIDATED**
 
 Authoritative starting base:
 
@@ -261,6 +261,19 @@ production Vite build                 PASS
 108 modules transformed
 ```
 
+### Final feature and merge validation
+
+```text
+Implementation record commit     bef3c09fcaa1b9cb8f13a23fea9c10239210a59f
+Final documented feature head    578fc3412c53f01d7c70ad5104288faeb110666b
+Final feature-head CI            34954391569 — SUCCESS
+Implementation PR                #116 — MERGED
+PR CI                            34954486934 — SUCCESS
+Implementation merge             d12f336a9e64a32e8bd0ffbecba0b6522006b67c
+Post-merge develop CI            34954576204 — SUCCESS
+75 test files / 907 tests
+```
+
 ## Focused coverage
 
 4.4B tests cover:
@@ -304,22 +317,14 @@ Phase 4.4B does not implement:
 - Tauri integration;
 - presentation rounding/formatting.
 
-## Remaining completion gates
+## Completion
 
-Before 4.4B may be marked COMPLETE:
+Implementation, implementation-PR validation, guarded merge, and exact post-merge `develop` validation are complete.
 
-```text
-final documented feature-head CI
-implementation PR CI
-expected-head merge to develop
-exact post-merge develop CI
-documentation-only closeout PR CI
-expected-head closeout merge
-exact final develop CI
-```
-
-Only after those gates should the roadmap advance to:
+The documentation-only closeout records this evidence and advances the roadmap to:
 
 ```text
 4.4C — Capacity Feasibility & Warning Synthesis — NEXT / NOT STARTED
 ```
+
+No 4.4C implementation is included in this closeout.
