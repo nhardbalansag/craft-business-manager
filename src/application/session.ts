@@ -7,6 +7,7 @@ import { MixPresetService } from './mixPresets/MixPresetService';
 import { ProductionCapacityService } from './production/ProductionCapacityService';
 import { ProductionRequirementService } from './production/ProductionRequirementService';
 import { ComponentAwareProductCostService } from './productComponents/ComponentAwareProductCostService';
+import { ComponentCapacityService } from './productComponents/ComponentCapacityService';
 import { ComponentSourceAvailabilityService } from './productComponents/ComponentSourceAvailabilityService';
 import { InMemoryProductComponentRepository } from './productComponents/InMemoryProductComponentRepository';
 import { MaterialBackedComponentCostService } from './productComponents/MaterialBackedComponentCostService';
@@ -54,6 +55,9 @@ export const componentSourceAvailabilityService = new ComponentSourceAvailabilit
   productRepository,
   productStockRepository,
   materialCalibrationEvidenceProvider,
+);
+export const componentCapacityService = new ComponentCapacityService(
+  componentSourceAvailabilityService,
 );
 export const materialBackedComponentCostService = new MaterialBackedComponentCostService(
   materialRepository,
