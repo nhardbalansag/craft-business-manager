@@ -20,8 +20,8 @@ Planning post-merge CI:
 
 4.2 — Fully Loaded Product Unit Cost                      IN PROGRESS
     4.2A — Waste-Adjusted Direct-Material Unit Cost       COMPLETE
-    4.2B — Recursive Fully Loaded Product Component Cost  NEXT
-    4.2C — Total Fully Loaded Unit Cost & Readiness       NOT STARTED
+    4.2B — Recursive Fully Loaded Product Component Cost  COMPLETE
+    4.2C — Total Fully Loaded Unit Cost & Readiness       NEXT
 
 4.3 — Selling Price & Unit Economics                      NOT STARTED
     4.3A — Selling Price Derivation                       NOT STARTED
@@ -57,13 +57,19 @@ Planning post-merge CI:
 - Archived Products retain readable/editable financial profiles.
 - No profile delete/reset contract exists; missing profile remains meaningful unresolved evidence.
 - Standard unit economics include direct-material safety waste exactly once.
-- 4.2A now derives standard direct-material pricing cost from precise `plannedBaseQuantityPerProduct`, not physical `plannedBatchBaseQuantity`.
+- 4.2A derives standard direct-material pricing cost from precise `plannedBaseQuantityPerProduct`, not physical `plannedBatchBaseQuantity`.
 - Base direct-material cost and forward safety-reserve cost remain separately traceable and reconcile to pricing direct-material cost.
 - Direct-material cost-per-base-unit evidence is reused from the existing authoritative cost engine; package conversion/calibration costing is not duplicated in Phase 4.
-- Existing `NO_REQUIREMENTS / not-ready` direct-material semantics remain intact in 4.2A; component-aware neutral handling, if required, belongs to later fully loaded synthesis with component context.
+- Existing `NO_REQUIREMENTS / not-ready` direct-material semantics remain intact in 4.2A.
+- 4.2B provides the controlled component-aware neutral direct-material interpretation for genuine component-only child Products; broken/partial direct evidence is never neutralized.
+- Product-backed child components roll up fully loaded **production cost**, never child retail selling price or profit.
+- Each recursive child includes its own 4.2A waste-adjusted direct material, Material-backed component costs, nested Product-backed fully loaded costs, labor, and overhead exactly once.
+- Child `pricingPolicy` does not participate in recursive production-cost roll-up.
+- Missing or invalid child labor/overhead evidence blocks an authoritative fully loaded child total while preserving known partial cost evidence.
+- Partial known recursive cost is exposed separately from authoritative `childFullyLoadedUnitCost` / `componentCostContribution`.
+- Recursive component costing remains independent of ProductStock/current availability.
 - Observed yield defects are not re-applied.
 - Parent safety waste does not inflate discrete component counts.
-- Handmade Product components roll up fully loaded production cost, never child retail profit.
 - Unit financial math retains full precision; currency formatting is presentation-only.
 - Physical batch cost uses Phase 2 final-batch count rounding and may differ from unit cost × quantity.
 - Expected batch profit uses physical planned production cost.
@@ -148,22 +154,6 @@ Record: `docs/PHASE_4_1C_FINANCIAL_PROFILE_REPOSITORY_SERVICES.md`
 
 **COMPLETE**
 
-Delivered:
-
-- authoritative one-unit waste-adjusted direct-material cost service;
-- Phase 2 `ProductionRequirementService.plan(productId, 1)` quantity evidence reuse;
-- existing direct-material `costPerBaseUnit` evidence reuse;
-- precise `plannedBaseQuantityPerProduct` standard-cost basis;
-- no physical one-piece `pc` rounding in standard unit economics;
-- separate base direct-material and safety-reserve cost evidence;
-- reconciled pricing direct-material cost per unit;
-- per-material package/conversion/calibration/contribution traceability;
-- ready/partial/not-ready synthesis with fail-closed integrity issues;
-- case-insensitive Material evidence join and typed Product evidence mismatch guard;
-- existing `NO_REQUIREMENTS / not-ready` semantics preserved;
-- shared application-session wiring;
-- no 4.2B/4.2C, UI, batch-financial, persistence, or stock-mutation leakage.
-
 Evidence:
 
 ```text
@@ -189,12 +179,58 @@ Plan: `docs/PHASE_4_2A_WASTE_ADJUSTED_DIRECT_MATERIAL_UNIT_COST_PLAN.md`
 
 Record: `docs/PHASE_4_2A_WASTE_ADJUSTED_DIRECT_MATERIAL_UNIT_COST.md`
 
+### 4.2B — Recursive Fully Loaded Product Component Cost
+
+**COMPLETE**
+
+Delivered:
+
+- dedicated Phase 4 recursive Product-backed component-cost service;
+- child 4.2A waste-adjusted direct-material cost included exactly once;
+- child Material-backed component cost delegated to the existing Phase 3/Phase 1 path;
+- nested Product-backed child fully loaded production cost recursion;
+- child labor and overhead included exactly once;
+- child pricing policy, selling price, markup, margin, and profit excluded;
+- explicit component-only child neutral-direct semantics without changing 4.2A;
+- known partial subtotal kept distinct from authoritative fully loaded totals/contributions;
+- deterministic nested paths and component ordering;
+- defensive duplicate-source and cycle protection;
+- missing/invalid/mismatched financial profile fail-closed behavior;
+- ProductStock/current availability excluded from production-cost math;
+- shared application-session wiring;
+- no 4.2C/pricing/UI/persistence/stock-mutation leakage.
+
+Evidence:
+
+```text
+Plan commit                     06bb9aa4cffde4da050fda8be4c1faa17dc3d9f1
+Implementation head             fbf804234896d92a18c7721dfe53470d801f89fd
+Implementation CI               34938739599 — SUCCESS
+Final feature head              df0e6b406c0ef82763b6870b81e8d01aac34c10c
+Final feature-head CI           34938953338 — SUCCESS
+PR #104                         MERGED
+PR CI                           34939051807 — SUCCESS
+Implementation merge            43248152960681afb23d3c56f08712918ae58d06
+Post-merge develop CI           34939144860 — SUCCESS
+63 test files / 754 tests
+23 RecursiveFullyLoadedProductComponentCostService tests
+1 4.2B shared-session wiring test
+7 React smoke tests
+TypeScript typecheck passed
+production build passed
+102 modules transformed
+```
+
+Plan: `docs/PHASE_4_2B_RECURSIVE_FULLY_LOADED_PRODUCT_COMPONENT_COST_PLAN.md`
+
+Record: `docs/PHASE_4_2B_RECURSIVE_FULLY_LOADED_PRODUCT_COMPONENT_COST.md`
+
 ## Current active task
 
-**4.2B — Recursive Fully Loaded Product Component Cost — NEXT / NOT STARTED**
+**4.2C — Total Fully Loaded Unit Cost & Readiness — NEXT / NOT STARTED**
 
-Do not begin 4.2B until:
+Do not begin 4.2C until:
 
-1. the 4.2A documentation-only closeout is merged to `develop`;
+1. the 4.2B documentation-only closeout is merged to `develop`;
 2. exact final closeout `develop` CI is green;
-3. a dedicated 4.2B development plan/scope review is established.
+3. a dedicated 4.2C development plan/scope review is established before implementation.
