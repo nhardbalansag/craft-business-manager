@@ -17,8 +17,8 @@ Planning baseline: `docs/PHASE_3_PRODUCT_COMPONENTS_VESSELS_PLAN.md`
 
 3.3 — Component-Aware Cost Roll-Up                        IN PROGRESS
     3.3A — Material-Backed Component Cost                 COMPLETE
-    3.3B — Recursive Product-Backed Component Cost        IMPLEMENTED — MERGE GATE
-    3.3C — Total Product Cost & Readiness                  NOT STARTED
+    3.3B — Recursive Product-Backed Component Cost        COMPLETE
+    3.3C — Total Product Cost & Readiness                  NEXT
 
 3.4 — Component-Limited Assembly Capacity
     3.4A — Per-Component Availability & Capacity          NOT STARTED
@@ -214,29 +214,30 @@ Development plan: `docs/PHASE_3_3A_MATERIAL_BACKED_COMPONENT_COST_PLAN.md`
 
 Implementation record: `docs/PHASE_3_3A_MATERIAL_BACKED_COMPONENT_COST.md`
 
-## Implementation awaiting merge gate
-
 ### 3.3B — Recursive Product-Backed Component Cost
 
 - `ProductBackedComponentCostService` recursively derives Product-backed component cost;
-- each child combines the authoritative Phase 2 direct-material cost preview with Phase 3 nested component contributions;
-- material-backed nested lines delegate to 3.3A rather than duplicating Material costing;
-- Product-backed nested lines recurse through the same 3.3B service;
-- `ready | partial | not-ready` propagates through the tree while preserving known partial subtotals;
-- authoritative zero cost remains distinguishable from missing cost evidence;
+- each child combines authoritative Phase 2 direct-material cost with Phase 3 nested component contributions;
+- material-backed nested lines delegate to 3.3A;
+- Product-backed nested lines recurse through 3.3B;
+- `ready | partial | not-ready` propagates through the recursive tree while preserving known partial subtotals;
+- authoritative zero remains distinguishable from missing cost evidence;
 - Product IDs/names, canonical paths, edge quantities, direct-material evidence, and nested leaf costs remain inspectable;
-- local active-path protection prevents infinite recursion from reachable corrupted cycles and reports a closed canonical cycle path;
+- local active-path protection prevents infinite recursion from reachable corrupted cycles and reports closed canonical cycle paths;
 - immediate reachable duplicate-source corruption is rejected without double counting;
 - unrelated corruption elsewhere does not globally block a safe requested root;
-- current ProductStock is intentionally excluded from Product cost dependencies;
+- ProductStock/current stock is intentionally excluded from Product cost dependencies;
 - shared `productBackedComponentCostService` is wired in `application/session.ts`;
 - dedicated 3.3B suite adds 26 tests;
-- full feature validation passes 46 test files / 464 tests, TypeScript typecheck, and production build.
+- full validation passes 46 test files / 464 tests, TypeScript typecheck, and production build.
 
-Feature evidence:
-- branch `feature/phase-3-3b-recursive-product-component-cost`;
-- authoritative base `develop` @ `e84be8cb15cf4bd7be3379ebd76302a4087376c9`;
-- feature-head CI run `34917053692` passed.
+Evidence:
+- PR #75 merged;
+- implementation merge commit `14bf14436f159fcfd40d40dad8dd9ab0cf3ddc41`;
+- test-bearing feature CI run `34917053692` passed;
+- final feature-head CI run `34917215482` passed;
+- PR CI run `34917269363` passed;
+- post-merge `develop` CI run `34917371932` passed.
 
 Development plan: `docs/PHASE_3_3B_RECURSIVE_PRODUCT_COMPONENT_COST_PLAN.md`
 
@@ -244,6 +245,6 @@ Implementation record: `docs/PHASE_3_3B_RECURSIVE_PRODUCT_COMPONENT_COST.md`
 
 ## Current active task
 
-**3.3B — Recursive Product-Backed Component Cost — merge/post-merge validation gate**
+**3.3C — Total Component-Aware Product Cost & Readiness — NEXT / NOT STARTED**
 
-Do not begin 3.3C until 3.3B is merged, exact post-merge `develop` CI is green, and a dedicated 3.3C development plan/scope review is established.
+Do not begin 3.3C until a dedicated development plan/scope review is established for that task.
