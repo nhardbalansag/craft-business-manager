@@ -12,7 +12,7 @@ Planning baseline: `docs/PHASE_3_PRODUCT_COMPONENTS_VESSELS_PLAN.md`
 
 3.2 — Finished Component Stock                            IN PROGRESS
     3.2A — Product Stock Contract & Validation            COMPLETE
-    3.2B — Product Stock Repository & Services            NEXT
+    3.2B — Product Stock Repository & Services            IMPLEMENTED — MERGE GATE
     3.2C — Source Availability & Relationship Guards      NOT STARTED
 
 3.3 — Component-Aware Cost Roll-Up
@@ -138,8 +138,34 @@ Development plan: `docs/PHASE_3_2A_PRODUCT_STOCK_PLAN.md`
 
 Implementation record: `docs/PHASE_3_2A_PRODUCT_STOCK_CONTRACT.md`
 
+## Implementation awaiting merge gate
+
+### 3.2B — Product Stock Repository & Services
+
+- storage-agnostic `ProductStockRepository` added with list/find-by-Product/upsert operations;
+- defensive `InMemoryProductStockRepository` enforces one record per normalized Product identity;
+- `ProductStockService` adds set/set-record/get/list/filter behavior without React;
+- all writes normalize/validate through 3.2A and resolve Product existence;
+- stored Product identity is canonicalized to the actual Product record ID;
+- archived Product stock remains inspectable/correctable and is not removed by Product archive operations;
+- missing ProductStock remains distinguishable from explicit zero stock;
+- no delete operation is exposed;
+- `BusinessDataset.productStocks` added as authoritative source data;
+- shared `productStockRepository` / `productStockService` wired into `application/session.ts`;
+- dedicated 3.2B suite adds 10 tests;
+- full feature validation passes 43 test files / 404 tests, typecheck, and production build.
+
+Feature evidence:
+- branch `feature/phase-3-2b-product-stock-services`;
+- authoritative base `develop` @ `badef95776f8ef4ce23edfdcee84210802dbc71f`;
+- feature CI run `34913228450` passed.
+
+Development plan: `docs/PHASE_3_2B_PRODUCT_STOCK_REPOSITORY_SERVICES_PLAN.md`
+
+Implementation record: `docs/PHASE_3_2B_PRODUCT_STOCK_REPOSITORY_SERVICES.md`
+
 ## Current active task
 
-**3.2B — Product Stock Repository & Services — NEXT / NOT STARTED**
+**3.2B — Product Stock Repository & Services — merge/post-merge validation gate**
 
-Do not begin 3.2B until a dedicated development plan/scope review is established for that task.
+Do not start 3.2C until 3.2B is merged and exact post-merge `develop` CI is green.

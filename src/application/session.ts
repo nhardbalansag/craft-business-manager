@@ -10,6 +10,8 @@ import { InMemoryProductComponentRepository } from './productComponents/InMemory
 import { ProductComponentService } from './productComponents/ProductComponentService';
 import { InMemoryProductRepository } from './products/InMemoryProductRepository';
 import { ProductService } from './products/ProductService';
+import { InMemoryProductStockRepository } from './productStocks/InMemoryProductStockRepository';
+import { ProductStockService } from './productStocks/ProductStockService';
 import { RecipeMaterialCostPreviewService } from './recipeCosts/RecipeMaterialCostPreviewService';
 import { EffectiveRecipeRequirementService } from './recipeRequirements/EffectiveRecipeRequirementService';
 import { FixedRecipeItemService } from './recipeItems/FixedRecipeItemService';
@@ -24,6 +26,7 @@ export const calibrationRepository = new InMemoryCalibrationRepository();
 export const mixPresetRepository = new InMemoryMixPresetRepository();
 export const productRepository = new InMemoryProductRepository();
 export const productComponentRepository = new InMemoryProductComponentRepository();
+export const productStockRepository = new InMemoryProductStockRepository();
 export const yieldSampleRepository = new InMemoryYieldSampleRepository();
 export const fixedRecipeItemRepository = new InMemoryFixedRecipeItemRepository();
 
@@ -31,6 +34,10 @@ export const productComponentService = new ProductComponentService(
   productComponentRepository,
   productRepository,
   materialRepository,
+);
+export const productStockService = new ProductStockService(
+  productStockRepository,
+  productRepository,
 );
 
 export const materialService = new MaterialService(

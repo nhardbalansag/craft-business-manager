@@ -2,6 +2,7 @@ import type { FixedRecipeItem } from './fixedRecipeItems';
 import type { Material } from './materials';
 import type { MixPreset, RatioBasis } from './mixPresets';
 import type { ProductComponent } from './productComponents';
+import type { ProductStock } from './productStock';
 import type { Product, ProductCategory } from './products';
 import type { YieldSample } from './yieldSamples';
 
@@ -34,4 +35,5 @@ export interface BusinessDataset {
   yieldSamples: YieldSample[];
   recipeItems: FixedRecipeItem[];
   productComponents: ProductComponent[];
+  productStocks: ProductStock[];
 }
