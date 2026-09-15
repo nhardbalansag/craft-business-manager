@@ -1,6 +1,6 @@
 # Phase 5 — Excel Persistence Progress
 
-Status: **MASTER PLAN ESTABLISHED — IMPLEMENTATION NOT STARTED**
+Status: **IN PROGRESS**
 
 Planning baseline: `docs/PHASE_5_EXCEL_PERSISTENCE_PLAN.md`
 
@@ -8,14 +8,22 @@ Authoritative planning base:
 
 `develop` @ `1d9d93c265fcadd01c3f16318bfcf7c079a432a1`
 
-Starting exact `develop` CI:
+Starting exact Phase 5 planning CI:
 
 `34982462060 — SUCCESS`
 
+Phase 5 master-plan merge:
+
+`develop` @ `5cf12188b8ec2d727aa5debe6a131a10168244ab`
+
+Master-plan post-merge CI:
+
+`34984709583 — SUCCESS`
+
 ```text
-5.1 — Persisted Dataset & Workbook Contract Foundation   NOT STARTED
-    5.1A — Source Inventory & Dataset Completeness        NEXT
-    5.1B — Workbook Schema / Sheet / Column Contracts     NOT STARTED
+5.1 — Persisted Dataset & Workbook Contract Foundation   IN PROGRESS
+    5.1A — Source Inventory & Dataset Completeness        COMPLETE
+    5.1B — Workbook Schema / Sheet / Column Contracts     NEXT
     5.1C — Dataset Validation & Reference Integrity       NOT STARTED
 
 5.2 — XLSX Workbook Codec                                 NOT STARTED
@@ -48,7 +56,7 @@ Starting exact `develop` CI:
 - `.xlsx` is the authoritative Phase 5 workbook format; legacy `.xls`, macro-enabled `.xlsm`, and CSV are not complete database formats for v1.
 - Persist authoritative source evidence only; derived costing, yield-learning, capacity, pricing, revenue, and profit outputs are recalculated.
 - The persisted dataset must cover every live authoritative source repository.
-- `MaterialCalibrationEvidence[]` is currently missing from `BusinessDataset` and must be added before authoritative workbook encoding begins.
+- **5.1A resolved the source-inventory gap:** `BusinessDataset` now includes `MaterialCalibrationEvidence[]` as `materialCalibrations` and formally covers all nine current authoritative source repositories.
 - Dataset schema version and workbook-format/layout version are distinct version concepts.
 - Use normalized workbook sheets; do not hide nested arrays as JSON blobs in cells.
 - Planned workbook source sheets are `_Meta`, `Materials`, `Calibrations`, `MixPresets`, `MixPresetLines`, `Products`, `YieldSamples`, `YieldSampleInputs`, `RecipeItems`, `ProductComponents`, `ProductStocks`, and `ProductFinancialProfiles`.
@@ -73,9 +81,64 @@ Starting exact `develop` CI:
 - Round-trip validation must prove Phase 1–4 service-derived behavior remains equivalent after restore.
 - The concrete XLSX library is deliberately not locked by the master plan; 5.2A must assess maintenance, license, security, browser/Tauri compatibility, formula handling, bundle size, and testability before selection.
 
-## Planning discovery evidence
+## Phase 5.1A — Source Inventory & Dataset Completeness
 
-Current storage port:
+Status: **COMPLETE**
+
+Plan:
+
+`docs/PHASE_5_1A_PERSISTED_DATASET_SOURCE_INVENTORY_CONTRACT_COMPLETENESS_PLAN.md`
+
+Completion record:
+
+`docs/PHASE_5_1A_PERSISTED_DATASET_SOURCE_INVENTORY_CONTRACT_COMPLETENESS.md`
+
+### Delivered
+
+- `BusinessDataset` now represents all nine authoritative Phase 1–4 source collections;
+- calibration evidence is persisted as `materialCalibrations: MaterialCalibrationEvidence[]`;
+- `CURRENT_BUSINESS_DATASET_SCHEMA_VERSION = 1` establishes the first formally complete persisted source schema;
+- `BUSINESS_DATASET_SOURCE_COLLECTION_KEYS` formalizes the complete collection inventory;
+- controlled top-level completeness diagnostics fail closed on malformed/unsupported dataset envelopes;
+- `createEmptyBusinessDataset()`, `cloneBusinessDataset(...)`, and `normalizeBusinessDataset(...)` establish canonical defensive source ownership;
+- nested source data is defensively cloned;
+- source rows are not silently repaired or defaulted;
+- missing ProductStock/profile evidence remains distinct from explicit zero/null-policy evidence;
+- row-level/reference/cycle validation remains intentionally deferred to 5.1C;
+- no XLSX/workbook/transport/UI/Tauri behavior was introduced.
+
+### Validation evidence
+
+```text
+Starting develop                 5cf12188b8ec2d727aa5debe6a131a10168244ab
+Starting develop CI              34984709583 — SUCCESS
+Plan-before-code                 26ef1a887c75cd1cd648c1884cc1d24be968ddcd
+First implementation checkpoint  61728a3e62d58afa291b57e02fa288836801fda3
+First checkpoint CI              34985582449 — FAILURE
+Corrected implementation head    d9a87c7714e69dc0584a86dbb20f282dbeadaa4d
+Implementation CI                34985739279 — SUCCESS
+Documented feature head          b03313fe3260d7b293241b291b836f962e49b07c
+Documented feature-head CI       34985914438 — SUCCESS
+PR #131                          MERGED
+PR CI                            34986078428 — SUCCESS
+Implementation merge             467341eafe36e37812eb65f4cd4683dd9153868b
+Post-merge develop CI            34986286733 — SUCCESS
+82 test files / 996 tests
+10 Phase 5.1A tests
+8 React workspace smoke tests
+7 Phase 4.6A real-service integration tests
+TypeScript typecheck passed
+Production Vite build passed
+117 modules transformed
+```
+
+The first checkpoint failure was an expected compile-time completeness catch: one historical test fixture still constructed the old eight-collection `BusinessDataset`. Adding `materialCalibrations: []` to that fixture resolved the contract mismatch without weakening behavior.
+
+The existing Vite warning for the minified main JavaScript chunk being slightly above 500 kB remains non-blocking and unrelated to Phase 5.1A correctness.
+
+## Current persistence foundation after 5.1A
+
+Current storage port remains:
 
 ```text
 load() -> BusinessDataset
@@ -83,36 +146,32 @@ save(BusinessDataset)
 optional createBackup(BusinessDataset)
 ```
 
-Current Excel adapter:
+Current Excel adapter remains a placeholder:
 
 ```text
 ExcelStorage.load/save are placeholders and intentionally throw.
 ```
 
-Current authoritative source repositories:
+Current complete authoritative source dataset collections:
 
 ```text
-MaterialRepository
-CalibrationRepository
-MixPresetRepository
-ProductRepository
-YieldSampleRepository
-FixedRecipeItemRepository
-ProductComponentRepository
-ProductStockRepository
-ProductFinancialProfileRepository
+materials
+materialCalibrations
+mixPresets
+products
+yieldSamples
+recipeItems
+productComponents
+productStocks
+productFinancialProfiles
 ```
 
-Current `BusinessDataset` covers all of the above **except CalibrationRepository evidence**.
-
-No `.xlsx` codec dependency is currently installed.
+No `.xlsx` codec dependency is installed yet.
 
 ## Current active task
 
-**5.1A — Persisted Dataset Source Inventory & Contract Completeness — NEXT / NOT STARTED**
+**5.1B — Workbook Schema / Sheet / Column Contracts — NEXT / NOT STARTED**
 
-Do not begin 5.1A implementation until:
+5.1B must begin with its own dedicated scope review/development plan from the exact final green `develop` baseline after this documentation closeout is merged and validated.
 
-1. this Phase 5 master-plan documentation is merged to `develop`;
-2. exact post-merge `develop` CI is green;
-3. a dedicated 5.1A scope review/development plan is established before code changes.
+Do not begin 5.1B implementation automatically as part of the 5.1A closeout.

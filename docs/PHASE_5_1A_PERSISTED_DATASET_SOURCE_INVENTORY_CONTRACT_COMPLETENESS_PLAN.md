@@ -2,7 +2,7 @@
 
 ## Status
 
-**PLANNED — IMPLEMENTATION NOT STARTED**
+**COMPLETE — IMPLEMENTED, MERGED, AND POST-MERGE VALIDATED**
 
 Authoritative base:
 
@@ -15,6 +15,12 @@ Exact base CI:
 Feature branch:
 
 `feature/phase-5-1a-dataset-source-completeness`
+
+Plan-before-code commit:
+
+`26ef1a887c75cd1cd648c1884cc1d24be968ddcd`
+
+> The planning sections below are preserved as the pre-implementation contract. Final execution evidence is recorded in the closeout section at the end.
 
 ## Purpose
 
@@ -185,6 +191,39 @@ Not part of 5.1A:
 - persistence UI — 5.5;
 - Tauri native filesystem/dialogs — Phase 6.
 
-## Next step after plan approval
+## Historical next step after plan approval
 
 Implement only the contract-completeness surface above, validate it, and do not begin 5.1B automatically.
+
+---
+
+## Final execution closeout
+
+The plan was executed without expanding into 5.1B or later Phase 5 work.
+
+```text
+Starting develop                 5cf12188b8ec2d727aa5debe6a131a10168244ab
+Starting develop CI              34984709583 — SUCCESS
+Plan-before-code                 26ef1a887c75cd1cd648c1884cc1d24be968ddcd
+First implementation checkpoint  61728a3e62d58afa291b57e02fa288836801fda3
+First checkpoint CI              34985582449 — FAILURE (expected fixture completeness catch)
+Corrected implementation head    d9a87c7714e69dc0584a86dbb20f282dbeadaa4d
+Implementation CI                34985739279 — SUCCESS
+Documented feature head          b03313fe3260d7b293241b291b836f962e49b07c
+Documented feature-head CI       34985914438 — SUCCESS
+PR #131                          MERGED
+PR CI                            34986078428 — SUCCESS
+Implementation merge             467341eafe36e37812eb65f4cd4683dd9153868b
+Post-merge develop CI            34986286733 — SUCCESS
+82 test files / 996 tests
+10 Phase 5.1A focused tests
+8 React workspace smoke tests
+7 Phase 4.6A real-service integration tests
+TypeScript typecheck passed
+Production Vite build passed
+117 modules transformed
+```
+
+The implementation added the missing calibration source collection, established dataset schema v1 and controlled top-level completeness semantics, preserved evidence distinctions, and introduced no XLSX/workbook/transport/UI/Tauri behavior.
+
+**5.1A is complete. 5.1B remains separate and must receive its own dedicated development plan before implementation.**

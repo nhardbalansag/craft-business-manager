@@ -2,7 +2,7 @@
 
 ## Status
 
-**IMPLEMENTED + FEATURE-HEAD VALIDATED — PR PENDING**
+**COMPLETE — MERGED + POST-MERGE VALIDATED**
 
 ## Authoritative starting point
 
@@ -179,15 +179,22 @@ head        d9a87c7714e69dc0584a86dbb20f282dbeadaa4d
 CI          34985739279 — SUCCESS
 ```
 
-Exact CI evidence:
+### Documented feature head
+
+```text
+head        b03313fe3260d7b293241b291b836f962e49b07c
+CI          34985914438 — SUCCESS
+```
+
+Exact feature validation evidence:
 
 ```text
 TypeScript typecheck PASS
 82 test files PASS
 996 tests PASS
 10 Phase 5.1A BusinessDataset tests PASS
-8 React workspace smoke tests remain PASS
-7 Phase 4.6A integration tests remain PASS
+8 React workspace smoke tests PASS
+7 Phase 4.6A integration tests PASS
 production Vite build PASS
 117 modules transformed
 ```
@@ -200,17 +207,42 @@ main JS chunk ~537.87 kB after minification (>500 kB warning)
 
 This remains a later performance/code-splitting concern and is unrelated to 5.1A correctness.
 
-## Files changed by implementation
+## Pull request and merge evidence
 
 ```text
-docs/PHASE_5_1A_PERSISTED_DATASET_SOURCE_INVENTORY_CONTRACT_COMPLETENESS_PLAN.md
-src/domain/types.ts
-src/domain/businessDataset.ts
-src/domain/businessDataset.test.ts
-src/domain/productFinancialProfile.test.ts
+PR #131                         Phase 5.1A — Persisted Dataset Source Completeness
+PR head                         b03313fe3260d7b293241b291b836f962e49b07c
+PR CI                           34986078428 — SUCCESS
+Merge                           467341eafe36e37812eb65f4cd4683dd9153868b
+Exact post-merge develop CI     34986286733 — SUCCESS
 ```
 
-This implementation record is added after feature-head validation.
+The merge was guarded by the expected feature head SHA after confirming the PR remained open, mergeable, and unchanged.
+
+## Files changed by implementation
+
+Relative to starting `develop`, the documented feature head was:
+
+```text
+6 commits ahead
+0 behind
+6 changed files
+914 additions
+0 deletions
+```
+
+Files:
+
+```text
+docs/PHASE_5_1A_PERSISTED_DATASET_SOURCE_INVENTORY_CONTRACT_COMPLETENESS.md
+docs/PHASE_5_1A_PERSISTED_DATASET_SOURCE_INVENTORY_CONTRACT_COMPLETENESS_PLAN.md
+src/domain/businessDataset.test.ts
+src/domain/businessDataset.ts
+src/domain/productFinancialProfile.test.ts
+src/domain/types.ts
+```
+
+No storage adapter, XLSX dependency, workbook codec, repository hydration, React persistence workflow, or Tauri filesystem file was changed.
 
 ## Explicit exclusions confirmed
 
@@ -226,16 +258,24 @@ This implementation record is added after feature-head validation.
 - Tauri filesystem/dialog behavior;
 - changes to Phase 1–4 calculation formulas.
 
-## Completion state
+## Completion
 
-The 5.1A implementation itself satisfies the feature-level acceptance criteria and is ready for PR validation.
+All 5.1A acceptance gates are satisfied:
 
-It must not be marked roadmap-complete until:
+- complete persisted source inventory includes calibration evidence;
+- explicit dataset schema v1 semantics exist;
+- controlled top-level completeness errors exist;
+- defensive cloning/normalization is covered;
+- missing-vs-explicit-zero/null-policy semantics are preserved;
+- focused and full regression tests pass;
+- typecheck/build pass;
+- PR CI passed;
+- exact merged `develop` CI passed.
 
-1. this documented feature head passes CI;
-2. the PR to `develop` passes dedicated PR CI;
-3. the exact feature head is guarded-merged;
-4. exact merged `develop` CI passes;
-5. the Phase 5 progress tracker is reconciled in a documentation-only closeout.
+**Phase 5.1A — COMPLETE.**
 
-After those gates, **5.1B — Workbook Schema / Sheet / Column Contracts** may become NEXT, but must not start automatically.
+Next roadmap task after documentation closeout:
+
+**5.1B — Workbook Schema / Sheet / Column Contracts — NEXT / NOT STARTED**
+
+5.1B must receive its own scope review/development plan before implementation. No 5.1B work is included in this closeout.
