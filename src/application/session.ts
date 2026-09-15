@@ -24,6 +24,7 @@ import { InMemoryProductRepository } from './products/InMemoryProductRepository'
 import { ProductService } from './products/ProductService';
 import { InMemoryProductStockRepository } from './productStocks/InMemoryProductStockRepository';
 import { ProductStockService } from './productStocks/ProductStockService';
+import { ProfitMarkupMarginMetricsService } from './pricing/ProfitMarkupMarginMetricsService';
 import { SellingPriceDerivationService } from './pricing/SellingPriceDerivationService';
 import { RecipeMaterialCostPreviewService } from './recipeCosts/RecipeMaterialCostPreviewService';
 import { EffectiveRecipeRequirementService } from './recipeRequirements/EffectiveRecipeRequirementService';
@@ -168,6 +169,9 @@ export const fullyLoadedProductUnitCostService = new FullyLoadedProductUnitCostS
 export const sellingPriceDerivationService = new SellingPriceDerivationService(
   fullyLoadedProductUnitCostService,
   productFinancialProfileService,
+);
+export const profitMarkupMarginMetricsService = new ProfitMarkupMarginMetricsService(
+  sellingPriceDerivationService,
 );
 export const productionCapacityService = new ProductionCapacityService(
   productionRequirementService,
