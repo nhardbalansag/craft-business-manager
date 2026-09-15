@@ -10,8 +10,8 @@ Planning baseline: `docs/PHASE_3_PRODUCT_COMPONENTS_VESSELS_PLAN.md`
     3.1B — Composition Graph Integrity & Cycle Prevention COMPLETE
     3.1C — Component Repository & Application Services    COMPLETE
 
-3.2 — Finished Component Stock
-    3.2A — Product Stock Contract & Validation            NEXT
+3.2 — Finished Component Stock                            IN PROGRESS
+    3.2A — Product Stock Contract & Validation            IMPLEMENTED — MERGE GATE
     3.2B — Product Stock Repository & Services            NOT STARTED
     3.2C — Source Availability & Relationship Guards      NOT STARTED
 
@@ -115,8 +115,31 @@ Evidence:
 
 Implementation record: `docs/PHASE_3_1C_COMPONENT_REPOSITORY_SERVICES.md`
 
+## Implementation awaiting merge gate
+
+### 3.2A — Product Stock Contract & Validation
+
+- dedicated `src/domain/productStock.ts` introduces authoritative finished Product/component stock source data;
+- contract fields: Product ID, current on-hand whole-piece quantity, optional notes;
+- unit is implicit `pc` and is not user-selectable;
+- Product ID and notes are normalized;
+- zero stock is valid;
+- fractional, negative, and non-finite quantities are rejected with typed domain errors;
+- defensive clone helper added;
+- `ProductStock` exported through the shared domain type surface;
+- Product existence lookup, uniqueness persistence enforcement, repositories/services, `BusinessDataset.productStocks`, and availability remain deferred to 3.2B/3.2C;
+- dedicated focused tests cover zero/positive stock, normalization, cloning, malformed identity and invalid quantities.
+
+Feature evidence:
+- branch `feature/phase-3-2a-product-stock-contract`;
+- authoritative base `develop` @ `bb2441390b6d833efe567369473358f19f7efdba`.
+
+Development plan: `docs/PHASE_3_2A_PRODUCT_STOCK_PLAN.md`
+
+Implementation record: `docs/PHASE_3_2A_PRODUCT_STOCK_CONTRACT.md`
+
 ## Current active task
 
-**3.2A — Product Stock Contract & Validation — NEXT / NOT STARTED**
+**3.2A — Product Stock Contract & Validation — merge/post-merge validation gate**
 
-Phase 3.1 Composition Foundation is fully complete. Do not begin 3.2A until a dedicated development plan/scope review is established for that task.
+Do not start 3.2B until 3.2A is merged and exact post-merge `develop` CI is green.
