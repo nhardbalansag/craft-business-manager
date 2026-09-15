@@ -1,7 +1,10 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import App from './App';
+import type { Material } from './domain/materials';
+import type { Product } from './domain/products';
 import { CalibrationPage } from './ui/calibration/CalibrationPage';
+import { ProductComponentsView } from './ui/products/ProductComponentsView';
 import { ProductsPage } from './ui/products/ProductsPage';
 import { ProductionPage } from './ui/production/ProductionPage';
 import { YieldPage } from './ui/yield/YieldPage';
@@ -28,14 +31,48 @@ describe('React workspace smoke validation', () => {
     expect(html).toContain('Add a weight-based material first');
   });
 
-  it('renders the Phase 2 Products and Mix Presets workspace without browser-side effects', () => {
+  it('renders the Products, Mix Presets, and Components workspace without browser-side effects', () => {
     const html = renderToStaticMarkup(<ProductsPage />);
 
-    expect(html).toContain('Products &amp; mixes');
+    expect(html).toContain('Products, mixes &amp; components');
     expect(html).toContain('Add a product');
     expect(html).toContain('Sellable products');
     expect(html).toContain('Mix presets');
+    expect(html).toContain('Components');
     expect(html).toContain('Safety waste (%)');
+  });
+
+  it('renders the Product composition editor shell with an active parent Product', () => {
+    const product: Product = {
+      id: 'GIFT',
+      name: 'Gift Box',
+      category: 'candle',
+      safetyWasteRate: 0,
+      isActive: true,
+    };
+    const material: Material = {
+      id: 'JAR',
+      name: 'Glass Jar',
+      group: 'container',
+      baseUnit: 'pc',
+      purchaseQuantity: 1,
+      purchaseUnit: 'pc',
+      packageCost: 10,
+      onHandQuantity: 10,
+      onHandUnit: 'pc',
+      isActive: true,
+    };
+
+    const html = renderToStaticMarkup(
+      <ProductComponentsView products={[product]} materials={[material]} catalogLoading={false} />,
+    );
+
+    expect(html).toContain('Composition editor');
+    expect(html).toContain('Component ID');
+    expect(html).toContain('Material source');
+    expect(html).toContain('Quantity per parent');
+    expect(html).toContain('Nested composition preview');
+    expect(html).toContain('Gift Box');
   });
 
   it('renders the Phase 2 Yield recording and history workspace without browser-side effects', () => {
