@@ -5,13 +5,13 @@ Status: **IN PROGRESS**
 Planning baseline: `docs/PHASE_3_PRODUCT_COMPONENTS_VESSELS_PLAN.md`
 
 ```text
-3.1 — Composition Foundation                              IN PROGRESS
+3.1 — Composition Foundation                              COMPLETE
     3.1A — Product Component Contract & Roles             COMPLETE
     3.1B — Composition Graph Integrity & Cycle Prevention COMPLETE
-    3.1C — Component Repository & Application Services    IMPLEMENTED — MERGE GATE
+    3.1C — Component Repository & Application Services    COMPLETE
 
 3.2 — Finished Component Stock
-    3.2A — Product Stock Contract & Validation            NOT STARTED
+    3.2A — Product Stock Contract & Validation            NEXT
     3.2B — Product Stock Repository & Services            NOT STARTED
     3.2C — Source Availability & Relationship Guards      NOT STARTED
 
@@ -60,8 +60,7 @@ Planning baseline: `docs/PHASE_3_PRODUCT_COMPONENTS_VESSELS_PLAN.md`
 - finite, positive integer `quantityPerParent` enforced;
 - deterministic normalization, clone, source-key, and duplicate-source equality helpers added;
 - material-backed compatibility requires a matching count-based (`pc`) Material source;
-- derived cost/capacity remains excluded;
-- repositories, active-reference validation, archive guards, and `BusinessDataset.productComponents` remain 3.1C.
+- derived cost/capacity remains excluded.
 
 Evidence:
 - PR #61 merged;
@@ -82,8 +81,7 @@ Implementation record: `docs/PHASE_3_1A_PRODUCT_COMPONENT_CONTRACT.md`
 - material-backed components do not create Product graph edges;
 - guarded depth-first descendant traversal is available for future recursive cost/capacity services;
 - reachable corrupted cycles cannot recurse indefinitely;
-- unrelated corrupted cycles do not block traversal of a safe root;
-- repositories, source existence/active-state checks, archive guards, and `BusinessDataset.productComponents` remain 3.1C.
+- unrelated corrupted cycles do not block traversal of a safe root.
 
 Evidence:
 - PR #63 merged;
@@ -92,8 +90,6 @@ Evidence:
 - post-merge CI run `34910649113` passed.
 
 Implementation record: `docs/PHASE_3_1B_COMPOSITION_GRAPH_INTEGRITY.md`
-
-## Implementation awaiting merge gate
 
 ### 3.1C — Component Repository & Application Services
 
@@ -108,17 +104,19 @@ Implementation record: `docs/PHASE_3_1B_COMPOSITION_GRAPH_INTEGRITY.md`
 - Product reactivation revalidates retained source relationships and graph integrity;
 - `BusinessDataset.productComponents` added as authoritative source data;
 - shared `productComponentRepository` and `productComponentService` wired in `application/session.ts`;
-- dedicated service suite adds 9 tests; full feature validation passes 41 files / 382 tests, typecheck, and build.
+- dedicated service suite adds 9 tests; full validation passes 41 files / 382 tests, typecheck, and build.
 
-Feature evidence:
-- branch `feature/phase-3-1c-component-services`;
-- authoritative base `develop` @ `046c359ea264a08cb5fc55cda61f666122bf6c04`;
-- feature CI run `34911576909` passed.
+Evidence:
+- PR #65 merged;
+- implementation merge commit `230843ea813ab833eb85b7a1c487ec899d8ce84c`;
+- feature CI run `34911576909` passed;
+- PR CI run `34911698103` passed;
+- post-merge CI run `34911755617` passed.
 
 Implementation record: `docs/PHASE_3_1C_COMPONENT_REPOSITORY_SERVICES.md`
 
 ## Current active task
 
-**3.1C — Component Repository & Application Services — merge/post-merge validation gate**
+**3.2A — Product Stock Contract & Validation — NEXT / NOT STARTED**
 
-Do not start 3.2A until 3.1C is merged and post-merge `develop` CI is green.
+Phase 3.1 Composition Foundation is fully complete. Do not begin 3.2A until a dedicated development plan/scope review is established for that task.
