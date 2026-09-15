@@ -16,7 +16,7 @@ Planning baseline: `docs/PHASE_3_PRODUCT_COMPONENTS_VESSELS_PLAN.md`
     3.2C — Source Availability & Relationship Guards      COMPLETE
 
 3.3 — Component-Aware Cost Roll-Up                        IN PROGRESS
-    3.3A — Material-Backed Component Cost                 NEXT
+    3.3A — Material-Backed Component Cost                 IMPLEMENTED — MERGE GATE
     3.3B — Recursive Product-Backed Component Cost        NOT STARTED
     3.3C — Total Product Cost & Readiness                  NOT STARTED
 
@@ -124,8 +124,7 @@ Implementation record: `docs/PHASE_3_1C_COMPONENT_REPOSITORY_SERVICES.md`
 - zero stock is valid;
 - fractional, negative, and non-finite quantities are rejected with typed domain errors;
 - defensive clone helper added;
-- `ProductStock` exported through the shared domain type surface;
-- Product existence lookup, uniqueness persistence enforcement, repositories/services, `BusinessDataset.productStocks`, and availability remain deferred to 3.2B/3.2C.
+- `ProductStock` exported through the shared domain type surface.
 
 Evidence:
 - PR #67 merged;
@@ -172,11 +171,8 @@ Implementation record: `docs/PHASE_3_2B_PRODUCT_STOCK_REPOSITORY_SERVICES.md`
 - explicit zero remains `ready`, while missing ProductStock is `partial`/unresolved;
 - Material-backed availability requires active count-based Material inventory and uses Phase 1 on-hand normalization;
 - successful Material results preserve `MaterialOnHandNormalization` conversion evidence;
-- controlled Phase 1 inventory/package-conversion failures become `partial` with underlying error codes;
 - Product-backed availability requires an active child Product and valid ProductStock;
-- archived Products remain `not-ready` even when historical ProductStock exists;
-- corrupted ProductStock becomes controlled `partial` with its 3.2A error code;
-- existing 3.1C Material/Product dependency guards are reused and regression-tested instead of duplicated;
+- existing 3.1C Material/Product dependency guards are reused and regression-tested;
 - shared `componentSourceAvailabilityService` and reusable calibration-evidence provider are wired in `application/session.ts`;
 - dedicated 3.2C suite adds 18 tests;
 - full validation passes 44 test files / 422 tests, typecheck, and production build.
@@ -199,8 +195,33 @@ Implementation record: `docs/PHASE_3_2C_COMPONENT_SOURCE_AVAILABILITY.md`
 
 The authoritative ProductStock contract, repository/application services, Material/Product component-source availability resolver, zero-versus-missing stock semantics, conversion/readiness evidence, and cross-source relationship guards are all implemented and validated.
 
+## Implementation awaiting merge gate
+
+### 3.3A — Material-Backed Component Cost
+
+- `MaterialBackedComponentCostService` derives one purchased/material-backed component line cost;
+- Phase 1 `calculateMaterialPackageCosting()` remains the sole package-cost engine;
+- cost per `pc` and contribution (`costPerPc × quantityPerParent`) are derived, never persisted;
+- source Material identity/name and full package/conversion traceability are preserved;
+- 3.2C source eligibility is reused rather than redefined;
+- `not-ready` source relationships block costing, while `partial` stock availability does not block an otherwise valid cost basis;
+- Product-backed component recursion is explicitly excluded and remains 3.3B;
+- controlled issue codes preserve underlying ProductComponent, availability, MaterialCosting, and calibration evidence;
+- shared `materialBackedComponentCostService` is wired in `application/session.ts`;
+- dedicated 3.3A suite adds 16 tests;
+- full feature validation passes 45 test files / 438 tests, typecheck, and production build.
+
+Feature evidence:
+- branch `feature/phase-3-3a-material-backed-component-cost`;
+- authoritative base `develop` @ `403146275dfe4d6eee2a61c16de00c7a93c17f79`;
+- feature-head CI run `34915288037` passed.
+
+Development plan: `docs/PHASE_3_3A_MATERIAL_BACKED_COMPONENT_COST_PLAN.md`
+
+Implementation record: `docs/PHASE_3_3A_MATERIAL_BACKED_COMPONENT_COST.md`
+
 ## Current active task
 
-**3.3A — Material-Backed Component Cost — NEXT / NOT STARTED**
+**3.3A — Material-Backed Component Cost — merge/post-merge validation gate**
 
-Do not begin 3.3A until a dedicated development plan/scope review is established for that task.
+Do not begin 3.3B until 3.3A is merged, exact post-merge `develop` CI is green, and a dedicated 3.3B development plan/scope review is established.
