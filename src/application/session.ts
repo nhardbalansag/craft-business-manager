@@ -11,6 +11,7 @@ import { AssemblyCapacitySynthesisService } from './production/AssemblyCapacityS
 import { AssemblyCapacityTraceService } from './production/AssemblyCapacityTraceService';
 import { ExpectedBatchFinancialsService } from './production/ExpectedBatchFinancialsService';
 import { PhysicalPlannedBatchProductionCostService } from './production/PhysicalPlannedBatchProductionCostService';
+import { PlannedBatchCapacityFeasibilityService } from './production/PlannedBatchCapacityFeasibilityService';
 import { ProductionCapacityService } from './production/ProductionCapacityService';
 import { ProductionRequirementService } from './production/ProductionRequirementService';
 import { ComponentAwareProductCostService } from './productComponents/ComponentAwareProductCostService';
@@ -204,4 +205,8 @@ export const assemblyCapacityTraceService = new AssemblyCapacityTraceService(
   assemblyCapacitySynthesisService,
   productRepository,
   materialRepository,
+);
+export const plannedBatchCapacityFeasibilityService = new PlannedBatchCapacityFeasibilityService(
+  expectedBatchFinancialsService,
+  assemblyCapacityTraceService,
 );
