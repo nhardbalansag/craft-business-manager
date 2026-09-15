@@ -79,6 +79,104 @@ function validateUnitDimension(
   }
 }
 
+function validateMaterialCalibrationEvidenceIdentity(
+  evidence: MaterialCalibrationEvidence,
+): void {
+  if (!evidence.id.trim()) {
+    throw new MaterialCalibrationError('INVALID_CALIBRATION_ID', 'Calibration ID is required.', {
+      materialId: evidence.materialId,
+      input: evidence.id,
+    });
+  }
+
+  if (!evidence.materialId.trim()) {
+    throw new MaterialCalibrationError('INVALID_MATERIAL_ID', 'Calibration material ID is required.', {
+      calibrationId: evidence.id,
+      input: evidence.materialId,
+    });
+  }
+}
+
+function validateMaterialCalibrationEvidenceMeasurements(
+  evidence: MaterialCalibrationEvidence,
+): void {
+  if (!Number.isFinite(evidence.measuredVolume)) {
+    throw new MaterialCalibrationError(
+      'NON_FINITE_VOLUME',
+      `Measured volume for calibration ${evidence.id} must be finite.`,
+      {
+        calibrationId: evidence.id,
+        materialId: evidence.materialId,
+        input: evidence.measuredVolume,
+      },
+    );
+  }
+
+  if (evidence.measuredVolume <= 0) {
+    throw new MaterialCalibrationError(
+      'NON_POSITIVE_VOLUME',
+      `Measured volume for calibration ${evidence.id} must be greater than zero.`,
+      {
+        calibrationId: evidence.id,
+        materialId: evidence.materialId,
+        input: evidence.measuredVolume,
+      },
+    );
+  }
+
+  validateUnitDimension(evidence.volumeUnit, 'volume', 'INVALID_VOLUME_UNIT', evidence);
+
+  if (!Number.isFinite(evidence.knownWeight)) {
+    throw new MaterialCalibrationError(
+      'NON_FINITE_WEIGHT',
+      `Known weight for calibration ${evidence.id} must be finite.`,
+      {
+        calibrationId: evidence.id,
+        materialId: evidence.materialId,
+        input: evidence.knownWeight,
+      },
+    );
+  }
+
+  if (evidence.knownWeight <= 0) {
+    throw new MaterialCalibrationError(
+      'NON_POSITIVE_WEIGHT',
+      `Known weight for calibration ${evidence.id} must be greater than zero.`,
+      {
+        calibrationId: evidence.id,
+        materialId: evidence.materialId,
+        input: evidence.knownWeight,
+      },
+    );
+  }
+
+  validateUnitDimension(evidence.weightUnit, 'weight', 'INVALID_WEIGHT_UNIT', evidence);
+
+  if (!evidence.recordedAt.trim() || Number.isNaN(Date.parse(evidence.recordedAt))) {
+    throw new MaterialCalibrationError(
+      'INVALID_RECORDED_AT',
+      `Calibration ${evidence.id} must have a valid recordedAt date/time.`,
+      {
+        calibrationId: evidence.id,
+        materialId: evidence.materialId,
+        input: evidence.recordedAt,
+      },
+    );
+  }
+}
+
+/**
+ * Validates one persisted calibration evidence record without requiring its current
+ * Material definition. This keeps historical measurement evidence independently
+ * round-trippable even when the Material is later edited.
+ */
+export function validateMaterialCalibrationEvidence(
+  evidence: MaterialCalibrationEvidence,
+): void {
+  validateMaterialCalibrationEvidenceIdentity(evidence);
+  validateMaterialCalibrationEvidenceMeasurements(evidence);
+}
+
 /**
  * Derives a material-specific grams-per-cup calibration from real measurement evidence.
  *
@@ -95,19 +193,9 @@ export function deriveMaterialCupWeightCalibration(
   material: Pick<Material, 'id' | 'name' | 'baseUnit'>,
   evidence: MaterialCalibrationEvidence,
 ): MaterialCupWeightCalibration {
-  if (!evidence.id.trim()) {
-    throw new MaterialCalibrationError('INVALID_CALIBRATION_ID', 'Calibration ID is required.', {
-      materialId: evidence.materialId,
-      input: evidence.id,
-    });
-  }
-
-  if (!evidence.materialId.trim()) {
-    throw new MaterialCalibrationError('INVALID_MATERIAL_ID', 'Calibration material ID is required.', {
-      calibrationId: evidence.id,
-      input: evidence.materialId,
-    });
-  }
+  // Preserve the established derivation error precedence: evidence identity first,
+  // then current Material compatibility, then measurement-field validation.
+  validateMaterialCalibrationEvidenceIdentity(evidence);
 
   if (evidence.materialId.trim().toLocaleLowerCase() !== material.id.trim().toLocaleLowerCase()) {
     throw new MaterialCalibrationError(
@@ -125,49 +213,7 @@ export function deriveMaterialCupWeightCalibration(
     );
   }
 
-  if (!Number.isFinite(evidence.measuredVolume)) {
-    throw new MaterialCalibrationError(
-      'NON_FINITE_VOLUME',
-      `Measured volume for calibration ${evidence.id} must be finite.`,
-      { calibrationId: evidence.id, materialId: material.id, input: evidence.measuredVolume },
-    );
-  }
-
-  if (evidence.measuredVolume <= 0) {
-    throw new MaterialCalibrationError(
-      'NON_POSITIVE_VOLUME',
-      `Measured volume for calibration ${evidence.id} must be greater than zero.`,
-      { calibrationId: evidence.id, materialId: material.id, input: evidence.measuredVolume },
-    );
-  }
-
-  validateUnitDimension(evidence.volumeUnit, 'volume', 'INVALID_VOLUME_UNIT', evidence);
-
-  if (!Number.isFinite(evidence.knownWeight)) {
-    throw new MaterialCalibrationError(
-      'NON_FINITE_WEIGHT',
-      `Known weight for calibration ${evidence.id} must be finite.`,
-      { calibrationId: evidence.id, materialId: material.id, input: evidence.knownWeight },
-    );
-  }
-
-  if (evidence.knownWeight <= 0) {
-    throw new MaterialCalibrationError(
-      'NON_POSITIVE_WEIGHT',
-      `Known weight for calibration ${evidence.id} must be greater than zero.`,
-      { calibrationId: evidence.id, materialId: material.id, input: evidence.knownWeight },
-    );
-  }
-
-  validateUnitDimension(evidence.weightUnit, 'weight', 'INVALID_WEIGHT_UNIT', evidence);
-
-  if (!evidence.recordedAt.trim() || Number.isNaN(Date.parse(evidence.recordedAt))) {
-    throw new MaterialCalibrationError(
-      'INVALID_RECORDED_AT',
-      `Calibration ${evidence.id} must have a valid recordedAt date/time.`,
-      { calibrationId: evidence.id, materialId: material.id, input: evidence.recordedAt },
-    );
-  }
+  validateMaterialCalibrationEvidenceMeasurements(evidence);
 
   const measuredCups = convertQuantity(evidence.measuredVolume, evidence.volumeUnit, 'cup');
   const knownWeightGrams = convertQuantity(evidence.knownWeight, evidence.weightUnit, 'g');
