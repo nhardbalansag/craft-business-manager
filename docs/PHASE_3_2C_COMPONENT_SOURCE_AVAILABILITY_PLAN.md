@@ -2,7 +2,7 @@
 
 ## Status
 
-**IMPLEMENTED — MERGE GATE PENDING**
+**COMPLETE**
 
 Authoritative base:
 
@@ -12,32 +12,38 @@ Feature branch:
 
 `feature/phase-3-2c-component-source-availability`
 
+Implementation PR:
+
+`#71`
+
+Implementation merge commit:
+
+`8142820762885a4093574ccc7cb48f1f9d0b5661`
+
 ## Objective
 
-Define one storage-agnostic application resolver that returns current component-source availability for either `material` or `product` sources while preserving the lifecycle relationship rules already established in Phase 3.1C.
+Define one storage-agnostic application resolver that returns current component-source availability for either `material` or `product` sources while preserving the lifecycle relationship rules established in Phase 3.1C.
 
 3.2C makes current source readiness explicit without introducing assembly capacity, reservations, automatic deductions, stock transactions, costing, UI, or Excel persistence.
 
 ## Split assessment
 
-No deeper formal split is required.
+No deeper formal split was required.
 
-3.2C is cohesive enough to implement as one task. Implementation order:
+3.2C was implemented as one cohesive task:
 
-1. define the controlled availability/readiness result contract;
-2. implement Material-backed source resolution;
-3. implement Product-backed source resolution;
-4. preserve Phase 1 material inventory conversion evidence;
-5. preserve the distinction between missing ProductStock and explicit zero ProductStock;
-6. reuse/regression-test the existing 3.1C cross-source lifecycle guards;
-7. wire the resolver into the shared application session;
-8. add focused tests and run the full repository validation gate.
-
-These are implementation steps, not new sub-phases.
+1. controlled readiness contract;
+2. Material-backed availability;
+3. Product-backed availability;
+4. Phase 1 inventory conversion evidence;
+5. missing-versus-zero ProductStock semantics;
+6. 3.1C relationship-guard regression coverage;
+7. shared application-session wiring;
+8. focused/full validation.
 
 ## Controlled availability contract
 
-The resolver exposes one status vocabulary for both source kinds:
+One status vocabulary serves both source kinds:
 
 ```text
 ready
@@ -45,76 +51,58 @@ partial
 not-ready
 ```
 
-### `ready`
+- `ready`: relationship eligible and current canonical `pc` quantity resolved, including explicit zero;
+- `partial`: relationship valid but current availability evidence unresolved/invalid;
+- `not-ready`: source relationship missing, inactive, or incompatible.
 
-The source relationship is eligible and current availability is resolved. `availableQuantity` is a finite non-negative quantity in canonical `pc` units. Explicit zero is **ready** availability with `availableQuantity = 0`.
-
-### `partial`
-
-The source relationship itself is valid/eligible, but current availability cannot be fully resolved from source evidence. Examples include missing ProductStock, unresolved Material conversion evidence, or corrupted persisted ProductStock. `availableQuantity` is `null`.
-
-### `not-ready`
-
-The source relationship itself is invalid for active composition availability. Examples include missing/inactive sources or a Material source whose canonical base unit is not `pc`. `availableQuantity` is `null`.
-
-## Result shape
+Derived result fields:
 
 ```text
-ComponentSourceAvailability
-- sourceType: material | product
-- sourceId
-- status: ready | partial | not-ready
-- availableQuantity: number | null
-- unit: pc
-- issues[]
-- materialInventoryNormalization?: MaterialOnHandNormalization
-- productStock?: ProductStock | null
+sourceType
+sourceId
+status
+availableQuantity: number | null
+unit: pc
+issues[]
+materialInventoryNormalization?
+productStock?
 ```
 
-This is a derived application view and is not added to `BusinessDataset`.
+The result is derived and is not persisted in `BusinessDataset`.
 
 ## Material-backed source rules
 
-Material availability resolution:
+Implemented rules:
 
-1. resolves Material by source ID;
-2. requires the Material to exist and be active;
-3. requires canonical `baseUnit === 'pc'`;
-4. obtains Material calibration evidence through the shared application evidence provider;
-5. normalizes current on-hand quantity through Phase 1 `normalizeMaterialOnHand()` rules;
-6. treats negative normalized availability as corrupted/unresolved source data;
-7. returns the normalized base quantity as available `pc` quantity;
-8. preserves full `MaterialOnHandNormalization` evidence on success.
-
-Controlled Phase 1 `MaterialInventoryError` or package-conversion `MaterialCostingError` failures become `partial` availability with the underlying error code preserved.
-
-The resolver does not calculate cost or inventory value merely to answer availability.
+- Material must exist and be active;
+- canonical base unit must be `pc`;
+- current on-hand stock is normalized through Phase 1 `normalizeMaterialOnHand()`;
+- full successful `MaterialOnHandNormalization` evidence is preserved;
+- controlled `MaterialInventoryError` / `MaterialCostingError` conversion failures become `partial` with underlying codes;
+- negative normalized stock is treated as corrupted/unresolved `partial` availability;
+- no cost/inventory valuation is required merely to answer availability.
 
 ## Product-backed source rules
 
-Product availability resolution:
+Implemented rules:
 
-1. resolves Product by source ID;
-2. requires the Product to exist and be active;
-3. retrieves ProductStock by Product identity;
-4. treats a missing ProductStock record as `partial`, not zero;
-5. validates persisted ProductStock through the 3.2A contract as a corruption guard;
-6. returns valid `onHandQuantity` as available `pc` quantity.
-
-Explicit ProductStock zero is a resolved `ready` result. Archived ProductStock remains historical source data but does not make an archived Product eligible for active-parent availability.
+- Product must exist and be active;
+- current ProductStock is read from the Phase 3.2B repository;
+- existing ProductStock is revalidated through the 3.2A contract as a corruption guard;
+- missing ProductStock is `partial`, not zero;
+- explicit zero ProductStock is resolved `ready` availability;
+- archived Product remains `not-ready` even when historical ProductStock exists.
 
 ## Relationship guard policy
 
-Phase 3.1C already established the authoritative lifecycle guards:
+Phase 3.1C remains the single lifecycle-guard authority:
 
-- active parent composition blocks Material archive;
-- active parent composition blocks child Product archive;
-- active component Material cannot be changed away from `pc`;
-- Product reactivation revalidates retained component sources.
+- active Material dependencies block Material archive;
+- active child Product dependencies block Product archive;
+- active component Material must remain count-based;
+- Product reactivation revalidates retained source relationships.
 
-3.2C reuses rather than duplicates these lifecycle guards. Dedicated regression tests prove availability eligibility and lifecycle protection remain aligned across both source kinds.
-
-No stock-reservation or quantity-dependent archive guard is introduced.
+3.2C reuses these guards and adds regression tests rather than duplicating write-time lifecycle logic.
 
 ## Issue contract
 
@@ -132,45 +120,34 @@ SOURCE_PRODUCT_STOCK_MISSING
 SOURCE_PRODUCT_STOCK_INVALID
 ```
 
-Material availability issues may retain underlying Phase 1 `MaterialInventoryError.code` or `MaterialCostingError.code`. Invalid ProductStock issues retain the underlying 3.2A `ProductStockError.code`.
-
 ## Shared application session
 
-Shared resolver:
+Added:
 
 ```text
 componentSourceAvailabilityService
+materialCalibrationEvidenceProvider
 ```
 
-Dependencies:
+The Material service and availability resolver reuse the same calibration-evidence provider.
 
-- `materialRepository`
-- `productRepository`
-- `productStockRepository`
-- shared Material calibration-evidence provider
+## Validation result
 
-`materialCalibrationEvidenceProvider` is reused by both MaterialService and ComponentSourceAvailabilityService.
+Dedicated 3.2C suite: 18 tests.
 
-## Test result
+Full validation:
 
-The focused suite adds 18 tests covering:
-
-- direct/package/zero Material availability;
-- missing/inactive/non-count Material sources;
-- unresolved/negative Material inventory;
-- positive/zero/missing/invalid ProductStock;
-- missing/inactive Product sources;
-- ProductComponent source delegation;
-- Material/Product active dependency archive guards;
-- archived-parent historical relationship behavior.
-
-Feature-head validation:
-
-- CI run `34914060282` — SUCCESS;
 - 44 test files passed;
 - 422 tests passed;
 - TypeScript typecheck passed;
 - production build passed.
+
+Evidence:
+
+- test-bearing feature CI `34914060282` — SUCCESS;
+- final feature-head CI `34914196908` — SUCCESS;
+- PR CI `34914254157` — SUCCESS;
+- post-merge `develop` CI `34914309862` — SUCCESS.
 
 ## Explicit deferrals
 
@@ -192,25 +169,12 @@ These remain Phase 3.3+, 3.4+, 3.5, or Phase 5.
 
 ## Completion gate
 
-Implemented feature gates passed:
+**PASSED.**
 
-- one controlled `ready | partial | not-ready` contract serves both source types;
-- Material-backed availability uses Phase 1 inventory normalization and preserves conversion evidence;
-- Product-backed availability uses authoritative ProductStock;
-- explicit zero is distinguishable from missing stock;
-- missing/inactive/incompatible sources are controlled `not-ready` results;
-- unresolved availability evidence is controlled `partial`;
-- existing active dependency guards remain correct across Material and Product sources;
-- shared application-session wiring exists;
-- focused/full tests, TypeScript typecheck, and production build pass.
+Implementation PR #71 merged to `develop`, and exact post-merge `develop` CI is green.
 
-Remaining gate:
+## Next task
 
-- implementation PR merges to `develop`;
-- exact post-merge `develop` CI is green.
+**3.3A — Material-Backed Component Cost — NEXT / NOT STARTED**
 
-## Next task after closeout
-
-**3.3A — Material-Backed Component Cost**
-
-Do not begin 3.3A until 3.2C is merged, exact post-merge `develop` CI is green, and the Phase 3.2 closeout tracker is updated.
+Do not begin 3.3A until its dedicated development plan/scope review is established.

@@ -10,13 +10,13 @@ Planning baseline: `docs/PHASE_3_PRODUCT_COMPONENTS_VESSELS_PLAN.md`
     3.1B — Composition Graph Integrity & Cycle Prevention COMPLETE
     3.1C — Component Repository & Application Services    COMPLETE
 
-3.2 — Finished Component Stock                            IN PROGRESS
+3.2 — Finished Component Stock                            COMPLETE
     3.2A — Product Stock Contract & Validation            COMPLETE
     3.2B — Product Stock Repository & Services            COMPLETE
-    3.2C — Source Availability & Relationship Guards      IMPLEMENTED — MERGE GATE
+    3.2C — Source Availability & Relationship Guards      COMPLETE
 
-3.3 — Component-Aware Cost Roll-Up
-    3.3A — Material-Backed Component Cost                 NOT STARTED
+3.3 — Component-Aware Cost Roll-Up                        IN PROGRESS
+    3.3A — Material-Backed Component Cost                 NEXT
     3.3B — Recursive Product-Backed Component Cost        NOT STARTED
     3.3C — Total Product Cost & Readiness                  NOT STARTED
 
@@ -164,8 +164,6 @@ Development plan: `docs/PHASE_3_2B_PRODUCT_STOCK_REPOSITORY_SERVICES_PLAN.md`
 
 Implementation record: `docs/PHASE_3_2B_PRODUCT_STOCK_REPOSITORY_SERVICES.md`
 
-## Implementation awaiting merge gate
-
 ### 3.2C — Component Source Availability & Relationship Guards
 
 - one `ComponentSourceAvailabilityService` resolves both `material` and `product` component sources;
@@ -181,19 +179,28 @@ Implementation record: `docs/PHASE_3_2B_PRODUCT_STOCK_REPOSITORY_SERVICES.md`
 - existing 3.1C Material/Product dependency guards are reused and regression-tested instead of duplicated;
 - shared `componentSourceAvailabilityService` and reusable calibration-evidence provider are wired in `application/session.ts`;
 - dedicated 3.2C suite adds 18 tests;
-- full feature validation passes 44 test files / 422 tests, typecheck, and production build.
+- full validation passes 44 test files / 422 tests, typecheck, and production build.
 
-Feature evidence:
-- branch `feature/phase-3-2c-component-source-availability`;
-- authoritative base `develop` @ `b9e7a03ed285486db50fb2c34ab9f3f82b58d41a`;
-- feature CI run `34914060282` passed.
+Evidence:
+- PR #71 merged;
+- implementation merge commit `8142820762885a4093574ccc7cb48f1f9d0b5661`;
+- test-bearing feature CI run `34914060282` passed;
+- final feature-head CI run `34914196908` passed;
+- PR CI run `34914254157` passed;
+- post-merge `develop` CI run `34914309862` passed.
 
 Development plan: `docs/PHASE_3_2C_COMPONENT_SOURCE_AVAILABILITY_PLAN.md`
 
 Implementation record: `docs/PHASE_3_2C_COMPONENT_SOURCE_AVAILABILITY.md`
 
+## Phase 3.2 completion
+
+**Phase 3.2 — Finished Component Stock is COMPLETE.**
+
+The authoritative ProductStock contract, repository/application services, Material/Product component-source availability resolver, zero-versus-missing stock semantics, conversion/readiness evidence, and cross-source relationship guards are all implemented and validated.
+
 ## Current active task
 
-**3.2C — Component Source Availability & Relationship Guards — merge/post-merge validation gate**
+**3.3A — Material-Backed Component Cost — NEXT / NOT STARTED**
 
-Do not start 3.3A until 3.2C is merged, exact post-merge `develop` CI is green, and Phase 3.2 is formally closed.
+Do not begin 3.3A until a dedicated development plan/scope review is established for that task.
