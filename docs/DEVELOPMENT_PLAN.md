@@ -289,12 +289,16 @@ Master plan: `docs/PHASE_5_EXCEL_PERSISTENCE_PLAN.md`
 Live tracker: `docs/PHASE_5_PROGRESS.md`
 
 ```text
-5.1 Persisted Dataset & Workbook Contract Foundation    IN PROGRESS
+5.1 Persisted Dataset & Workbook Contract Foundation    COMPLETE
     5.1A Source Inventory & Dataset Completeness         COMPLETE
     5.1B Workbook Schema / Sheet / Column Contracts      COMPLETE
-    5.1C Dataset Validation & Reference Integrity        PLAN ESTABLISHED / IMPLEMENTATION NOT STARTED
+    5.1C Dataset Validation & Reference Integrity        COMPLETE
 
 5.2 XLSX Workbook Codec                                  NOT STARTED
+    5.2A XLSX Library Evaluation & Codec Boundary        NEXT / NOT STARTED
+    5.2B Deterministic Dataset-to-XLSX Export            NOT STARTED
+    5.2C Strict XLSX-to-Dataset Import & Diagnostics     NOT STARTED
+
 5.3 Snapshot, Hydration & Persistence Coordination       NOT STARTED
 5.4 Version Compatibility, Backup & Recovery Safety      NOT STARTED
 5.5 Excel Persistence UI                                 NOT STARTED
@@ -302,6 +306,8 @@ Live tracker: `docs/PHASE_5_PROGRESS.md`
 ```
 
 ### Phase 5 progress so far
+
+**Phase 5.1 — Persisted Dataset & Workbook Contract Foundation is complete.**
 
 Phase 5.1A established the complete versioned persisted `BusinessDataset` covering all nine authoritative Phase 1–4 source repositories, including Material calibration evidence.
 
@@ -315,17 +321,40 @@ Phase 5.1B established the library-independent workbook v1 schema:
 - deterministic sheet/row order metadata;
 - formula-cell rejection and workbook-neutral structural diagnostics.
 
-Phase 5.1C now has a dedicated plan for one pre-hydration complete-dataset integrity gate covering:
+Phase 5.1C established the complete pre-hydration dataset integrity gate:
 
-- authoritative per-record source validation;
-- case-insensitive duplicate identities before repository construction;
-- durable cross-references across all nine source collections;
-- Product component source uniqueness and authoritative composition cycle validation;
+- authoritative per-record source validation across all nine persisted collections;
+- trim-aware, case-insensitive duplicate identities before repository construction;
+- durable cross-references across all source collections;
+- Product component source uniqueness and authoritative composition self/cycle validation;
 - deterministic structured dataset diagnostics;
 - preservation of missing-vs-zero/null semantics;
-- separation of persistence integrity from live-edit active-state eligibility.
+- preservation of legitimate archived historical relationships where activity is only a live-edit rule;
+- no silent repair, row dropping, repository hydration, or live-state mutation.
+
+5.1C implementation PR #137 merged at:
+
+`95b6cb35a85dbc1e71a2b4d71bc3dba8de23b40a`
+
+Exact post-merge CI:
+
+`34997700828 — SUCCESS`
+
+Validation baseline after the implementation merge:
+
+```text
+84 test files / 1048 tests
+30 Phase 5.1C focused tests
+8 React workspace smoke tests
+7 Phase 4.6A real-service integration tests
+TypeScript typecheck passed
+Production Vite build passed
+117 modules transformed
+```
 
 No XLSX codec dependency is installed yet, `ExcelStorage` remains an intentional placeholder, repository hydration is not implemented, and native filesystem behavior remains Phase 6.
+
+The concrete XLSX library remains intentionally unselected until 5.2A evaluates maintenance, license, browser/Tauri compatibility, primitive read/write behavior, formula visibility/rejection, bundle/performance cost, security history, and in-memory byte testability.
 
 ---
 
@@ -372,6 +401,6 @@ No React component should read or write spreadsheet cells directly.
 
 Current active task:
 
-**Phase 5.1C — Dataset Validation & Reference Integrity — PLAN ESTABLISHED / IMPLEMENTATION NOT STARTED**
+**Phase 5.2A — XLSX Library Evaluation & Codec Boundary — NEXT / NOT STARTED**
 
-Do not begin 5.1C implementation until its dedicated planning documentation is merged to `develop` and exact post-merge `develop` CI is green.
+Do not begin 5.2A implementation until separately requested from the exact final green Phase 5.1C closeout baseline.

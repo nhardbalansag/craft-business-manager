@@ -1,6 +1,6 @@
 # Craft Business Manager
 
-Desktop-first business costing, inventory, production-yield, production-planning, and pricing manager for a craft business producing:
+Desktop-first business costing, inventory, production-yield, production-planning, pricing, and persistence-foundation manager for a craft business producing:
 
 - paintable plaster art and mold toys for kids;
 - handmade candle pots / vessels;
@@ -23,7 +23,7 @@ Application / Business Services
 Domain Models + Costing / Production / Pricing Engines
    ↓
 Storage Port
-   ├── ExcelStorage (planned Phase 5 persistence)
+   ├── ExcelStorage (Phase 5 — persistence work in progress)
    └── SQLiteStorage (future)
    ↓
 Tauri filesystem boundary (planned Phase 6)
@@ -31,7 +31,7 @@ Tauri filesystem boundary (planned Phase 6)
 
 React components do not directly read or write spreadsheet cells.
 
-## Implemented through Phase 4
+## Implemented through Phase 5.1
 
 ### Materials, units, costing, inventory and calibration
 
@@ -104,7 +104,7 @@ Mold volume remains optional. Real sample production evidence is authoritative.
 
 ### Phase 4 batch financial planning
 
-The Production workspace now includes:
+The Production workspace includes:
 
 - Q-specific physical planned production cost;
 - direct `pc` final-batch rounding effects;
@@ -121,11 +121,33 @@ The Production workspace now includes:
 
 Requested quantity is never silently clamped to current capacity, and Phase 4 does not reserve or deduct stock.
 
+### Phase 5.1 persistence contract foundation
+
+Phase 5.1 is complete and establishes the storage-independent foundation required before XLSX byte encoding/decoding:
+
+- complete versioned `BusinessDataset` covering all nine authoritative Phase 1–4 source collections;
+- Material calibration evidence included in persisted source state;
+- library-independent workbook v1 schema with 13 canonical normalized sheets;
+- exact sheet/column contracts and child-row relationships;
+- deterministic workbook ordering and source representation rules;
+- formula-cell rejection policy for authoritative fields;
+- complete pre-hydration dataset semantic validation;
+- trim-aware/case-insensitive duplicate identity detection before repository hydration;
+- durable cross-reference validation across all source collections;
+- authoritative Product composition duplicate-source/self/cycle validation reuse;
+- deterministic structured dataset diagnostics;
+- missing-vs-zero/null source semantics preserved;
+- historical archived relationships remain round-trippable when active-state constraints are live-edit rules;
+- no silent repair or partial hydration of invalid candidates.
+
+No concrete XLSX library or XLSX byte codec has been introduced yet.
+
 ## Current phase boundaries
 
 The following remain intentionally not implemented:
 
-- Excel persistence/import/export — **Phase 5**;
+- XLSX byte encode/decode and actual workbook import/export — **Phase 5.2+**;
+- complete repository snapshot/hydration and load/save coordination — **Phase 5.3+**;
 - native Tauri filesystem workflow — **Phase 6**;
 - stock reservation, automatic stock deduction, stock transaction history, or production posting — requires separate future planning;
 - tax/VAT, marketplace/payment fees, accounting posting, and global overhead allocation — outside completed Phase 4 scope.
@@ -139,11 +161,12 @@ The following remain intentionally not implemented:
 
 ## Validation status
 
-Phase 4 final technical completion gate:
+Latest integrated technical baseline after Phase 5.1C implementation:
 
 ```text
-81 test files passed
-986 tests passed
+84 test files passed
+1048 tests passed
+30 Phase 5.1C focused tests
 8 React workspace smoke tests
 7 Phase 4.6A real-service integration tests
 TypeScript typecheck passed
@@ -151,23 +174,24 @@ Production Vite build passed
 117 modules transformed
 ```
 
-Phase 4.6B validation PR: **#128 — MERGED**
+Phase 5.1C implementation PR: **#137 — MERGED**
 
-Validation merge:
+Implementation merge:
 
-`154babc616253cb5da3578781563c61e6c53d372`
+`95b6cb35a85dbc1e71a2b4d71bc3dba8de23b40a`
 
 Exact post-merge CI:
 
-`34981363478 — SUCCESS`
+`34997700828 — SUCCESS`
 
 The existing Vite warning for the minified main JavaScript chunk being slightly above 500 kB is non-blocking and remains a future performance/code-splitting concern.
 
 See:
 
 - `docs/DEVELOPMENT_PLAN.md`
-- `docs/PHASE_4_PROGRESS.md`
-- `docs/PHASE_4_6B_REGRESSION_BUILD_COMPLETION.md`
+- `docs/PHASE_5_EXCEL_PERSISTENCE_PLAN.md`
+- `docs/PHASE_5_PROGRESS.md`
+- `docs/PHASE_5_1C_DATASET_VALIDATION_REFERENCE_INTEGRITY.md`
 
 ## Current status
 
@@ -175,10 +199,13 @@ See:
 **Phase 1 — COMPLETE**  
 **Phase 2 — COMPLETE**  
 **Phase 3 — COMPLETE**  
-**Phase 4 — COMPLETE**
+**Phase 4 — COMPLETE**  
+**Phase 5 — IN PROGRESS**
 
-Next planned phase:
+Phase 5.1 is complete.
 
-**Phase 5 — Excel Persistence — NEXT FOR SCOPE REVIEW / NOT STARTED**
+Current next task:
 
-Phase 5 must receive its own dedicated scope/decomposition review and development plan before implementation begins.
+**Phase 5.2A — XLSX Library Evaluation & Codec Boundary — NEXT / NOT STARTED**
+
+Do not begin 5.2A implementation until separately requested from the exact final green Phase 5.1C closeout baseline.
