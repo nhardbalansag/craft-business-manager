@@ -2,7 +2,9 @@
 
 ## Status
 
-**IMPLEMENTATION COMPLETE — MERGE GATE PENDING**
+**COMPLETE**
+
+Implementation PR: **#83**
 
 Feature branch:
 
@@ -12,11 +14,15 @@ Authoritative implementation base:
 
 `develop` @ `803287c9ef5cb6eca0a7c3466db3bd9063c2a0ff`
 
+Implementation merge:
+
+`2abd09b743cc88f4db06dc52916eb39b2bc9a52e`
+
 Development plan:
 
 `docs/PHASE_3_4C_LIMITING_RESOURCE_TRACE_READINESS_PLAN.md`
 
-## Implementation
+## Implementation outcome
 
 Added:
 
@@ -28,13 +34,11 @@ Primary operation:
 trace(productId)
 ```
 
-The service wraps the completed Phase 3.4B `AssemblyCapacitySynthesisService` and explains which current parent inputs are tied at the authoritative final assembly-capacity minimum.
+The service wraps Phase 3.4B `AssemblyCapacitySynthesisService` and explains every current parent input tied at the authoritative final assembly-capacity minimum. It does not recompute capacity.
 
-3.4C does not recompute capacity.
+## Typed limiting resources
 
-## Typed limiter contract
-
-Implemented discriminated resource identities:
+Implemented three distinct resource identities:
 
 ```text
 material-requirement
@@ -42,81 +46,28 @@ material-backed-component
 product-backed-component
 ```
 
-### Material requirement
+Direct Material limiters preserve Material identity/name, capacity, base unit, normalized on-hand quantity, planned per-Product requirement, and Product -> Material path.
 
-Preserves:
+Material-backed component limiters preserve component identity/role, parent Product, Material identity/name, current availability, quantity per parent, component capacity, and Product -> Material path.
 
-- Material ID/name;
-- capacity pieces;
-- base unit;
-- normalized on-hand quantity;
-- planned base quantity per parent Product;
-- typed Product -> Material path.
+Product-backed component limiters preserve component identity/role, parent Product, child Product identity/name, explicit current finished ProductStock availability, quantity per parent, component capacity, and Product -> child Product path.
 
-The direct limiter list reuses Phase 2.4C `limitingMaterialIds` and validates each matching Material capacity line against the 3.4B final capacity.
+## All-tie semantics
 
-### Material-backed component
+Every resource tied at `overallAssemblyCapacity` is returned, including:
 
-Preserves:
+- multiple direct Materials;
+- multiple Material-backed components;
+- multiple Product-backed components;
+- cross-category ties;
+- ties across all three resource types;
+- authoritative zero-capacity ties.
 
-- component ID;
-- parent Product ID/name;
-- component role;
-- Material ID/name;
-- current available quantity;
-- quantity per parent;
-- component capacity;
-- typed Product -> Material path.
+Limiter ordering is deterministic by resource type, canonical source ID, then canonical component ID where applicable.
 
-### Product-backed component
+## Path boundary
 
-Preserves:
-
-- component ID;
-- parent Product ID/name;
-- component role;
-- child Product ID/name;
-- current available finished ProductStock quantity;
-- quantity per parent;
-- component capacity;
-- typed Product -> child Product path.
-
-Product-backed capacity remains based only on explicit current ProductStock evidence supplied through 3.4A/3.4B.
-
-## All-tie behavior
-
-Every current parent input tied at `overallAssemblyCapacity` is returned.
-
-This includes ties:
-
-- between multiple direct Materials;
-- between multiple Material-backed components;
-- between multiple Product-backed components;
-- across direct Material and component categories;
-- across all three resource identity types;
-- at authoritative zero capacity.
-
-No first-limiter-only behavior is used.
-
-## Deterministic ordering
-
-Limiter results are ordered by:
-
-1. `material-requirement`;
-2. `material-backed-component`;
-3. `product-backed-component`;
-4. canonical source ID;
-5. canonical component ID where applicable.
-
-## Path semantics
-
-Limiter paths use typed nodes:
-
-```text
-kind: product | material
-id
-name
-```
+Capacity paths terminate at the immediate current parent input whose capacity participates in Phase 3.4B.
 
 Examples:
 
@@ -126,17 +77,9 @@ Gift Box > Glass Jar
 Gift Box > Candle
 ```
 
-The path ends at the current parent input whose capacity participates in 3.4B.
+A deeper composition path such as `Gift Box > Candle > Handmade Pot` remains separate composition/cost inspection evidence and does not imply recursive make-to-order capacity. Product-backed current assembly capacity continues to use explicit ProductStock only.
 
-A nested child such as:
-
-```text
-Gift Box > Candle > Handmade Pot
-```
-
-is not reported as directly limiting `Gift Box` unless it is itself a current `Gift Box` input. Recursive composition/cost inspection remains separate Phase 3.3B evidence. This prevents accidental recursive-manufacture semantics.
-
-## Readiness behavior
+## Readiness
 
 3.4C exposes:
 
@@ -146,41 +89,11 @@ partial
 not-ready
 ```
 
-### Ready
+A trace is `ready` only when the upstream 3.4B result is ready, the final capacity is valid, every expected limiter can be resolved consistently, all returned limiter capacities equal the final minimum, and at least one typed limiter exists.
 
-Requires:
+If meaningful capacity exists but the trace is incomplete or inconsistent, the trace becomes `partial`, preserves the upstream synthesis evidence, and returns no authoritative limiter subset.
 
-- upstream 3.4B `ready`;
-- valid finite non-negative integer final capacity;
-- resolvable parent/source identity labels;
-- all expected direct limiter IDs mapped to matching capacity lines;
-- all returned limiter capacities equal to the final minimum;
-- at least one typed limiting resource.
-
-### Partial
-
-Returned when meaningful upstream capacity exists but authoritative limiter trace is incomplete/inconsistent.
-
-Examples:
-
-- upstream 3.4B partial;
-- missing parent/source label entity;
-- missing direct limiter line;
-- direct limiter capacity mismatch;
-- invalid component availability/capacity evidence in an otherwise `ready` custom provider result;
-- ready upstream result with no derivable limiter.
-
-For partial trace:
-
-```text
-limitingResources = []
-```
-
-No incomplete limiter subset is published as authoritative.
-
-### Not ready
-
-Upstream 3.4B `not-ready` remains not-ready and publishes no limiter list.
+An upstream 3.4B `not-ready` result remains `not-ready` and returns no limiter list.
 
 ## Controlled trace issues
 
@@ -198,21 +111,13 @@ LIMITER_CAPACITY_INVALID
 NO_LIMITING_RESOURCES
 ```
 
-The complete upstream 3.4B synthesis result remains nested in the trace result, so original capacity issues remain inspectable.
-
 ## Defensive behavior
 
-3.4C guards inconsistent/corrupted custom provider results even though production 3.4B already validates capacity candidates.
-
-If a `ready` upstream result cannot be traced consistently, 3.4C downgrades only the trace readiness to `partial` while preserving the authoritative upstream capacity snapshot.
-
-Returned nested capacity/component/source-availability evidence is defensively copied.
-
-No source object is mutated.
+The service guards inconsistent/custom upstream results without changing 3.4B's authoritative capacity. Returned nested capacity, component, source-availability, and ProductStock evidence is defensively cloned. No source data is mutated or persisted.
 
 ## Shared session wiring
 
-`src/application/session.ts` now exports:
+`src/application/session.ts` exports:
 
 ```text
 assemblyCapacityTraceService
@@ -226,57 +131,19 @@ productRepository
 materialRepository
 ```
 
-The repositories are used only for identity/name enrichment. 3.4C does not read Material inventory or ProductStock directly.
+Repositories are used only for identity/name enrichment. 3.4C does not read Material inventory or ProductStock directly for capacity calculation.
 
-## Focused validation
+## Validation
 
-Added:
+Dedicated test file:
 
 `src/application/production/AssemblyCapacityTraceService.test.ts`
 
-Dedicated tests: **35**.
+Dedicated tests: **35**
 
-Coverage includes:
-
-- direct Material limiter identity;
-- multiple direct Material ties;
-- Material-backed limiter;
-- Product-backed limiter;
-- cross-category ties;
-- all-three-type ties;
-- authoritative zero ties;
-- non-limiters excluded;
-- deterministic ordering;
-- source names and typed paths;
-- direct quantity/inventory evidence;
-- component role/quantity/availability evidence;
-- nested ProductStock evidence preservation;
-- upstream partial/not-ready propagation;
-- invalid final-capacity defense;
-- missing parent/source defense;
-- missing direct limiter-line defense;
-- direct limiter mismatch defense;
-- invalid component evidence defense;
-- no-limiter ready-corruption defense;
-- case-insensitive direct Material identity matching;
-- archived parent activity preservation;
-- source/upstream immutability;
-- deep defensive cloning;
-- immediate parent-input path semantics;
-- explicit ProductStock-based zero limiter with no recursive manufacture augmentation.
-
-## Validation evidence
-
-Fully wired implementation head:
+Repository validation:
 
 ```text
-ce30b1881c92cc8774ee60785c8132cd115799d5
-```
-
-CI:
-
-```text
-run 34921412641 — SUCCESS
 51 test files passed
 586 tests passed
 35 dedicated 3.4C tests
@@ -284,49 +151,40 @@ TypeScript typecheck passed
 production build passed
 ```
 
-## Explicit deferrals
+CI evidence:
 
-Not implemented in 3.4C:
+```text
+Fully wired feature CI     34921412641 — SUCCESS
+Final feature-head CI      34921498304 — SUCCESS
+PR #83 CI                  34921565665 — SUCCESS
+Post-merge develop CI      34921631005 — SUCCESS
+Implementation merge       2abd09b743cc88f4db06dc52916eb39b2bc9a52e
+```
 
-- Product composition editor UI;
-- ProductStock UI;
-- component-aware Production estimate UI;
-- recursive manufacture/buildable child-stock augmentation;
-- stock reservations/deductions/transactions;
-- labor/overhead/pricing;
-- Excel persistence.
+## Completion gate
 
-These remain Phase 3.5, Phase 4, and Phase 5 work.
+All 3.4C implementation gates passed:
 
-## Completion gate state
-
-Feature implementation gates passed:
-
-- typed limiting-resource service exists;
-- all tied direct/component resources are preserved;
-- all three resource identities are distinct;
-- zero/tied minima are supported;
-- typed paths and names are present;
-- 3.4B remains authoritative for the capacity minimum;
-- partial/not-ready states do not publish misleading limiter subsets;
-- inconsistent custom provider results fail closed;
+- typed limiter trace exists;
+- every tied limiter is reported;
+- all three resource identities remain distinct;
+- zero and cross-category ties are supported;
+- deterministic typed paths/names are preserved;
+- 3.4B remains authoritative for capacity and overall minimum;
+- partial/not-ready states never publish misleading limiter subsets;
+- corrupted trace evidence fails closed;
 - Product-backed capacity remains ProductStock-based only;
-- no recursive manufacture semantics exist;
-- no source mutation or derived-capacity persistence exists;
+- no recursive manufacture semantics were introduced;
+- no inventory/stock mutation or derived-capacity persistence exists;
 - shared session wiring exists;
-- 51 test files / 586 tests pass;
-- TypeScript typecheck passes;
-- production build passes.
+- focused/full tests, typecheck, build, PR CI, and exact post-merge CI all passed.
 
-Remaining before 3.4C / Phase 3.4 may be marked fully complete:
+## Phase outcome
 
-- final documented feature-head CI must remain green;
-- implementation PR must pass its own CI and merge to `develop`;
-- exact post-merge `develop` CI must pass;
-- documentation-only closeout must mark 3.4C and Phase 3.4 COMPLETE and advance 3.5A to NEXT / NOT STARTED.
+With 3.4C complete, **Phase 3.4 — Component-Limited Assembly Capacity is COMPLETE**.
 
-## Next task after closeout
+## Next task
 
-**3.5A — Product Composition Editor**
+**3.5A — Product Composition Editor — NEXT / NOT STARTED**
 
-Do not begin 3.5A until 3.4C and Phase 3.4 are formally closed and a dedicated 3.5A development plan/scope review is established.
+Do not begin 3.5A until its dedicated development plan/scope review is established.
