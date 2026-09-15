@@ -23,7 +23,7 @@ Master-plan post-merge CI:
 ```text
 5.1 — Persisted Dataset & Workbook Contract Foundation   IN PROGRESS
     5.1A — Source Inventory & Dataset Completeness        COMPLETE
-    5.1B — Workbook Schema / Sheet / Column Contracts     NEXT
+    5.1B — Workbook Schema / Sheet / Column Contracts     PLAN ESTABLISHED / IMPLEMENTATION NOT STARTED
     5.1C — Dataset Validation & Reference Integrity       NOT STARTED
 
 5.2 — XLSX Workbook Codec                                 NOT STARTED
@@ -58,17 +58,21 @@ Master-plan post-merge CI:
 - The persisted dataset must cover every live authoritative source repository.
 - **5.1A resolved the source-inventory gap:** `BusinessDataset` now includes `MaterialCalibrationEvidence[]` as `materialCalibrations` and formally covers all nine current authoritative source repositories.
 - Dataset schema version and workbook-format/layout version are distinct version concepts.
-- Use normalized workbook sheets; do not hide nested arrays as JSON blobs in cells.
-- Planned workbook source sheets are `_Meta`, `Materials`, `Calibrations`, `MixPresets`, `MixPresetLines`, `Products`, `YieldSamples`, `YieldSampleInputs`, `RecipeItems`, `ProductComponents`, `ProductStocks`, and `ProductFinancialProfiles`.
+- Use normalized workbook sheets; do not hide nested arrays as JSON blobs or delimiter-packed values in cells.
+- 5.1B refines the initial workbook target to 13 authoritative schema sheets by adding `MixPresetCategories` for `MixPreset.compatibleCategories[]`.
+- The planned 5.1B v1 sheet registry is `_Meta`, `Materials`, `Calibrations`, `MixPresets`, `MixPresetCategories`, `MixPresetLines`, `Products`, `YieldSamples`, `YieldSampleInputs`, `RecipeItems`, `ProductComponents`, `ProductStocks`, and `ProductFinancialProfiles`.
+- All canonical schema sheets are required even when they contain zero source rows; missing sheet is not equivalent to an empty source collection.
+- Unknown extra user worksheets/columns are non-authoritative and may be ignored rather than guessed as source state.
+- Child source arrays preserve order through required 1-based workbook-only order columns: `categoryOrder`, `lineOrder`, and `inputOrder`.
 - Do not invent a `Settings` sheet until the application has a real authoritative Settings source contract.
 - Free-text is literal data; spreadsheet formulas/macros are not authoritative business logic.
-- Formula-looking text must export safely as text, and unsupported formula cells in authoritative input fields must fail closed.
+- Formula-looking text must export safely as text, and formula-typed cells in authoritative input fields must fail closed.
 - Import validates the entire candidate dataset before any live repository mutation.
 - Failed import must leave current live state unchanged.
-- Cross-reference, duplicate-identity, and Product composition-cycle validation are required before hydration.
+- Cross-reference, duplicate-identity, and Product composition-cycle validation are required before hydration and remain Phase 5.1C concerns.
 - Missing source evidence remains different from explicit zero after round-trip.
 - Numeric source precision is not silently rounded for display.
-- Source timestamps preserve deterministic ISO semantics.
+- Source timestamps preserve deterministic ISO text semantics.
 - Workbook parsing must be controlled and resource-bounded.
 - Export row/column ordering must be deterministic.
 - XLSX codec and storage transport are separate boundaries.
@@ -123,6 +127,8 @@ PR #131                          MERGED
 PR CI                            34986078428 — SUCCESS
 Implementation merge             467341eafe36e37812eb65f4cd4683dd9153868b
 Post-merge develop CI            34986286733 — SUCCESS
+Final closeout develop            8a1fdc2bbc5a24c20689c933b9964903d380e37c
+Final closeout CI                 34986791114 — SUCCESS
 82 test files / 996 tests
 10 Phase 5.1A tests
 8 React workspace smoke tests
@@ -136,7 +142,55 @@ The first checkpoint failure was an expected compile-time completeness catch: on
 
 The existing Vite warning for the minified main JavaScript chunk being slightly above 500 kB remains non-blocking and unrelated to Phase 5.1A correctness.
 
-## Current persistence foundation after 5.1A
+## Phase 5.1B — Workbook Schema / Sheet / Column Contracts
+
+Status: **PLAN ESTABLISHED — IMPLEMENTATION NOT STARTED**
+
+Dedicated plan:
+
+`docs/PHASE_5_1B_WORKBOOK_SCHEMA_SHEET_COLUMN_CONTRACTS_PLAN.md`
+
+Planning base:
+
+```text
+develop  8a1fdc2bbc5a24c20689c933b9964903d380e37c
+CI       34986791114 — SUCCESS
+```
+
+### Split assessment
+
+5.1B does **not** require deeper formal numbered sub-phases. It remains one library-independent persistence-contract task with internal checkpoints for metadata/versioning, sheet/column registry, parent/child reconstruction, cell representation, deterministic ordering, structural diagnostics, and regression validation.
+
+### Planned v1 workbook contract
+
+The dedicated plan establishes:
+
+- format ID `craft-business-manager`;
+- workbook format version `1`, distinct from dataset schema version `1`;
+- exactly 13 required canonical schema sheets;
+- the `MixPresetCategories` child sheet so `compatibleCategories[]` remains normalized rather than packed into one cell;
+- exact ordered columns and source mappings for every sheet;
+- Material source metadata flattened into explicit one-to-one columns;
+- Product financial pricing policy flattened into paired `pricingMethod` / `pricingValue` columns while preserving `pricingPolicy: null` and explicit numeric zero;
+- 1-based `categoryOrder`, `lineOrder`, and `inputOrder` workbook-only reconstruction fields;
+- canonical enum/unit tokens rather than display labels;
+- raw numeric source precision and canonical decimal rate semantics;
+- ISO text timestamps rather than locale-dependent Excel serial dates;
+- literal-only authoritative text/formula-disallowed policy;
+- deterministic sheet and row ordering;
+- controlled workbook structural diagnostics while leaving domain/reference/cycle validation to 5.1C;
+- no XLSX dependency/API and no `ExcelStorage` runtime implementation in 5.1B.
+
+### Planned implementation surface
+
+```text
+src/storage/workbookSchema.ts
+src/storage/workbookSchema.test.ts
+```
+
+The implementation must remain plain TypeScript and unit-testable without producing real `.xlsx` bytes.
+
+## Current persistence foundation
 
 Current storage port remains:
 
@@ -152,26 +206,12 @@ Current Excel adapter remains a placeholder:
 ExcelStorage.load/save are placeholders and intentionally throw.
 ```
 
-Current complete authoritative source dataset collections:
-
-```text
-materials
-materialCalibrations
-mixPresets
-products
-yieldSamples
-recipeItems
-productComponents
-productStocks
-productFinancialProfiles
-```
-
 No `.xlsx` codec dependency is installed yet.
 
 ## Current active task
 
-**5.1B — Workbook Schema / Sheet / Column Contracts — NEXT / NOT STARTED**
+**5.1B — Workbook Schema / Sheet / Column Contracts — PLAN ESTABLISHED / IMPLEMENTATION NOT STARTED**
 
-5.1B must begin with its own dedicated scope review/development plan from the exact final green `develop` baseline after this documentation closeout is merged and validated.
+Do not begin 5.1B implementation until this dedicated planning documentation is merged to `develop` and exact post-merge `develop` CI is green.
 
-Do not begin 5.1B implementation automatically as part of the 5.1A closeout.
+After that gate, a separate implementation feature branch must be created from the exact final green planning baseline. 5.1C must not start automatically as part of 5.1B.
