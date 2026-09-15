@@ -71,10 +71,13 @@ const MATERIAL_GROUP_SET: ReadonlySet<string> = new Set(MATERIAL_GROUPS);
 const MATERIAL_PACKAGE_UNIT_SET: ReadonlySet<string> = new Set(MATERIAL_PACKAGE_UNITS);
 
 export function cloneMaterial(material: Material): Material {
-  return {
-    ...material,
-    source: material.source ? { ...material.source } : undefined,
-  };
+  const { source, ...rest } = material;
+  return source === undefined
+    ? { ...rest }
+    : {
+        ...rest,
+        source: { ...source },
+      };
 }
 
 export function isMaterialGroup(value: unknown): value is MaterialGroup {
