@@ -37,7 +37,7 @@ function assertDocument(document: WorkbookNeutralDocument): void {
       typeof sheet.name !== 'string' ||
       sheet.name.length === 0 ||
       !Array.isArray(sheet.columns) ||
-      !sheet.columns.every((column) => typeof column === 'string') ||
+      !sheet.columns.every((column: unknown) => typeof column === 'string') ||
       !Array.isArray(sheet.rows)
     ) {
       throw new WorkbookCodecError(
