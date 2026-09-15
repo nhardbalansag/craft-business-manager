@@ -4,6 +4,7 @@ import { InMemoryMaterialRepository } from './materials/InMemoryMaterialReposito
 import { MaterialService } from './materials/MaterialService';
 import { InMemoryMixPresetRepository } from './mixPresets/InMemoryMixPresetRepository';
 import { MixPresetService } from './mixPresets/MixPresetService';
+import { FullyLoadedProductUnitCostService } from './productCosts/FullyLoadedProductUnitCostService';
 import { RecursiveFullyLoadedProductComponentCostService } from './productCosts/RecursiveFullyLoadedProductComponentCostService';
 import { WasteAdjustedDirectMaterialCostService } from './productCosts/WasteAdjustedDirectMaterialCostService';
 import { AssemblyCapacitySynthesisService } from './production/AssemblyCapacitySynthesisService';
@@ -155,6 +156,14 @@ export const recursiveFullyLoadedProductComponentCostService =
     materialBackedComponentCostService,
     productFinancialProfileService,
   );
+export const fullyLoadedProductUnitCostService = new FullyLoadedProductUnitCostService(
+  productRepository,
+  productComponentRepository,
+  wasteAdjustedDirectMaterialCostService,
+  materialBackedComponentCostService,
+  recursiveFullyLoadedProductComponentCostService,
+  productFinancialProfileService,
+);
 export const productionCapacityService = new ProductionCapacityService(
   productionRequirementService,
   materialRepository,
