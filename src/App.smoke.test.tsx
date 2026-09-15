@@ -108,14 +108,17 @@ describe('React workspace smoke validation', () => {
     expect(html).toContain('Recorded batches');
   });
 
-  it('renders the Phase 2 Production estimate workspace without browser-side effects', () => {
+  it('renders the Phase 3 component-aware Production estimate workspace without browser-side effects', () => {
     const html = renderToStaticMarkup(<ProductionPage />);
 
-    expect(html).toContain('Production estimate');
+    expect(html).toContain('Component-aware production estimate');
     expect(html).toContain('Planned finished pieces');
-    expect(html).toContain('Producible now');
-    expect(html).toContain('Materials to prepare');
-    expect(html).toContain('Direct material preview');
+    expect(html).toContain('Assembly capacity');
+    expect(html).toContain('Direct materials to prepare');
+    expect(html).toContain('Components to prepare');
+    expect(html).toContain('Limiting resources');
+    expect(html).toContain('Component-aware cost');
+    expect(html).toContain('Nested component cost');
     expect(html).toContain('Issues to resolve');
   });
 });
