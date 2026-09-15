@@ -2,7 +2,7 @@
 
 ## Status
 
-**IN PROGRESS**
+**IMPLEMENTED — MERGE GATE PENDING**
 
 Authoritative base:
 
@@ -12,100 +12,85 @@ Feature branch:
 
 `feature/phase-3-3a-material-backed-component-cost`
 
+Implementation record:
+
+`docs/PHASE_3_3A_MATERIAL_BACKED_COMPONENT_COST.md`
+
 ## Objective
 
 Derive the current cost of one material-backed ProductComponent line by reusing the authoritative Phase 1 Material package-cost engine.
 
-3.3A must answer, for a purchased discrete component such as a glass cup or packaging insert:
+Per line, 3.3A provides:
 
-- which Material supplies the component;
-- how many pieces are required by one parent Product;
-- what one piece currently costs;
-- what the component contributes to one parent Product;
-- which package/conversion evidence produced that cost;
-- whether the cost basis is ready or unresolved.
+- source Material identity/name;
+- quantity required per parent;
+- cost per canonical `pc`;
+- component cost contribution per parent;
+- package/conversion traceability;
+- controlled cost readiness/issues.
 
-The result is derived application data only. No cost value is persisted on ProductComponent, Product, or BusinessDataset.
+The result is derived application data only. No derived cost is persisted.
 
 ## Split assessment
 
-No deeper formal split is required.
+No deeper formal split was required.
 
-3.3A is cohesive enough to implement as one task. Internal implementation order:
+3.3A remained one cohesive task:
 
-1. define the material-backed component cost result/issue contract;
-2. reuse 3.2C source eligibility for material-backed relationships;
-3. resolve the authoritative Material record;
-4. derive cost per `pc` through Phase 1 `calculateMaterialPackageCosting()`;
-5. calculate the line contribution from `costPerPc × quantityPerParent`;
-6. preserve package/conversion traceability;
-7. add shared application-session wiring;
-8. add focused tests and full repository validation.
-
-These are implementation steps, not new sub-phases.
+1. define the line cost/readiness contract;
+2. reuse 3.2C source eligibility;
+3. derive cost through Phase 1 costing;
+4. preserve traceability;
+5. wire the shared session;
+6. validate with focused/full tests.
 
 ## Scope boundary
 
 3.3A is **material-backed component line costing only**.
 
-It does not:
+Explicitly excluded:
 
-- recurse into Product-backed components;
-- calculate child Product cost;
-- aggregate total component cost for a Product;
-- combine Phase 2 direct-material cost with Phase 3 component cost;
-- calculate assembly capacity;
-- divide stock by quantity-per-parent;
-- determine limiting resources;
-- reserve, deduct, or mutate inventory;
-- add labor, overhead, markup, selling price, margin, or profit;
-- add React UI;
-- add Excel persistence.
+- Product-backed recursive cost;
+- child Product cost trees;
+- total Product component cost aggregation;
+- Phase 2 + Phase 3 cost synthesis;
+- assembly capacity and limiting-resource math;
+- reservations/deductions/stock transactions;
+- labor, overhead, selling price, markup, margin, profit;
+- UI;
+- Excel persistence.
 
-Those remain 3.3B, 3.3C, 3.4+, 3.5, Phase 4, or Phase 5.
+These remain 3.3B+, 3.4+, Phase 4, 3.5, or Phase 5.
 
 ## Source eligibility and 3.2C reuse
 
-The 3.2C `ComponentSourceAvailabilityService` remains the canonical read-time source-eligibility resolver.
+`ComponentSourceAvailabilityService` remains the canonical read-time source-eligibility resolver.
 
-3.3A will call it for the material-backed component and use its result as follows:
+Implemented policy:
 
-- `not-ready` source availability means the component cost line is `not-ready` because the source is missing, inactive, or not canonical count-based Material inventory;
-- `ready` source availability permits costing;
-- `partial` source availability **also permits costing to continue** because stock/on-hand readiness is not the same as cost-basis readiness.
+- `not-ready` availability blocks costing because the Material source is missing, inactive, or non-count-based;
+- `ready` availability permits costing;
+- `partial` availability also permits costing to continue because stock/on-hand readiness is distinct from cost-basis readiness.
 
-This distinction is required.
+The 3.2C result is retained on the derived cost line for diagnostics.
 
-Example:
-
-- a Material may have unresolved current on-hand package conversion but still have a fully resolvable purchase/package cost basis;
-- conversely, current on-hand may be ready while package cost conversion is unresolved.
-
-Therefore 3.3A must not make component cost depend on current stock quantity or current inventory availability.
-
-The 3.2C result is retained in the cost result for diagnostic traceability, but only `not-ready` relationship eligibility blocks costing.
+This prevents current stock quantity or damaged on-hand evidence from incorrectly changing an otherwise valid purchase-cost basis.
 
 ## Cost mathematics
 
-For a valid material-backed component:
-
 ```text
 component unit cost
-= Material cost per canonical base pc
+= Phase 1 Material cost per canonical base pc
 
 component contribution per parent
 = component unit cost × ProductComponent.quantityPerParent
 ```
 
-Phase 1 `calculateMaterialPackageCosting()` is authoritative for deriving cost per base unit.
-
-Because material-backed components must use canonical Material `baseUnit = pc`, the returned Phase 1 `costPerBaseUnit` is the authoritative `costPerPc`.
-
-3.3A must not reimplement package conversion precedence.
+Phase 1 `calculateMaterialPackageCosting()` is the sole Material package-cost engine. 3.3A does not reimplement conversion precedence.
 
 ## Derived result contract
 
-Recommended line result:
+Implemented line result:
 
 ```text
 MaterialBackedComponentCostLine
@@ -123,62 +108,33 @@ MaterialBackedComponentCostLine
 - issues[]
 ```
 
-### `ready`
+A single line is either costable (`ready`) or not costable (`not-ready`). Product-level `partial` aggregation remains 3.3C.
 
-The material-backed source relationship is eligible and the current Material cost basis is derivable.
+Legitimate zero package cost remains a ready zero-cost line.
 
-Both `costPerPc` and `componentCostContribution` are finite, non-negative numbers.
+## Cost traceability
 
-A legitimate zero package cost produces:
-
-```text
-costPerPc = 0
-componentCostContribution = 0
-status = ready
-```
-
-### `not-ready`
-
-The component cannot currently produce a reliable material-backed cost line.
-
-Baseline causes:
-
-- component record is invalid;
-- component is Product-backed rather than Material-backed;
-- source relationship is `not-ready` according to 3.2C;
-- Material cannot be resolved after eligibility lookup;
-- current Material package cost basis cannot be derived by Phase 1 costing.
-
-`costPerPc` and `componentCostContribution` are `null`.
-
-No `partial` line status is introduced in 3.3A because a single cost line is either costable or not costable. Product-level partial aggregation belongs to 3.3C.
-
-## Costing trace contract
-
-A ready line preserves enough evidence to explain the cost without recomputing or parsing prose:
+Ready lines preserve:
 
 ```text
-MaterialBackedComponentCostTrace
-- packageCost
-- purchaseQuantity
-- purchaseUnit
-- baseUnit: pc
-- standardBaseUnitsPerPurchaseUnit
-- manualBaseUnitsPerPurchaseUnit
-- calibrationBaseUnitsPerPurchaseUnit
-- effectiveBaseUnitsPerPurchaseUnit
-- packageBaseQuantity
-- packageConversionSource: manual | standard | calibration
-- costingCalibrationId: string | null
+packageCost
+purchaseQuantity
+purchaseUnit
+baseUnit = pc
+standardBaseUnitsPerPurchaseUnit
+manualBaseUnitsPerPurchaseUnit
+calibrationBaseUnitsPerPurchaseUnit
+effectiveBaseUnitsPerPurchaseUnit
+packageBaseQuantity
+packageConversionSource
+costingCalibrationId
 ```
 
-This mirrors the authoritative Phase 1 Material package-cost result and source inputs.
+This mirrors Phase 1 costing output plus authoritative Material source inputs.
 
-The trace is derived only and is not persisted.
+## Controlled issues
 
-## Issue contract
-
-Baseline stable issue codes:
+Implemented stable issue codes:
 
 ```text
 INVALID_COMPONENT
@@ -186,24 +142,16 @@ NOT_MATERIAL_BACKED_COMPONENT
 SOURCE_MATERIAL_NOT_READY
 SOURCE_MATERIAL_NOT_FOUND
 MATERIAL_COST_NOT_DERIVABLE
+DERIVED_COST_INVALID
 ```
 
-Issue records may preserve:
-
-- underlying ProductComponent validation code;
-- underlying 3.2C source-availability issue code;
-- underlying Phase 1 MaterialCostingError code;
-- underlying Phase 1 MaterialCalibrationError code.
-
-Downstream 3.3C/UI code must not need to parse exception text.
+Issues preserve underlying ProductComponent, 3.2C availability, Phase 1 MaterialCosting, or MaterialCalibration codes where available.
 
 ## Application service
 
-Add:
+Added:
 
-```text
-MaterialBackedComponentCostService
-```
+`src/application/productComponents/MaterialBackedComponentCostService.ts`
 
 Primary operation:
 
@@ -211,25 +159,23 @@ Primary operation:
 costComponent(component: ProductComponent)
 ```
 
-The service accepts a source ProductComponent line so 3.3B/3.3C can later compose it without requiring UI or persistence concerns.
-
 Dependencies:
 
-- `MaterialRepository`;
-- `ComponentSourceAvailabilityService` or compatible availability provider;
-- shared `materialCalibrationEvidenceProvider`.
+- MaterialRepository;
+- 3.2C availability provider;
+- shared Material calibration-evidence provider.
 
-The service does not require ProductStock and does not inspect Product-backed component cost.
+ProductStock and Product-backed recursive costing are intentionally not part of this service.
 
-## Shared application session
+## Shared session
 
-Add one shared instance:
+Added shared:
 
 ```text
 materialBackedComponentCostService
 ```
 
-Reuse the existing:
+Reuses:
 
 ```text
 materialRepository
@@ -237,43 +183,47 @@ componentSourceAvailabilityService
 materialCalibrationEvidenceProvider
 ```
 
-No new repository or BusinessDataset collection is introduced.
+No repository or BusinessDataset source collection was added.
 
-## Test plan
+## Validation result
 
-Focused tests must cover at minimum:
+Dedicated test file:
 
-- direct `pc` purchase unit -> standard cost-per-pc trace;
-- packaged count Material with manual conversion -> correct cost per pc;
-- quantity-per-parent multiplication -> correct contribution;
-- zero package cost -> ready zero cost/contribution;
-- manual conversion precedence over standard conversion where Phase 1 allows both;
-- source Material name/identity preserved;
-- source availability `partial` does not block otherwise resolvable cost;
-- missing/inactive/non-count source eligibility from 3.2C -> not-ready;
-- Product-backed component -> controlled not-ready;
-- invalid ProductComponent contract -> controlled not-ready with underlying code;
-- unresolved Material package conversion -> not-ready with Phase 1 costing error code;
-- invalid package cost/purchase quantity -> not-ready with Phase 1 costing error code;
-- returned trace/result objects are derived and do not mutate source records.
+`src/application/productComponents/MaterialBackedComponentCostService.test.ts`
+
+Focused suite: **16 tests**.
+
+Feature-head CI:
+
+```text
+run 34915288037 — SUCCESS
+45 test files passed
+438 tests passed
+TypeScript typecheck passed
+production build passed
+```
+
+Coverage includes direct `pc` costing, packaged/manual conversion, quantity multiplication, zero cost, manual conversion precedence, canonical identity/name, partial availability with ready cost basis, source eligibility failures, Product-backed exclusion, invalid component input, unresolved package conversion, invalid cost/purchase quantity, and source immutability.
 
 ## Completion gate
 
-3.3A is complete only when:
+Implemented feature gates passed:
 
 - Phase 1 costing is reused as the sole Material cost engine;
-- valid Material-backed component lines expose source identity/name, quantity, cost per pc, and contribution;
-- package/conversion source traceability is preserved;
-- 3.2C source eligibility is reused rather than independently redefined;
+- source identity/name, quantity, cost per pc, and contribution are exposed;
+- package/conversion traceability is preserved;
+- 3.2C eligibility is reused;
 - partial stock availability does not incorrectly block cost readiness;
 - Product-backed components remain out of scope;
-- unresolved Material cost basis produces controlled `not-ready` output with stable issues;
+- unresolved cost basis produces controlled not-ready issues;
 - no derived cost is persisted;
-- shared application-session wiring exists;
-- focused tests pass;
-- full repository tests pass;
+- session wiring exists;
+- focused/full tests pass;
 - TypeScript typecheck passes;
-- production build passes;
+- production build passes.
+
+Remaining gate:
+
 - implementation PR merges to `develop`;
 - exact post-merge `develop` CI is green.
 
@@ -281,4 +231,4 @@ Focused tests must cover at minimum:
 
 **3.3B — Recursive Product-Backed Component Cost**
 
-Do not begin 3.3B until 3.3A is merged, exact post-merge `develop` CI is green, and a dedicated 3.3B development plan/scope review has been established.
+Do not begin 3.3B until 3.3A is merged, exact post-merge `develop` CI is green, and a dedicated 3.3B plan/scope review is established.
