@@ -35,8 +35,8 @@ Planning post-merge CI:
 
 4.5 — Pricing & Production Planning UI                    IN PROGRESS
     4.5A — Product Financial Profile Editor               COMPLETE
-    4.5B — Unit Economics / Pricing Calculator UI         NEXT
-    4.5C — Production Financial Summary & Warnings UI     NOT STARTED
+    4.5B — Unit Economics / Pricing Calculator UI         COMPLETE
+    4.5C — Production Financial Summary & Warnings UI     NEXT
 
 4.6 — Integration & Completion Gate                       NOT STARTED
     4.6A — Integrated Pricing / Production Workflow       NOT STARTED
@@ -122,6 +122,14 @@ Planning post-merge CI:
 - An unconfigured pricing policy remains an explicit supported UI state mapped to `pricingPolicy = null`; there is still no profile-delete/reset contract.
 - 4.5A validates required form text without clamping invalid source values; authoritative financial-profile/pricing domain validation remains the final write gate.
 - 4.5A reloads the authoritative Product financial profile after a successful save and introduces no unit-economics, batch-financial, or capacity-warning calculations that belong to 4.5B/4.5C.
+- 4.5B is a read-only presentation layer over `ProductPricingQuoteService`; React does not recompute authoritative cost, selling price, profit, markup, or margin.
+- 4.5B shares the existing 4.5A Product selection context and refreshes the quote after Product selection changes and successful financial-profile saves.
+- 4.5B uses a request-version guard so stale asynchronous quote responses cannot overwrite the currently selected Product's quote.
+- 4.5B keeps direct material base cost and safety reserve separately visible and separates Material-backed purchased components from Product-backed handmade components.
+- 4.5B preserves nested Product-component paths and issues for readable inspection without turning the UI into a separate accounting ledger.
+- 4.5B never substitutes `knownFullyLoadedUnitCostSubtotal` for an unavailable authoritative `totalFullyLoadedUnitCost` and never converts null/unresolved evidence into fake zero.
+- 4.5B displays the configured pricing policy, selling price, profit per unit, effective markup, effective margin, readiness, and issues directly from authoritative 4.3C evidence.
+- 4.5B intentionally excludes requested batch quantity, physical batch cost, expected batch revenue/profit, batch margin, capacity feasibility, and over-capacity warnings; those remain 4.5C.
 - Recursive and root component costing remains independent of ProductStock/current availability.
 - Observed yield defects are not re-applied.
 - Parent safety waste does not inflate discrete component counts.
@@ -629,12 +637,62 @@ Plan: `docs/PHASE_4_5A_PRODUCT_FINANCIAL_PROFILE_EDITOR_PLAN.md`
 
 Record: `docs/PHASE_4_5A_PRODUCT_FINANCIAL_PROFILE_EDITOR.md`
 
+### 4.5B — Unit Economics / Pricing Calculator UI
+
+**COMPLETE**
+
+Delivered:
+
+- authoritative read-only unit-economics presentation over `ProductPricingQuoteService`;
+- shared Product selection with the 4.5A financial-profile editor;
+- quote refresh on Product selection and after successful profile save;
+- stale async quote-response protection through request versioning;
+- readable direct-material base cost and safety-reserve separation;
+- purchased Material-backed component presentation;
+- handmade Product-backed component presentation with recursive path inspection;
+- explicit labor and overhead presentation;
+- known subtotal kept distinct from authoritative total unit cost;
+- pricing policy, selling price, profit per unit, effective markup, and effective margin directly from 4.3C evidence;
+- ready / partial / not-ready state and issue visibility;
+- null/unresolved evidence preserved as unavailable rather than fake zero;
+- no duplicated financial formulas in React;
+- no 4.5C batch-financial or capacity-warning leakage;
+- no application/domain/storage contract changes.
+
+Evidence:
+
+```text
+Starting develop                4003c5caa02e1bd2f19ac058548bc279d4dcd6fb
+Starting develop CI             34963245375 — SUCCESS
+Validated implementation head   1a66120dfa6a67cbccfa5e6fe48c7bdc59de4d67
+Implementation CI               34964259080 — SUCCESS
+Documented feature head         142eb69dff7df915a6a5122ac17350e6bc218777
+Documented feature-head CI      34964395439 — SUCCESS
+PR #122                         MERGED
+PR CI                           34966397391 — SUCCESS
+Implementation merge            965d3682e2b863751c08aa2a0a975fe1e4cb2d87
+Post-merge develop CI           34966516678 — SUCCESS
+79 test files / 967 tests
+12 Phase 4.5B quote-view tests
+13 Phase 4.5A form-mapping tests
+8 React workspace smoke tests
+TypeScript typecheck passed
+production Vite build passed
+114 modules transformed
+```
+
+Plan: `docs/PHASE_4_5B_UNIT_ECONOMICS_PRICING_CALCULATOR_UI_PLAN.md`
+
+Record: `docs/PHASE_4_5B_UNIT_ECONOMICS_PRICING_CALCULATOR_UI.md`
+
+Closeout: `docs/PHASE_4_5B_CLOSEOUT.md`
+
 ## Current active task
 
-**4.5B — Unit Economics / Pricing Calculator UI — NEXT / NOT STARTED**
+**4.5C — Production Financial Summary & Warnings UI — NEXT / NOT STARTED**
 
-Do not begin 4.5B implementation until:
+Do not begin 4.5C implementation until:
 
-1. this 4.5A documentation-only closeout is merged to `develop`;
+1. this 4.5B documentation-only closeout is merged to `develop`;
 2. exact final closeout `develop` CI is green;
-3. a dedicated 4.5B scope/split assessment and development plan are established before implementation.
+3. a dedicated 4.5C scope/split assessment and development plan are established before implementation.
