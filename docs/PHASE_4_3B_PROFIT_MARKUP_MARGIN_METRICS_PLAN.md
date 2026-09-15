@@ -2,7 +2,7 @@
 
 ## Status
 
-**PLANNED — IMPLEMENTATION NOT STARTED**
+**COMPLETE — IMPLEMENTED, MERGED, AND POST-MERGE VALIDATED**
 
 Authoritative starting base:
 
@@ -23,6 +23,21 @@ Master plan:
 Previous completed task:
 
 `4.3A — Selling Price Derivation — COMPLETE`
+
+Completion evidence:
+
+```text
+Plan-before-code commit         5b3c3544e97d5f24df1c91b28b898ff97aeface3
+Implementation head             1801ae8f0ee03c012205163bd7870992c0be383c
+Implementation CI               34944416475 — SUCCESS
+Final documented feature head   f2c94d5e81e02c5ee8de4b220b7c7674e684dea9
+Final feature-head CI           34944553827 — SUCCESS
+PR #110                         MERGED
+PR CI                           34944661918 — SUCCESS
+Implementation merge            c6f7611a24c798cfa12ef28d4603f2c36b59a729
+Post-merge develop CI           34944765414 — SUCCESS
+69 test files / 827 tests
+```
 
 ## Objective
 
@@ -354,3 +369,5 @@ and advance:
 - implementation PR passes CI and merges from expected head;
 - exact post-merge `develop` CI passes;
 - only then is the progress tracker advanced to 4.3C.
+
+**All completion gates above are satisfied.**

@@ -2,7 +2,7 @@
 
 ## Status
 
-**IMPLEMENTED — FEATURE VALIDATION GREEN — PENDING PR / MERGE**
+**COMPLETE — MERGED — POST-MERGE VALIDATED**
 
 Authoritative starting base:
 
@@ -32,6 +32,30 @@ Implementation CI:
 
 `34944416475 — SUCCESS`
 
+Final documented feature head:
+
+`f2c94d5e81e02c5ee8de4b220b7c7674e684dea9`
+
+Final feature-head CI:
+
+`34944553827 — SUCCESS`
+
+Implementation PR:
+
+`#110 — MERGED`
+
+PR CI:
+
+`34944661918 — SUCCESS`
+
+Implementation merge:
+
+`c6f7611a24c798cfa12ef28d4603f2c36b59a729`
+
+Post-merge `develop` CI:
+
+`34944765414 — SUCCESS`
+
 ## Delivered capability
 
 Phase 4.3B adds the authoritative Product-level unit-economics metrics boundary over the completed 4.3A selling-price derivation.
@@ -46,7 +70,7 @@ The dependency chain is intentionally:
 4.3B profit / markup / margin diagnostics
 ```
 
-The new service does not re-derive selling price and does not directly reload financial profiles or fully loaded cost services.
+The service does not re-derive selling price and does not directly reload financial profiles or fully loaded cost services.
 
 ## Derived metrics
 
@@ -187,7 +211,7 @@ Updated:
 src/application/session.ts
 ```
 
-The shared session now exposes:
+The shared session exposes:
 
 ```text
 profitMarkupMarginMetricsService
@@ -201,12 +225,16 @@ sellingPriceDerivationService
 
 ## Validation
 
-Implementation-head CI `34944416475` passed all repository validation gates:
+All implementation gates passed:
 
 ```text
-TypeScript typecheck — PASS
-full Vitest suite — PASS
-production Vite build — PASS
+Implementation CI              34944416475 — SUCCESS
+Final feature-head CI          34944553827 — SUCCESS
+PR #110 CI                     34944661918 — SUCCESS
+Post-merge develop CI          34944765414 — SUCCESS
+TypeScript typecheck           PASS
+full Vitest suite              PASS
+production Vite build          PASS
 ```
 
 New focused coverage:
@@ -216,7 +244,7 @@ New focused coverage:
 1 Phase 4.3B shared-session wiring test
 ```
 
-Based on the completed 4.3A baseline of 67 test files / 807 tests, the Phase 4.3B implementation adds two test files and 20 tests, yielding:
+Repository test inventory after 4.3B:
 
 ```text
 69 test files / 827 tests
@@ -240,20 +268,14 @@ Phase 4.3B does not implement:
 - tax/VAT/discount/marketplace-fee logic;
 - currency/charm-price rounding.
 
-## Remaining completion gates
+## Completion gate
 
-Before 4.3B may be marked COMPLETE:
+All 4.3B completion gates are satisfied.
 
-```text
-final documented feature-head CI
-implementation PR CI
-expected-head merge to develop
-exact post-merge develop CI
-documentation-only closeout
-```
-
-Only after those gates pass should the roadmap advance to:
+The next roadmap task is:
 
 ```text
 4.3C — Product Pricing Quote & Readiness Service — NEXT / NOT STARTED
 ```
+
+Do not begin 4.3C implementation until its dedicated scope/split assessment and development plan are established.

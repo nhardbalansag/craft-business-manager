@@ -25,8 +25,8 @@ Planning post-merge CI:
 
 4.3 — Selling Price & Unit Economics                      IN PROGRESS
     4.3A — Selling Price Derivation                       COMPLETE
-    4.3B — Profit / Markup / Margin Metrics               NEXT
-    4.3C — Product Pricing Quote & Readiness Service      NOT STARTED
+    4.3B — Profit / Markup / Margin Metrics               COMPLETE
+    4.3C — Product Pricing Quote & Readiness Service      NEXT
 
 4.4 — Planned Batch Financials & Capacity                 NOT STARTED
     4.4A — Physical Planned Batch Production Cost         NOT STARTED
@@ -79,6 +79,12 @@ Planning post-merge CI:
 - Invalid/corrupted pricing policy or contradictory cost/profile identity fails closed with controlled issues.
 - Selling-price derivation retains full numeric precision; presentation rounding remains a UI concern.
 - Archived root Products remain inspectable/priceable when cost and pricing evidence are otherwise valid.
+- 4.3B consumes the authoritative 4.3A selling-price result and does not re-derive selling price or directly reload lower-level financial/cost sources.
+- 4.3B delegates profit, effective-markup, and effective-margin formulas to the authoritative 4.1B pricing domain.
+- A zero unit-cost denominator yields `effectiveMarkup = null`; a zero selling-price denominator yields `effectiveMargin = null`; both remain explicit diagnostics rather than Infinity/NaN.
+- 4.3B preserves the configured pricing method/value trace and exposes deterministic cost-to-price reconciliation.
+- Partial/not-ready or internally contradictory 4.3A evidence never publishes authoritative 4.3B metrics.
+- Unit-economics diagnostics remain derived, full-precision, non-persisted evidence; presentation percentage/currency formatting remains a UI concern.
 - Recursive and root component costing remains independent of ProductStock/current availability.
 - Observed yield defects are not re-applied.
 - Parent safety waste does not inflate discrete component counts.
@@ -289,12 +295,56 @@ Plan: `docs/PHASE_4_3A_SELLING_PRICE_DERIVATION_PLAN.md`
 
 Record: `docs/PHASE_4_3A_SELLING_PRICE_DERIVATION.md`
 
+### 4.3B — Profit / Markup / Margin Metrics
+
+**COMPLETE**
+
+Delivered:
+
+- authoritative Product-level profit-per-unit diagnostics over the completed 4.3A selling-price result;
+- effective markup and effective margin through the completed 4.1B pricing-domain formulas;
+- pricing method/value trace without presentation conversion;
+- deterministic cost-to-price reconciliation;
+- explicit zero-denominator ratio diagnostics instead of Infinity/NaN;
+- partial/not-ready upstream propagation without authoritative metrics;
+- Product identity and contradictory-ready-evidence fail-closed guards;
+- archived Product inspectability;
+- defensive pricing-policy and upstream-issue cloning;
+- full precision with no presentation rounding;
+- shared application-session wiring;
+- no 4.3C+ leakage.
+
+Evidence:
+
+```text
+Starting develop                57f0e339c88f2bb2a1a5ffbdc142e1a5a1c996e9
+Starting develop CI             34943235932 — SUCCESS
+Plan-before-code commit         5b3c3544e97d5f24df1c91b28b898ff97aeface3
+Implementation head             1801ae8f0ee03c012205163bd7870992c0be383c
+Implementation CI               34944416475 — SUCCESS
+Final feature head              f2c94d5e81e02c5ee8de4b220b7c7674e684dea9
+Final feature-head CI           34944553827 — SUCCESS
+PR #110                         MERGED
+PR CI                           34944661918 — SUCCESS
+Implementation merge            c6f7611a24c798cfa12ef28d4603f2c36b59a729
+Post-merge develop CI           34944765414 — SUCCESS
+69 test files / 827 tests
+19 ProfitMarkupMarginMetricsService tests
+1 4.3B shared-session wiring test
+TypeScript typecheck passed
+production Vite build passed
+```
+
+Plan: `docs/PHASE_4_3B_PROFIT_MARKUP_MARGIN_METRICS_PLAN.md`
+
+Record: `docs/PHASE_4_3B_PROFIT_MARKUP_MARGIN_METRICS.md`
+
 ## Current active task
 
-**4.3B — Profit / Markup / Margin Metrics — NEXT / NOT STARTED**
+**4.3C — Product Pricing Quote & Readiness Service — NEXT / NOT STARTED**
 
-Do not begin 4.3B until:
+Do not begin 4.3C implementation until:
 
-1. this 4.3A documentation-only closeout is merged to `develop`;
+1. this 4.3B documentation-only closeout is merged to `develop`;
 2. exact final closeout `develop` CI is green;
-3. a dedicated 4.3B development plan/scope review is established before implementation.
+3. a dedicated 4.3C scope/split assessment and development plan are established before implementation.
