@@ -6,6 +6,7 @@ import { InMemoryMixPresetRepository } from './mixPresets/InMemoryMixPresetRepos
 import { MixPresetService } from './mixPresets/MixPresetService';
 import { ProductionCapacityService } from './production/ProductionCapacityService';
 import { ProductionRequirementService } from './production/ProductionRequirementService';
+import { ComponentSourceAvailabilityService } from './productComponents/ComponentSourceAvailabilityService';
 import { InMemoryProductComponentRepository } from './productComponents/InMemoryProductComponentRepository';
 import { ProductComponentService } from './productComponents/ProductComponentService';
 import { InMemoryProductRepository } from './products/InMemoryProductRepository';
@@ -30,6 +31,12 @@ export const productStockRepository = new InMemoryProductStockRepository();
 export const yieldSampleRepository = new InMemoryYieldSampleRepository();
 export const fixedRecipeItemRepository = new InMemoryFixedRecipeItemRepository();
 
+export const materialCalibrationEvidenceProvider = async (materialId: string) => {
+  const records = await calibrationRepository.list();
+  const key = materialId.trim().toLocaleLowerCase();
+  return records.filter((record) => record.materialId.trim().toLocaleLowerCase() === key);
+};
+
 export const productComponentService = new ProductComponentService(
   productComponentRepository,
   productRepository,
@@ -39,14 +46,16 @@ export const productStockService = new ProductStockService(
   productStockRepository,
   productRepository,
 );
+export const componentSourceAvailabilityService = new ComponentSourceAvailabilityService(
+  materialRepository,
+  productRepository,
+  productStockRepository,
+  materialCalibrationEvidenceProvider,
+);
 
 export const materialService = new MaterialService(
   materialRepository,
-  async (materialId) => {
-    const records = await calibrationRepository.list();
-    const key = materialId.trim().toLocaleLowerCase();
-    return records.filter((record) => record.materialId.trim().toLocaleLowerCase() === key);
-  },
+  materialCalibrationEvidenceProvider,
   productComponentService,
 );
 
