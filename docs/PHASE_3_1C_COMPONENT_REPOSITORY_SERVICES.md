@@ -2,7 +2,9 @@
 
 ## Status
 
-**IMPLEMENTATION COMPLETE — MERGE GATE PENDING**
+**COMPLETE**
+
+Implementation PR: `#65`
 
 Feature branch: `feature/phase-3-1c-component-services`
 
@@ -10,9 +12,15 @@ Authoritative implementation base:
 
 `develop` @ `046c359ea264a08cb5fc55cda61f666122bf6c04`
 
-Feature validation evidence:
+Implementation merge commit:
 
-- CI run `34911576909` — SUCCESS;
+`230843ea813ab833eb85b7a1c487ec899d8ce84c`
+
+Validation evidence:
+
+- feature CI run `34911576909` — SUCCESS;
+- PR CI run `34911698103` — SUCCESS;
+- post-merge `develop` CI run `34911755617` — SUCCESS;
 - 41 test files passed;
 - 382 tests passed;
 - TypeScript typecheck passed;
@@ -201,23 +209,19 @@ Not implemented in 3.1C:
 
 Those remain in Phase 3.2+ and Phase 5 according to the locked roadmap.
 
-## Completion gate state
+## Completion gate result
 
-Feature-head gates passed:
+Passed:
 
 - component CRUD testable without React;
 - active parents cannot save invalid/archived source relationships;
 - source archive/update paths cannot silently break active parent compositions;
 - storage technology remains outside domain/application logic;
-- complete typecheck/tests/build are green.
+- feature-head typecheck/tests/build;
+- implementation PR #65 CI;
+- merge to `develop`;
+- exact post-merge `develop` CI run `34911755617`.
 
-Remaining before 3.1C may be marked fully complete:
-
-- merge implementation PR to `develop`;
-- verify exact post-merge `develop` CI is green.
-
-## Next task after closeout
+## Next task
 
 **3.2A — Product Stock Contract & Validation**
-
-Do not begin 3.2A until the 3.1C merge and post-merge `develop` CI gate are green.
