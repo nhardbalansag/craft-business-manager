@@ -202,86 +202,89 @@ TypeScript typecheck passed
 Production Vite build passed
 ```
 
-### Boundaries intentionally deferred after Phase 3
-
-- labor and overhead costing — Phase 4;
-- selling price, fixed profit, markup, target margin, revenue, and profit — Phase 4;
-- Excel persistence/import/export — Phase 5;
-- native Tauri filesystem integration — Phase 6;
-- stock reservation, automatic stock deduction, stock transaction history, and production posting — not part of Phase 3 and require separate future planning.
-
 ---
 
 ## Phase 4 — Pricing & Production Planning
 
-Status: **MASTER PLAN ESTABLISHED — IMPLEMENTATION NOT STARTED**
+Status: **COMPLETE**
 
 Planning baseline: `docs/PHASE_4_PRICING_PRODUCTION_PLANNING_PLAN.md`
 
-Live tracker: `docs/PHASE_4_PROGRESS.md`
+Completion tracker: `docs/PHASE_4_PROGRESS.md`
+
+Final completion record: `docs/PHASE_4_6B_REGRESSION_BUILD_COMPLETION.md`
 
 ```text
-4.1 Financial Profile & Pricing Policy Foundation      NOT STARTED
-    4.1A Product Financial Profile Contract             NEXT
-    4.1B Pricing Formula & Validation Engine            NOT STARTED
-    4.1C Profile Repository & Application Services      NOT STARTED
+4.1 Financial Profile & Pricing Policy Foundation      COMPLETE
+    4.1A Product Financial Profile Contract             COMPLETE
+    4.1B Pricing Formula & Validation Engine            COMPLETE
+    4.1C Profile Repository & Application Services      COMPLETE
 
-4.2 Fully Loaded Product Unit Cost                      NOT STARTED
-    4.2A Waste-Adjusted Direct-Material Unit Cost       NOT STARTED
-    4.2B Recursive Fully Loaded Product Component Cost  NOT STARTED
-    4.2C Total Fully Loaded Unit Cost & Readiness       NOT STARTED
+4.2 Fully Loaded Product Unit Cost                      COMPLETE
+    4.2A Waste-Adjusted Direct-Material Unit Cost       COMPLETE
+    4.2B Recursive Fully Loaded Product Component Cost  COMPLETE
+    4.2C Total Fully Loaded Unit Cost & Readiness       COMPLETE
 
-4.3 Selling Price & Unit Economics                      NOT STARTED
-    4.3A Selling Price Derivation                       NOT STARTED
-    4.3B Profit / Markup / Margin Metrics               NOT STARTED
-    4.3C Product Pricing Quote & Readiness Service      NOT STARTED
+4.3 Selling Price & Unit Economics                      COMPLETE
+    4.3A Selling Price Derivation                       COMPLETE
+    4.3B Profit / Markup / Margin Metrics               COMPLETE
+    4.3C Product Pricing Quote & Readiness Service      COMPLETE
 
-4.4 Planned Batch Financials & Capacity                 NOT STARTED
-    4.4A Physical Planned Batch Production Cost         NOT STARTED
-    4.4B Expected Revenue / Profit / Batch Margin       NOT STARTED
-    4.4C Capacity Feasibility & Warning Synthesis       NOT STARTED
+4.4 Planned Batch Financials & Capacity                 COMPLETE
+    4.4A Physical Planned Batch Production Cost         COMPLETE
+    4.4B Expected Revenue / Profit / Batch Margin       COMPLETE
+    4.4C Capacity Feasibility & Warning Synthesis       COMPLETE
 
-4.5 Pricing & Production Planning UI                    NOT STARTED
-    4.5A Product Financial Profile Editor               NOT STARTED
-    4.5B Unit Economics / Pricing Calculator UI         NOT STARTED
-    4.5C Production Financial Summary & Warnings UI     NOT STARTED
+4.5 Pricing & Production Planning UI                    COMPLETE
+    4.5A Product Financial Profile Editor               COMPLETE
+    4.5B Unit Economics / Pricing Calculator UI         COMPLETE
+    4.5C Production Financial Summary & Warnings UI     COMPLETE
 
-4.6 Integration & Completion Gate                       NOT STARTED
-    4.6A Integrated Pricing / Production Workflow       NOT STARTED
-    4.6B Regression / Build / Completion                NOT STARTED
+4.6 Integration & Completion Gate                       COMPLETE
+    4.6A Integrated Pricing / Production Workflow       COMPLETE
+    4.6B Regression / Build / Completion                COMPLETE
 ```
 
-### Phase 4 planning decisions
+### Phase 4 delivered behavior
 
-- financial configuration remains separate from the Product recipe/composition contract;
-- one product financial profile records explicit per-unit labor, explicit per-unit overhead, and an independently configurable pricing policy;
-- missing profile is unresolved while explicit zero labor/overhead is known zero;
-- supported pricing methods are fixed profit amount, markup percentage, and target margin;
-- percentage rates are stored canonically as decimals and invalid margin >= 100% fails closed;
-- standard pricing cost includes the Product's explicit direct-material safety-waste reserve once;
-- observed rejected-output loss is not re-applied;
-- parent safety waste does not inflate discrete component quantities;
-- Product-backed child components contribute recursively fully loaded production cost, including their own safety reserve/labor/overhead, but never their retail selling price/profit;
-- standard unit economics retain full precision; currency rounding is presentation-only;
-- physical planned batch cost uses final-batch whole-piece rounding and can differ from unit cost × quantity;
-- expected batch profit uses physical planned production cost;
-- capacity feasibility consumes Phase 3 capacity/limiter evidence and never auto-clamps the user's requested quantity;
-- derived prices, totals, revenue, and profit remain non-persisted views;
-- payroll/timekeeping, global overhead allocation, tax/VAT, discounts/fees, accounting posting, stock deduction, Excel persistence, and Tauri integration remain outside Phase 4.
+- Product-keyed financial profiles with explicit labor cost, overhead cost, and independently configurable pricing policy;
+- fixed-profit, markup, and target-margin pricing with fail-closed validation and full-precision internal math;
+- waste-adjusted standard direct-material cost with separately traceable safety reserve;
+- recursive fully loaded Product-backed component production cost without child retail-price leakage;
+- authoritative total fully loaded unit cost and readiness;
+- selling price, profit per unit, effective markup, effective margin, and consolidated pricing quote/readiness;
+- Q-specific physical planned batch production cost using final-batch whole-piece rounding for indivisible `pc` requirements;
+- expected revenue, expected physical batch profit, effective batch margin, and average physical cost;
+- capacity feasibility/warning synthesis over Phase 3 capacity traces without auto-clamping requested quantity;
+- preservation of every authoritative tied limiter across direct Material, Material-backed component, and Product-backed component resources;
+- dedicated Pricing financial-profile editor and read-only unit-economics calculator;
+- Production financial summary with physical cost/revenue/profit/margin, capacity warnings, overage, tied limiters, and readiness;
+- seven real-service Phase 4 integration scenarios spanning paintable art, purchased vessels, handmade vessels, multi-component sets, batch rounding, over-capacity planning, and fail-closed readiness;
+- no stock reservation/deduction, production posting, accounting posting, Excel persistence, or Tauri filesystem behavior introduced by Phase 4.
 
-### Current Phase 4 task
+### Phase 4 final gate
 
-**4.1A — Product Financial Profile Contract — NEXT / NOT STARTED**
+```text
+4.6B validation PR #128        MERGED
+Validation merge                154babc616253cb5da3578781563c61e6c53d372
+Post-merge develop CI           34981363478 — SUCCESS
+81 test files / 986 tests
+8 React workspace smoke tests
+7 Phase 4.6A real-service integration tests
+TypeScript typecheck passed
+Production Vite build passed
+117 modules transformed
+```
 
-Do not begin 4.1A until the Phase 4 master-plan documentation is merged, exact post-merge `develop` CI is green, and a dedicated 4.1A scope review/development plan has been established.
+The existing Vite warning for a minified main chunk slightly above 500 kB is non-blocking and remains a future code-splitting/performance optimization concern.
 
 ---
 
 ## Phase 5 — Excel Persistence
 
-Status: **PLANNED**
+Status: **PLANNED — NEXT FOR SCOPE REVIEW / NOT STARTED**
 
-Planned:
+Planned direction:
 
 - workbook schema/versioning;
 - load/save `.xlsx` through the storage adapter;
@@ -290,7 +293,9 @@ Planned:
 - timestamped backups;
 - import existing workbook data where feasible.
 
-Proposed sheets include Materials, Calibrations, MixPresets, Products, RecipeItems, ProductComponents, ProductStocks, YieldSamples, financial-profile source data, and Settings.
+Candidate sheets include Materials, Calibrations, MixPresets, Products, RecipeItems, ProductComponents, ProductStocks, YieldSamples, financial-profile source data, and Settings.
+
+Phase 5 must receive its own dedicated scope/decomposition review and development plan before implementation begins. No Phase 5 code is started by the Phase 4 closeout.
 
 ---
 
@@ -328,12 +333,14 @@ No React component should read or write spreadsheet cells directly.
 
 ## Current roadmap position
 
-**Phase 3 is COMPLETE.**
+**Phase 0 — COMPLETE**  
+**Phase 1 — COMPLETE**  
+**Phase 2 — COMPLETE**  
+**Phase 3 — COMPLETE**  
+**Phase 4 — COMPLETE**
 
-Phase 4 master planning is established, but implementation has not started.
+Current next phase:
 
-Current next task:
+**Phase 5 — Excel Persistence — NEXT FOR SCOPE REVIEW / NOT STARTED**
 
-**4.1A — Product Financial Profile Contract — NEXT / NOT STARTED**
-
-Do not begin 4.1A without its dedicated scope review/development plan.
+Do not begin Phase 5 implementation until a dedicated scope/decomposition review and development plan are established from the exact current green `develop` baseline.

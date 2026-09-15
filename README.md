@@ -1,6 +1,6 @@
 # Craft Business Manager
 
-Desktop-first business costing, inventory, production-yield, and pricing manager for a craft business producing:
+Desktop-first business costing, inventory, production-yield, production-planning, and pricing manager for a craft business producing:
 
 - paintable plaster art and mold toys for kids;
 - handmade candle pots / vessels;
@@ -20,18 +20,18 @@ React UI
    ↓
 Application / Business Services
    ↓
-Domain Models + Costing / Production Engines
+Domain Models + Costing / Production / Pricing Engines
    ↓
 Storage Port
-   ├── ExcelStorage (planned v1 persistence)
+   ├── ExcelStorage (planned Phase 5 persistence)
    └── SQLiteStorage (future)
    ↓
-Tauri filesystem boundary
+Tauri filesystem boundary (planned Phase 6)
 ```
 
 React components do not directly read or write spreadsheet cells.
 
-## Implemented through Phase 3
+## Implemented through Phase 4
 
 ### Materials, units, costing, inventory and calibration
 
@@ -77,54 +77,58 @@ Mold volume remains optional. Real sample production evidence is authoritative.
 - nested Product composition with corruption-safe traversal guards;
 - active-source/dependency safeguards.
 
-### Finished component stock
+### Finished component stock and assembly capacity
 
 - explicit finished ProductStock in whole `pc` counts;
 - missing stock distinguished from explicit `0 pc`;
 - archived historical stock remains inspectable/correctable;
-- ProductStock is current assembly availability and is not derived from raw-material buildability.
-
-### Component-aware cost and assembly capacity
-
 - Material-backed component cost using Phase 1 costing;
 - recursive Product-backed child cost roll-up;
 - total component-aware Product cost/readiness;
-- Phase 2 direct-material cost remains distinguishable from Phase 3 component cost;
-- per-component assembly capacity;
 - overall current assembly capacity from direct materials plus immediate component availability;
 - Product-backed capacity uses explicit current ProductStock;
 - no silent recursive manufacture of missing child stock;
 - all tied limiting resources preserved with typed identity.
 
-### Component-aware UI
+### Phase 4 pricing and unit economics
 
-The Products workspace now includes:
+- Product financial profiles with explicit labor and overhead cost per unit;
+- fixed-profit, markup, and target-margin pricing policies;
+- missing financial evidence remains distinct from explicit zero;
+- waste-adjusted standard direct-material pricing cost with separately visible safety reserve;
+- recursively fully loaded Product-backed component production cost;
+- authoritative total unit cost and readiness;
+- selling price, profit per unit, effective markup, and effective margin;
+- consolidated Product pricing quote/readiness service;
+- dedicated Pricing workspace for financial-profile editing and read-only unit economics.
 
-- Products;
-- Mix presets;
-- Components;
-- Finished stock.
+### Phase 4 batch financial planning
 
-The Production workspace now shows:
+The Production workspace now includes:
 
-- direct materials required to make the parent;
-- discrete components required to assemble the parent;
-- current component availability and per-component capacity;
-- final assembly capacity;
-- all tied typed limiting resources;
-- component-aware cost;
-- nested recursive component cost paths;
-- readiness/issues.
+- Q-specific physical planned production cost;
+- direct `pc` final-batch rounding effects;
+- expected revenue;
+- expected physical batch profit;
+- effective batch margin;
+- average physical cost per finished unit;
+- current capacity feasibility;
+- exact over-capacity quantity;
+- advisory capacity warnings;
+- every authoritative tied limiting resource;
+- financial and feasibility readiness/issues;
+- retained Phase 3 direct-material/component/capacity detail.
+
+Requested quantity is never silently clamped to current capacity, and Phase 4 does not reserve or deduct stock.
 
 ## Current phase boundaries
 
 The following remain intentionally not implemented:
 
-- labor and overhead costing;
-- selling price, fixed-profit pricing, markup, margin, revenue, and profit policy — **Phase 4**;
 - Excel persistence/import/export — **Phase 5**;
 - native Tauri filesystem workflow — **Phase 6**;
-- stock reservation, automatic stock deduction, stock transaction history, or production posting — requires separate future planning.
+- stock reservation, automatic stock deduction, stock transaction history, or production posting — requires separate future planning;
+- tax/VAT, marketplace/payment fees, accounting posting, and global overhead allocation — outside completed Phase 4 scope.
 
 ## Branching
 
@@ -135,42 +139,46 @@ The following remain intentionally not implemented:
 
 ## Validation status
 
-Phase 3 final completion gate:
+Phase 4 final technical completion gate:
 
 ```text
-55 test files passed
-628 tests passed
-7 React smoke tests
-5 Phase 3.6A real-service integration tests
+81 test files passed
+986 tests passed
+8 React workspace smoke tests
+7 Phase 4.6A real-service integration tests
 TypeScript typecheck passed
 Production Vite build passed
+117 modules transformed
 ```
 
-Phase 3.6B completion PR: **#93**
+Phase 4.6B validation PR: **#128 — MERGED**
 
-Implementation merge:
+Validation merge:
 
-`ceef43e2181d8696e0408457860905da1b8e6b46`
+`154babc616253cb5da3578781563c61e6c53d372`
 
-Post-merge CI:
+Exact post-merge CI:
 
-`34930387721` — success.
+`34981363478 — SUCCESS`
+
+The existing Vite warning for the minified main JavaScript chunk being slightly above 500 kB is non-blocking and remains a future performance/code-splitting concern.
 
 See:
 
 - `docs/DEVELOPMENT_PLAN.md`
-- `docs/PHASE_3_PROGRESS.md`
-- `docs/PHASE_3_6B_REGRESSION_BUILD_COMPLETION.md`
+- `docs/PHASE_4_PROGRESS.md`
+- `docs/PHASE_4_6B_REGRESSION_BUILD_COMPLETION.md`
 
 ## Current status
 
 **Phase 0 — COMPLETE**  
 **Phase 1 — COMPLETE**  
 **Phase 2 — COMPLETE**  
-**Phase 3 — COMPLETE**
+**Phase 3 — COMPLETE**  
+**Phase 4 — COMPLETE**
 
 Next planned phase:
 
-**Phase 4 — Pricing & Production Planning — NEXT / NOT STARTED**
+**Phase 5 — Excel Persistence — NEXT FOR SCOPE REVIEW / NOT STARTED**
 
-Phase 4 should receive its own scope review and dedicated development plan before implementation begins.
+Phase 5 must receive its own dedicated scope/decomposition review and development plan before implementation begins.

@@ -1,12 +1,12 @@
 # Phase 4.6B — Regression / Build / Phase 4 Completion
 
-Status: **VALIDATED — AWAITING VALIDATION PR / MERGED-DEVELOP GATE**
+Status: **COMPLETE — MERGED — POST-MERGE VALIDATED**
 
 Repository: `nhardbalansag/craft-business-manager`
 
 Integration branch: `develop`
 
-Feature branch: `feature/phase-4-6b-regression-build-completion`
+Validation branch: `feature/phase-4-6b-regression-build-completion`
 
 ---
 
@@ -14,9 +14,9 @@ Feature branch: `feature/phase-4-6b-regression-build-completion`
 
 Phase 4.6B is the final regression/build acceptance gate for **Phase 4 — Pricing & Production Planning**.
 
-No new business capability is introduced here. The task validates the completed Phase 1–4 codebase as one repository, proves that the Phase 4 Pricing and financial Production React paths remain smoke-covered, and prepares the evidence required for the final documentation-only Phase 4 closeout.
+No new business capability was introduced. The task validated the completed Phase 1–4 codebase as one repository, proved that the Phase 4 Pricing and financial Production React paths remained smoke-covered, and established the final evidence required to close Phase 4.
 
-Phase 4 is **not yet declared globally complete** in this record because the validation PR must still merge to `develop` and the exact merged `develop` CI must pass first.
+The validation PR merged successfully and the exact merged `develop` CI passed. Therefore the technical Phase 4 completion gate is satisfied.
 
 ---
 
@@ -26,7 +26,7 @@ Phase 4 is **not yet declared globally complete** in this record because the val
 Starting develop                9b0856c2a3d8ebad9fc1693063ecc54a6c95422c
 Starting develop CI             34977978707 — SUCCESS
 Previous task                   4.6A — COMPLETE
-Current task                    4.6B — IN PROGRESS
+Current task                    4.6B — COMPLETE
 ```
 
 Plan-before-validation commit:
@@ -43,7 +43,7 @@ Plan:
 
 4.6B did not require additional numbered roadmap splitting.
 
-It is one cohesive final acceptance gate with internal checkpoints for:
+It remained one cohesive final acceptance gate with internal checkpoints for:
 
 - baseline/scope audit;
 - full repository regression;
@@ -55,17 +55,32 @@ It is one cohesive final acceptance gate with internal checkpoints for:
 
 ---
 
-## Validation result
+## Validation evidence
 
-Validated feature head:
+First full-regression checkpoint:
 
-`4b991bdff91a1de2974c758c9b4b1ff9a60607a5`
+```text
+Plan-before-validation head     4b991bdff91a1de2974c758c9b4b1ff9a60607a5
+Regression CI                   34978655807 — SUCCESS
+```
 
-Feature validation CI:
+Documented validation head:
 
-`34978655807 — SUCCESS`
+```text
+Documented validation head      6d7a3eebed95077847d25816f77ac63f9f55446b
+Documented validation-head CI   34978830726 — SUCCESS
+```
 
-CI executed the repository's authoritative validation commands:
+Validation PR:
+
+```text
+PR #128                         MERGED
+PR CI                           34978998481 — SUCCESS
+Validation merge                154babc616253cb5da3578781563c61e6c53d372
+Post-merge develop CI           34981363478 — SUCCESS
+```
+
+The repository's authoritative validation commands were:
 
 ```text
 npm run typecheck
@@ -73,7 +88,7 @@ npm run test:run
 npm run build
 ```
 
-Result:
+Final validated surface:
 
 ```text
 TypeScript typecheck            PASS
@@ -107,21 +122,21 @@ The full suite retained green coverage for the completed Phase 4 boundaries, inc
 
 - Product financial-profile contract/service;
 - pricing domain validation;
-- WasteAdjustedDirectMaterialCostService;
-- RecursiveFullyLoadedProductComponentCostService;
-- FullyLoadedProductUnitCostService;
-- SellingPriceDerivationService;
-- ProfitMarkupMarginMetricsService;
-- ProductPricingQuoteService;
-- PhysicalPlannedBatchProductionCostService;
-- ExpectedBatchFinancialsService;
-- PlannedBatchCapacityFeasibilityService;
+- `WasteAdjustedDirectMaterialCostService`;
+- `RecursiveFullyLoadedProductComponentCostService`;
+- `FullyLoadedProductUnitCostService`;
+- `SellingPriceDerivationService`;
+- `ProfitMarkupMarginMetricsService`;
+- `ProductPricingQuoteService`;
+- `PhysicalPlannedBatchProductionCostService`;
+- `ExpectedBatchFinancialsService`;
+- `PlannedBatchCapacityFeasibilityService`;
 - Pricing view/form helpers;
 - Production financial-plan view helper;
 - Phase 4 shared-session wiring tests;
 - seven real-service `phase4PricingProductionWorkflow` scenarios.
 
-The dedicated Phase 4.6A integration suite still passes all seven approved business scenarios:
+The dedicated Phase 4.6A integration suite passed all seven approved business scenarios:
 
 1. paintable art with fixed profit;
 2. purchased-vessel candle with markup;
@@ -135,7 +150,7 @@ The dedicated Phase 4.6A integration suite still passes all seven approved busin
 
 ## React smoke gate
 
-`src/App.smoke.test.tsx` remains green with **8 smoke tests**.
+`src/App.smoke.test.tsx` remained green with **8 smoke tests**.
 
 The retained smoke suite explicitly verifies:
 
@@ -185,34 +200,35 @@ This is a future performance/code-splitting optimization concern. It does not bl
 
 **No production/domain/application/UI behavior changes were required.**
 
-The completed Phase 4 implementation already satisfies the final regression/build gate. Creating code changes solely to make 4.6B appear larger would introduce unnecessary risk and would violate the purpose of a completion gate.
-
-The validation feature branch therefore contains only Phase 4.6B documentation/evidence.
+The completed Phase 4 implementation already satisfied the final regression/build gate. The 4.6B validation branch therefore contained documentation/evidence only.
 
 ---
 
-## Remaining completion gates
+## Phase 4 completion conclusion
 
-Before Phase 4 can be declared globally complete:
+The Phase 4 technical completion criteria are all satisfied:
 
-1. this 4.6B documented feature head must receive its own exact green CI;
-2. a validation PR must be opened to `develop`;
-3. the validation PR CI must pass;
-4. the PR must be merged with its expected head unchanged;
-5. the exact validation-merge `develop` CI must pass;
-6. a documentation-only Phase 4 closeout must reconcile:
-   - `docs/PHASE_4_PROGRESS.md`;
-   - `docs/DEVELOPMENT_PLAN.md`;
-   - `README.md`;
-   - this 4.6B completion record;
-7. the closeout PR and exact final `develop` CI must pass.
+- all retained Phase 1/2/3 regressions are green;
+- all Phase 4 domain/application/integration tests pass;
+- Pricing and financial Production React smoke paths are covered;
+- TypeScript typecheck passes;
+- production build passes;
+- validation PR #128 merged;
+- exact validation-merge `develop` CI passes.
 
-Only then should Phase 4 be marked **COMPLETE** and Phase 5 become the next phase for scope review.
+The documentation-only final closeout reconciles:
+
+- `docs/PHASE_4_PROGRESS.md`;
+- `docs/DEVELOPMENT_PLAN.md`;
+- `README.md`;
+- this completion record.
+
+After the closeout PR and exact final closeout `develop` CI pass, the repository's authoritative roadmap is **Phase 4 COMPLETE**, with **Phase 5 — Excel Persistence** next for a dedicated scope/decomposition review. Phase 5 implementation is not started by this closeout.
 
 ---
 
 ## Explicit boundary
 
-4.6B does not start or implement Phase 5 Excel persistence.
+4.6B does not implement Phase 5 Excel persistence.
 
 Excel persistence/import/export remains a Phase 5 concern. Native Tauri filesystem workflow remains Phase 6. Phase 5 must receive a separate scope/decomposition review and plan before implementation begins.
