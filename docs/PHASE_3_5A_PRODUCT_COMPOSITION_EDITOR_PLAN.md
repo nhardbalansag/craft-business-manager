@@ -2,7 +2,7 @@
 
 ## Status
 
-**IN PROGRESS — PLAN ESTABLISHED BEFORE IMPLEMENTATION**
+**IMPLEMENTED — MERGE GATE PENDING**
 
 Authoritative base:
 
@@ -72,7 +72,7 @@ The current React Products workspace is implemented in:
 
 `src/ui/products/ProductsPage.tsx`
 
-It currently exposes:
+It originally exposed:
 
 - `Products` tab;
 - `Mix presets` tab;
@@ -98,11 +98,11 @@ The authoritative component application boundary already provides:
 - duplicate source validation;
 - direct/transitive cycle validation.
 
-The UI must call these methods rather than reimplementing save rules.
+The UI calls these methods rather than reimplementing save rules.
 
 ## UI structure
 
-Extend the Products workspace view union to:
+The Products workspace view union now supports:
 
 ```text
 products
@@ -110,9 +110,7 @@ mixes
 components
 ```
 
-The Components view should be implemented as a dedicated child component rather than making `ProductsPage.tsx` materially harder to maintain.
-
-Recommended file:
+The Components view is implemented as a dedicated child component:
 
 `src/ui/products/ProductComponentsView.tsx`
 
@@ -122,7 +120,7 @@ Recommended file:
 
 The component editor operates on one selected parent Product at a time.
 
-Behavior:
+Implemented behavior:
 
 - default to the first active Product when one exists;
 - allow selection from all Products for historical inspection;
@@ -131,7 +129,7 @@ Behavior:
 - show parent name, ID, category, status;
 - changing parent resets component edit form/feedback.
 
-The UI must not permit adding/updating component lines on an archived parent because `ProductComponentService` rejects those writes.
+The UI does not permit component writes on an archived parent.
 
 ## Component form contract
 
@@ -170,9 +168,9 @@ The component ID remains immutable while editing.
 
 ## Component ID UX
 
-Use an explicit editable ID on create so the UI does not invent a new authoritative identity scheme during 3.5A.
+An explicit editable ID is used on create so 3.5A does not invent a new authoritative identity-generation scheme.
 
-Recommended placeholder:
+Placeholder:
 
 ```text
 COMP-PRODUCT-001
@@ -180,35 +178,32 @@ COMP-PRODUCT-001
 
 Editing keeps the ID disabled.
 
-Automatic persistent component-ID generation is out of scope unless an existing application-level ID generator already exists.
-
 ## Source candidate filtering
 
 ### Material-backed source candidates
 
-Show only Materials that are:
+The UI shows only Materials that are:
 
 - active;
 - `baseUnit === 'pc'`;
 - not already used by another component line for the same parent/source type, except the line currently being edited.
 
-This prevents obvious invalid/duplicate choices before submit.
-
 ### Product-backed source candidates
 
-Show only Products that are:
+The UI shows only Products that are:
 
 - active;
 - not the selected parent Product itself;
-- not already used by another product-backed component line for the same parent, except the current edit line.
+- not already used by another product-backed component line for the same parent, except the current edit line;
+- compatible with the current graph when checked through the existing `validateProductCompositionGraph` helper.
 
-Direct self-reference is filtered from the selector.
+Direct self-reference and known transitive cycle candidates are filtered from the selector for UX.
 
-Transitive cycle safety remains authoritative in `ProductComponentService` on create/update. The UI may additionally present known composition context, but it must not treat client filtering as a substitute for save-time validation.
+Save-time cycle safety remains authoritative in `ProductComponentService` on create/update. Client filtering is not treated as a substitute for service validation.
 
 ## Source-type switching
 
-Changing `sourceType` must clear `sourceId` so a Material ID cannot accidentally remain selected as a Product source or vice versa.
+Changing `sourceType` clears `sourceId` so a Material ID cannot accidentally remain selected as a Product source or vice versa.
 
 ## Role and quantity
 
@@ -216,41 +211,32 @@ Role selector uses the authoritative:
 
 `PRODUCT_COMPONENT_ROLES`
 
-Quantity input:
+Quantity input uses:
 
 - `type=number`;
 - minimum `1`;
 - step `1`;
 - converted with `Number(...)`;
-- authoritative positive finite integer validation still belongs to `ProductComponentService`/domain validation.
+- authoritative positive finite integer validation remains in `ProductComponentService`/domain validation.
 
 ## Readable composition summary
 
-For the selected parent Product, show every immediate component line with:
+For the selected parent Product, every immediate component line shows:
 
 - source name;
 - source type;
 - source ID;
+- component ID;
 - role;
 - quantity per parent;
-- optional notes.
+- optional notes;
+- edit/remove actions when writable.
 
-Example:
-
-```text
-Gift Box
-├─ 1 × Candle — Product — vessel
-├─ 3 × Mini Heart — Product — decorative-component
-└─ 1 × Glass Jar — Material — vessel
-```
-
-The summary is derived/read-only and is never persisted as source data.
+The summary is derived/read-only and is never persisted as separate source data.
 
 ## Nested composition preview
 
-Add a guarded read-only tree preview for Product-backed composition.
-
-Recommended pure UI helper:
+Implemented guarded read-only tree preview through:
 
 `src/ui/products/productCompositionPreview.ts`
 
@@ -261,21 +247,21 @@ Input:
 - Material list;
 - ProductComponent list.
 
-Output should preserve typed nodes sufficient to render:
+Output preserves typed nodes sufficient to render:
 
 - Product nodes;
 - Material leaf nodes;
 - role;
 - quantity per parent;
 - source IDs/names;
-- archived/missing fallback labels where historical data exists;
+- archived/missing fallback labels;
 - cycle/corruption marker when a repeated active path is detected.
 
 ### Preview boundary
 
 The preview is informational only.
 
-It must not:
+It does not:
 
 - calculate cost;
 - calculate capacity;
@@ -284,126 +270,125 @@ It must not:
 - change composition records;
 - replace graph validation.
 
-Even though normal writes prevent cycles, the preview must use a path/visited guard so corrupted imported/history data cannot recurse forever.
+Even though normal writes prevent cycles, the preview uses a path guard so corrupted imported/history data cannot recurse forever.
 
 ## Error and cycle feedback
 
-All component create/update/remove actions should catch service/domain errors and display the actual `Error.message` through the existing Products workspace feedback style.
+All component create/update/remove actions catch service/domain errors and display the actual `Error.message` through the existing Products workspace feedback style.
 
-This naturally exposes:
-
-- inactive parent/source errors;
-- non-count Material errors;
-- duplicate source errors;
-- direct self-reference errors;
-- transitive cycle errors;
-- malformed quantity/role/source errors.
-
-Do not duplicate service error-code-to-rule logic in React unless needed only for presentation.
+This exposes controlled validation feedback without duplicating service error rules in React.
 
 ## Delete behavior
 
-Use an explicit `Remove` action on each component line.
-
-3.5A does not introduce confirmation modals or undo history unless the existing UI already has a reusable confirmation pattern.
+Each writable component line has an explicit `Remove` action.
 
 After remove:
 
-- refresh component data;
-- clear edit state if the removed line was being edited;
-- show success/error feedback.
+- component records refresh;
+- edit state clears if the removed line was being edited;
+- success/error feedback is displayed.
+
+No new confirmation modal/undo infrastructure was introduced.
 
 ## Data loading
 
-Reuse existing session services.
+Products/Materials remain loaded by `ProductsPage` and are passed to the component view.
 
-Products/Materials may remain loaded by `ProductsPage` and passed to the component view.
-
-The component view should load:
-
-- all component records needed for the selected-parent list and nested preview.
-
-Recommended:
+The component view loads all component records with:
 
 ```text
 productComponentService.listComponents()
 ```
 
-After component mutations, reload component records only unless parent/Product/Material changes require broader reload.
+After component mutations, only component records reload.
 
 ## Styling
 
-Extend:
+Extended:
 
 `src/ui/products/products.css`
 
-Maintain the existing application visual language:
+The implementation reuses the existing visual language:
 
-- existing panels;
+- panels;
 - workspace switcher;
 - field styles;
-- table/list structure;
 - status pills;
 - feedback blocks;
+- card/list treatment;
 - responsive behavior.
 
-Do not introduce a new design system or CSS framework.
-
-Recommended Components layout:
-
-```text
-left: component editor form
-right: selected-parent composition list
-below/right: nested preview panel
-```
-
-The layout must remain usable on the existing responsive breakpoint by stacking panels vertically.
+The Components layout uses an editor/list split and stacks at narrower widths. No new design system or CSS framework was introduced.
 
 ## Accessibility
 
-Include:
+Implemented ordinary labelled controls and semantic markup:
 
-- accessible tab/button labels;
-- explicit labels for parent/source/role/quantity inputs;
-- button `type="button"` for non-submit actions;
-- semantic lists/tree-like readable markup without relying only on color;
-- feedback text visible to screen readers through ordinary DOM content.
+- labelled parent/source/role/quantity inputs;
+- non-submit actions use `type="button"`;
+- tree preview uses readable nested lists and text labels;
+- issue state is not color-only;
+- feedback remains normal DOM text.
 
-No ARIA tree widget is required in this phase unless keyboard tree interaction is fully implemented.
+No incomplete ARIA tree interaction model was introduced.
 
 ## Tests
 
-The repository currently uses Vitest and React server-render smoke tests without a browser testing library.
-
-3.5A should therefore use two test layers without adding a new testing dependency unless necessary:
-
 ### Pure preview/helper tests
 
-Add tests for the nested composition helper covering:
+Added:
+
+`src/ui/products/productCompositionPreview.test.ts`
+
+Dedicated tests: **9**.
+
+Coverage includes:
 
 - empty composition;
 - Material leaf;
-- Product child;
-- deep acyclic nesting;
+- Product child/deep nesting;
 - quantity/role propagation;
 - stable ordering;
-- missing source fallback;
+- missing Material source fallback;
+- missing Product source fallback;
 - archived source visibility;
 - cycle/corruption guard.
 
 ### React smoke coverage
 
-Extend `src/App.smoke.test.tsx` so server rendering confirms the Products workspace now exposes the `Components` view/tab without requiring browser effects.
+Extended:
 
-If a small presentational component can be server-rendered independently with injected data, add focused render assertions for:
+`src/App.smoke.test.tsx`
 
-- source type labels;
-- quantity/role summary;
-- nested preview labels.
+Smoke validation now confirms:
 
-Avoid introducing jsdom/testing-library solely for 3.5A unless interaction behavior cannot otherwise be validated adequately.
+- Products workspace exposes `Components`;
+- updated Product composition heading renders;
+- composition editor shell renders with an active parent Product;
+- component ID/source/quantity controls render;
+- nested composition preview renders.
 
-Authoritative mutation behavior is already covered by `ProductComponentService` tests.
+No new browser-testing dependency was added. Authoritative mutation behavior remains covered by existing `ProductComponentService` tests.
+
+## Validation evidence
+
+Corrected implementation head:
+
+`c96c631e2938108225b0f3efbdb77f8ff29ddb09`
+
+CI:
+
+```text
+34923251592 — SUCCESS
+52 test files passed
+596 tests passed
+9 dedicated productCompositionPreview tests
+6 React workspace smoke tests
+TypeScript typecheck passed
+production build passed
+```
+
+Earlier intermediate branch runs exposed only stale/case-sensitive smoke-text assertions. Those test expectations were corrected before the merge gate; no production-logic fix was required.
 
 ## Explicit non-goals
 
@@ -420,9 +405,7 @@ Authoritative mutation behavior is already covered by `ProductComponentService` 
 - new domain component roles/source types;
 - automatic recursive production of child Products.
 
-## Planned file changes
-
-Expected implementation files:
+## Implemented file changes
 
 ```text
 src/ui/products/ProductsPage.tsx
@@ -431,22 +414,21 @@ src/ui/products/productCompositionPreview.ts
 src/ui/products/productCompositionPreview.test.ts
 src/ui/products/products.css
 src/App.smoke.test.tsx
+docs/PHASE_3_5A_PRODUCT_COMPOSITION_EDITOR.md
 ```
 
-Potentially no application/domain source changes are required because the component service contract is already complete.
-
-Any need for a new application query API discovered during implementation must be justified in the implementation record and remain within 3.5A UI-support scope.
+No new application/domain source API was needed.
 
 ## Completion gate
 
-3.5A is complete only when:
+Implementation-side gates are satisfied:
 
 - Products workspace exposes a Components view;
 - active parent Product can add/edit/remove components;
 - archived parent is inspectable but not writable;
 - source type selector supports Material/Product;
 - Material selector excludes archived/non-`pc`/duplicate candidates;
-- Product selector excludes archived/self/duplicate candidates;
+- Product selector excludes archived/self/duplicate/cycle-invalid candidates;
 - role selector uses authoritative roles;
 - quantity uses positive whole-piece semantics;
 - all writes flow through `ProductComponentService`;
@@ -457,10 +439,14 @@ Any need for a new application query API discovered during implementation must b
 - focused helper/UI tests pass;
 - full repository tests pass;
 - TypeScript typecheck passes;
-- production build passes;
-- implementation PR merges to `develop`;
-- exact post-merge `develop` CI passes;
-- documentation-only closeout marks 3.5A COMPLETE and advances 3.5B to NEXT / NOT STARTED.
+- production build passes.
+
+Remaining merge/closeout gates:
+
+- final documented feature-head CI must pass;
+- implementation PR must pass its own CI and merge to `develop`;
+- exact post-merge `develop` CI must pass;
+- documentation-only closeout must mark 3.5A COMPLETE and advance 3.5B to NEXT / NOT STARTED.
 
 ## Next task after closeout
 
