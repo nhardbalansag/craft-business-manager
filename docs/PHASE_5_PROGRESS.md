@@ -31,7 +31,7 @@ CI       34984709583 — SUCCESS
 5.2 — XLSX Workbook Codec                                 IN PROGRESS
     5.2A — XLSX Library Evaluation & Codec Boundary       COMPLETE
     5.2B — Deterministic Dataset-to-XLSX Export           COMPLETE
-    5.2C — Strict XLSX-to-Dataset Import & Diagnostics    NEXT / NOT STARTED
+    5.2C — Strict XLSX-to-Dataset Import & Diagnostics    PLAN ESTABLISHED / IMPLEMENTATION NOT STARTED
 
 5.3 — Snapshot, Hydration & Persistence Coordination      NOT STARTED
     5.3A — Complete Source Snapshot Service               NOT STARTED
@@ -69,6 +69,8 @@ CI       34984709583 — SUCCESS
 - SheetJS Community Edition 0.20.3 is the selected Phase 5 XLSX byte-codec library, pinned to the exact upstream tarball.
 - SheetJS remains hidden behind the library-neutral `WorkbookCodec`.
 - Export determinism is canonical workbook semantic determinism for identical dataset + explicit metadata; exact ZIP-byte identity is not the business contract.
+- Current 5.2C import is current-version only; older-version migration remains 5.4A.
+- Import must reject orphan child rows and invalid child order sequences rather than silently dropping or reordering source evidence.
 - Tauri filesystem/dialog behavior remains Phase 6.
 
 ## Phase 5.1 — Persisted Dataset & Workbook Contract Foundation
@@ -143,39 +145,77 @@ Plan:
 Completion record:
 `docs/PHASE_5_2B_DETERMINISTIC_DATASET_TO_XLSX_EXPORT.md`
 
-Delivered:
+Delivered deterministic, schema-driven `BusinessDataset -> WorkbookNeutralDocument -> Uint8Array XLSX` export with pre-export 5.1C validation, all 13 canonical sheets, normalized child rows, explicit metadata, self-validation, source fidelity, and real-XLSX safety.
 
-- pure `BusinessDataset -> WorkbookNeutralDocument` mapping;
-- codec-composed `BusinessDataset -> Uint8Array XLSX` export;
-- pre-export Phase 5.1C dataset validation;
-- all 13 canonical sheets with schema-owned column order;
-- explicit `_Meta.exportedAt` injection with no hidden clock;
-- flattened Material source metadata and nullable pricing policy;
-- normalized MixPreset category/line and YieldSample input child sheets;
-- deterministic schema-driven primary/child row ordering;
-- generated-workbook schema self-validation before encoding;
-- exact missing/zero/null/false semantics;
-- high-precision numeric and ISO text fidelity;
-- formula-looking source text preserved as literal text through real SheetJS XLSX bytes;
-- controlled export errors without input mutation.
-
-Validation evidence:
+Final closeout:
 
 ```text
-First implementation head       a1811b499dd065d9c4f7783708f1c74abd92699d
-First implementation CI         35007528923 — SUCCESS
-Documented feature head         172f49c2a7e08c25a874593372953aab768c2885
-Documented feature CI           35007663915 — SUCCESS
 Implementation PR #143          MERGED
-PR CI                            35007802172 — SUCCESS
 Implementation merge            296960ee2f6e70999f4d279d59f977f4cf1c1d22
 Post-merge develop CI           35007932757 — SUCCESS
+Docs PR #144                    MERGED
+Final closeout develop          39ee7541b7de93e39d9963e5e1be1e80dcd07644
+Final closeout CI               35008520820 — SUCCESS
 86 test files / 1073 tests
 13 Phase 5.2B focused tests
 TypeScript typecheck passed
 Production Vite build passed
 117 modules transformed
 ```
+
+## Phase 5.2C — Strict XLSX-to-Dataset Import & Diagnostics
+
+Status: **PLAN ESTABLISHED — IMPLEMENTATION NOT STARTED**
+
+Dedicated plan:
+
+`docs/PHASE_5_2C_STRICT_XLSX_TO_DATASET_IMPORT_DIAGNOSTICS_PLAN.md`
+
+Planning base:
+
+```text
+develop  39ee7541b7de93e39d9963e5e1be1e80dcd07644
+CI       35008520820 — SUCCESS
+```
+
+### Split assessment
+
+5.2C does **not** require deeper formal numbered sub-phases.
+
+It remains one atomic fail-closed import gate with internal checkpoints for:
+
+1. byte decode, workbook schema, and current metadata/version validation;
+2. typed primary-sheet reconstruction;
+3. normalized child-sheet grouping, orphan detection, and exact `1..N` order integrity;
+4. Material source metadata and nullable pricing-policy reconstruction;
+5. complete candidate dataset validation through 5.1C;
+6. real-XLSX round-trip and deterministic malformed-workbook diagnostics.
+
+### Locked planning decisions
+
+- depend only on the library-neutral `WorkbookCodec`, not SheetJS APIs;
+- convert codec failures into controlled import diagnostics;
+- run the existing 5.1B workbook schema validator before typed reconstruction;
+- 5.2C accepts only the current workbook and dataset schema versions; migration remains 5.4A;
+- expose workbook metadata separately from BusinessDataset;
+- treat optional blank cells as absence while preserving explicit `0` and `false`;
+- rebuild Material.source only when at least one source metadata field is present;
+- rebuild nullable Product pricing policy from the validated paired fields;
+- reconstruct MixPreset categories/lines and YieldSample inputs by explicit 1-based order;
+- use trim-aware case-insensitive parent identity matching without rewriting authoritative parent IDs;
+- reject orphan child rows, duplicate order values, gaps, and sequences that do not start at one;
+- let 5.1C remain the owner of domain duplicate/reference/graph semantics after reconstruction;
+- never return an accepted dataset when any blocking codec/schema/metadata/reconstruction/dataset issue exists;
+- never mutate live repositories or application session state;
+- unknown extra sheets/columns remain non-authoritative and are ignored under the existing schema policy;
+- full hostile-file resource-limit/recovery hardening remains 5.4C;
+- successful 5.2B export -> real XLSX -> 5.2C import must be source-semantically equivalent.
+
+### Stop point
+
+This planning step contains no 5.2C source implementation.
+
+A separate implementation feature branch may be created only after this planning PR is merged, exact post-merge `develop` CI is green, and the user separately says to proceed.
 
 ## Current persistence boundary
 
@@ -185,7 +225,7 @@ Workbook schema contract              COMPLETE
 Dataset integrity validator           COMPLETE
 XLSX library / byte codec             COMPLETE — SheetJS CE 0.20.3
 Dataset -> workbook/XLSX export       COMPLETE
-Workbook -> dataset reconstruction    NOT STARTED — 5.2C
+Workbook -> dataset reconstruction    PLAN ESTABLISHED / IMPLEMENTATION NOT STARTED — 5.2C
 ExcelStorage.load/save                placeholder
 Repository snapshot/hydration         NOT STARTED — 5.3
 Native filesystem                     Phase 6
@@ -193,6 +233,6 @@ Native filesystem                     Phase 6
 
 ## Current active task
 
-**5.2C — Strict XLSX-to-Dataset Import & Diagnostics — NEXT / NOT STARTED**
+**5.2C — Strict XLSX-to-Dataset Import & Diagnostics — PLAN ESTABLISHED / IMPLEMENTATION NOT STARTED**
 
-5.2C must begin with its own dedicated scope/decomposition review and development plan from the exact final green 5.2B closeout baseline. Do not start 5.2C automatically as part of the 5.2B closeout.
+Do not begin 5.2C implementation until the dedicated planning PR is merged and exact post-merge `develop` CI is successful, followed by a separate user instruction to proceed.
