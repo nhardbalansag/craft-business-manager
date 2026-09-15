@@ -167,6 +167,7 @@ export function PricingPage() {
 
   const pricingConfigured = form.pricingMethod !== 'unconfigured';
   const pricingInputMax = form.pricingMethod === 'margin-percent' ? 99.999999 : undefined;
+  const editorDisabled = selectedProduct === null || saving;
 
   return (
     <section className="materials-workspace pricing-workspace">
@@ -285,116 +286,118 @@ export function PricingPage() {
             )}
           </div>
 
-          {!selectedProduct ? (
-            <div className="empty-state pricing-editor-empty">
-              <div className="empty-icon">₱</div>
-              <h3>No Product selected</h3>
-              <p>Select a Product from the catalog to configure its financial source profile.</p>
-            </div>
-          ) : (
-            <>
-              <div className={`pricing-profile-state ${selectedProfile ? 'configured' : 'missing'}`}>
-                <strong>{selectedProfile ? 'Configured source profile' : 'Not configured'}</strong>
-                <span>
-                  {selectedProfile
-                    ? 'These values are authoritative source inputs. Saving updates the same Product-keyed profile.'
-                    : 'No source profile exists yet. Enter labor and overhead explicitly; use 0 only when zero cost is intentional.'}
-                </span>
-              </div>
+          <div className={`pricing-profile-state ${selectedProfile ? 'configured' : 'missing'}`}>
+            <strong>
+              {!selectedProduct
+                ? 'No Product selected'
+                : selectedProfile
+                  ? 'Configured source profile'
+                  : 'Not configured'}
+            </strong>
+            <span>
+              {!selectedProduct
+                ? 'Select a Product from the catalog before entering or saving financial source values.'
+                : selectedProfile
+                  ? 'These values are authoritative source inputs. Saving updates the same Product-keyed profile.'
+                  : 'No source profile exists yet. Enter labor and overhead explicitly; use 0 only when zero cost is intentional.'}
+            </span>
+          </div>
 
-              <div className="form-grid pricing-form-grid">
-                <label className="field">
-                  <span>Labor cost per unit (PHP)</span>
-                  <input
-                    type="number"
-                    min="0"
-                    step="any"
-                    inputMode="decimal"
-                    value={form.laborCostPerUnit}
-                    onChange={(event) => {
-                      setForm({ ...form, laborCostPerUnit: event.target.value });
-                      setFeedback(null);
-                    }}
-                    placeholder="0.00"
-                  />
-                  <small>Explicit PHP cost for labor required to finish one sellable unit.</small>
-                </label>
+          <div className="form-grid pricing-form-grid">
+            <label className="field">
+              <span>Labor cost per unit (PHP)</span>
+              <input
+                type="number"
+                min="0"
+                step="any"
+                inputMode="decimal"
+                disabled={editorDisabled}
+                value={form.laborCostPerUnit}
+                onChange={(event) => {
+                  setForm({ ...form, laborCostPerUnit: event.target.value });
+                  setFeedback(null);
+                }}
+                placeholder="0.00"
+              />
+              <small>Explicit PHP cost for labor required to finish one sellable unit.</small>
+            </label>
 
-                <label className="field">
-                  <span>Overhead cost per unit (PHP)</span>
-                  <input
-                    type="number"
-                    min="0"
-                    step="any"
-                    inputMode="decimal"
-                    value={form.overheadCostPerUnit}
-                    onChange={(event) => {
-                      setForm({ ...form, overheadCostPerUnit: event.target.value });
-                      setFeedback(null);
-                    }}
-                    placeholder="0.00"
-                  />
-                  <small>Explicit PHP overhead assigned to one sellable unit.</small>
-                </label>
+            <label className="field">
+              <span>Overhead cost per unit (PHP)</span>
+              <input
+                type="number"
+                min="0"
+                step="any"
+                inputMode="decimal"
+                disabled={editorDisabled}
+                value={form.overheadCostPerUnit}
+                onChange={(event) => {
+                  setForm({ ...form, overheadCostPerUnit: event.target.value });
+                  setFeedback(null);
+                }}
+                placeholder="0.00"
+              />
+              <small>Explicit PHP overhead assigned to one sellable unit.</small>
+            </label>
 
-                <label className="field field-wide">
-                  <span>Pricing method</span>
-                  <select
-                    value={form.pricingMethod}
-                    onChange={(event) => updatePricingMethod(event.target.value as PricingMethodSelection)}
-                  >
-                    <option value="unconfigured">Not configured</option>
-                    <option value="profit-amount">Fixed profit amount</option>
-                    <option value="markup-percent">Markup percentage</option>
-                    <option value="margin-percent">Target margin percentage</option>
-                  </select>
-                  <small>
-                    Pricing may remain unconfigured while labor and overhead are still saved as known source values.
-                  </small>
-                </label>
+            <label className="field field-wide">
+              <span>Pricing method</span>
+              <select
+                disabled={editorDisabled}
+                value={form.pricingMethod}
+                onChange={(event) => updatePricingMethod(event.target.value as PricingMethodSelection)}
+              >
+                <option value="unconfigured">Not configured</option>
+                <option value="profit-amount">Fixed profit amount</option>
+                <option value="markup-percent">Markup percentage</option>
+                <option value="margin-percent">Target margin percentage</option>
+              </select>
+              <small>
+                Pricing may remain unconfigured while labor and overhead are still saved as known source values.
+              </small>
+            </label>
 
-                <label className="field field-wide">
-                  <span>{pricingValueLabel(form.pricingMethod)}</span>
-                  <input
-                    type="number"
-                    min="0"
-                    max={pricingInputMax}
-                    step="any"
-                    inputMode="decimal"
-                    disabled={!pricingConfigured}
-                    value={pricingConfigured ? form.pricingValue : ''}
-                    onChange={(event) => {
-                      setForm({ ...form, pricingValue: event.target.value });
-                      setFeedback(null);
-                    }}
-                    placeholder={form.pricingMethod === 'profit-amount' ? '25.00' : '25'}
-                  />
-                  <small>{pricingValueHelp(form.pricingMethod)}</small>
-                </label>
+            <label className="field field-wide">
+              <span>{pricingValueLabel(form.pricingMethod)}</span>
+              <input
+                type="number"
+                min="0"
+                max={pricingInputMax}
+                step="any"
+                inputMode="decimal"
+                disabled={editorDisabled || !pricingConfigured}
+                value={pricingConfigured ? form.pricingValue : ''}
+                onChange={(event) => {
+                  setForm({ ...form, pricingValue: event.target.value });
+                  setFeedback(null);
+                }}
+                placeholder={form.pricingMethod === 'profit-amount' ? '25.00' : '25'}
+              />
+              <small>{pricingValueHelp(form.pricingMethod)}</small>
+            </label>
 
-                <label className="field field-wide">
-                  <span>Notes (optional)</span>
-                  <textarea
-                    value={form.notes}
-                    onChange={(event) => {
-                      setForm({ ...form, notes: event.target.value });
-                      setFeedback(null);
-                    }}
-                    placeholder="Pricing assumptions, packaging notes, or review context"
-                  />
-                </label>
-              </div>
+            <label className="field field-wide">
+              <span>Notes (optional)</span>
+              <textarea
+                disabled={editorDisabled}
+                value={form.notes}
+                onChange={(event) => {
+                  setForm({ ...form, notes: event.target.value });
+                  setFeedback(null);
+                }}
+                placeholder="Pricing assumptions, packaging notes, or review context"
+              />
+            </label>
+          </div>
 
-              <div className="pricing-unit-guide" aria-label="Financial input units">
-                <div><strong>PHP</strong><span>Labor, overhead, and fixed-profit amounts are pesos per finished unit.</span></div>
-                <div><strong>%</strong><span>Markup and target-margin inputs are human percentages; the application stores canonical decimal rates.</span></div>
-              </div>
+          <div className="pricing-unit-guide" aria-label="Financial input units">
+            <div><strong>PHP</strong><span>Labor, overhead, and fixed-profit amounts are pesos per finished unit.</span></div>
+            <div><strong>%</strong><span>Markup and target-margin inputs are human percentages; the application stores canonical decimal rates.</span></div>
+          </div>
 
-              <button className="button button-primary button-full" type="submit" disabled={saving}>
-                {saving ? 'Saving financial profile…' : 'Save financial profile'}
-              </button>
-            </>
-          )}
+          <button className="button button-primary button-full" type="submit" disabled={editorDisabled}>
+            {saving ? 'Saving financial profile…' : 'Save financial profile'}
+          </button>
 
           {feedback && (
             <div className={`feedback ${feedback.type === 'error' ? 'feedback-error' : 'feedback-success'}`} role="status">
