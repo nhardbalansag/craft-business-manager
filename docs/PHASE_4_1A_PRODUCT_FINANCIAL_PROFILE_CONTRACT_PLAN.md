@@ -2,9 +2,9 @@
 
 ## Status
 
-**IMPLEMENTED — MERGE GATE PENDING**
+**COMPLETE**
 
-Authoritative base:
+Authoritative starting base:
 
 `develop` @ `691651f15156c1258a6f1ef75b43d53b6836a426`
 
@@ -20,57 +20,25 @@ Implementation record:
 
 `docs/PHASE_4_1A_PRODUCT_FINANCIAL_PROFILE_CONTRACT.md`
 
-Master plan:
-
-`docs/PHASE_4_PRICING_PRODUCTION_PLANNING_PLAN.md`
-
 ## Objective
 
-Establish the authoritative Phase 4 Product-level financial source contract without adding pricing formulas, repositories, application services, UI, persistence, or fully loaded costing.
-
-The source contract provides:
-
-- Product identity;
-- explicit labor cost per finished unit;
-- explicit overhead cost per finished unit;
-- explicitly configured-or-unconfigured pricing policy;
-- optional notes;
-- safe cloning and normalization;
-- future `BusinessDataset` inclusion.
+Establish the Phase 4 Product-level financial source contract while keeping Product recipe/composition identity clean and deferring repositories, formulas, fully loaded cost, UI, and persistence to their assigned later phases.
 
 ## Split assessment
 
-No deeper formal split is required.
+No deeper formal split was required.
 
-4.1A remains one cohesive domain-contract task. Repository/Product-reference existence and uniqueness remain 4.1C. Pricing-policy numeric ranges, selling-price formulas, and economic diagnostics remain 4.1B.
+4.1A remained one cohesive domain-contract task:
 
-## Delivered architecture
+1. dedicated pricing source types;
+2. ProductFinancialProfile source contract;
+3. clone/normalize/validation helpers;
+4. BusinessDataset financial-profile collection;
+5. focused contract tests.
 
-### Pricing source domain
+Product reference/uniqueness enforcement remains 4.1C. Pricing-policy numeric validation/formulas remain 4.1B.
 
-Added `src/domain/pricing.ts` with:
-
-```text
-PRICING_METHODS
-PricingMethod
-PricingPolicy
-isPricingMethod()
-clonePricingPolicy()
-```
-
-Supported methods:
-
-```text
-profit-amount
-markup-percent
-margin-percent
-```
-
-`src/domain/types.ts` now compatibility-re-exports the pricing types so existing generic costing code remains source-compatible.
-
-### ProductFinancialProfile
-
-Added `src/domain/productFinancialProfile.ts`:
+## Delivered source contract
 
 ```ts
 interface ProductFinancialProfile {
@@ -82,58 +50,33 @@ interface ProductFinancialProfile {
 }
 ```
 
-The Phase 2/3 `Product` contract remains unchanged.
+Locked semantics:
 
-### Missing versus explicit zero
+- missing profile is unresolved financial configuration;
+- explicit zero labor/overhead is known zero;
+- `pricingPolicy: null` is explicit unconfigured pricing;
+- Product itself receives no financial fields;
+- monetary values retain full precision;
+- blank source IDs are invalid;
+- negative/non-finite labor or overhead is invalid;
+- unsupported pricing method identifiers are invalid;
+- pricing policy value ranges remain 4.1B authority.
+
+## Delivered pricing source module
+
+`src/domain/pricing.ts` owns:
 
 ```text
-no profile
-= financial configuration unresolved
-
-profile { laborCostPerUnit: 0, overheadCostPerUnit: 0, ... }
-= labor and overhead explicitly known as zero
+PRICING_METHODS
+PricingMethod
+PricingPolicy
+isPricingMethod()
+clonePricingPolicy()
 ```
 
-`pricingPolicy: null` is the explicit unconfigured-pricing state.
+`src/domain/types.ts` retains compatibility re-exports.
 
-No default profile is invented.
-
-### 4.1A validation boundary
-
-The profile contract rejects:
-
-- blank Product ID;
-- non-finite labor;
-- negative labor;
-- non-finite overhead;
-- negative overhead;
-- unsupported pricing-method identifier.
-
-Explicit zero labor/overhead is valid.
-
-Pricing policy numeric-value validation intentionally remains 4.1B, including:
-
-- finite policy value;
-- non-negative fixed profit;
-- non-negative markup;
-- `0 <= target margin < 1`;
-- selling-price formulas;
-- diagnostic ratios.
-
-### Normalization and cloning
-
-`normalizeProductFinancialProfile()`:
-
-- trims Product ID;
-- trims notes;
-- omits blank notes;
-- preserves monetary precision;
-- preserves explicit null pricing policy;
-- clones configured nested policy data.
-
-`cloneProductFinancialProfile()` deep-clones the nested pricing policy when configured.
-
-### BusinessDataset
+## Dataset preparation
 
 `BusinessDataset` now includes:
 
@@ -141,139 +84,88 @@ Pricing policy numeric-value validation intentionally remains 4.1B, including:
 productFinancialProfiles: ProductFinancialProfile[]
 ```
 
-This is source-shape preparation only; Excel/Tauri persistence is not implemented.
+No Excel/Tauri persistence was added.
 
-## Files changed
-
-```text
-docs/PHASE_4_1A_PRODUCT_FINANCIAL_PROFILE_CONTRACT_PLAN.md
-src/domain/pricing.ts
-src/domain/pricing.test.ts
-src/domain/productFinancialProfile.ts
-src/domain/productFinancialProfile.test.ts
-src/domain/types.ts
-docs/PHASE_4_1A_PRODUCT_FINANCIAL_PROFILE_CONTRACT.md
-```
-
-## Test coverage
-
-Dedicated tests:
+## Test surface
 
 ```text
-src/domain/pricing.test.ts                  3 tests
-src/domain/productFinancialProfile.test.ts 18 tests
+18 ProductFinancialProfile tests
+3 pricing source-type tests
 ```
 
-Coverage includes:
+Coverage includes valid profiles, explicit zero values, null policy, invalid identity/money/method input, normalization, nested deep cloning, and BusinessDataset inclusion.
 
-- all supported pricing method identifiers;
-- unsupported runtime pricing method;
-- pricing-policy cloning;
-- positive financial profile;
-- explicit zero labor/overhead;
-- explicit null pricing policy;
-- blank Product identity;
-- non-finite/negative labor;
-- non-finite/negative overhead;
-- normalization of IDs/notes;
-- blank-note omission;
-- deep nested-policy cloning;
-- BusinessDataset financial-profile collection.
+## Validation evidence
 
-## Validation history
+Initial test-fixture type failure:
 
-### Initial implementation CI
+```text
+Head 87a83db3eb7cd52fa5783189582aea8df611350a
+CI 34932287493 — FAILED AT TYPECHECK
+```
 
-Head:
+Cause: deliberate invalid pricing method used a direct incompatible TypeScript assertion. The fixture was corrected to simulate corrupted runtime data through `unknown`; production code was unchanged.
 
-`87a83db3eb7cd52fa5783189582aea8df611350a`
+Corrected implementation:
 
-CI:
+```text
+Head 79c3f51f27b957721219a80a08078f603d7be214
+CI 34932357351 — SUCCESS
+```
 
-`34932287493 — FAILED AT TYPECHECK`
+Final documented feature head:
 
-The deliberate invalid-method test used a direct incompatible TypeScript assertion. The compiler correctly rejected that test fixture before runtime validation.
+```text
+8162732a7bbee01e92ce952c8c5d83a8b0d8041a
+CI 34932475789 — SUCCESS
+```
 
-Correction:
+Implementation PR:
 
-- cast the corrupted runtime fixture through `unknown`;
-- no production source change was required.
+```text
+PR #96 — MERGED
+PR CI 34932585076 — SUCCESS
+```
 
-### Corrected implementation CI
+Implementation merge:
 
-Head:
+```text
+cd520f581d96dbd0a3ed48d88a95e9b22f881af0
+Post-merge develop CI 34932640993 — SUCCESS
+```
 
-`79c3f51f27b957721219a80a08078f603d7be214`
-
-CI:
-
-`34932357351 — SUCCESS`
-
-Observed automated surface:
+Final observed implementation surface:
 
 ```text
 57 test files passed
 649 tests passed
-18 ProductFinancialProfile tests
-3 pricing source-type tests
 7 React smoke tests
 TypeScript typecheck passed
 production Vite build passed
-96 modules transformed
 ```
-
-## Scope retained
-
-4.1A does not implement:
-
-- Product existence/reference lookup;
-- one-profile-per-Product repository enforcement;
-- profile repository/service/session wiring;
-- pricing policy numeric-range validation;
-- selling-price derivation;
-- fully loaded Product cost;
-- safety-waste-adjusted pricing cost;
-- recursive Phase 4 child cost;
-- planned batch financials;
-- capacity warnings;
-- React pricing UI;
-- Excel/Tauri persistence.
-
-## Remaining lifecycle
-
-Completed:
-
-1. dedicated plan before source changes ✅
-2. pricing source-type domain ✅
-3. ProductFinancialProfile contract ✅
-4. BusinessDataset source collection ✅
-5. focused tests ✅
-6. corrected full branch CI ✅
-7. implementation record ✅
-
-Remaining:
-
-8. clean documented feature-head CI;
-9. scope compare against exact starting `develop`;
-10. implementation PR to `develop`;
-11. independent PR CI;
-12. merge with expected-head protection;
-13. exact post-merge `develop` CI;
-14. documentation-only closeout;
-15. mark 4.1A COMPLETE / 4.1B NEXT;
-16. closeout PR CI and exact final `develop` CI.
 
 ## Completion gate
 
-4.1A is complete only when all implementation and closeout gates pass and the repository tracker advances to:
+Satisfied:
+
+- dedicated Product financial profile exists ✅
+- pricing source types have dedicated Phase 4 domain home ✅
+- explicit zero versus missing semantics are clear ✅
+- negative/non-finite labor and overhead fail validation ✅
+- Product contract remains unchanged ✅
+- BusinessDataset includes financial-profile source collection ✅
+- 4.1B formula authority remains deferred ✅
+- feature CI / final head CI / PR CI / post-merge develop CI all green ✅
+
+Closeout advances the tracker to:
 
 ```text
 4.1A — Product Financial Profile Contract  COMPLETE
 4.1B — Pricing Formula & Validation Engine NEXT
 ```
 
-## Next task after completion
+## Next task
 
 **4.1B — Pricing Formula & Validation Engine — NEXT / NOT STARTED**
 
-Do not begin 4.1B until 4.1A is fully merged, closed out, and exact final `develop` CI is green.
+Do not begin 4.1B until the documentation-only closeout PR and exact final `develop` CI are green.
