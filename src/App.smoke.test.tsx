@@ -71,7 +71,7 @@ describe('React workspace smoke validation', () => {
     expect(html).toContain('Component ID');
     expect(html).toContain('Material source');
     expect(html).toContain('Quantity per parent');
-    expect(html).toContain('Nested composition preview');
+    expect(html).toContain('NESTED COMPOSITION PREVIEW');
     expect(html).toContain('Gift Box');
   });
 
