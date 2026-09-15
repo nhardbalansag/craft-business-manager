@@ -15,6 +15,8 @@ import { InMemoryProductComponentRepository } from './productComponents/InMemory
 import { MaterialBackedComponentCostService } from './productComponents/MaterialBackedComponentCostService';
 import { ProductBackedComponentCostService } from './productComponents/ProductBackedComponentCostService';
 import { ProductComponentService } from './productComponents/ProductComponentService';
+import { InMemoryProductFinancialProfileRepository } from './productFinancialProfiles/InMemoryProductFinancialProfileRepository';
+import { ProductFinancialProfileService } from './productFinancialProfiles/ProductFinancialProfileService';
 import { InMemoryProductRepository } from './products/InMemoryProductRepository';
 import { ProductService } from './products/ProductService';
 import { InMemoryProductStockRepository } from './productStocks/InMemoryProductStockRepository';
@@ -34,6 +36,7 @@ export const mixPresetRepository = new InMemoryMixPresetRepository();
 export const productRepository = new InMemoryProductRepository();
 export const productComponentRepository = new InMemoryProductComponentRepository();
 export const productStockRepository = new InMemoryProductStockRepository();
+export const productFinancialProfileRepository = new InMemoryProductFinancialProfileRepository();
 export const yieldSampleRepository = new InMemoryYieldSampleRepository();
 export const fixedRecipeItemRepository = new InMemoryFixedRecipeItemRepository();
 
@@ -50,6 +53,10 @@ export const productComponentService = new ProductComponentService(
 );
 export const productStockService = new ProductStockService(
   productStockRepository,
+  productRepository,
+);
+export const productFinancialProfileService = new ProductFinancialProfileService(
+  productFinancialProfileRepository,
   productRepository,
 );
 export const componentSourceAvailabilityService = new ComponentSourceAvailabilityService(
