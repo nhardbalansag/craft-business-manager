@@ -6,6 +6,7 @@ import type { Product } from './domain/products';
 import { CalibrationPage } from './ui/calibration/CalibrationPage';
 import { ProductComponentsView } from './ui/products/ProductComponentsView';
 import { ProductsPage } from './ui/products/ProductsPage';
+import { ProductStockView } from './ui/products/ProductStockView';
 import { ProductionPage } from './ui/production/ProductionPage';
 import { YieldPage } from './ui/yield/YieldPage';
 
@@ -31,14 +32,15 @@ describe('React workspace smoke validation', () => {
     expect(html).toContain('Add a weight-based material first');
   });
 
-  it('renders the Products, Mix Presets, and Components workspace without browser-side effects', () => {
+  it('renders the Products, Mix Presets, Components, and Finished stock workspace without browser-side effects', () => {
     const html = renderToStaticMarkup(<ProductsPage />);
 
-    expect(html).toContain('Products, mixes &amp; components');
+    expect(html).toContain('Products, mixes, components &amp; stock');
     expect(html).toContain('Add a product');
     expect(html).toContain('Sellable products');
     expect(html).toContain('Mix presets');
     expect(html).toContain('Components');
+    expect(html).toContain('Finished stock');
     expect(html).toContain('Safety waste (%)');
   });
 
@@ -73,6 +75,27 @@ describe('React workspace smoke validation', () => {
     expect(html).toContain('Quantity per parent');
     expect(html).toContain('NESTED COMPOSITION PREVIEW');
     expect(html).toContain('Gift Box');
+  });
+
+  it('renders the Finished component stock editor shell without browser-side effects', () => {
+    const product: Product = {
+      id: 'HEART',
+      name: 'Mini Heart',
+      category: 'paintable-art',
+      safetyWasteRate: 0,
+      isActive: true,
+    };
+
+    const html = renderToStaticMarkup(
+      <ProductStockView products={[product]} catalogLoading={false} />,
+    );
+
+    expect(html).toContain('FINISHED COMPONENT STOCK');
+    expect(html).toContain('Set current stock');
+    expect(html).toContain('Current finished stock (pc)');
+    expect(html).toContain('Whole pieces only. Unit is fixed to pc');
+    expect(html).toContain('Loading finished component stock…');
+    expect(html).toContain('Missing stock is unresolved; explicit 0 pc is known zero.');
   });
 
   it('renders the Phase 2 Yield recording and history workspace without browser-side effects', () => {
