@@ -19,9 +19,10 @@ import {
   type Product,
   type ProductCategory,
 } from '../../domain/products';
+import { ProductComponentsView } from './ProductComponentsView';
 import './products.css';
 
-type WorkspaceView = 'products' | 'mixes';
+type WorkspaceView = 'products' | 'mixes' | 'components';
 type ActiveFilter = 'active' | 'archived' | 'all';
 
 type ProductFormState = {
@@ -360,10 +361,10 @@ export function ProductsPage() {
     <section className="materials-workspace products-workspace">
       <div className="page-heading-row">
         <div>
-          <p className="eyebrow">PHASE 2 · PRODUCT FOUNDATION</p>
-          <h1>Products & mixes</h1>
+          <p className="eyebrow">PHASE 3 · PRODUCT COMPOSITION</p>
+          <h1>Products, mixes & components</h1>
           <p className="page-lead">
-            Define what you sell and the reusable material ratios behind production. Yield samples and production estimates are added in the next UI phases.
+            Define sellable Products, reusable material ratios, and the discrete Material/Product components used to assemble each Product.
           </p>
         </div>
         <div className="session-badge"><span className="status-dot" />Session workspace</div>
@@ -372,6 +373,7 @@ export function ProductsPage() {
       <div className="workspace-switcher" role="tablist" aria-label="Product workspace views">
         <button type="button" className={view === 'products' ? 'active' : ''} onClick={() => setView('products')}>Products</button>
         <button type="button" className={view === 'mixes' ? 'active' : ''} onClick={() => setView('mixes')}>Mix presets</button>
+        <button type="button" className={view === 'components' ? 'active' : ''} onClick={() => setView('components')}>Components</button>
       </div>
 
       {view === 'products' ? (
@@ -410,10 +412,10 @@ export function ProductsPage() {
                 })}</tbody></table>
               )}
             </div>
-            <div className="list-footer"><span>Product components/vessels are intentionally deferred to Phase 3.</span><span>{products.filter((item) => item.isActive).length} active</span></div>
+            <div className="list-footer"><span>Products may combine Phase 2 direct materials with Phase 3 discrete components.</span><span>{products.filter((item) => item.isActive).length} active</span></div>
           </div>
         </div>
-      ) : (
+      ) : view === 'mixes' ? (
         <div className="materials-layout product-layout">
           <form className="panel material-form" onSubmit={submitMix}>
             <div className="panel-heading"><div><p className="panel-kicker">RATIO LIBRARY</p><h2>{editingMixId ? 'Edit mix preset' : 'Add a mix preset'}</h2></div>{editingMixId && <button type="button" className="text-button" onClick={resetMixForm}>Cancel</button>}</div>
@@ -441,6 +443,8 @@ export function ProductsPage() {
             <div className="list-footer"><span>Preset ratios stay relative; Phase 1 handles material-specific normalization.</span><span>{mixPresets.filter((item) => item.isActive).length} active</span></div>
           </div>
         </div>
+      ) : (
+        <ProductComponentsView products={products} materials={materials} catalogLoading={loading} />
       )}
     </section>
   );
