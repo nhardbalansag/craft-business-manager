@@ -81,7 +81,9 @@ describe('ProductFinancialProfile contract', () => {
 
   it('rejects an unsupported pricing method without claiming policy-value authority', () => {
     const invalid = baseProfile({
-      pricingPolicy: { method: 'retail-price', value: 10 } as ProductFinancialProfile['pricingPolicy'],
+      pricingPolicy: { method: 'retail-price', value: 10 } as unknown as NonNullable<
+        ProductFinancialProfile['pricingPolicy']
+      >,
     });
 
     expectProfileError(invalid, 'INVALID_PRICING_METHOD');
