@@ -154,7 +154,12 @@ describe('PersistenceCoordinator Phase 5.3C2 export/save orchestration', () => {
       expect(error).toMatchObject({ stage: 'export', code: 'EXPORT_FAILED' });
       const cause = (error as PersistenceLifecycleOperationalError).causeValue;
       expect(cause).toBeInstanceOf(BusinessDatasetWorkbookExportError);
-      expect(cause).toMatchObject({ code: 'UNSUPPORTED_SCHEMA_VERSION' });
+      expect(cause).toMatchObject({
+        code: 'INVALID_DATASET',
+        datasetIssues: expect.arrayContaining([
+          expect.objectContaining({ code: 'UNSUPPORTED_SCHEMA_VERSION' }),
+        ]),
+      });
     }
   });
 
