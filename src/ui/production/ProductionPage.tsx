@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  assemblyCapacityTraceService,
   componentAwareProductCostService,
   materialService,
+  plannedBatchCapacityFeasibilityService,
   productService,
   productionRequirementService,
 } from '../../application/session';
 import type { ComponentAwareProductCostResult } from '../../application/productComponents/ComponentAwareProductCostService';
 import type { AssemblyCapacityTraceResult } from '../../application/production/AssemblyCapacityTraceService';
+import type { PlannedBatchCapacityFeasibilityResult } from '../../application/production/PlannedBatchCapacityFeasibilityService';
 import type { ProductionRequirementPlanResult } from '../../application/production/ProductionRequirementService';
 import type { Material } from '../../domain/materials';
 import type { Product } from '../../domain/products';
@@ -17,6 +18,7 @@ import {
   buildLimitingResourceRows,
   buildProductionIssueRows,
 } from './componentAwareProductionView';
+import { ProductionFinancialSummary } from './ProductionFinancialSummary';
 import './production.css';
 
 const peso = new Intl.NumberFormat('en-PH', {
@@ -53,6 +55,7 @@ export function ProductionPage() {
   const [plan, setPlan] = useState<ProductionRequirementPlanResult | null>(null);
   const [capacityTrace, setCapacityTrace] = useState<AssemblyCapacityTraceResult | null>(null);
   const [componentCost, setComponentCost] = useState<ComponentAwareProductCostResult | null>(null);
+  const [batchFeasibility, setBatchFeasibility] = useState<PlannedBatchCapacityFeasibilityResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [estimating, setEstimating] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -88,6 +91,7 @@ export function ProductionPage() {
       setPlan(null);
       setCapacityTrace(null);
       setComponentCost(null);
+      setBatchFeasibility(null);
       return;
     }
 
@@ -98,19 +102,21 @@ export function ProductionPage() {
     void Promise.all([
       productionRequirementService.plan(productId, quantity),
       componentAwareProductCostService.costProduct(productId),
-      assemblyCapacityTraceService.trace(productId),
+      plannedBatchCapacityFeasibilityService.assessBatch(productId, quantity),
     ])
-      .then(([nextPlan, nextCost, nextTrace]) => {
+      .then(([nextPlan, nextCost, nextBatchFeasibility]) => {
         if (cancelled) return;
         setPlan(nextPlan);
         setComponentCost(nextCost);
-        setCapacityTrace(nextTrace);
+        setBatchFeasibility(nextBatchFeasibility);
+        setCapacityTrace(nextBatchFeasibility.capacityTrace);
       })
       .catch((error) => {
         if (cancelled) return;
         setPlan(null);
         setCapacityTrace(null);
         setComponentCost(null);
+        setBatchFeasibility(null);
         setFeedback(errorMessage(error));
       })
       .finally(() => {
@@ -152,12 +158,6 @@ export function ProductionPage() {
     [plan, componentCost, capacityTrace],
   );
 
-  const exceedsCapacity = Boolean(
-    capacityTrace?.status === 'ready' &&
-    capacityTrace.overallAssemblyCapacity !== null &&
-    quantity > capacityTrace.overallAssemblyCapacity,
-  );
-
   const directBatchKnownCost = plan
     ? plan.requirements.reduce((total, requirement) => {
         const cost = directCostById.get(requirement.materialId.toLocaleLowerCase());
@@ -194,10 +194,10 @@ export function ProductionPage() {
     <section className="materials-workspace production-workspace">
       <div className="page-heading-row">
         <div>
-          <p className="eyebrow">PHASE 3 · PRODUCTION PLANNING</p>
+          <p className="eyebrow">PHASE 3 + 4 · PRODUCTION PLANNING</p>
           <h1>Component-aware production estimate</h1>
           <p className="page-lead">
-            Plan the parent&apos;s direct materials and discrete assembly components together, including current stock, component-aware cost, assembly capacity, tied limiters, and nested cost readiness.
+            Plan direct materials and discrete assembly components, then inspect physical batch cost, revenue, profit, margin, current capacity feasibility, and authoritative warnings for the same unchanged request.
           </p>
         </div>
         <div className="session-badge"><span className="status-dot" />Live derived estimate</div>
@@ -222,7 +222,7 @@ export function ProductionPage() {
             disabled={!productId}
             onChange={(event) => setPlannedQuantity(event.target.value)}
           />
-          <small>Direct-material safety waste applies only to parent-making materials, not discrete component counts.</small>
+          <small>The requested quantity is never silently reduced to current capacity.</small>
         </label>
         <div className="production-context">
           <strong>{selectedProduct?.name ?? 'Select a product'}</strong>
@@ -232,11 +232,13 @@ export function ProductionPage() {
 
       {!quantityValid && productId && <div className="feedback feedback-error">Planned quantity must be a non-negative whole number.</div>}
       {feedback && <div className="feedback feedback-error">{feedback}</div>}
-      {exceedsCapacity && (
-        <div className="production-warning">
-          Planned quantity exceeds current assembly capacity. Reduce the batch or replenish the limiting resources shown below.
-        </div>
-      )}
+
+      <ProductionFinancialSummary result={batchFeasibility} loading={estimating} />
+
+      <div className="production-phase3-divider">
+        <span>PHASE 3 INPUT &amp; CURRENT CAPACITY DETAIL</span>
+        <p>The detail below remains the physical/material trace behind the Phase 4 planning result.</p>
+      </div>
 
       <div className="production-summary-grid production-summary-grid-phase3">
         <article className="panel production-summary-card">
@@ -262,7 +264,7 @@ export function ProductionPage() {
         <article className="panel production-summary-card">
           <span>Planned input cost</span>
           <strong>{plannedInputCost !== null ? peso.format(plannedInputCost) : '—'}</strong>
-          <small>{plannedInputCost !== null ? (plannedInputCostComplete ? 'Complete waste-adjusted direct + discrete component inputs' : 'Known partial subtotal · unresolved inputs excluded') : 'Calculated from currently priceable input evidence'}</small>
+          <small>{plannedInputCost !== null ? (plannedInputCostComplete ? 'Phase 3 input-only diagnostic' : 'Known partial Phase 3 input subtotal') : 'Separate from Phase 4 planned production cost'}</small>
         </article>
       </div>
 
@@ -334,10 +336,7 @@ export function ProductionPage() {
                   <td><span className="component-role-pill">{roleLabel(row.role)}</span></td>
                   <td><strong>{number(row.quantityPerParent)} pc</strong></td>
                   <td><strong>{number(row.plannedQuantity)} pc</strong></td>
-                  <td>
-                    {row.availabilityState === 'missing' ? <strong className="component-state-missing">Missing ProductStock</strong> : row.availableQuantity !== null ? <strong>{number(row.availableQuantity)} pc</strong> : <strong>Unresolved</strong>}
-                    <span className="material-id">{row.availabilityState === 'zero' ? 'Explicit known zero' : statusLabel(row.availabilityStatus)}</span>
-                  </td>
+                  <td>{row.availabilityState === 'missing' ? <strong className="component-state-missing">Missing ProductStock</strong> : row.availableQuantity !== null ? <strong>{number(row.availableQuantity)} pc</strong> : <strong>Unresolved</strong>}<span className="material-id">{row.availabilityState === 'zero' ? 'Explicit known zero' : statusLabel(row.availabilityStatus)}</span></td>
                   <td>{row.capacityPieces !== null ? <><strong>{row.capacityPieces}</strong><span className="material-id">parent pieces</span></> : <><strong>—</strong><span className="material-id">{statusLabel(row.capacityStatus)}</span></>}</td>
                   <td>{row.unitCost !== null ? peso.format(row.unitCost) : 'Unpriced'}</td>
                   <td>{row.plannedCostContribution !== null ? peso.format(row.plannedCostContribution) : 'Unresolved'}</td>
