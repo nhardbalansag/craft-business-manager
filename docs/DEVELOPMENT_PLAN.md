@@ -10,142 +10,43 @@ The domain and application layers remain storage-agnostic so Excel persistence c
 
 - preserve user-entered/source evidence and derive normalized values;
 - use canonical internal units (`g`, `mL`, `pc`);
-- keep material-specific cross-dimension conversion behind calibration/manual evidence;
 - keep React behind application services rather than duplicating business rules in UI code;
-- keep derived costing/yield/capacity/pricing results out of authoritative persistence;
+- keep derived costing/yield/capacity/pricing outputs out of authoritative persistence;
 - keep workbook codec, dataset validation, repository hydration, and filesystem transport separate;
 - advance tasks only after feature CI, PR CI, guarded merge, and exact post-merge `develop` CI succeed.
 
----
-
-## Phase 0 — Repository & Architecture Foundation
-
-Status: **COMPLETE**
-
-Delivered React + TypeScript + Vite, branch strategy, storage abstraction, domain/application layering, Vitest, and GitHub Actions CI.
-
----
-
-## Phase 1 — Materials, Units & Calibration
-
-Status: **COMPLETE**
-
-Dedicated plan: `docs/PHASE_1_MATERIALS_UNITS_CALIBRATION_PLAN.md`
+## Phase status
 
 ```text
-1.1 Measurement & Conversion Foundation         COMPLETE
-1.2 Material Master Domain                      COMPLETE
-1.3 Purchase Costing & Inventory Quantity       COMPLETE
-1.4 Material-Specific Calibration               COMPLETE
-1.5 Supplier & Source Metadata                  COMPLETE
-1.6 Integration & Completion Gate               COMPLETE
+Phase 0 — Repository & Architecture Foundation                  COMPLETE
+Phase 1 — Materials, Units & Calibration                        COMPLETE
+Phase 2 — Product Recipes & Mold Yield                          COMPLETE
+Phase 3 — Product Components, Vessels & Nested Molded Products COMPLETE
+Phase 4 — Pricing & Production Planning                         COMPLETE
+Phase 5 — Excel Persistence                                     IN PROGRESS
+Phase 6 — Tauri Desktop Integration                             PLANNED
+Phase 7 — Reporting & Operational Polish                        PLANNED
 ```
 
-Phase 1 established canonical units/conversion, Material master/source metadata, package costing, inventory normalization/valuation, material-specific calibration/manual fallback, and Materials/Calibration workflows.
+## Phase 1–4 completion summary
 
----
+The completed business foundation includes:
 
-## Phase 2 — Product Recipes & Mold Yield
-
-Status: **COMPLETE**
-
-Planning baseline: `docs/PHASE_2_PRODUCT_RECIPES_MOLD_YIELD_PLAN.md`
-
-Completion tracker: `docs/PHASE_2_PROGRESS.md`
-
-Final completion record: `docs/PHASE_2_6B_REGRESSION_BUILD_COMPLETION.md`
-
-```text
-2.1 Product & Mix Foundation                    COMPLETE
-2.2 Yield Evidence & Per-Good-Piece Learning    COMPLETE
-2.3 Recipe Requirement Synthesis                COMPLETE
-2.4 Safety Waste & Inventory Capacity           COMPLETE
-2.5 Product / Yield / Production UI             COMPLETE
-2.6 Integration & Completion Gate               COMPLETE
-```
-
-Phase 2 established product categories, reusable MixPresets, immutable real-production yield evidence, learned per-good-piece requirements, fixed recipe items, safety waste, direct-material cost preview, physical batch rounding, stock-based direct-material capacity, and Product/Yield/Production workflows.
-
-Final Phase 2 gate:
-
-```text
-PR #58 merged
-Post-merge CI 34908149932 — SUCCESS
-38 test files / 349 tests
-```
-
----
-
-## Phase 3 — Product Components, Vessels & Nested Molded Products
-
-Status: **COMPLETE**
-
-Planning baseline: `docs/PHASE_3_PRODUCT_COMPONENTS_VESSELS_PLAN.md`
-
-Completion tracker: `docs/PHASE_3_PROGRESS.md`
-
-Final completion record: `docs/PHASE_3_6B_REGRESSION_BUILD_COMPLETION.md`
-
-```text
-3.1 Composition Foundation                      COMPLETE
-3.2 Finished Component Stock                    COMPLETE
-3.3 Component-Aware Cost Roll-Up                COMPLETE
-3.4 Component-Limited Assembly Capacity         COMPLETE
-3.5 Component / Stock / Production UI           COMPLETE
-3.6 Integration & Completion Gate               COMPLETE
-```
-
-Phase 3 established Material/Product-backed components, purchased and handmade vessels, Product graph cycle prevention, explicit ProductStock, recursive component cost roll-up, component-aware assembly capacity, tied limiter tracing, and component/stock/production workflows.
-
-Final Phase 3 gate:
-
-```text
-3.6B PR #93 merged
-Post-merge CI 34930387721 — SUCCESS
-55 test files / 628 tests
-```
-
----
-
-## Phase 4 — Pricing & Production Planning
-
-Status: **COMPLETE**
-
-Planning baseline: `docs/PHASE_4_PRICING_PRODUCTION_PLANNING_PLAN.md`
-
-Completion tracker: `docs/PHASE_4_PROGRESS.md`
-
-Final completion record: `docs/PHASE_4_6B_REGRESSION_BUILD_COMPLETION.md`
-
-```text
-4.1 Financial Profile & Pricing Policy Foundation       COMPLETE
-4.2 Fully Loaded Product Unit Cost                       COMPLETE
-4.3 Selling Price & Unit Economics                       COMPLETE
-4.4 Planned Batch Financials & Capacity                  COMPLETE
-4.5 Pricing & Production Planning UI                     COMPLETE
-4.6 Integration & Completion Gate                        COMPLETE
-```
-
-Phase 4 established Product financial profiles, fixed-profit/markup/target-margin pricing, recursively fully loaded production cost, selling-price/unit-economics metrics, Q-specific physical planned-batch financials, capacity feasibility/warnings, and Pricing/Production financial UI.
-
-Final Phase 4 gate:
-
-```text
-4.6B validation PR #128 merged
-Post-merge CI 34981363478 — SUCCESS
-81 test files / 986 tests
-```
-
-The existing Vite warning for a minified main chunk slightly above 500 kB is non-blocking and remains a future code-splitting/performance concern.
-
----
+- canonical unit conversion and material-specific calibration;
+- Material purchase costing, inventory and supplier/source metadata;
+- Product categories, MixPresets, real-production YieldSamples and fixed recipes;
+- safety waste, material-cost preview and inventory capacity;
+- Material/Product-backed components, vessels and nested Product graphs;
+- ProductStock, recursive component cost and component-aware capacity;
+- Product financial profiles, fully loaded cost and pricing policies;
+- planned-batch cost, revenue, profit, margin and capacity warnings;
+- React Materials, Products, Yield, Production and Pricing workflows.
 
 ## Phase 5 — Excel Persistence
 
 Status: **IN PROGRESS**
 
-Master plan: `docs/PHASE_5_EXCEL_PERSISTENCE_PLAN.md`
-
+Master plan: `docs/PHASE_5_EXCEL_PERSISTENCE_PLAN.md`  
 Live tracker: `docs/PHASE_5_PROGRESS.md`
 
 ```text
@@ -159,9 +60,12 @@ Live tracker: `docs/PHASE_5_PROGRESS.md`
     5.2B Deterministic Dataset-to-XLSX Export            COMPLETE
     5.2C Strict XLSX-to-Dataset Import & Diagnostics     COMPLETE
 
-5.3 Snapshot, Hydration & Persistence Coordination       NOT STARTED
-    5.3A Complete Source Snapshot Service                NEXT / NOT STARTED
-    5.3B Validated Atomic Dataset Hydration              NOT STARTED
+5.3 Snapshot, Hydration & Persistence Coordination       IN PROGRESS
+    5.3A Complete Source Snapshot Service                COMPLETE
+    5.3B Validated Atomic Dataset Hydration              IN PROGRESS
+        5.3B1 Hydration Replacement Port & Bulk Replace  COMPLETE
+        5.3B2 Validated Atomic Hydration + Rollback      NEXT / NOT STARTED
+        5.3B3 Session/Fault Injection/Completion Gate    NOT STARTED
     5.3C Persistence Coordinator / Load-Save Lifecycle   NOT STARTED
 
 5.4 Version Compatibility, Backup & Recovery Safety      NOT STARTED
@@ -173,9 +77,16 @@ Live tracker: `docs/PHASE_5_PROGRESS.md`
 
 **COMPLETE**
 
-Phase 5.1 established the complete versioned nine-collection `BusinessDataset`, the 13-sheet normalized workbook v1 contract, exact source representation and ordering rules, formula-cell rejection, and complete pre-hydration duplicate/reference/graph validation.
+Established:
 
-Final Phase 5.1 closeout:
+- versioned `BusinessDataset` covering all nine authoritative source collections;
+- 13-sheet normalized workbook v1 contract;
+- exact source representation and deterministic ordering rules;
+- formula-cell rejection and literal-text semantics;
+- complete pre-hydration duplicate/reference/graph validation;
+- missing-vs-zero/null semantics and no silent repair.
+
+Final closeout:
 
 ```text
 develop  7efef34fac309f9d9745631a54bc8a8ba404415f
@@ -183,150 +94,141 @@ CI       34998382050 — SUCCESS
 84 test files / 1048 tests
 ```
 
-### Phase 5.2A — XLSX Library Evaluation & Codec Boundary
+### Phase 5.2 — Bidirectional XLSX codec/mapping
 
 **COMPLETE**
 
-Plan: `docs/PHASE_5_2A_XLSX_LIBRARY_EVALUATION_CODEC_BOUNDARY_PLAN.md`  
-Completion record: `docs/PHASE_5_2A_XLSX_LIBRARY_EVALUATION_CODEC_BOUNDARY.md`
+Established:
 
-Delivered SheetJS Community Edition 0.20.3, library-neutral `WorkbookCodec`, in-memory byte encode/decode, formula-write rejection, inbound formula metadata detection, and 12 real-XLSX codec tests.
+- SheetJS CE 0.20.3 behind library-neutral `WorkbookCodec`;
+- in-memory `Uint8Array` XLSX encode/decode;
+- deterministic `BusinessDataset -> workbook -> XLSX` export;
+- strict `XLSX -> workbook -> BusinessDataset` import;
+- all 13 canonical sheets and normalized child reconstruction;
+- structured diagnostics and current-version fail-closed behavior;
+- real-XLSX source-semantic round trip;
+- no repository mutation in the import layer.
 
-```text
-PR #140                         MERGED
-Implementation merge            8468edf288b014a00f4f1529442fa043084f1102
-Post-merge CI                   35002844064 — SUCCESS
-Final closeout develop          c03cee3cacbf9ed5f6a7726d380df9b461725356
-Final closeout CI               35003583148 — SUCCESS
-```
-
-### Phase 5.2B — Deterministic Dataset-to-XLSX Export
-
-**COMPLETE**
-
-Plan: `docs/PHASE_5_2B_DETERMINISTIC_DATASET_TO_XLSX_EXPORT_PLAN.md`  
-Completion record: `docs/PHASE_5_2B_DETERMINISTIC_DATASET_TO_XLSX_EXPORT.md`
-
-Delivered the complete deterministic source export direction, including all 13 canonical sheets, explicit metadata, normalized child rows, missing/zero/null fidelity, schema self-validation, and real XLSX encoding.
+Latest Phase 5.2 implementation gate:
 
 ```text
-PR #143                         MERGED
-Implementation merge            296960ee2f6e70999f4d279d59f977f4cf1c1d22
-Post-merge CI                   35007932757 — SUCCESS
-Final closeout develop          39ee7541b7de93e39d9963e5e1be1e80dcd07644
-Final closeout CI               35008520820 — SUCCESS
-86 test files / 1073 tests
-```
-
-### Phase 5.2C — Strict XLSX-to-Dataset Import & Diagnostics
-
-**COMPLETE**
-
-Plan: `docs/PHASE_5_2C_STRICT_XLSX_TO_DATASET_IMPORT_DIAGNOSTICS_PLAN.md`  
-Completion record: `docs/PHASE_5_2C_STRICT_XLSX_TO_DATASET_IMPORT_DIAGNOSTICS.md`
-
-Delivered:
-
-- library-neutral XLSX-byte import via `WorkbookCodec`;
-- structured codec/schema/metadata/reconstruction/dataset diagnostics;
-- strict current-version metadata and schema gating;
-- reconstruction of all nine source collections;
-- Material supplier/source and nullable pricing-policy reconstruction;
-- normalized MixPreset/YieldSample child reconstruction;
-- trim-aware case-insensitive parent matching;
-- orphan, duplicate-order, gap, and non-1-starting child-order rejection;
-- final Phase 5.1C candidate validation;
-- real XLSX export/import source-semantic round-trip;
-- no repository/session mutation.
-
-Implementation evidence:
-
-```text
-PR #146                         MERGED
-PR CI                           35012225167 — SUCCESS
-Implementation merge            3cd2bb280ef463b2267cafbbd28b9b9aba1fb656
-Post-merge CI                   35012385953 — SUCCESS
+5.2C PR #146             MERGED
+5.2C merge               3cd2bb280ef463b2267cafbbd28b9b9aba1fb656
+5.2C post-merge CI       35012385953 — SUCCESS
 87 test files / 1091 tests
-18 Phase 5.2C focused tests
-TypeScript typecheck passed
-Production Vite build passed
-117 modules transformed
 ```
 
-### Phase 5.2 completion result
+### Phase 5.3A — Complete Source Snapshot Service
 
-The workbook codec/mapping layer is bidirectional and fail-closed:
+**COMPLETE**
+
+Provides one application-level, read-only snapshot of all nine authoritative repositories with centralized dataset schema version, deterministic top-level collection ordering, deep defensive ownership, missing/zero/null fidelity, and all-or-nothing failure behavior.
 
 ```text
-BusinessDataset -> WorkbookNeutralDocument -> XLSX bytes   COMPLETE
-XLSX bytes -> WorkbookNeutralDocument -> BusinessDataset   COMPLETE
+Planning PR #148         MERGED
+Implementation PR #149   MERGED
+Implementation merge     2d475f0eded6acafeb03830cba768b3d84cb078d
+Post-merge CI            35019082343 — SUCCESS
 ```
 
-### Current Phase 5 boundary
+### Phase 5.3B — Validated Atomic Dataset Hydration
+
+Parent plan:
+
+`docs/PHASE_5_3B_VALIDATED_ATOMIC_DATASET_HYDRATION_PLAN.md`
+
+5.3B is formally split into:
+
+```text
+5.3B1 — Hydration Replacement Port & Repository Bulk Replace
+5.3B2 — Validated Atomic Hydration + Rollback
+5.3B3 — Session/Fault Injection/Completion Gate
+```
+
+Locked architecture:
+
+- candidate dataset is complete replacement state, not a patch;
+- validate the complete dataset before writes;
+- snapshot current live source state before apply;
+- replace all nine repositories through persistence-only bulk replacement;
+- preserve repository object identity;
+- do not replay normal business CRUD services during hydration;
+- automatically rollback to the complete pre-hydration snapshot if apply fails;
+- distinguish safe restored apply failure from rollback failure;
+- never report rollback failure as successful hydration.
+
+#### 5.3B1 — COMPLETE
+
+Completion record:
+
+`docs/PHASE_5_3B1_HYDRATION_REPLACEMENT_PORT_BULK_REPLACE.md`
+
+Delivered `CollectionReplacementPort<T>` and staged whole-collection `replaceAll(...)` across all nine in-memory source repositories.
+
+```text
+Feature head               74e70a22b2a8b24cd1cb49f44f37502a1555b53b
+Feature CI                 35021376680 — SUCCESS
+Implementation PR #152     MERGED
+PR CI                      35021553326 — SUCCESS
+Implementation merge       6abd24123c3593582fdc4767bd486b319fc2ce2c
+Post-merge CI              35021692593 — SUCCESS
+89 test files / 1105 tests
+9 focused B1 tests
+```
+
+B1 guarantees staged cloned next-state Maps, stale-row removal, empty clearing, nested source isolation, repository identity preservation, and pre-swap failure safety.
+
+#### 5.3B2 — NEXT / NOT STARTED
+
+B2 must implement the application-level atomic hydration transaction:
+
+```text
+candidate
+  -> validateBusinessDatasetIntegrity(...)
+  -> clone hydration-owned candidate
+  -> CompleteSourceSnapshotService snapshot
+  -> replace all nine source collections
+  -> success
+
+apply failure
+  -> restore all nine collections from snapshot
+  -> controlled restored failure
+
+rollback failure
+  -> distinct severe rollback-failure result
+```
+
+Do not begin B2 until the B1 docs-only closeout is merged and exact final `develop` CI is green, followed by a separate user instruction.
+
+### Current persistence boundary
 
 ```text
 BusinessDataset contract             COMPLETE
 Workbook schema contract             COMPLETE
-Dataset semantic validator           COMPLETE
-XLSX library / byte codec            COMPLETE — SheetJS CE 0.20.3
-Dataset -> workbook/XLSX export      COMPLETE
-Workbook -> dataset reconstruction   COMPLETE
-Repository snapshot service          NOT STARTED — 5.3A
-Validated atomic hydration           NOT STARTED — 5.3B
+Dataset semantic validation          COMPLETE
+XLSX codec / bidirectional mapping   COMPLETE
+Complete source snapshot             COMPLETE — 5.3A
+Repository bulk replacement          COMPLETE — 5.3B1
+Atomic hydration + rollback          NEXT / NOT STARTED — 5.3B2
+Hydration session completion gate    NOT STARTED — 5.3B3
 Persistence coordinator/load-save    NOT STARTED — 5.3C
 ExcelStorage load/save               placeholder
+Backup/atomic transport              Phase 5.4B
 Native filesystem                    Phase 6
 ```
-
----
 
 ## Phase 6 — Tauri Desktop Integration
 
 Status: **PLANNED**
 
-Planned native file dialogs, application-data directory, backup folder, safe write/replace flow, and desktop packaging.
-
----
+Planned native dialogs, application-data directory, backup paths, safe file replacement, and desktop packaging.
 
 ## Phase 7 — Reporting & Operational Polish
 
 Status: **PLANNED**
 
-Planned dashboard, inventory valuation, profitability, material requirements, low-stock indicators, production history, and Excel report export.
+Planned dashboard, inventory valuation, profitability, material requirements, low-stock indicators, production history, and report export.
 
----
+## Current active task
 
-## Storage migration path
-
-```text
-React UI
-   ↓
-Application Services
-   ↓
-Domain
-   ↓
-Storage / Persistence Boundaries
-   ├── BusinessDataset ↔ Workbook mapping
-   ├── WorkbookCodec -> SheetJsWorkbookCodec
-   ├── ExcelStorage (later Phase 5 wiring)
-   └── SQLiteStorage (future)
-   ↓
-Tauri filesystem boundary (Phase 6)
-```
-
-No React component should read or write spreadsheet cells directly.
-
-## Current roadmap position
-
-**Phase 0 — COMPLETE**  
-**Phase 1 — COMPLETE**  
-**Phase 2 — COMPLETE**  
-**Phase 3 — COMPLETE**  
-**Phase 4 — COMPLETE**  
-**Phase 5 — IN PROGRESS**
-
-Current active task:
-
-**Phase 5.3A — Complete Source Snapshot Service — NEXT / NOT STARTED**
-
-5.3A must begin with a dedicated scope/decomposition review and development plan from the exact final green Phase 5.2C closeout baseline. Do not begin 5.3A implementation automatically as part of the 5.2C closeout.
+**Phase 5.3B2 — Validated Atomic Hydration + Rollback — NEXT / NOT STARTED**
