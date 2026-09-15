@@ -33,9 +33,9 @@ Planning post-merge CI:
     4.4B — Expected Revenue / Profit / Batch Margin       COMPLETE
     4.4C — Capacity Feasibility & Warning Synthesis       COMPLETE
 
-4.5 — Pricing & Production Planning UI                    NOT STARTED
-    4.5A — Product Financial Profile Editor               NEXT
-    4.5B — Unit Economics / Pricing Calculator UI         NOT STARTED
+4.5 — Pricing & Production Planning UI                    IN PROGRESS
+    4.5A — Product Financial Profile Editor               COMPLETE
+    4.5B — Unit Economics / Pricing Calculator UI         NEXT
     4.5C — Production Financial Summary & Warnings UI     NOT STARTED
 
 4.6 — Integration & Completion Gate                       NOT STARTED
@@ -114,6 +114,14 @@ Planning post-merge CI:
 - Fully ready limiter evidence preserves every tied typed limiting resource across direct Material requirements, Material-backed components, and Product-backed components without choosing a single winner.
 - 4.4C validates Product identity, active state, trace/synthesis identity and status, authoritative numeric capacity, and limiter-capacity consistency and fails closed on contradictions.
 - Capacity warnings are advisory only; 4.4C does not reserve/deduct inventory, create production orders, or persist derived capacity/feasibility data.
+- 4.5A is a dedicated top-level Pricing workspace; financial source fields are not mixed into the Product recipe/composition editor.
+- 4.5A consumes existing `productService` and `productFinancialProfileService` boundaries and sends all financial-profile writes through `ProductFinancialProfileService.upsertProfile(...)`; no repository/source array is mutated directly by the UI.
+- 4.5A keeps missing financial profiles visually distinct from explicit zero labor/overhead profiles; blank source inputs are never silently converted to known zero.
+- Archived Products remain selectable/editable in 4.5A because the completed 4.1C source contract keeps their financial profiles inspectable.
+- 4.5A presents fixed-profit values as PHP amounts and markup/target-margin values as human percentages while converting percentages to canonical decimal rates only at the UI boundary.
+- An unconfigured pricing policy remains an explicit supported UI state mapped to `pricingPolicy = null`; there is still no profile-delete/reset contract.
+- 4.5A validates required form text without clamping invalid source values; authoritative financial-profile/pricing domain validation remains the final write gate.
+- 4.5A reloads the authoritative Product financial profile after a successful save and introduces no unit-economics, batch-financial, or capacity-warning calculations that belong to 4.5B/4.5C.
 - Recursive and root component costing remains independent of ProductStock/current availability.
 - Observed yield defects are not re-applied.
 - Parent safety waste does not inflate discrete component counts.
@@ -567,12 +575,66 @@ Plan: `docs/PHASE_4_4C_CAPACITY_FEASIBILITY_WARNING_SYNTHESIS_PLAN.md`
 
 Record: `docs/PHASE_4_4C_CAPACITY_FEASIBILITY_WARNING_SYNTHESIS.md`
 
+### 4.5A — Product Financial Profile Editor
+
+**COMPLETE**
+
+Delivered:
+
+- dedicated top-level Pricing workspace separated from Product recipe/composition editing;
+- service-backed Product financial-profile source editing;
+- active / archived / all Product catalog filtering and name/ID search;
+- archived Product financial-profile inspection/editing;
+- explicit missing-profile versus known-zero labor/overhead presentation;
+- unconfigured, fixed-profit, markup-percentage, and target-margin-percentage policy controls;
+- explicit PHP labels for labor, overhead, and fixed profit;
+- human `%` presentation with canonical decimal-rate conversion at the UI boundary;
+- authoritative save/reload flow through `ProductFinancialProfileService`;
+- textual validation/success feedback without silent clamping;
+- responsive catalog/editor layout;
+- dedicated pure form-mapping regression tests and updated App smoke coverage;
+- no 4.5B unit-economics or 4.5C production-financial/capacity-warning leakage;
+- no application/domain/storage contract changes.
+
+Evidence:
+
+```text
+Starting develop                b9a0f67a4184c7dcb9552e319b032bc8a94ec3bf
+Starting develop CI             34961231327 — SUCCESS
+Plan-before-code commit         3a9c60eec6cac706d3a12d229791d72684810489
+Form-mapping helper commit      654adc19c491b6a51b8f287e1016a98a987d9318
+Focused form-test commit        080467876e1b86dd941a1b29bffd6e96d71a11fa
+PricingPage commit              e53d5ca6bd49c96b9e43b6c24c4b24d9559d6634
+Pricing styling commit          f2125f19bb5fa00508eb02f92d9034f4f7782ca5
+App navigation commit           7fe68c50912bfbe6082ffd5f9a33712e6b9d756d
+Editor-shell refinement         69f2830f475fea64b3241ddb26270448ba5eca6a
+Validated implementation head   8e8cdf8ac3cbede360b0212ac50421e398dce975
+Implementation CI               34962216103 — SUCCESS
+Implementation record commit    ff1e9b335d7e462d279daacc85f7b7b44b7fae6c
+Final feature head              bf458d9057e8045957c5612cbec997b19ba8ea50
+Final feature-head CI           34962405867 — SUCCESS
+PR #120                         MERGED
+PR CI                           34962602159 — SUCCESS
+Implementation merge            86268804911f3fc6a8f39adadf8ac16164f0e332
+Post-merge develop CI           34962679838 — SUCCESS
+78 test files / 955 tests
+13 Phase 4.5A form-mapping tests
+8 React workspace smoke tests
+TypeScript typecheck passed
+production Vite build passed
+112 modules transformed
+```
+
+Plan: `docs/PHASE_4_5A_PRODUCT_FINANCIAL_PROFILE_EDITOR_PLAN.md`
+
+Record: `docs/PHASE_4_5A_PRODUCT_FINANCIAL_PROFILE_EDITOR.md`
+
 ## Current active task
 
-**4.5A — Product Financial Profile Editor — NEXT / NOT STARTED**
+**4.5B — Unit Economics / Pricing Calculator UI — NEXT / NOT STARTED**
 
-Do not begin 4.5A implementation until:
+Do not begin 4.5B implementation until:
 
-1. this 4.4C documentation-only closeout is merged to `develop`;
+1. this 4.5A documentation-only closeout is merged to `develop`;
 2. exact final closeout `develop` CI is green;
-3. a dedicated 4.5A scope/split assessment and development plan are established before implementation.
+3. a dedicated 4.5B scope/split assessment and development plan are established before implementation.
