@@ -31,8 +31,8 @@ Planning baseline: `docs/PHASE_3_PRODUCT_COMPONENTS_VESSELS_PLAN.md`
     3.5C — Component-Aware Production Estimate UI         COMPLETE
 
 3.6 — Integration & Completion Gate                       IN PROGRESS
-    3.6A — Integrated Multi-Component Workflow            NEXT
-    3.6B — Regression / Build / Completion                NOT STARTED
+    3.6A — Integrated Multi-Component Workflow            COMPLETE
+    3.6B — Regression / Build / Completion                NEXT
 ```
 
 ## Locked planning decisions
@@ -57,6 +57,9 @@ Planning baseline: `docs/PHASE_3_PRODUCT_COMPONENTS_VESSELS_PLAN.md`
 - archived relevant ProductStock remains inspectable/correctable;
 - Production component counts do not inherit parent direct-material safety waste;
 - Production uses Phase 3 cost/capacity/trace services rather than recomputing authoritative formulas in React;
+- Phase 3 integration scenarios validate the real application service graph through isolated in-memory repositories;
+- ProductStock controls current Product-backed assembly capacity but does not alter recursive child Product cost;
+- transitive composition cycles are rejected through ProductComponentService before persistence;
 - no ProductStock delete/reset-to-missing shortcut exists without an application/domain contract;
 - no stock reservation, automatic deduction, or stock transaction ledger is introduced in Phase 3;
 - labor, overhead, selling price, markup, margin, and profit remain Phase 4;
@@ -87,8 +90,6 @@ Implementation records:
 ### 3.3 — Component-Aware Cost Roll-Up
 
 **COMPLETE**
-
-Latest completion evidence:
 
 ```text
 3.3C PR #77 merged
@@ -158,22 +159,6 @@ Implementation record: `docs/PHASE_3_5B_FINISHED_COMPONENT_STOCK_UI.md`
 
 #### 3.5C — Component-Aware Production Estimate UI
 
-**COMPLETE**
-
-Delivered:
-
-- Production now uses component-aware cost and current assembly-capacity services;
-- direct parent-making materials and discrete assembly components are explicitly separated;
-- purchased Material-backed and child Product-backed component requirements are shown;
-- current component availability, missing-versus-zero ProductStock, and per-component capacity are visible;
-- final direct + component assembly capacity is shown only when authoritative;
-- all tied typed limiting resources are shown;
-- component-aware Product cost, planned known input cost, nested recursive cost paths, and readiness issues are visible;
-- discrete component planned counts do not inherit parent safety waste;
-- no stock mutation/reservation/deduction, recursive make-to-order manufacture, Phase 4 pricing, or Phase 5 persistence leaked into scope.
-
-Evidence:
-
 ```text
 PR #89 merged
 implementation merge        1f2c5ee8a286104cfe0ac10a8b2fe8e414e92340
@@ -192,10 +177,50 @@ Development plan: `docs/PHASE_3_5C_COMPONENT_AWARE_PRODUCTION_ESTIMATE_UI_PLAN.m
 
 Implementation record: `docs/PHASE_3_5C_COMPONENT_AWARE_PRODUCTION_ESTIMATE_UI.md`
 
+### 3.6 — Integration & Completion Gate
+
+**IN PROGRESS**
+
+#### 3.6A — Integrated Multi-Component Workflow
+
+**COMPLETE**
+
+Delivered:
+
+- one isolated real-service integration harness matching the application session architecture;
+- purchased Glass Cup vessel scenario validating Material-backed cost, inventory, capacity, and limiter identity;
+- handmade Plaster Pot scenario validating recursive child Product cost and explicit ProductStock-limited capacity;
+- multi-mold event set validating three tied Product-backed limiters and component-only numeric cost evidence;
+- nested Gift Set > Candle > Handmade Pot scenario validating recursive totals and deterministic finite paths;
+- invalid `A -> B -> C -> A` scenario validating transitive-cycle rejection before persistence;
+- no production/domain/UI source changes were required.
+
+Evidence:
+
+```text
+Implementation test head     c3e6f2af4a1171c7cad95682caf4d75d02624a24
+Implementation CI            34929198360 — SUCCESS
+Final feature head           64aba880c07d6edd94026da804830fd6f2ab5b97
+Final feature-head CI        34929307992 — SUCCESS
+PR #91                       MERGED
+PR CI                        34929390004 — SUCCESS
+Implementation merge         f548fbe3cdbc792ca77aec85edd641879ada1ee4
+Post-merge develop CI        34929458894 — SUCCESS
+55 test files / 628 tests
+5 dedicated Phase 3.6A integration tests
+7 React workspace smoke tests
+TypeScript typecheck passed
+production build passed
+```
+
+Development plan: `docs/PHASE_3_6A_INTEGRATED_MULTI_COMPONENT_WORKFLOW_PLAN.md`
+
+Implementation record: `docs/PHASE_3_6A_INTEGRATED_MULTI_COMPONENT_WORKFLOW.md`
+
 ## Current active task
 
-**3.6A — Integrated Multi-Component Workflow — NEXT / NOT STARTED**
+**3.6B — Regression, Build & Phase 3 Completion — NEXT / NOT STARTED**
 
-Phase 3 remains **IN PROGRESS** until the 3.6 integration/completion gate is complete.
+Phase 3 remains **IN PROGRESS** until the final 3.6B regression/build/completion gate is fully validated and closed.
 
-Do not begin 3.6A until a dedicated development plan/scope review is established for that task.
+Do not begin 3.6B until a dedicated development plan/scope review is established for that task.
