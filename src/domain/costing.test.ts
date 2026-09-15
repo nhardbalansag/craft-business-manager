@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { PricingError } from './pricing';
 import {
   baseQuantityPerGoodPiece,
   costPerBaseUnit,
@@ -52,15 +53,25 @@ describe('costing primitives', () => {
     expect(totalUnitCost([18, -4, 3])).toBe(21);
   });
 
-  it('calculates fixed-profit, markup, and target-margin selling prices', () => {
+  it('delegates fixed-profit, markup, and target-margin prices to the Phase 4 engine', () => {
     expect(sellingPrice(37, { method: 'profit-amount', value: 30 })).toBe(67);
     expect(sellingPrice(100, { method: 'markup-percent', value: 0.5 })).toBe(150);
     expect(sellingPrice(100, { method: 'margin-percent', value: 0.25 })).toBeCloseTo(133.333333);
-    expect(sellingPrice(100, { method: 'margin-percent', value: 1 })).toBe(0);
   });
 
-  it('calculates profit per piece', () => {
+  it('fails closed for an invalid target margin instead of returning fake zero', () => {
+    expect(() => sellingPrice(100, { method: 'margin-percent', value: 1 })).toThrow(PricingError);
+  });
+
+  it('fails closed for a negative legacy pricing value instead of clamping it', () => {
+    expect(() => sellingPrice(100, { method: 'markup-percent', value: -0.25 })).toThrow(
+      PricingError,
+    );
+  });
+
+  it('delegates profit per piece to validated Phase 4 unit-profit behavior', () => {
     expect(profitPerPiece(37, 67)).toBe(30);
+    expect(() => profitPerPiece(-1, 10)).toThrow(PricingError);
   });
 
   it('calculates planned production totals using whole sellable pieces', () => {
