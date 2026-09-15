@@ -30,7 +30,7 @@ CI       34984709583 — SUCCESS
 
 5.2 — XLSX Workbook Codec                                 IN PROGRESS
     5.2A — XLSX Library Evaluation & Codec Boundary       COMPLETE
-    5.2B — Deterministic Dataset-to-XLSX Export           NEXT / NOT STARTED
+    5.2B — Deterministic Dataset-to-XLSX Export           PLAN ESTABLISHED / IMPLEMENTATION NOT STARTED
     5.2C — Strict XLSX-to-Dataset Import & Diagnostics    NOT STARTED
 
 5.3 — Snapshot, Hydration & Persistence Coordination      NOT STARTED
@@ -100,8 +100,6 @@ Plan:
 Completion record:
 `docs/PHASE_5_1A_PERSISTED_DATASET_SOURCE_INVENTORY_CONTRACT_COMPLETENESS.md`
 
-Delivered the complete nine-collection, versioned `BusinessDataset`, added `materialCalibrations`, established completeness/clone/normalize helpers, and preserved missing-vs-zero/null source semantics.
-
 Final closeout:
 
 ```text
@@ -117,8 +115,6 @@ Plan:
 
 Completion record:
 `docs/PHASE_5_1B_WORKBOOK_SCHEMA_SHEET_COLUMN_CONTRACTS.md`
-
-Delivered the library-independent 13-sheet workbook v1 schema, exact columns, normalized child relationships, canonical value representation, deterministic ordering, formula policy, and workbook-neutral structural diagnostics.
 
 Final closeout:
 
@@ -136,8 +132,6 @@ Plan:
 
 Completion record:
 `docs/PHASE_5_1C_DATASET_VALIDATION_REFERENCE_INTEGRITY.md`
-
-Delivered complete pre-hydration semantic validation across all nine collections, duplicate identity detection before repository construction, durable cross-references, Product graph integrity reuse, deterministic diagnostics, historical archived-state preservation, and no silent repair.
 
 Final closeout:
 
@@ -171,56 +165,28 @@ Dataset integrity contract
 Status: **COMPLETE**
 
 Plan:
-
 `docs/PHASE_5_2A_XLSX_LIBRARY_EVALUATION_CODEC_BOUNDARY_PLAN.md`
 
 Completion record:
-
 `docs/PHASE_5_2A_XLSX_LIBRARY_EVALUATION_CODEC_BOUNDARY.md`
 
-### Delivered
+Delivered SheetJS CE 0.20.3 selection, the library-neutral `WorkbookCodec`, the in-memory SheetJS adapter, formula-write protection, inbound formula metadata detection, and 12 focused real-XLSX codec tests.
 
-- selected **SheetJS Community Edition 0.20.3** after current maintenance/license/security/browser/byte/formula evaluation;
-- pinned the exact maintained upstream release tarball in `package.json`;
-- established `src/storage/workbookCodec.ts` as a library-neutral byte codec boundary;
-- implemented `src/storage/sheetJsWorkbookCodec.ts` as the SheetJS-only adapter;
-- proved fully in-memory XLSX encode/decode;
-- proved `Uint8Array` output and `Uint8Array | ArrayBuffer` input;
-- preserved worksheet order;
-- preserved formula-looking user strings as literal text;
-- prohibited authoritative formula writes;
-- surfaced inbound XLSX formulas as neutral metadata without evaluating them;
-- connected formula metadata to the existing `FORMULA_CELL_NOT_ALLOWED` workbook-schema policy;
-- added controlled codec errors;
-- introduced no filesystem/Tauri dependency;
-- added 12 focused real-XLSX codec tests;
-- left `BusinessDataset -> workbook` mapping, workbook reconstruction, and `ExcelStorage` runtime behavior for later tasks.
-
-### Validation history
+Final closeout:
 
 ```text
-Planning baseline               e5707cc297887a9817957c2ac658caeb18d42d21
-Planning baseline CI            35001226969 — SUCCESS
-Initial spike head              62feaef38bebbe52bc903f5b17da6572e5495550
-Initial spike CI                35002241556 — FAILURE (strict TS callback typing only)
-Corrected spike head            e1ae246b7d31c35330a2f1fb7d1624797700c004
-Corrected spike CI              35002380964 — SUCCESS
-Documented feature head         44a60d0032391ee99c6550fd4c6ae1b0d651ad94
-Documented feature CI           35002575999 — SUCCESS
-PR #140                         MERGED
-PR CI                           35002720788 — SUCCESS
-Implementation merge            8468edf288b014a00f4f1529442fa043084f1102
-Post-merge develop CI           35002844064 — SUCCESS
+Implementation PR #140           MERGED
+Implementation merge             8468edf288b014a00f4f1529442fa043084f1102
+Post-merge CI                    35002844064 — SUCCESS
+Docs PR #141                     MERGED
+Final closeout develop           c03cee3cacbf9ed5f6a7726d380df9b461725356
+Final closeout CI                35003583148 — SUCCESS
 85 test files / 1060 tests
 12 Phase 5.2A focused tests
-8 React workspace smoke tests
-7 Phase 4.6A integration tests
 TypeScript typecheck passed
 Production Vite build passed
 117 modules transformed
 ```
-
-The first 5.2A checkpoint failed only because one strict TypeScript callback parameter became implicit `any` after `Array.isArray` narrowing. The SheetJS package installation itself succeeded; typing was corrected without changing behavior.
 
 ### Current persistence boundary after 5.2A
 
@@ -240,8 +206,63 @@ Native filesystem                     Phase 6
 
 ---
 
+## Phase 5.2B — Deterministic Dataset-to-XLSX Export
+
+Status: **PLAN ESTABLISHED — IMPLEMENTATION NOT STARTED**
+
+Dedicated plan:
+
+`docs/PHASE_5_2B_DETERMINISTIC_DATASET_TO_XLSX_EXPORT_PLAN.md`
+
+Planning base:
+
+```text
+develop  c03cee3cacbf9ed5f6a7726d380df9b461725356
+CI       35003583148 — SUCCESS
+```
+
+### Split assessment
+
+5.2B does **not** require deeper formal numbered sub-phases.
+
+It remains one complete exporter gate with internal checkpoints for:
+
+1. explicit export metadata and controlled failure boundary;
+2. primary source-sheet mapping;
+3. normalized child-sheet mapping;
+4. canonical deterministic ordering;
+5. workbook-schema self-validation;
+6. real XLSX byte export through `WorkbookCodec`;
+7. shuffled-order and source-semantics regression.
+
+### Locked planning decisions
+
+- validate the complete dataset with 5.1C before serialization;
+- generate all 13 canonical sheets, including empty required sheets;
+- use Phase 5.1B schema metadata as the owner of sheet/column order;
+- normalize MixPreset categories/lines and YieldSample inputs into child sheets with 1-based workbook-only order fields;
+- preserve missing/zero/null/false semantics exactly;
+- flatten Material source metadata and Product pricing policy without inventing source evidence;
+- require `exportedAt` to be explicitly injected into the pure mapper rather than reading an ambient clock;
+- canonicalize top-level dataset array ordering while preserving child-array order through order columns;
+- define determinism as identical canonical workbook semantics for identical dataset + metadata, not unconditional byte-for-byte ZIP identity;
+- pass the generated neutral workbook through `assertWorkbookSchema(...)` before byte encoding;
+- depend only on the library-neutral `WorkbookCodec` from the exporter;
+- preserve formula-looking free text as literal text through real XLSX bytes;
+- preserve full source numeric precision and source ISO timestamp text;
+- do not export derived business outputs as authoritative source columns;
+- do not implement workbook import/reconstruction, repository hydration, `ExcelStorage` runtime wiring, UI, backup, or Tauri filesystem behavior.
+
+### Stop point
+
+This planning step contains no 5.2B source implementation.
+
+Implementation may begin only after the planning PR is merged to `develop`, exact post-merge CI is green, and the user separately says to proceed.
+
+---
+
 ## Current active task
 
-**5.2B — Deterministic Dataset-to-XLSX Export — NEXT / NOT STARTED**
+**5.2B — Deterministic Dataset-to-XLSX Export — PLAN ESTABLISHED / IMPLEMENTATION NOT STARTED**
 
-5.2B must begin separately from the exact final green 5.2A closeout baseline. Before implementation, perform its dedicated scope/decomposition review and create its development plan. Do not start 5.2B automatically as part of this closeout.
+Do not begin 5.2B implementation until this dedicated planning PR is merged and exact post-merge `develop` CI is successful, followed by a separate user instruction to proceed.
