@@ -20,9 +20,10 @@ import {
   type ProductCategory,
 } from '../../domain/products';
 import { ProductComponentsView } from './ProductComponentsView';
+import { ProductStockView } from './ProductStockView';
 import './products.css';
 
-type WorkspaceView = 'products' | 'mixes' | 'components';
+type WorkspaceView = 'products' | 'mixes' | 'components' | 'stock';
 type ActiveFilter = 'active' | 'archived' | 'all';
 
 type ProductFormState = {
@@ -362,9 +363,9 @@ export function ProductsPage() {
       <div className="page-heading-row">
         <div>
           <p className="eyebrow">PHASE 3 · PRODUCT COMPOSITION</p>
-          <h1>Products, mixes & components</h1>
+          <h1>Products, mixes, components & stock</h1>
           <p className="page-lead">
-            Define sellable Products, reusable material ratios, and the discrete Material/Product components used to assemble each Product.
+            Define sellable Products, reusable material ratios, discrete assembly components, and current finished component stock.
           </p>
         </div>
         <div className="session-badge"><span className="status-dot" />Session workspace</div>
@@ -374,6 +375,7 @@ export function ProductsPage() {
         <button type="button" className={view === 'products' ? 'active' : ''} onClick={() => setView('products')}>Products</button>
         <button type="button" className={view === 'mixes' ? 'active' : ''} onClick={() => setView('mixes')}>Mix presets</button>
         <button type="button" className={view === 'components' ? 'active' : ''} onClick={() => setView('components')}>Components</button>
+        <button type="button" className={view === 'stock' ? 'active' : ''} onClick={() => setView('stock')}>Finished stock</button>
       </div>
 
       {view === 'products' ? (
@@ -443,8 +445,10 @@ export function ProductsPage() {
             <div className="list-footer"><span>Preset ratios stay relative; Phase 1 handles material-specific normalization.</span><span>{mixPresets.filter((item) => item.isActive).length} active</span></div>
           </div>
         </div>
-      ) : (
+      ) : view === 'components' ? (
         <ProductComponentsView products={products} materials={materials} catalogLoading={loading} />
+      ) : (
+        <ProductStockView products={products} catalogLoading={loading} />
       )}
     </section>
   );
