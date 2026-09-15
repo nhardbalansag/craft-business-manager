@@ -9,6 +9,7 @@ import { RecursiveFullyLoadedProductComponentCostService } from './productCosts/
 import { WasteAdjustedDirectMaterialCostService } from './productCosts/WasteAdjustedDirectMaterialCostService';
 import { AssemblyCapacitySynthesisService } from './production/AssemblyCapacitySynthesisService';
 import { AssemblyCapacityTraceService } from './production/AssemblyCapacityTraceService';
+import { PhysicalPlannedBatchProductionCostService } from './production/PhysicalPlannedBatchProductionCostService';
 import { ProductionCapacityService } from './production/ProductionCapacityService';
 import { ProductionRequirementService } from './production/ProductionRequirementService';
 import { ComponentAwareProductCostService } from './productComponents/ComponentAwareProductCostService';
@@ -167,6 +168,11 @@ export const fullyLoadedProductUnitCostService = new FullyLoadedProductUnitCostS
   recursiveFullyLoadedProductComponentCostService,
   productFinancialProfileService,
 );
+export const physicalPlannedBatchProductionCostService =
+  new PhysicalPlannedBatchProductionCostService(
+    productionRequirementService,
+    fullyLoadedProductUnitCostService,
+  );
 export const sellingPriceDerivationService = new SellingPriceDerivationService(
   fullyLoadedProductUnitCostService,
   productFinancialProfileService,
