@@ -156,8 +156,8 @@ Live tracker: `docs/PHASE_5_PROGRESS.md`
 
 5.2 XLSX Workbook Codec                                  IN PROGRESS
     5.2A XLSX Library Evaluation & Codec Boundary        COMPLETE
-    5.2B Deterministic Dataset-to-XLSX Export            NEXT / NOT STARTED
-    5.2C Strict XLSX-to-Dataset Import & Diagnostics     NOT STARTED
+    5.2B Deterministic Dataset-to-XLSX Export            COMPLETE
+    5.2C Strict XLSX-to-Dataset Import & Diagnostics     NEXT / NOT STARTED
 
 5.3 Snapshot, Hydration & Persistence Coordination       NOT STARTED
 5.4 Version Compatibility, Backup & Recovery Safety      NOT STARTED
@@ -179,12 +179,10 @@ Phase 5.1 established:
 - deterministic sheet/column/row-order policy;
 - formula-cell rejection policy and literal-text semantics;
 - complete pre-hydration semantic validation;
-- duplicate identity detection before repository construction;
-- durable cross-reference validation;
+- duplicate identity and durable cross-reference validation;
 - Product composition source/self/cycle integrity;
 - deterministic structured diagnostics;
-- preservation of missing-vs-zero/null and legitimate historical archived relationships;
-- no silent repair or partial hydration.
+- preservation of missing-vs-zero/null and legitimate historical archived relationships.
 
 Final Phase 5.1 closeout:
 
@@ -198,58 +196,86 @@ CI       34998382050 — SUCCESS
 
 **COMPLETE**
 
-Plan:
-`docs/PHASE_5_2A_XLSX_LIBRARY_EVALUATION_CODEC_BOUNDARY_PLAN.md`
+Plan: `docs/PHASE_5_2A_XLSX_LIBRARY_EVALUATION_CODEC_BOUNDARY_PLAN.md`
 
-Completion record:
-`docs/PHASE_5_2A_XLSX_LIBRARY_EVALUATION_CODEC_BOUNDARY.md`
+Completion record: `docs/PHASE_5_2A_XLSX_LIBRARY_EVALUATION_CODEC_BOUNDARY.md`
 
 Delivered:
 
 - selected **SheetJS Community Edition 0.20.3**;
-- pinned exact upstream tarball `https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz` rather than stale public npm `xlsx`;
+- pinned exact upstream tarball rather than stale public npm `xlsx`;
 - established library-neutral `WorkbookCodec`;
-- implemented `SheetJsWorkbookCodec` as the only library-specific production adapter;
+- implemented `SheetJsWorkbookCodec`;
 - in-memory `Uint8Array` encode and `Uint8Array | ArrayBuffer` decode;
-- real `.xlsx` round-trip tests;
-- outbound formula-object rejection;
-- inbound formula metadata detection with no formula evaluation;
+- formula-write rejection and inbound formula metadata detection;
 - formula-looking strings preserved as literal text;
-- worksheet-order and primitive-cell behavior validated;
-- no filesystem/Tauri dependency;
-- 12 focused codec tests.
+- 12 focused real-XLSX codec tests.
+
+Final 5.2A closeout:
+
+```text
+Implementation PR #140           MERGED
+Implementation merge             8468edf288b014a00f4f1529442fa043084f1102
+Post-merge CI                    35002844064 — SUCCESS
+Docs PR #141                     MERGED
+Final closeout develop           c03cee3cacbf9ed5f6a7726d380df9b461725356
+Final closeout CI                35003583148 — SUCCESS
+85 test files / 1060 tests
+```
+
+### Phase 5.2B — Deterministic Dataset-to-XLSX Export
+
+**COMPLETE**
+
+Plan: `docs/PHASE_5_2B_DETERMINISTIC_DATASET_TO_XLSX_EXPORT_PLAN.md`
+
+Completion record: `docs/PHASE_5_2B_DETERMINISTIC_DATASET_TO_XLSX_EXPORT.md`
+
+Delivered:
+
+- pure `BusinessDataset -> WorkbookNeutralDocument` mapping;
+- complete source-dataset validation before export;
+- all 13 canonical sheets and schema-owned columns;
+- explicit export metadata with no hidden clock;
+- deterministic schema-driven row ordering;
+- normalized MixPreset/YieldSample child arrays with 1-based order columns;
+- flattened Material source metadata and nullable pricing policy;
+- generated-workbook schema self-validation;
+- real XLSX byte export through `WorkbookCodec` / SheetJS;
+- missing-vs-zero/null/false fidelity;
+- high-precision number and ISO timestamp preservation;
+- formula-looking source text preserved as literal text;
+- controlled exporter failures without source mutation;
+- 13 focused exporter tests.
 
 Implementation evidence:
 
 ```text
-PR #140                         MERGED
-Implementation merge            8468edf288b014a00f4f1529442fa043084f1102
-Post-merge CI                   35002844064 — SUCCESS
-85 test files / 1060 tests
-12 Phase 5.2A focused tests
-8 React workspace smoke tests
-7 Phase 4.6A integration tests
+Implementation PR #143          MERGED
+Implementation merge            296960ee2f6e70999f4d279d59f977f4cf1c1d22
+Post-merge CI                   35007932757 — SUCCESS
+86 test files / 1073 tests
+13 Phase 5.2B focused tests
+12 Phase 5.2A codec tests
+30 Phase 5.1C validation tests
+22 Phase 5.1B schema tests
 TypeScript typecheck passed
 Production Vite build passed
 117 modules transformed
 ```
 
-The selected codec is not yet connected to React or `ExcelStorage`, so SheetJS has not yet entered the application entry bundle. Re-measure bundle impact when persistence becomes application-reachable and consider deferred/dynamic loading.
-
 ### Current Phase 5 boundary
 
 ```text
 BusinessDataset contract             COMPLETE
-Workbook schema contract            COMPLETE
-Dataset semantic validator          COMPLETE
-XLSX library selection              COMPLETE — SheetJS CE 0.20.3
-Library-neutral byte codec          COMPLETE
-SheetJS in-memory adapter           COMPLETE
-Dataset -> workbook export          NOT STARTED — 5.2B
-Workbook -> dataset reconstruction  NOT STARTED — 5.2C
-ExcelStorage load/save              placeholder
-Repository snapshot/hydration       NOT STARTED — 5.3
-Native filesystem                   Phase 6
+Workbook schema contract             COMPLETE
+Dataset semantic validator           COMPLETE
+XLSX library / byte codec            COMPLETE — SheetJS CE 0.20.3
+Dataset -> workbook/XLSX export      COMPLETE
+Workbook -> dataset reconstruction   NOT STARTED — 5.2C
+ExcelStorage load/save               placeholder
+Repository snapshot/hydration        NOT STARTED — 5.3
+Native filesystem                    Phase 6
 ```
 
 ---
@@ -280,6 +306,7 @@ Application Services
 Domain
    ↓
 Storage / Persistence Boundaries
+   ├── Dataset ↔ Workbook mapping
    ├── WorkbookCodec -> SheetJsWorkbookCodec
    ├── ExcelStorage (later Phase 5 wiring)
    └── SQLiteStorage (future)
@@ -300,6 +327,6 @@ No React component should read or write spreadsheet cells directly.
 
 Current active task:
 
-**Phase 5.2B — Deterministic Dataset-to-XLSX Export — NEXT / NOT STARTED**
+**Phase 5.2C — Strict XLSX-to-Dataset Import & Diagnostics — NEXT / NOT STARTED**
 
-Do not begin 5.2B implementation until separately requested from the exact final green Phase 5.2A closeout baseline. Before implementation, perform a dedicated scope/decomposition review and create the 5.2B development plan.
+5.2C must receive its own dedicated scope/decomposition review and development plan from the exact final green 5.2B closeout baseline before implementation begins.
