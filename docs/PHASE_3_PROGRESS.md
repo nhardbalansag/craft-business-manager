@@ -12,8 +12,8 @@ Planning baseline: `docs/PHASE_3_PRODUCT_COMPONENTS_VESSELS_PLAN.md`
 
 3.2 — Finished Component Stock                            IN PROGRESS
     3.2A — Product Stock Contract & Validation            COMPLETE
-    3.2B — Product Stock Repository & Services            IMPLEMENTED — MERGE GATE
-    3.2C — Source Availability & Relationship Guards      NOT STARTED
+    3.2B — Product Stock Repository & Services            COMPLETE
+    3.2C — Source Availability & Relationship Guards      NEXT
 
 3.3 — Component-Aware Cost Roll-Up
     3.3A — Material-Backed Component Cost                 NOT STARTED
@@ -138,13 +138,11 @@ Development plan: `docs/PHASE_3_2A_PRODUCT_STOCK_PLAN.md`
 
 Implementation record: `docs/PHASE_3_2A_PRODUCT_STOCK_CONTRACT.md`
 
-## Implementation awaiting merge gate
-
 ### 3.2B — Product Stock Repository & Services
 
 - storage-agnostic `ProductStockRepository` added with list/find-by-Product/upsert operations;
 - defensive `InMemoryProductStockRepository` enforces one record per normalized Product identity;
-- `ProductStockService` adds set/set-record/get/list/filter behavior without React;
+- `ProductStockService` provides set/set-record/get/list/filter behavior without React;
 - all writes normalize/validate through 3.2A and resolve Product existence;
 - stored Product identity is canonicalized to the actual Product record ID;
 - archived Product stock remains inspectable/correctable and is not removed by Product archive operations;
@@ -153,12 +151,14 @@ Implementation record: `docs/PHASE_3_2A_PRODUCT_STOCK_CONTRACT.md`
 - `BusinessDataset.productStocks` added as authoritative source data;
 - shared `productStockRepository` / `productStockService` wired into `application/session.ts`;
 - dedicated 3.2B suite adds 10 tests;
-- full feature validation passes 43 test files / 404 tests, typecheck, and production build.
+- full validation passes 43 test files / 404 tests, typecheck, and production build.
 
-Feature evidence:
-- branch `feature/phase-3-2b-product-stock-services`;
-- authoritative base `develop` @ `badef95776f8ef4ce23edfdcee84210802dbc71f`;
-- feature CI run `34913228450` passed.
+Evidence:
+- PR #69 merged;
+- implementation merge commit `827217607ac53dc286c6f0e64110b5d93d8672fd`;
+- feature CI run `34913228450` passed;
+- PR CI run `34913387142` passed;
+- post-merge `develop` CI run `34913435571` passed.
 
 Development plan: `docs/PHASE_3_2B_PRODUCT_STOCK_REPOSITORY_SERVICES_PLAN.md`
 
@@ -166,6 +166,6 @@ Implementation record: `docs/PHASE_3_2B_PRODUCT_STOCK_REPOSITORY_SERVICES.md`
 
 ## Current active task
 
-**3.2B — Product Stock Repository & Services — merge/post-merge validation gate**
+**3.2C — Component Source Availability & Relationship Guards — NEXT / NOT STARTED**
 
-Do not start 3.2C until 3.2B is merged and exact post-merge `develop` CI is green.
+Do not begin 3.2C until a dedicated development plan/scope review is established for that task.
