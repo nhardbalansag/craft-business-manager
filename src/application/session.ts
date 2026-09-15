@@ -5,6 +5,7 @@ import { MaterialService } from './materials/MaterialService';
 import { InMemoryMixPresetRepository } from './mixPresets/InMemoryMixPresetRepository';
 import { MixPresetService } from './mixPresets/MixPresetService';
 import { CompleteSourceSnapshotService } from './persistence/CompleteSourceSnapshotService';
+import { ValidatedAtomicDatasetHydrationService } from './persistence/ValidatedAtomicDatasetHydrationService';
 import { FullyLoadedProductUnitCostService } from './productCosts/FullyLoadedProductUnitCostService';
 import { RecursiveFullyLoadedProductComponentCostService } from './productCosts/RecursiveFullyLoadedProductComponentCostService';
 import { WasteAdjustedDirectMaterialCostService } from './productCosts/WasteAdjustedDirectMaterialCostService';
@@ -61,6 +62,22 @@ export const completeSourceSnapshotService = new CompleteSourceSnapshotService({
   productStocks: productStockRepository,
   productFinancialProfiles: productFinancialProfileRepository,
 });
+
+export const validatedAtomicDatasetHydrationService =
+  new ValidatedAtomicDatasetHydrationService(
+    {
+      materials: materialRepository,
+      calibrations: calibrationRepository,
+      mixPresets: mixPresetRepository,
+      products: productRepository,
+      yieldSamples: yieldSampleRepository,
+      recipeItems: fixedRecipeItemRepository,
+      productComponents: productComponentRepository,
+      productStocks: productStockRepository,
+      productFinancialProfiles: productFinancialProfileRepository,
+    },
+    completeSourceSnapshotService,
+  );
 
 export const materialCalibrationEvidenceProvider = async (materialId: string) => {
   const records = await calibrationRepository.list();
