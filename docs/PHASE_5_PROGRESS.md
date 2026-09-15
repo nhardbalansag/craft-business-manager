@@ -23,13 +23,13 @@ CI       34984709583 — SUCCESS
 ## Live task map
 
 ```text
-5.1 — Persisted Dataset & Workbook Contract Foundation   IN PROGRESS
+5.1 — Persisted Dataset & Workbook Contract Foundation   COMPLETE
     5.1A — Source Inventory & Dataset Completeness        COMPLETE
     5.1B — Workbook Schema / Sheet / Column Contracts     COMPLETE
-    5.1C — Dataset Validation & Reference Integrity       PLAN ESTABLISHED / IMPLEMENTATION NOT STARTED
+    5.1C — Dataset Validation & Reference Integrity       COMPLETE
 
 5.2 — XLSX Workbook Codec                                 NOT STARTED
-    5.2A — XLSX Library Evaluation & Codec Boundary       NOT STARTED
+    5.2A — XLSX Library Evaluation & Codec Boundary       NEXT / NOT STARTED
     5.2B — Deterministic Dataset-to-XLSX Export           NOT STARTED
     5.2C — Strict XLSX-to-Dataset Import & Diagnostics    NOT STARTED
 
@@ -79,7 +79,7 @@ CI       34984709583 — SUCCESS
 - Concrete Tauri filesystem/dialog behavior remains Phase 6.
 - Unsupported future versions fail closed; migrations are explicit.
 - Round-trip validation must prove Phase 1–4 service-derived behavior remains equivalent after restore.
-- The concrete XLSX library remains deferred to 5.2A.
+- The concrete XLSX library remains deliberately deferred to 5.2A.
 
 ---
 
@@ -112,14 +112,6 @@ Completion evidence:
 ```text
 Starting develop                  5cf12188b8ec2d727aa5debe6a131a10168244ab
 Starting CI                       34984709583 — SUCCESS
-First implementation checkpoint   61728a3e62d58afa291b57e02fa288836801fda3
-First checkpoint CI               34985582449 — FAILURE
-Corrected implementation head     d9a87c7714e69dc0584a86dbb20f282dbeadaa4d
-Implementation CI                 34985739279 — SUCCESS
-Documented feature head           b03313fe3260d7b293241b291b836f962e49b07c
-Documented feature CI             34985914438 — SUCCESS
-PR #131                           MERGED
-PR CI                             34986078428 — SUCCESS
 Implementation merge              467341eafe36e37812eb65f4cd4683dd9153868b
 Post-merge CI                     34986286733 — SUCCESS
 Final closeout develop            8a1fdc2bbc5a24c20689c933b9964903d380e37c
@@ -158,13 +150,6 @@ Completion evidence:
 ```text
 Starting develop                  ad11e171ab7a49ea978372a3879222db8f6b112e
 Starting CI                       34988367766 — SUCCESS
-First implementation checkpoint   1416c41ae0a97e74ad8b152706906514d7f85c0c
-First checkpoint CI               34993126608 — FAILURE
-Corrected implementation head     7782d0ad7e77c6d52db928164ba9ae1facff4d55
-Corrected implementation CI       34993382846 — SUCCESS
-Documented feature head           fd45db3a23bf7d00fc51e65fd36c354d61f2c5a4
-Documented feature CI             34993513561 — SUCCESS
-PR #134                           MERGED
 Implementation merge              9b5ca56f8574f922218fafa18540e7b11606d4b9
 Post-merge CI                     34993623712 — SUCCESS
 Docs PR #135                      MERGED
@@ -179,126 +164,96 @@ Production Vite build passed
 117 modules transformed
 ```
 
-The first 5.1B checkpoint failed only on a TypeScript registry-construction cast; the corrected typed registry preserved the exact same workbook behavior.
-
 ---
 
 ## Phase 5.1C — Dataset Validation & Reference Integrity
 
-Status: **PLAN ESTABLISHED — IMPLEMENTATION NOT STARTED**
+Status: **COMPLETE**
 
-Dedicated plan:
+Plan:
 
 `docs/PHASE_5_1C_DATASET_VALIDATION_REFERENCE_INTEGRITY_PLAN.md`
 
-Planning base:
+Completion record:
+
+`docs/PHASE_5_1C_DATASET_VALIDATION_REFERENCE_INTEGRITY.md`
+
+Delivered:
+
+- pure complete-candidate `validateBusinessDatasetIntegrity(...)` boundary;
+- controlled structured diagnostics with collection/index/entity/field/path context;
+- authoritative row/source validation across all nine persisted collections;
+- intrinsic `validateMaterialCalibrationEvidence(...)` extraction preserving existing material-specific derivation semantics;
+- trim-aware, case-insensitive duplicate identity validation before repository hydration;
+- complete durable cross-reference validation across Materials, MixPresets, Products, yield evidence, recipes, components, stock, and financial profiles;
+- authoritative Phase 3 Product composition source-uniqueness/self/cycle validation reused rather than duplicated;
+- deterministic issue ordering;
+- archived historical relationships preserved when active-state restrictions are only live-edit eligibility rules;
+- missing-vs-zero/null semantics preserved without repair/defaulting;
+- invalid candidate rows are not silently dropped and the candidate is not mutated;
+- no XLSX, workbook reconstruction, repository hydration, ExcelStorage runtime, backup, UI, or Tauri behavior introduced.
+
+Completion evidence:
 
 ```text
-develop  656add851d6eeb6841f2f6e11816bbd52f5028c1
-CI       34994087842 — SUCCESS
+Starting develop                  9fc8c9b48ebc896e57e8e25e312e88f68f6af070
+Starting CI                       34995743207 — SUCCESS
+First implementation checkpoint   03dfb5ca8bb4089321df312c5b31e2a151dbbfe9
+First implementation CI           34997206352 — SUCCESS
+Documented feature head           de7e297e9654625c2a6162acbec822b470c0760a
+Documented feature-head CI        34997361899 — SUCCESS
+PR #137                           MERGED
+PR CI                             34997498206 — SUCCESS
+Implementation merge              95b6cb35a85dbc1e71a2b4d71bc3dba8de23b40a
+Post-merge develop CI             34997700828 — SUCCESS
+84 test files / 1048 tests
+30 Phase 5.1C focused tests
+8 React workspace smoke tests
+7 Phase 4.6A real-service integration tests
+TypeScript typecheck passed
+Production Vite build passed
+117 modules transformed
 ```
 
-### Split assessment
-
-5.1C does **not** require deeper formal numbered sub-phases.
-
-It remains one atomic complete-dataset acceptance gate with internal checkpoints for:
-
-1. envelope + per-record source contracts;
-2. duplicate identities;
-3. durable cross-references;
-4. Product component source uniqueness + graph/cycle integrity;
-5. deterministic structured diagnostics + regression.
-
-### Audit conclusions
-
-- validation must occur on raw candidate arrays before repository construction because normalized `Map` repositories can overwrite case-insensitive duplicate keys;
-- existing Phase 1–4 source/domain validators remain authoritative and should be reused rather than reimplemented;
-- `validateProductCompositionGraph(...)` remains the authoritative Product component source-uniqueness/self/cycle gate;
-- validation is whole-dataset, pure, side-effect-free, and independent from XLSX/React/repositories/Tauri;
-- live create/update services must **not** be replayed sequentially because their active-state rules are workflow eligibility rules and can reject legitimate historical/archived persisted source state;
-- persistence blockers include malformed source rows, duplicate canonical identities, missing durable references, invalid configured pricing policy, duplicate Product component source identity, self-reference, and cycles;
-- invalid candidates must return controlled deterministic diagnostics and must never be silently repaired or partially hydrated.
-
-### Planned implementation surface
-
-```text
-src/domain/businessDatasetValidation.ts
-src/domain/businessDatasetValidation.test.ts
-```
-
-Small behavior-preserving pure-validator extraction from an existing domain module is permitted only when a row contract is currently embedded inside derivation logic and cannot otherwise be reused safely.
-
-### Locked duplicate matrix
-
-```text
-Materials                 ID; name
-MaterialCalibrations      ID
-MixPresets                ID; name
-Products                  ID; name
-YieldSamples              ID
-RecipeItems               ID; (productId, materialId)
-ProductComponents         ID; parent/source identity via graph validator
-ProductStocks             productId
-ProductFinancialProfiles  productId
-```
-
-All comparisons are trim-aware and case-insensitive.
-
-### Locked durable reference matrix
-
-```text
-MaterialCalibration.materialId                   -> Material.id
-MixPreset.lines[].materialId                     -> Material.id
-Product.mixPresetId?                             -> MixPreset.id
-YieldSample.productId                            -> Product.id
-YieldSample.mixPresetId?                         -> MixPreset.id
-YieldSample.materialInputs[].materialId          -> Material.id
-FixedRecipeItem.productId                       -> Product.id
-FixedRecipeItem.materialId                      -> Material.id
-ProductComponent.parentProductId                -> Product.id
-ProductComponent(material).sourceId             -> Material.id
-ProductComponent(product).sourceId              -> Product.id
-ProductStock.productId                          -> Product.id
-ProductFinancialProfile.productId               -> Product.id
-```
-
-### Diagnostic contract direction
-
-The canonical validator should return a structured result with stable issue codes and paths such as:
-
-```text
-materials[2].id
-products[1].mixPresetId
-yieldSamples[4].materialInputs[0].materialId
-productComponents[3].sourceId
-```
-
-Future 5.2C may map these dataset paths to workbook sheet/row coordinates; 5.1C itself remains workbook-independent.
-
-### Stop point
-
-No 5.1C production/test implementation is included in this planning step.
-
-Implementation may begin only after this planning documentation is merged to `develop` and exact post-merge CI is green, followed by a separate user instruction to proceed.
+The existing Vite warning for the minified main JavaScript chunk slightly above 500 kB remains non-blocking and is unchanged in scope.
 
 ---
 
-## Current persistence foundation
+## Phase 5.1 completion result
+
+**Phase 5.1 — Persisted Dataset & Workbook Contract Foundation — COMPLETE**
+
+The persistence foundation now provides three distinct, testable layers:
 
 ```text
-BusinessDataset: 9 authoritative source collections
-Workbook schema: 13 canonical sheets
-Workbook structure validator: implemented
-Dataset semantic/reference validator: planned in 5.1C, not implemented yet
-ExcelStorage.load/save: intentional placeholders
-XLSX dependency: not selected/installed
-Repository hydration: not implemented
-Native filesystem: Phase 6
+BusinessDataset contract
+    9 authoritative source collections
+    versioned complete source envelope
+
+Workbook schema contract
+    13 canonical normalized sheets
+    exact sheet/column/representation rules
+
+Dataset integrity contract
+    complete pre-hydration source validation
+    duplicate/reference/graph diagnostics
+```
+
+Current boundaries remain intentional:
+
+```text
+ExcelStorage.load/save          placeholder
+XLSX dependency                 not selected/installed
+XLSX byte codec                 not implemented
+Workbook row reconstruction     not implemented
+Repository hydration            not implemented
+Native filesystem               Phase 6
 ```
 
 ## Current active task
 
-**5.1C — Dataset Validation & Reference Integrity — PLAN ESTABLISHED / IMPLEMENTATION NOT STARTED**
+**5.2A — XLSX Library Evaluation & Codec Boundary — NEXT / NOT STARTED**
 
-Do not begin 5.1C implementation until the dedicated planning PR is merged and exact post-merge `develop` CI is successful.
+5.2A must evaluate the concrete XLSX library and establish the codec boundary before any export/import implementation. It must remain browser/Tauri-compatible and filesystem-independent.
+
+Do **not** begin 5.2A implementation until separately requested from the exact final green 5.1C closeout baseline.
