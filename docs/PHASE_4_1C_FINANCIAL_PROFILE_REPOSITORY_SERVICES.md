@@ -2,13 +2,13 @@
 
 ## Status
 
-**IMPLEMENTED — MERGE GATE PENDING**
+**COMPLETE**
 
-Authoritative base:
+Authoritative starting base:
 
 `develop` @ `5189a074a71fa77098179ab1f7c858d6d82ac047`
 
-Feature branch:
+Implementation branch:
 
 `feature/phase-4-1c-financial-profile-repository-services`
 
@@ -16,7 +16,11 @@ Development plan:
 
 `docs/PHASE_4_1C_FINANCIAL_PROFILE_REPOSITORY_SERVICES_PLAN.md`
 
-## Delivered repository boundary
+## Delivered
+
+Phase 4.1C establishes the storage-agnostic application boundary for Product financial-profile source data.
+
+### Repository boundary
 
 Added:
 
@@ -25,23 +29,25 @@ src/application/productFinancialProfiles/ProductFinancialProfileRepository.ts
 src/application/productFinancialProfiles/InMemoryProductFinancialProfileRepository.ts
 ```
 
-Repository contract:
+Repository API:
 
-```ts
-interface ProductFinancialProfileRepository {
-  list(): Promise<ProductFinancialProfile[]>;
-  findByProductId(productId: string): Promise<ProductFinancialProfile | null>;
-  upsert(profile: ProductFinancialProfile): Promise<void>;
-}
+```text
+list()
+findByProductId(productId)
+upsert(profile)
 ```
 
-The in-memory repository uses a trimmed, case-insensitive Product identity key. One map entry therefore represents one Product financial profile identity.
+Semantics:
 
-Seed values, writes, individual reads, lists, and nested pricing-policy objects are defensively cloned.
+- trimmed/case-insensitive Product identity;
+- one profile per Product identity;
+- seed/write/read/list defensive cloning;
+- nested pricing-policy defensive cloning;
+- no delete/reset operation.
 
-No delete/reset contract was added. Missing profile remains a meaningful unresolved configuration state.
+Missing profile remains authoritative unresolved configuration evidence and stays distinct from an explicit zero-cost profile.
 
-## Delivered application service
+### Application service
 
 Added:
 
@@ -55,125 +61,77 @@ getProfile(productId)
 listProfiles(filter?)
 ```
 
-### Write validation sequence
+Writes:
 
-`upsertProfile()`:
+1. normalize the 4.1A source record;
+2. enforce the 4.1A ProductFinancialProfile contract;
+3. validate any configured pricing policy through the 4.1B engine;
+4. require an existing Product reference;
+5. canonicalize Product ID to the repository Product identity;
+6. upsert the normalized profile;
+7. return a defensive clone.
 
-1. normalizes through `normalizeProductFinancialProfile()`;
-2. enforces the Phase 4.1A profile source contract;
-3. validates any configured pricing policy through the Phase 4.1B `validatePricingPolicy()` engine;
-4. resolves the Product through `ProductRepository`;
-5. rejects missing Product references with typed `PRODUCT_NOT_FOUND` application error;
-6. canonicalizes `productId` to the exact Product repository identity;
-7. upserts the normalized source record;
-8. returns a defensive deep clone.
+Missing Product references fail with typed `ProductFinancialProfileApplicationError` / `PRODUCT_NOT_FOUND`.
 
-Profile-domain and pricing-domain validation errors intentionally propagate rather than being converted into generic application errors.
+4.1A `ProductFinancialProfileError` and 4.1B `PricingError` remain visible rather than being hidden behind a generic error.
 
-### Archived Product semantics
+### Archived Product policy
 
-An archived Product remains a valid existing Product identity.
+Archived Products remain existing identities. Their financial profiles remain readable and editable/correctable, and Product archival does not delete financial source data.
 
-Therefore financial profiles remain:
-
-- readable after archival;
-- editable/correctable after archival;
-- preserved rather than deleted by Product archival.
-
-This matches the historical source-record behavior already established by ProductStock.
-
-### Missing versus explicit zero
-
-The service preserves the Phase 4 evidence distinction:
-
-```text
-missing profile
-= unresolved financial configuration
-
-profile with labor=0 and overhead=0
-= explicit known zero adders
-```
-
-`pricingPolicy: null` remains an explicit valid unconfigured-pricing state.
-
-## Deterministic reads and listing
+### Deterministic reads/listing
 
 `listProfiles()` supports:
 
-```text
-productId filter
-query search
-```
+- Product ID filtering;
+- query search over Product ID, notes, and configured pricing method;
+- trimmed/case-insensitive identity matching;
+- deterministic Product-ID sorting.
 
-Product ID matching is trimmed/case-insensitive.
+### Shared session wiring
 
-Query searches:
-
-- Product ID;
-- notes;
-- configured pricing method.
-
-Results sort deterministically by Product ID using case-insensitive locale comparison.
-
-No Product display-name join was introduced because that belongs to later UI/view work.
-
-## Shared application session
-
-Updated:
-
-`src/application/session.ts`
-
-Added shared singleton exports:
+`src/application/session.ts` now exports:
 
 ```text
 productFinancialProfileRepository
 productFinancialProfileService
 ```
 
-The service uses the existing shared `productRepository`, so all future financial-profile writes validate against the same Product session state.
+The service shares the existing Product repository so future React writes have an application-service boundary instead of mutating source arrays directly.
 
-No React component directly mutates financial-profile source arrays/repository state.
-
-## Focused tests
-
-Added:
-
-```text
-src/application/productFinancialProfiles/ProductFinancialProfileService.test.ts
-src/application/productFinancialProfiles/ProductFinancialProfileSession.test.ts
-```
-
-Coverage includes:
-
-- one-profile-per-Product upsert identity;
-- Product ID canonicalization;
-- trimmed/case-insensitive Product lookup;
-- explicit zero labor/overhead;
-- missing profile versus explicit-zero profile;
-- null pricing policy;
-- valid configured pricing policy;
-- missing Product rejection;
-- archived Product read/correction;
-- Phase 4.1A source validation propagation;
-- Phase 4.1B pricing validation propagation;
-- notes normalization;
-- deterministic list/filter/search/sort;
-- Product ID search;
-- repository defensive cloning for seed/write/read/list;
-- nested pricing-policy cloning;
-- service defensive cloning;
-- case-insensitive seeded repository identity;
-- shared session wiring.
-
-## Validation evidence
+## Validation
 
 Implementation head:
 
 `29be0d69fcfc81867704a6d3b8878b923facb285`
 
-CI:
+Implementation CI:
 
 `34935572837 — SUCCESS`
+
+Final documented feature head:
+
+`c8a7152b5cbd44f2e47d50ed1ea828c1277f2c57`
+
+Final feature-head CI:
+
+`34935732585 — SUCCESS`
+
+Implementation PR:
+
+`#100 — Phase 4.1C — Financial Profile Repository & Application Services — MERGED`
+
+PR CI:
+
+`34935817685 — SUCCESS`
+
+Implementation merge:
+
+`ebf3ebfbd3e3279c1f108effd50ac936fe057d8f`
+
+Exact post-merge `develop` CI:
+
+`34935914716 — SUCCESS`
 
 Observed automated surface:
 
@@ -181,7 +139,7 @@ Observed automated surface:
 59 test files passed
 715 tests passed
 16 ProductFinancialProfile repository/service tests
-1 shared-session wiring test
+1 ProductFinancialProfile shared-session wiring test
 50 pricing engine tests
 18 ProductFinancialProfile domain tests
 7 React smoke tests
@@ -194,35 +152,32 @@ No implementation CI failure occurred.
 
 ## Scope retained
 
-4.1C did not add:
+4.1C did not implement:
 
-- financial-profile React UI;
+- React financial-profile editor;
 - fully loaded Product unit cost;
 - waste-adjusted pricing direct cost;
 - recursive Phase 4 child cost;
 - pricing quote/readiness orchestration;
-- physical planned batch financials;
+- physical batch financial planning;
 - capacity warning synthesis;
 - profile delete/reset semantics;
 - Excel persistence;
 - Tauri integration;
 - tax/VAT, discounts, marketplace fees, payroll/timekeeping, global overhead allocation, or accounting posting.
 
-## Merge gates remaining
+## Completion result
 
-1. Update development plan to implementation-complete / merge-gate-pending.
-2. Require clean final documented feature-head CI.
-3. Verify diff against exact starting `develop` is limited to 4.1C repository/service/tests/session/docs.
-4. Open implementation PR to `develop`.
-5. Require independent PR CI on unchanged expected head.
-6. Merge with expected-head protection.
-7. Require exact post-merge `develop` CI.
-8. Create documentation-only closeout.
-9. Mark 4.1C COMPLETE / 4.2A NEXT in `docs/PHASE_4_PROGRESS.md`.
-10. Require closeout PR CI and exact final `develop` CI.
+Phase 4.1C implementation and merge gates are complete. This documentation-only closeout advances the authoritative Phase 4 tracker to:
+
+```text
+4.1 — Financial Profile & Pricing Policy Foundation      COMPLETE
+4.2 — Fully Loaded Product Unit Cost                      IN PROGRESS
+    4.2A — Waste-Adjusted Direct-Material Unit Cost       NEXT
+```
 
 ## Next task
 
-**4.2A — Waste-Adjusted Direct-Material Unit Cost — NOT STARTED**
+**4.2A — Waste-Adjusted Direct-Material Unit Cost — NEXT / NOT STARTED**
 
-Do not begin 4.2A until all 4.1C merge/closeout gates pass.
+Do not begin 4.2A until this closeout is merged and exact final `develop` CI is green.
