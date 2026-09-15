@@ -4,6 +4,7 @@ import App from './App';
 import type { Material } from './domain/materials';
 import type { Product } from './domain/products';
 import { CalibrationPage } from './ui/calibration/CalibrationPage';
+import { PricingPage } from './ui/pricing/PricingPage';
 import { ProductComponentsView } from './ui/products/ProductComponentsView';
 import { ProductsPage } from './ui/products/ProductsPage';
 import { ProductStockView } from './ui/products/ProductStockView';
@@ -22,6 +23,7 @@ describe('React workspace smoke validation', () => {
     expect(html).toContain('Products');
     expect(html).toContain('Yield');
     expect(html).toContain('Production');
+    expect(html).toContain('Pricing');
   });
 
   it('renders the Calibration workspace without requiring browser-side effects', () => {
@@ -120,5 +122,20 @@ describe('React workspace smoke validation', () => {
     expect(html).toContain('Component-aware cost');
     expect(html).toContain('Nested component cost');
     expect(html).toContain('Issues to resolve');
+  });
+
+  it('renders the Phase 4 Product financial profile editor shell without browser-side effects', () => {
+    const html = renderToStaticMarkup(<PricingPage />);
+
+    expect(html).toContain('PHASE 4 · PRICING');
+    expect(html).toContain('Financial profiles');
+    expect(html).toContain('PRODUCT CATALOG');
+    expect(html).toContain('Search Products');
+    expect(html).toContain('Labor cost per unit (PHP)');
+    expect(html).toContain('Overhead cost per unit (PHP)');
+    expect(html).toContain('Pricing method');
+    expect(html).toContain('Not configured');
+    expect(html).toContain('Save financial profile');
+    expect(html).toContain('human percentages');
   });
 });

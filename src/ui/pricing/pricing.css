@@ -1,0 +1,159 @@
+.pricing-workspace { padding-top: 34px; }
+
+.pricing-source-note {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin: -6px 0 20px;
+  padding: 13px 15px;
+  border: 1px solid #e0d5c5;
+  border-radius: 14px;
+  background: #fff8ea;
+  color: #746248;
+  font-size: .84rem;
+  line-height: 1.5;
+}
+.pricing-source-note strong { color: #58462f; flex: 0 0 auto; }
+
+.pricing-layout {
+  display: grid;
+  grid-template-columns: minmax(320px, .82fr) minmax(440px, 1.18fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.pricing-catalog-panel,
+.pricing-editor-panel { min-width: 0; }
+.pricing-catalog-panel { overflow: hidden; }
+.pricing-editor-panel {
+  padding: 22px;
+  position: sticky;
+  top: 94px;
+}
+.pricing-panel-heading { padding: 22px 22px 0; }
+.pricing-panel-heading h2 { margin: 5px 0 0; font-size: 1.45rem; letter-spacing: -.025em; }
+
+.pricing-filters {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) 145px;
+  gap: 10px;
+  padding: 0 22px 18px;
+}
+
+.pricing-product-list {
+  display: grid;
+  gap: 9px;
+  max-height: 650px;
+  overflow-y: auto;
+  padding: 0 14px 16px;
+  border-top: 1px solid #e8e1d7;
+  background: #faf7f1;
+}
+.pricing-product-card {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 9px;
+  padding: 14px;
+  border: 1px solid #e0d8cd;
+  border-radius: 14px;
+  background: #fffdf8;
+  color: inherit;
+  text-align: left;
+}
+.pricing-product-card:hover { border-color: #bbae9f; }
+.pricing-product-card.selected {
+  border-color: #8d7459;
+  box-shadow: inset 0 0 0 1px #8d7459;
+  background: #fff;
+}
+.pricing-product-main {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.pricing-product-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.pricing-product-heading strong { color: #2d2924; }
+.pricing-product-main small { color: #837a70; line-height: 1.35; }
+
+.pricing-workspace .status-pill,
+.pricing-profile-pill {
+  width: fit-content;
+  display: inline-flex;
+  padding: 5px 8px;
+  border-radius: 999px;
+  font-size: .72rem;
+  font-weight: 850;
+  white-space: nowrap;
+}
+.pricing-workspace .status-pill { background: #ede8e0; color: #756b61; }
+.pricing-workspace .status-pill.status-active { background: #e8f1e6; color: #426340; }
+.pricing-profile-pill.configured { background: #e8f1e6; color: #426340; }
+.pricing-profile-pill.missing { background: #fff0d5; color: #7b5b2d; }
+
+.pricing-profile-state {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 18px;
+  padding: 13px 14px;
+  border: 1px solid #d9ded1;
+  border-radius: 13px;
+  background: #f4f7f0;
+  color: #596251;
+  font-size: .82rem;
+  line-height: 1.48;
+}
+.pricing-profile-state strong { color: #3f4938; }
+.pricing-profile-state.missing {
+  border-color: #ead7b7;
+  background: #fff8e9;
+  color: #78613e;
+}
+.pricing-profile-state.missing strong { color: #6b512c; }
+
+.pricing-form-grid { gap: 16px; }
+.pricing-unit-guide {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+  margin-top: 18px;
+}
+.pricing-unit-guide > div {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  padding: 11px 12px;
+  border: 1px solid #e2dbd0;
+  border-radius: 12px;
+  background: #faf7f1;
+  color: #736a60;
+  font-size: .78rem;
+  line-height: 1.45;
+}
+.pricing-unit-guide strong {
+  min-width: 31px;
+  color: #493f34;
+  font-size: .82rem;
+}
+.compact-pricing-empty { min-height: 310px; }
+.pricing-editor-empty { min-height: 360px; }
+
+@media (max-width: 1040px) {
+  .pricing-layout { grid-template-columns: 1fr; }
+  .pricing-editor-panel { position: static; }
+  .pricing-product-list { max-height: none; }
+}
+
+@media (max-width: 760px) {
+  .pricing-source-note { flex-direction: column; }
+  .pricing-filters,
+  .pricing-unit-guide { grid-template-columns: 1fr; }
+  .pricing-product-card { align-items: flex-start; flex-direction: column; }
+}
