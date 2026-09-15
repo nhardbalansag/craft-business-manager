@@ -137,6 +137,7 @@ describe('ProductFinancialProfile contract', () => {
     const dataset: BusinessDataset = {
       schemaVersion: 1,
       materials: [],
+      materialCalibrations: [],
       mixPresets: [],
       products: [],
       yieldSamples: [],
