@@ -2,6 +2,7 @@ import type { FixedRecipeItem } from './fixedRecipeItems';
 import type { Material } from './materials';
 import type { MixPreset, RatioBasis } from './mixPresets';
 import type { ProductComponent } from './productComponents';
+import type { ProductFinancialProfile } from './productFinancialProfile';
 import type { ProductStock } from './productStock';
 import type { Product, ProductCategory } from './products';
 import type { YieldSample } from './yieldSamples';
@@ -15,17 +16,12 @@ export type {
   ProductComponentSourceType,
   ProductComponentSourceType as ProductComponentSource,
 } from './productComponents';
+export type { ProductFinancialProfile } from './productFinancialProfile';
 export type { ProductStock } from './productStock';
+export type { PricingMethod, PricingPolicy } from './pricing';
 export type { Product, ProductCategory } from './products';
 export type { YieldSample, YieldSampleMaterialInput } from './yieldSamples';
 export type { BaseUnit, InputUnit } from './units';
-export type PricingMethod = 'profit-amount' | 'markup-percent' | 'margin-percent';
-
-/** Phase 4 scaffold retained for existing costing helpers; not part of the Phase 2 Product contract. */
-export interface PricingPolicy {
-  method: PricingMethod;
-  value: number;
-}
 
 export interface BusinessDataset {
   schemaVersion: number;
@@ -36,4 +32,5 @@ export interface BusinessDataset {
   recipeItems: FixedRecipeItem[];
   productComponents: ProductComponent[];
   productStocks: ProductStock[];
+  productFinancialProfiles: ProductFinancialProfile[];
 }
