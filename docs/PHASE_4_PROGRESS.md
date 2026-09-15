@@ -39,8 +39,8 @@ Planning post-merge CI:
     4.5C — Production Financial Summary & Warnings UI     COMPLETE
 
 4.6 — Integration & Completion Gate                       IN PROGRESS
-    4.6A — Integrated Pricing / Production Workflow       NEXT
-    4.6B — Regression / Build / Completion                NOT STARTED
+    4.6A — Integrated Pricing / Production Workflow       COMPLETE
+    4.6B — Regression / Build / Completion                NEXT
 ```
 
 ## Locked Phase 4 decisions
@@ -140,6 +140,11 @@ Planning post-merge CI:
 - 4.5C keeps the complete Phase 3 Production direct-material, component, current-capacity, limiter, readiness, and recursive-cost detail available below the Phase 4 summary.
 - The historical Phase 3 `plannedInputCost` remains an input-only diagnostic and is explicitly separate from the authoritative Phase 4 physical `plannedProductionCost`.
 - 4.5C adds no application/domain/storage contract and performs no inventory reservation/deduction, production-order mutation, accounting posting, Excel persistence, or Tauri persistence.
+- 4.6A is an integration-validation gate over the completed Phase 4 service graph, not a new pricing/cost/capacity feature boundary.
+- 4.6A uses fresh isolated in-memory repositories and real application services for every scenario; authoritative business formulas are not mocked or reimplemented in the integration fixture.
+- 4.6A proves paintable-art fixed-profit, purchased-vessel markup, handmade-child target-margin, multi-component tied-limiter, physical `pc` rounding, over-capacity/no-clamp, and fail-closed readiness workflows end to end.
+- 4.6A required zero production/domain/application behavior changes; the completed Phase 4 contracts passed the integration matrix as designed.
+- 4.6A confirms parent safety waste does not inflate discrete components, child retail economics do not enter parent production cost, physical batch profit uses physical cost, requested quantity is never auto-clamped, tied authoritative limiters are preserved, and missing evidence remains distinct from explicit zero.
 - Recursive and root component costing remains independent of ProductStock/current availability.
 - Observed yield defects are not re-applied.
 - Parent safety waste does not inflate discrete component counts.
@@ -750,12 +755,54 @@ Record: `docs/PHASE_4_5C_PRODUCTION_FINANCIAL_SUMMARY_WARNINGS_UI.md`
 
 Closeout: `docs/PHASE_4_5C_CLOSEOUT.md`
 
+### 4.6A — Integrated Pricing / Production Workflow
+
+**COMPLETE**
+
+Delivered:
+
+- one dedicated real-service Phase 4 integration matrix using fresh isolated in-memory repositories;
+- Scenario A: learned/fixed paintable-art costing, safety reserve, labor/overhead, and fixed PHP profit reconciliation;
+- Scenario B: purchased-vessel candle costing with parent safety reserve, non-inflated discrete vessel contribution, and markup economics;
+- Scenario C: handmade-pot recursive fully loaded production cost with child retail economics excluded from parent cost and target-margin parent pricing;
+- Scenario D: multi-component event-set quantity scaling with every tied Product-backed capacity limiter preserved;
+- Scenario E: direct `pc` final-batch rounding proving physical planned cost and physical batch profit can differ from standard unit-economics multiplication;
+- Scenario F: over-capacity planning that preserves requested quantity and ready financials while publishing exact overage/warnings and leaving source inventory unchanged;
+- Scenario G: missing-vs-zero financial evidence, unconfigured pricing, invalid margin rejection, and unresolved nested-child fail-closed propagation;
+- zero production/domain/application behavior changes required by the integration gate.
+
+Evidence:
+
+```text
+Starting develop                f74579ce155a2462c1edb8ba9478536fae9fa3ef
+Starting develop CI             34969616141 — SUCCESS
+Plan-before-code commit         365ab7233694b3aa31047bf9de40f3bc53efe8d1
+Validated implementation head   094fe4a631cb3ed8478798f8cc1bad0b93c39e72
+Implementation CI               34974785642 — SUCCESS
+Documented feature head         5d162a3f17abb14b1a7369d7cb102ca0f2c16db2
+Documented feature-head CI      34974955372 — SUCCESS
+PR #126                         MERGED
+PR CI                           34975093313 — SUCCESS
+Implementation merge            89e2f458be8e787dfe1f864d9dd9a998436ea0a5
+Post-merge develop CI           34975300493 — SUCCESS
+81 test files / 986 tests
+7 Phase 4.6A integration tests
+8 React workspace smoke tests
+TypeScript typecheck passed
+production Vite build passed
+117 modules transformed
+```
+
+Plan: `docs/PHASE_4_6A_INTEGRATED_PRICING_PRODUCTION_WORKFLOW_PLAN.md`
+
+Record: `docs/PHASE_4_6A_INTEGRATED_PRICING_PRODUCTION_WORKFLOW.md`
+
 ## Current active task
 
-**4.6A — Integrated Pricing / Production Workflow — NEXT / NOT STARTED**
+**4.6B — Regression / Build / Completion — NEXT / NOT STARTED**
 
-Do not begin 4.6A implementation until:
+Do not begin 4.6B implementation until:
 
-1. this 4.5C documentation-only closeout is merged to `develop`;
+1. this 4.6A documentation-only closeout is merged to `develop`;
 2. exact final closeout `develop` CI is green;
-3. a dedicated 4.6A scope/split assessment and development plan are established before implementation.
+3. a dedicated 4.6B scope/split assessment and development plan are established before implementation.
