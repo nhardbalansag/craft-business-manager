@@ -2,7 +2,7 @@
 
 ## Status
 
-**PLAN ESTABLISHED — IMPLEMENTATION NOT STARTED**
+**IMPLEMENTED — FEATURE VALIDATED — PR NOT YET MERGED**
 
 Authoritative starting base:
 
@@ -61,18 +61,18 @@ No deeper roadmap split is required.
 - the master plan explicitly defines one dedicated Product financial profile editor;
 - the new top-level Pricing navigation entry and the editor are inseparable parts of the same user workflow.
 
-Implementation will use ordinary checkpoints for UI view-model helpers, Pricing page, App navigation, tests, and documentation. These are not additional roadmap phases.
+Implementation uses ordinary checkpoints for UI view-model helpers, Pricing page, App navigation, tests, and documentation. These are not additional roadmap phases.
 
 ## Authoritative existing contracts
 
-4.5A must consume these existing shared application services:
+4.5A consumes these existing shared application services:
 
 ```text
 productService
 productFinancialProfileService
 ```
 
-The UI must not directly mutate:
+The UI does not directly mutate:
 
 - `productRepository`;
 - `productFinancialProfileRepository`;
@@ -101,9 +101,9 @@ productService.listProducts(...)
 
 ## New top-level Pricing workspace
 
-Add `pricing` to the App section/navigation contract and render a dedicated `PricingPage`.
+`pricing` is added to the App section/navigation contract and renders a dedicated `PricingPage`.
 
-The top-level nav should become conceptually:
+The top-level nav is conceptually:
 
 ```text
 Materials
@@ -116,37 +116,37 @@ Pricing
 
 The existing default Materials workspace remains unchanged.
 
-Do not add labor, overhead, or pricing fields to the Products recipe/composition editor.
+Labor, overhead, and pricing fields are not added to the Products recipe/composition editor.
 
-Recommended page heading:
+Page heading:
 
 ```text
 PHASE 4 · PRICING
 Financial profiles
 ```
 
-The page should clearly describe that the values are Product-level planning source data and that downstream prices/profit are derived elsewhere.
+The page explicitly describes these values as Product-level planning source data and states that downstream selling price/profit remain derived.
 
 ## Product selection and archived visibility
 
-The Pricing workspace must list Products from `productService`, including archived Products.
+The Pricing workspace lists Products from `productService`, including archived Products.
 
-Required behavior:
+Implemented behavior:
 
-- active Products remain the default visible filter;
+- active Products are the default visible filter;
 - user can switch among active / archived / all;
-- search should match Product name and Product ID;
-- archived Products must remain selectable and editable because the 4.1C contract preserves profiles for historical inspection/editing;
-- archived state must be visibly labeled;
-- 4.5A must not expose Product archive/activate actions.
+- search matches Product name and Product ID;
+- archived Products remain selectable and editable because the 4.1C contract preserves profiles for historical inspection/editing;
+- archived state is visibly labeled;
+- 4.5A exposes no Product archive/activate actions.
 
 Selecting a Product loads its current financial profile if one exists.
 
-If no profile exists, the editor must show an explicit **Not configured** state rather than silently pre-filling saved zero costs.
+If no profile exists, the editor shows an explicit **Not configured** state rather than silently pre-filling saved zero costs.
 
 ## Form state and missing-versus-zero semantics
 
-Introduce a UI-only form state using strings so blank input remains distinguishable from numeric zero:
+The UI-only form state uses strings so blank input remains distinguishable from numeric zero:
 
 ```text
 laborCostPerUnit: string
@@ -166,7 +166,7 @@ pricingValue = ''
 notes = ''
 ```
 
-Do **not** initialize missing profile labor/overhead to `0`, because that would visually erase the source distinction between missing configuration and explicit zero.
+Missing profile labor/overhead are never initialized to `0`, because that would visually erase the source distinction between missing configuration and explicit zero.
 
 A user may intentionally enter:
 
@@ -179,7 +179,7 @@ and save that as authoritative known-zero source data.
 
 ## Pricing-method controls
 
-Expose these UI choices:
+Implemented UI choices:
 
 ```text
 Not configured
@@ -191,27 +191,27 @@ Target margin percentage
 Mapping:
 
 ```text
-Not configured          -> pricingPolicy = null
-Fixed profit amount     -> method = profit-amount
-Markup percentage       -> method = markup-percent
-Target margin percentage-> method = margin-percent
+Not configured           -> pricingPolicy = null
+Fixed profit amount      -> method = profit-amount
+Markup percentage        -> method = markup-percent
+Target margin percentage -> method = margin-percent
 ```
 
 When pricing is unconfigured:
 
 - no policy value is required;
-- disable/hide the policy-value input as appropriate;
+- the policy-value input is disabled;
 - saving still requires explicit labor and overhead source values.
 
 When a pricing method is configured, its value is required.
 
 ## PHP amount versus percentage semantics
 
-The UI must make units unambiguous.
+The UI makes units explicit.
 
 ### Fixed profit amount
 
-Display/input as PHP amount:
+Display/input:
 
 ```text
 Profit per unit (PHP)
@@ -228,7 +228,7 @@ Markup (%)
 Target margin (%)
 ```
 
-Convert at the UI boundary:
+UI-boundary conversion:
 
 ```text
 humanPercent / 100 = canonical decimal rate
@@ -241,71 +241,69 @@ Examples:
 25% -> 0.25
 ```
 
-When editing an existing profile, convert canonical decimal rates back to human percentage display:
+When editing an existing profile, canonical decimal rates are converted back for display:
 
 ```text
 canonicalRate * 100
 ```
 
-No rounding should be introduced beyond normal string representation. The authoritative domain remains full precision.
+No fixed currency/percentage rounding is introduced by the form mapper. The authoritative domain remains full precision.
 
 ## Form conversion helper boundary
 
-Create a small pure UI/view-model helper module so percentage conversion and missing/zero behavior can be tested without introducing a browser DOM testing dependency.
-
-Recommended module:
+Implemented:
 
 `src/ui/pricing/productFinancialProfileForm.ts`
 
-Recommended exports may include:
+Exports include:
 
 ```text
 ProductFinancialProfileFormState
-EMPTY_PRODUCT_FINANCIAL_PROFILE_FORM
+PricingMethodSelection
+ProductFinancialProfileFormError
+createEmptyProductFinancialProfileForm(...)
 productFinancialProfileToForm(...)
 productFinancialProfileFormToSource(...)
 pricingValueLabel(...)
-pricingValueUnit(...)
+pricingValueHelp(...)
 ```
 
-The conversion helper must:
+The conversion helper:
 
-- preserve explicit zero values;
-- reject blank labor/overhead before save with clear form feedback;
-- reject blank configured policy value before save;
-- parse finite numeric text without silently replacing invalid input;
-- map percentage values to canonical decimal rates;
-- map canonical percentage rates back to human percentages;
-- trim optional notes;
-- never derive price/profit.
+- preserves explicit zero values;
+- rejects blank labor/overhead before save with clear form feedback;
+- rejects blank configured policy value before save;
+- rejects non-finite numeric text instead of coercing it;
+- maps percentage values to canonical decimal rates;
+- maps canonical percentage rates back to human percentages;
+- trims optional notes;
+- never derives selling price or profit.
 
-Domain/application validation still remains authoritative and must run through `upsertProfile` on every write.
+Domain/application validation remains authoritative and still runs through `upsertProfile` on every write.
 
 ## Editor save behavior
 
-On submit:
+Implemented submit flow:
 
 1. require a selected Product;
-2. convert the UI form to `ProductFinancialProfile` source shape;
+2. convert UI form to `ProductFinancialProfile` source shape;
 3. call `productFinancialProfileService.upsertProfile(...)`;
-4. surface domain/application validation errors through user-readable feedback;
-5. reload authoritative profile state after success;
+4. surface domain/application validation errors as textual feedback;
+5. reload the authoritative profile with `getProfile(...)` after success;
 6. preserve the selected Product;
 7. show a clear success message.
 
-There is no delete/reset operation because the completed 4.1C source contract intentionally does not define profile deletion.
+There is no delete/reset operation because the completed 4.1C source contract intentionally defines no profile deletion.
 
-To make pricing unconfigured while keeping known labor/overhead source values, save:
+To make pricing unconfigured while keeping known labor/overhead source values, the editor saves:
 
 ```text
 pricingPolicy = null
 ```
 
-## Recommended PricingPage layout
+## PricingPage layout
 
-Use the existing visual system and generic panel/form classes.
-
-Suggested desktop structure:
+Implemented desktop structure:
 
 ```text
 Pricing workspace heading
@@ -313,49 +311,51 @@ Pricing workspace heading
 [ Product catalog / filters ] [ Financial profile editor ]
 ```
 
-A strong implementation is a responsive two-column layout:
-
 ### Product selector panel
+
+Includes:
 
 - search;
 - active / archived / all status filter;
-- Product cards or compact rows;
 - Product name;
 - Product ID;
 - category;
 - active/archived badge;
-- profile state: Configured / Not configured;
+- Configured / Not configured profile state;
 - selected state.
 
 ### Financial profile panel
 
+Includes:
+
 - selected Product identity/status;
-- source-state callout (configured / not configured);
+- configured/not-configured source-state callout;
 - Labor cost per unit (PHP);
 - Overhead cost per unit (PHP);
 - Pricing method;
 - conditional pricing value field;
 - Notes;
-- Save profile button;
+- PHP/% unit guidance;
+- Save financial profile action;
 - validation/success feedback.
 
-On narrow screens, stack selector then editor.
+The editor shell remains visible but disabled when no Product is selected, which keeps units and required source fields understandable even before async catalog loading completes.
+
+On narrow screens, catalog and editor stack vertically.
 
 ## Loading and selection behavior
 
-Initial page load should fetch Products and profile records in parallel where practical.
+Initial page load fetches Products and financial profiles in parallel.
 
-If active Products exist, selecting the first visible/available active Product automatically is acceptable and improves usability.
+If an active Product exists, the first active Product is selected automatically. If only archived Products exist, the first available Product can still become the initial selection while archived/all filtering remains available.
 
-If no active Product exists but archived Products exist, do not silently hide the workspace's usefulness; allow archived/all filters and an explicit selection flow.
+If there are no Products, the catalog shows a clear empty state directing the user to create a Product first.
 
-If there are no Products at all, show a clear empty state directing the user to create a Product first.
-
-Selection changes must replace the form with the newly selected Product's authoritative profile state and clear stale feedback.
+Selection changes replace the form with the selected Product's authoritative profile state and clear stale feedback.
 
 ## Validation and error feedback
 
-UI-local required-field feedback should be concise and specific.
+UI-local required-field feedback is concise and specific.
 
 Authoritative validation errors from:
 
@@ -365,105 +365,84 @@ PricingError
 ProductFinancialProfileApplicationError
 ```
 
-must be surfaced rather than sanitized into a successful save.
+are surfaced rather than sanitized into successful saves.
 
-Examples that must fail visibly:
+Invalid values are never auto-clamped or silently corrected.
 
-- blank labor cost;
-- blank overhead cost;
-- negative labor/overhead;
-- non-finite inputs;
-- configured policy with blank value;
-- negative fixed profit;
-- negative markup;
-- target margin below 0%;
-- target margin >= 100%;
-- missing Product reference if source state becomes stale.
+HTML input constraints provide guidance, but the authoritative application/domain validation remains the final gate.
 
-Do not clamp or auto-correct invalid financial input.
+## Accessibility / interaction
 
-## Accessibility / interaction requirements
+Implemented:
 
-- every input has a visible label;
-- status/filter controls use real buttons/selects/inputs;
-- selected Product state is visually and programmatically understandable;
-- save button is disabled when no Product is selected or while saving;
-- feedback remains textual, not color-only;
-- archived badge includes readable text;
-- percentage/PHP units are visible in labels/help text.
+- visible labels for all inputs;
+- real button/select/input filter controls;
+- `aria-pressed` on Product selection cards;
+- textual active/archived and configured/not-configured status labels;
+- disabled editor/save controls when no Product is selected or a save is in progress;
+- textual feedback rather than color-only feedback;
+- visible PHP and `%` unit guidance.
 
 ## Styling
 
-Create a Pricing-specific stylesheet rather than expanding Product composition styles.
-
-Recommended:
+Implemented Pricing-specific stylesheet:
 
 `src/ui/pricing/pricing.css`
 
-Reuse generic classes from `src/styles.css` where possible:
+The page reuses generic classes from `src/styles.css` where possible and adds only Pricing-specific layout, selector, profile-state, and unit-guide styling.
 
-```text
-materials-workspace
-page-heading-row
-panel
-panel-heading
-form-grid
-field
-button
-feedback
-status-pill
-```
-
-Add only Pricing-specific selector/editor/status layouts.
-
-Do not introduce a new design system or dependency.
+No new design system or dependency was introduced.
 
 ## Tests
 
 ### Pure form/view-model tests
 
-Add dedicated tests for the UI conversion boundary covering at least:
+Implemented:
 
-1. missing profile maps to blank labor/overhead and unconfigured policy;
-2. explicit zero labor/overhead remains `0`, not blank;
-3. fixed-profit PHP value round-trip;
+`src/ui/pricing/productFinancialProfileForm.test.ts`
+
+13 dedicated tests cover:
+
+1. missing profile -> blank labor/overhead + unconfigured policy;
+2. explicit zero labor/overhead remains `0`;
+3. fixed-profit PHP round-trip;
 4. markup 0.50 canonical -> 50 UI -> 0.50 source;
 5. target margin 0.25 canonical -> 25 UI -> 0.25 source;
-6. high-precision percent round-trip without deliberate UI rounding;
-7. unconfigured policy maps to `null`;
+6. higher-precision percent round-trip without fixed two-decimal rounding;
+7. unconfigured policy -> `null`;
 8. blank labor rejected;
 9. blank overhead rejected;
 10. blank configured policy value rejected;
-11. invalid numeric text rejected rather than coerced to zero;
+11. non-finite numeric text rejected instead of coerced to zero;
 12. notes trimming/empty notes behavior;
-13. correct policy label/unit helper behavior.
+13. correct policy label/help behavior.
 
 ### PricingPage smoke validation
 
-Static server rendering must verify the browser-independent shell includes:
+`src/App.smoke.test.tsx` now verifies the browser-independent Pricing shell includes:
 
-- Pricing / Financial profiles heading;
-- Product selector/catalog;
+- Phase 4 Pricing / Financial profiles heading;
+- Product catalog/search;
 - Labor cost per unit;
 - Overhead cost per unit;
 - Pricing method;
 - not-configured option;
 - save action;
-- explicit PHP/% guidance.
+- human percentage guidance.
 
 ### App smoke validation
 
-Update App smoke coverage so the top-level navigation includes `Pricing` while preserving existing Materials default rendering.
+The top-level App smoke test verifies `Pricing` navigation while preserving the Materials default render.
 
 ### Regression gate
 
-Existing Product financial-profile service/domain tests must remain green.
+Existing Product financial-profile service/domain and pricing tests remain green.
 
-No new browser/test dependency is required for 4.5A.
+No new browser/test dependency was added.
 
-## Expected implementation files
+## Implementation files
 
-Likely new files:
+Added:
 
 ```text
 src/ui/pricing/PricingPage.tsx
@@ -472,20 +451,18 @@ src/ui/pricing/productFinancialProfileForm.test.ts
 src/ui/pricing/pricing.css
 ```
 
-Likely updated files:
+Updated:
 
 ```text
 src/App.tsx
 src/App.smoke.test.tsx
 ```
 
-A dedicated PricingPage test may be added if useful, but static page smoke assertions may live in `App.smoke.test.tsx` to match the repository's current React testing approach.
-
-No application/domain/storage contract change is currently expected.
+No application/domain/storage contract change was required.
 
 ## Explicit non-goals / 4.5B+ boundary
 
-4.5A must not implement:
+4.5A does not implement:
 
 - fully loaded cost display;
 - direct/safety-reserve cost breakdown;
@@ -502,6 +479,62 @@ No application/domain/storage contract change is currently expected.
 
 Those remain 4.5B, 4.5C, Phase 5, or later concerns.
 
+## Implementation evidence
+
+Plan-before-code commit:
+
+`3a9c60eec6cac706d3a12d229791d72684810489`
+
+Form-mapping helper commit:
+
+`654adc19c491b6a51b8f287e1016a98a987d9318`
+
+Focused form-test commit:
+
+`080467876e1b86dd941a1b29bffd6e96d71a11fa`
+
+PricingPage commit:
+
+`e53d5ca6bd49c96b9e43b6c24c4b24d9559d6634`
+
+Pricing styling commit:
+
+`f2125f19bb5fa00508eb02f92d9034f4f7782ca5`
+
+App navigation commit:
+
+`7fe68c50912bfbe6082ffd5f9a33712e6b9d756d`
+
+Editor-shell accessibility/smoke-support commit:
+
+`69f2830f475fea64b3241ddb26270448ba5eca6a`
+
+Validated implementation checkpoint:
+
+`8e8cdf8ac3cbede360b0212ac50421e398dce975`
+
+Checkpoint CI:
+
+`34962216103 — SUCCESS`
+
+Validated repository state:
+
+```text
+TypeScript typecheck passed
+78 test files passed
+955 tests passed
+13 dedicated 4.5A form-mapping tests passed
+8 React workspace smoke tests passed
+production Vite build passed
+112 modules transformed
+```
+
+Implementation record commit:
+
+`ff1e9b335d7e462d279daacc85f7b7b44b7fae6c`
+
+No implementation checkpoint failure occurred before this validated state.
+
 ## Validation gates
 
 Before implementation PR merge:
@@ -512,7 +545,7 @@ Before implementation PR merge:
 - full repository test suite passes;
 - TypeScript typecheck passes;
 - production Vite build passes;
-- final feature-head CI is green;
+- final documented feature-head CI is green;
 - PR CI is green.
 
 After merge:
