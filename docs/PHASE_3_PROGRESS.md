@@ -8,7 +8,7 @@ Planning baseline: `docs/PHASE_3_PRODUCT_COMPONENTS_VESSELS_PLAN.md`
 3.1 — Composition Foundation                              IN PROGRESS
     3.1A — Product Component Contract & Roles             COMPLETE
     3.1B — Composition Graph Integrity & Cycle Prevention COMPLETE
-    3.1C — Component Repository & Application Services    NEXT
+    3.1C — Component Repository & Application Services    IMPLEMENTED — MERGE GATE
 
 3.2 — Finished Component Stock
     3.2A — Product Stock Contract & Validation            NOT STARTED
@@ -93,8 +93,32 @@ Evidence:
 
 Implementation record: `docs/PHASE_3_1B_COMPOSITION_GRAPH_INTEGRITY.md`
 
+## Implementation awaiting merge gate
+
+### 3.1C — Component Repository & Application Services
+
+- storage-agnostic `ProductComponentRepository` plus defensive in-memory implementation added;
+- `ProductComponentService` provides create/update/get/list/list-by-parent/remove operations;
+- save-time parent/source existence and active-state validation added;
+- material-backed components resolve only to active count-based (`pc`) Material sources;
+- all proposed saves pass the 3.1B duplicate/self/cycle graph gate before persistence;
+- Product/Material archive and generic deactivation paths are protected from active component dependencies;
+- active component Materials cannot be changed away from base unit `pc`;
+- archived parent compositions are retained as historical source data;
+- Product reactivation revalidates retained source relationships and graph integrity;
+- `BusinessDataset.productComponents` added as authoritative source data;
+- shared `productComponentRepository` and `productComponentService` wired in `application/session.ts`;
+- dedicated service suite adds 9 tests; full feature validation passes 41 files / 382 tests, typecheck, and build.
+
+Feature evidence:
+- branch `feature/phase-3-1c-component-services`;
+- authoritative base `develop` @ `046c359ea264a08cb5fc55cda61f666122bf6c04`;
+- feature CI run `34911576909` passed.
+
+Implementation record: `docs/PHASE_3_1C_COMPONENT_REPOSITORY_SERVICES.md`
+
 ## Current active task
 
-**3.1C — Component Repository & Application Services**
+**3.1C — Component Repository & Application Services — merge/post-merge validation gate**
 
 Do not start 3.2A until 3.1C is merged and post-merge `develop` CI is green.
