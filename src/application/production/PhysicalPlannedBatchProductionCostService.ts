@@ -185,22 +185,14 @@ function invalidQuantityCode(code: ProductionRequirementErrorCode): boolean {
   );
 }
 
-function cloneRequirementPlan(value: ProductionRequirementPlanResult): ProductionRequirementPlanResult {
-  return structuredClone(value);
-}
-
-function cloneUnitCost(value: FullyLoadedProductUnitCostResult): FullyLoadedProductUnitCostResult {
-  return structuredClone(value);
-}
-
 function cloneIssue(
   issue: PhysicalPlannedBatchProductionCostIssue,
 ): PhysicalPlannedBatchProductionCostIssue {
   return { ...issue };
 }
 
-function sortedById<T>(values: readonly T[], getId: (value: T) => string): T[] {
-  return [...values].sort((left, right) => comparable(getId(left)).localeCompare(comparable(getId(right))));
+function sortedById<T>(values: readonly T[], id: (value: T) => string): T[] {
+  return [...values].sort((left, right) => comparable(id(left)).localeCompare(comparable(id(right))));
 }
 
 function validNeutralDirectPlan(plan: ProductionRequirementPlanResult): boolean {
@@ -212,14 +204,7 @@ function validNeutralDirectPlan(plan: ProductionRequirementPlanResult): boolean 
   );
 }
 
-/**
- * Phase 4.4A authoritative physical planned-batch production cost.
- *
- * Direct materials deliberately use the Phase 2 physical batch plan so indivisible
- * count materials round only at the final batch boundary. Component, labor, and
- * overhead cost evidence comes from the completed Phase 4.2C fully loaded cost view.
- * Selling price, revenue, profit, and capacity are intentionally outside this service.
- */
+/** Phase 4.4A authoritative physical planned-batch production cost. */
 export class PhysicalPlannedBatchProductionCostService {
   constructor(
     private readonly requirements: PhysicalPlannedBatchProductionRequirementProvider,
@@ -267,37 +252,35 @@ export class PhysicalPlannedBatchProductionCostService {
 
     const issues: PhysicalPlannedBatchProductionCostIssue[] = [];
     let contradiction = false;
+    const addIssue = (issue: PhysicalPlannedBatchProductionCostIssue) => issues.push(issue);
 
     if (comparable(requestedProductId) !== comparable(canonicalProductId)) {
       contradiction = true;
-      issues.push({
+      addIssue({
         code: 'COST_PRODUCT_MISMATCH',
         message: `Requested Product ${requestedProductId}, but fully loaded cost evidence belongs to ${canonicalProductId}.`,
         productId: requestedProductId,
       });
     }
-
     if (comparable(plan.productId) !== comparable(canonicalProductId)) {
       contradiction = true;
-      issues.push({
+      addIssue({
         code: 'PRODUCTION_PLAN_PRODUCT_MISMATCH',
         message: `Physical production plan belongs to ${plan.productId}, not Product ${canonicalProductId}.`,
         productId: canonicalProductId,
       });
     }
-
     if (plan.productIsActive !== cost.productIsActive) {
       contradiction = true;
-      issues.push({
+      addIssue({
         code: 'PRODUCT_ACTIVE_STATE_MISMATCH',
         message: `Physical production plan and fully loaded cost evidence disagree on active state for Product ${canonicalProductId}.`,
         productId: canonicalProductId,
       });
     }
-
     if (plan.plannedQuantity !== plannedQuantity) {
       contradiction = true;
-      issues.push({
+      addIssue({
         code: 'PRODUCTION_PLAN_QUANTITY_MISMATCH',
         message: `Requested quantity ${plannedQuantity}, but physical production plan returned ${plan.plannedQuantity}.`,
         productId: canonicalProductId,
@@ -305,13 +288,13 @@ export class PhysicalPlannedBatchProductionCostService {
     }
 
     if (cost.status === 'partial') {
-      issues.push({
+      addIssue({
         code: 'UPSTREAM_COST_PARTIAL',
         message: `Product ${canonicalProductId} has only partial Phase 4.2C fully loaded cost evidence.`,
         productId: canonicalProductId,
       });
     } else if (cost.status === 'not-ready') {
-      issues.push({
+      addIssue({
         code: 'UPSTREAM_COST_NOT_READY',
         message: `Product ${canonicalProductId} has no ready Phase 4.2C fully loaded cost basis.`,
         productId: canonicalProductId,
@@ -328,29 +311,30 @@ export class PhysicalPlannedBatchProductionCostService {
       directComplete = validNeutralDirectPlan(plan);
       if (!directComplete) {
         contradiction = true;
-        issues.push({
+        addIssue({
           code: 'NEUTRAL_DIRECT_MATERIAL_CONTRADICTION',
-          message: `Product ${canonicalProductId} is marked component-only by 4.2C, but its current physical direct-material plan is not a matching NO_REQUIREMENTS result.`,
+          message: `Product ${canonicalProductId} is marked component-only by 4.2C, but its physical direct-material plan is not a matching NO_REQUIREMENTS result.`,
           productId: canonicalProductId,
         });
       }
     } else {
       const directEvidence = cost.directMaterialCost;
       if (!directEvidence) {
-        issues.push({
+        if (cost.directMaterialMode === 'costed') contradiction = true;
+        addIssue({
           code: 'DIRECT_MATERIAL_EVIDENCE_MISSING',
           message: `Product ${canonicalProductId} has no Phase 4 direct-material cost evidence for physical batch costing.`,
           productId: canonicalProductId,
         });
       } else {
         if (plan.status === 'partial' || directEvidence.status === 'partial') {
-          issues.push({
+          addIssue({
             code: 'DIRECT_MATERIAL_PARTIAL',
             message: `Product ${canonicalProductId} has only partial direct-material evidence for the requested physical batch.`,
             productId: canonicalProductId,
           });
         } else if (plan.status === 'not-ready' || directEvidence.status === 'not-ready') {
-          issues.push({
+          addIssue({
             code: 'DIRECT_MATERIAL_NOT_READY',
             message: `Product ${canonicalProductId} does not have ready direct-material evidence for the requested physical batch.`,
             productId: canonicalProductId,
@@ -361,13 +345,12 @@ export class PhysicalPlannedBatchProductionCostService {
           directEvidence.lines.map((line) => [comparable(line.materialId), line] as const),
         );
         const matched = new Set<string>();
-        let allDirectLinesReady = true;
+        let allLinesReady = true;
 
         for (const requirement of sortedById(plan.requirements, (line) => line.materialId)) {
           const key = comparable(requirement.materialId);
-          const costLine = costByMaterial.get(key);
+          const evidence = costByMaterial.get(key);
           const lineIssues: PhysicalPlannedBatchProductionCostIssue[] = [];
-
           const preciseBatchBaseQuantity = requirement.plannedBaseQuantityPerProduct * plannedQuantity;
           const physicalBatchBaseQuantity = requirement.plannedBatchBaseQuantity;
           const countRoundingExtraBaseQuantity = physicalBatchBaseQuantity - preciseBatchBaseQuantity;
@@ -379,27 +362,27 @@ export class PhysicalPlannedBatchProductionCostService {
             !finiteNonNegative(countRoundingExtraBaseQuantity)
           ) {
             contradiction = true;
-            allDirectLinesReady = false;
+            allLinesReady = false;
             const issue: PhysicalPlannedBatchProductionCostIssue = {
               code: 'DIRECT_MATERIAL_QUANTITY_INVALID',
               message: `Material ${requirement.materialId} produced an invalid physical batch quantity.`,
               productId: canonicalProductId,
               materialId: requirement.materialId,
             };
-            issues.push(issue);
+            addIssue(issue);
             lineIssues.push(issue);
           }
 
-          if (!costLine) {
+          if (!evidence) {
             contradiction = true;
-            allDirectLinesReady = false;
+            allLinesReady = false;
             const issue: PhysicalPlannedBatchProductionCostIssue = {
               code: 'DIRECT_MATERIAL_EVIDENCE_MISSING',
               message: `Material ${requirement.materialId} is required by the physical plan but has no matching 4.2C direct-material cost evidence.`,
               productId: canonicalProductId,
               materialId: requirement.materialId,
             };
-            issues.push(issue);
+            addIssue(issue);
             lineIssues.push(issue);
             directMaterialLines.push({
               materialId: requirement.materialId,
@@ -420,53 +403,63 @@ export class PhysicalPlannedBatchProductionCostService {
             });
             continue;
           }
-
           matched.add(key);
 
-          if (costLine.baseUnit !== requirement.baseUnit) {
+          if (evidence.baseUnit !== requirement.baseUnit) {
             contradiction = true;
-            allDirectLinesReady = false;
+            allLinesReady = false;
             const issue: PhysicalPlannedBatchProductionCostIssue = {
               code: 'DIRECT_MATERIAL_BASE_UNIT_MISMATCH',
-              message: `Material ${requirement.materialId} physical plan uses ${requirement.baseUnit}, but cost evidence uses ${costLine.baseUnit}.`,
+              message: `Material ${requirement.materialId} physical plan uses ${requirement.baseUnit}, but cost evidence uses ${evidence.baseUnit}.`,
               productId: canonicalProductId,
               materialId: requirement.materialId,
             };
-            issues.push(issue);
+            addIssue(issue);
             lineIssues.push(issue);
           }
 
-          const costPerBaseUnit = costLine.costPerBaseUnit;
+          let costPerBaseUnit: number | null = null;
           let preciseBatchCost: number | null = null;
           let countRoundingExtraCost: number | null = null;
           let knownPlannedBatchCost: number | null = null;
 
-          if (costPerBaseUnit === null || !finiteNonNegative(costPerBaseUnit)) {
-            allDirectLinesReady = false;
+          if (evidence.costPerBaseUnit === null) {
+            allLinesReady = false;
             const issue: PhysicalPlannedBatchProductionCostIssue = {
               code: 'DIRECT_MATERIAL_COST_INVALID',
-              message: `Material ${requirement.materialId} has no finite non-negative cost-per-base-unit evidence.`,
+              message: `Material ${requirement.materialId} has no resolved cost-per-base-unit evidence.`,
               productId: canonicalProductId,
               materialId: requirement.materialId,
             };
-            issues.push(issue);
+            addIssue(issue);
+            lineIssues.push(issue);
+          } else if (!finiteNonNegative(evidence.costPerBaseUnit)) {
+            contradiction = true;
+            allLinesReady = false;
+            const issue: PhysicalPlannedBatchProductionCostIssue = {
+              code: 'DIRECT_MATERIAL_COST_INVALID',
+              message: `Material ${requirement.materialId} has invalid non-finite or negative cost-per-base-unit evidence.`,
+              productId: canonicalProductId,
+              materialId: requirement.materialId,
+            };
+            addIssue(issue);
             lineIssues.push(issue);
           } else if (
             finiteNonNegative(preciseBatchBaseQuantity) &&
             finiteNonNegative(physicalBatchBaseQuantity) &&
             finiteNonNegative(countRoundingExtraBaseQuantity)
           ) {
+            costPerBaseUnit = evidence.costPerBaseUnit;
             preciseBatchCost = preciseBatchBaseQuantity * costPerBaseUnit;
             countRoundingExtraCost = countRoundingExtraBaseQuantity * costPerBaseUnit;
             knownPlannedBatchCost = physicalBatchBaseQuantity * costPerBaseUnit;
-
             if (
               !finiteNonNegative(preciseBatchCost) ||
               !finiteNonNegative(countRoundingExtraCost) ||
               !finiteNonNegative(knownPlannedBatchCost)
             ) {
               contradiction = true;
-              allDirectLinesReady = false;
+              allLinesReady = false;
               preciseBatchCost = null;
               countRoundingExtraCost = null;
               knownPlannedBatchCost = null;
@@ -476,7 +469,7 @@ export class PhysicalPlannedBatchProductionCostService {
                 productId: canonicalProductId,
                 materialId: requirement.materialId,
               };
-              issues.push(issue);
+              addIssue(issue);
               lineIssues.push(issue);
             } else {
               directKnown = true;
@@ -484,13 +477,10 @@ export class PhysicalPlannedBatchProductionCostService {
             }
           }
 
-          if (costLine.status !== 'ready') {
-            allDirectLinesReady = false;
-          }
-
+          if (evidence.status !== 'ready') allLinesReady = false;
           const lineReady =
             lineIssues.length === 0 &&
-            costLine.status === 'ready' &&
+            evidence.status === 'ready' &&
             knownPlannedBatchCost !== null;
 
           directMaterialLines.push({
@@ -503,7 +493,7 @@ export class PhysicalPlannedBatchProductionCostService {
             preciseBatchBaseQuantity,
             physicalBatchBaseQuantity,
             countRoundingExtraBaseQuantity,
-            costPerBaseUnit: costPerBaseUnit !== null && finiteNonNegative(costPerBaseUnit) ? costPerBaseUnit : null,
+            costPerBaseUnit,
             preciseBatchCost,
             countRoundingExtraCost,
             knownPlannedBatchCost,
@@ -512,16 +502,15 @@ export class PhysicalPlannedBatchProductionCostService {
           });
         }
 
-        for (const costLine of directEvidence.lines) {
-          const key = comparable(costLine.materialId);
-          if (matched.has(key)) continue;
+        for (const evidence of directEvidence.lines) {
+          if (matched.has(comparable(evidence.materialId))) continue;
           contradiction = true;
-          allDirectLinesReady = false;
-          issues.push({
+          allLinesReady = false;
+          addIssue({
             code: 'DIRECT_MATERIAL_REQUIREMENT_MISSING',
-            message: `Material ${costLine.materialId} has 4.2C direct-material cost evidence but is absent from the current physical production plan.`,
+            message: `Material ${evidence.materialId} has 4.2C direct-material cost evidence but is absent from the current physical production plan.`,
             productId: canonicalProductId,
-            materialId: costLine.materialId,
+            materialId: evidence.materialId,
           });
         }
 
@@ -529,17 +518,17 @@ export class PhysicalPlannedBatchProductionCostService {
           cost.directMaterialMode === 'costed' &&
           plan.status === 'ready' &&
           directEvidence.status === 'ready' &&
-          allDirectLinesReady &&
+          allLinesReady &&
           plan.requirements.length === directEvidence.lines.length;
       }
     }
 
     const materialComponentLines: PhysicalPlannedBatchMaterialComponentCostLine[] = [];
     const productComponentLines: PhysicalPlannedBatchProductComponentCostLine[] = [];
-    let materialComponentKnownSubtotal = 0;
-    let productComponentKnownSubtotal = 0;
-    let materialComponentKnown = false;
-    let productComponentKnown = false;
+    let materialKnownSubtotal = 0;
+    let productKnownSubtotal = 0;
+    let materialKnown = false;
+    let productKnown = false;
     let componentsComplete = true;
 
     for (const entry of cost.componentLines) {
@@ -559,7 +548,7 @@ export class PhysicalPlannedBatchProductionCostService {
             componentId: line.componentId,
             sourceId: line.sourceMaterialId,
           };
-          issues.push(issue);
+          addIssue(issue);
           lineIssues.push(issue);
         } else {
           plannedComponentQuantity = line.quantityPerParent * plannedQuantity;
@@ -567,15 +556,6 @@ export class PhysicalPlannedBatchProductionCostService {
             contradiction = true;
             componentsComplete = false;
             plannedComponentQuantity = null;
-            const issue: PhysicalPlannedBatchProductionCostIssue = {
-              code: 'DERIVED_COST_INVALID',
-              message: `Material-backed component ${line.componentId} produced an invalid planned batch quantity.`,
-              productId: canonicalProductId,
-              componentId: line.componentId,
-              sourceId: line.sourceMaterialId,
-            };
-            issues.push(issue);
-            lineIssues.push(issue);
           }
         }
 
@@ -583,21 +563,12 @@ export class PhysicalPlannedBatchProductionCostService {
         if (contribution !== null && finiteNonNegative(contribution)) {
           knownPlannedBatchCost = contribution * plannedQuantity;
           if (finiteNonNegative(knownPlannedBatchCost)) {
-            materialComponentKnown = true;
-            materialComponentKnownSubtotal += knownPlannedBatchCost;
+            materialKnown = true;
+            materialKnownSubtotal += knownPlannedBatchCost;
           } else {
             contradiction = true;
             componentsComplete = false;
             knownPlannedBatchCost = null;
-            const issue: PhysicalPlannedBatchProductionCostIssue = {
-              code: 'DERIVED_COST_INVALID',
-              message: `Material-backed component ${line.componentId} produced an invalid planned batch cost.`,
-              productId: canonicalProductId,
-              componentId: line.componentId,
-              sourceId: line.sourceMaterialId,
-            };
-            issues.push(issue);
-            lineIssues.push(issue);
           }
         } else if (contribution !== null) {
           contradiction = true;
@@ -609,7 +580,7 @@ export class PhysicalPlannedBatchProductionCostService {
             componentId: line.componentId,
             sourceId: line.sourceMaterialId,
           };
-          issues.push(issue);
+          addIssue(issue);
           lineIssues.push(issue);
         }
 
@@ -623,22 +594,21 @@ export class PhysicalPlannedBatchProductionCostService {
             sourceId: line.sourceMaterialId,
             underlyingCode: line.issues[0]?.code,
           };
-          issues.push(issue);
+          addIssue(issue);
           lineIssues.push(issue);
         }
 
-        const lineReady =
+        const ready =
           lineIssues.length === 0 &&
           line.status === 'ready' &&
           plannedComponentQuantity !== null &&
           knownPlannedBatchCost !== null;
-
         materialComponentLines.push({
           componentId: line.componentId,
           sourceMaterialId: line.sourceMaterialId,
           sourceMaterialName: line.sourceMaterialName,
           role: line.role,
-          status: lineReady ? 'ready' : 'not-ready',
+          status: ready ? 'ready' : 'not-ready',
           quantityPerParent: line.quantityPerParent,
           requestedQuantity: plannedQuantity,
           plannedComponentQuantity,
@@ -646,7 +616,7 @@ export class PhysicalPlannedBatchProductionCostService {
           perParentCostContribution:
             contribution !== null && finiteNonNegative(contribution) ? contribution : null,
           knownPlannedBatchCost,
-          plannedBatchCost: lineReady ? knownPlannedBatchCost : null,
+          plannedBatchCost: ready ? knownPlannedBatchCost : null,
           issues: lineIssues.map(cloneIssue),
         });
       } else {
@@ -654,6 +624,7 @@ export class PhysicalPlannedBatchProductionCostService {
         const lineIssues: PhysicalPlannedBatchProductionCostIssue[] = [];
         let plannedChildQuantity: number | null = null;
         let knownPlannedBatchCost: number | null = null;
+        let authoritativeBatchCost: number | null = null;
 
         if (!finitePositive(line.quantityPerParent)) {
           contradiction = true;
@@ -665,7 +636,7 @@ export class PhysicalPlannedBatchProductionCostService {
             componentId: line.componentId,
             sourceId: line.childProductId,
           };
-          issues.push(issue);
+          addIssue(issue);
           lineIssues.push(issue);
         } else {
           plannedChildQuantity = line.quantityPerParent * plannedQuantity;
@@ -673,15 +644,6 @@ export class PhysicalPlannedBatchProductionCostService {
             contradiction = true;
             componentsComplete = false;
             plannedChildQuantity = null;
-            const issue: PhysicalPlannedBatchProductionCostIssue = {
-              code: 'DERIVED_COST_INVALID',
-              message: `Product-backed component ${line.componentId} produced an invalid planned child quantity.`,
-              productId: canonicalProductId,
-              componentId: line.componentId,
-              sourceId: line.childProductId,
-            };
-            issues.push(issue);
-            lineIssues.push(issue);
           }
         }
 
@@ -689,41 +651,20 @@ export class PhysicalPlannedBatchProductionCostService {
         if (knownContribution !== null && finiteNonNegative(knownContribution)) {
           knownPlannedBatchCost = knownContribution * plannedQuantity;
           if (finiteNonNegative(knownPlannedBatchCost)) {
-            productComponentKnown = true;
-            productComponentKnownSubtotal += knownPlannedBatchCost;
+            productKnown = true;
+            productKnownSubtotal += knownPlannedBatchCost;
           } else {
             contradiction = true;
             componentsComplete = false;
             knownPlannedBatchCost = null;
-            const issue: PhysicalPlannedBatchProductionCostIssue = {
-              code: 'DERIVED_COST_INVALID',
-              message: `Product-backed component ${line.componentId} produced an invalid known planned batch cost.`,
-              productId: canonicalProductId,
-              componentId: line.componentId,
-              sourceId: line.childProductId,
-            };
-            issues.push(issue);
-            lineIssues.push(issue);
           }
         } else if (knownContribution !== null) {
           contradiction = true;
           componentsComplete = false;
-          const issue: PhysicalPlannedBatchProductionCostIssue = {
-            code: 'COMPONENT_COST_INVALID',
-            message: `Product-backed component ${line.componentId} has an invalid known per-parent cost contribution.`,
-            productId: canonicalProductId,
-            componentId: line.componentId,
-            sourceId: line.childProductId,
-          };
-          issues.push(issue);
-          lineIssues.push(issue);
         }
 
         const authoritativeContribution = line.componentCostContribution;
-        if (
-          authoritativeContribution !== null &&
-          !finiteNonNegative(authoritativeContribution)
-        ) {
+        if (authoritativeContribution !== null && !finiteNonNegative(authoritativeContribution)) {
           contradiction = true;
           componentsComplete = false;
           const issue: PhysicalPlannedBatchProductionCostIssue = {
@@ -733,17 +674,23 @@ export class PhysicalPlannedBatchProductionCostService {
             componentId: line.componentId,
             sourceId: line.childProductId,
           };
-          issues.push(issue);
+          addIssue(issue);
           lineIssues.push(issue);
+        }
+
+        if (line.status === 'ready' && authoritativeContribution !== null && finiteNonNegative(authoritativeContribution)) {
+          authoritativeBatchCost = authoritativeContribution * plannedQuantity;
+          if (!finiteNonNegative(authoritativeBatchCost)) {
+            contradiction = true;
+            componentsComplete = false;
+            authoritativeBatchCost = null;
+          }
         }
 
         if (line.status !== 'ready' || authoritativeContribution === null) {
           componentsComplete = false;
           const issue: PhysicalPlannedBatchProductionCostIssue = {
-            code:
-              line.status === 'partial'
-                ? 'PRODUCT_COMPONENT_PARTIAL'
-                : 'PRODUCT_COMPONENT_NOT_READY',
+            code: line.status === 'partial' ? 'PRODUCT_COMPONENT_PARTIAL' : 'PRODUCT_COMPONENT_NOT_READY',
             message:
               line.status === 'partial'
                 ? `Product-backed component ${line.componentId} has only partial fully loaded cost evidence.`
@@ -753,46 +700,22 @@ export class PhysicalPlannedBatchProductionCostService {
             sourceId: line.childProductId,
             underlyingCode: line.issues[0]?.code,
           };
-          issues.push(issue);
+          addIssue(issue);
           lineIssues.push(issue);
         }
 
-        let authoritativeBatchCost: number | null = null;
-        if (
-          line.status === 'ready' &&
-          authoritativeContribution !== null &&
-          finiteNonNegative(authoritativeContribution)
-        ) {
-          authoritativeBatchCost = authoritativeContribution * plannedQuantity;
-          if (!finiteNonNegative(authoritativeBatchCost)) {
-            contradiction = true;
-            componentsComplete = false;
-            authoritativeBatchCost = null;
-            const issue: PhysicalPlannedBatchProductionCostIssue = {
-              code: 'DERIVED_COST_INVALID',
-              message: `Product-backed component ${line.componentId} produced an invalid authoritative batch cost.`,
-              productId: canonicalProductId,
-              componentId: line.componentId,
-              sourceId: line.childProductId,
-            };
-            issues.push(issue);
-            lineIssues.push(issue);
-          }
-        }
-
-        const lineReady =
+        const ready =
           lineIssues.length === 0 &&
           line.status === 'ready' &&
           plannedChildQuantity !== null &&
           authoritativeBatchCost !== null;
-
         productComponentLines.push({
           componentId: line.componentId,
           childProductId: line.childProductId,
           childProductName: line.childProductName,
           role: line.role,
           path: [...line.path],
-          status: lineReady ? 'ready' : 'not-ready',
+          status: ready ? 'ready' : 'not-ready',
           upstreamStatus: line.status,
           quantityPerParent: line.quantityPerParent,
           requestedQuantity: plannedQuantity,
@@ -802,31 +725,25 @@ export class PhysicalPlannedBatchProductionCostService {
               ? line.childFullyLoadedUnitCost
               : null,
           knownPerParentCostContribution:
-            knownContribution !== null && finiteNonNegative(knownContribution)
-              ? knownContribution
-              : null,
+            knownContribution !== null && finiteNonNegative(knownContribution) ? knownContribution : null,
           perParentCostContribution:
             authoritativeContribution !== null && finiteNonNegative(authoritativeContribution)
               ? authoritativeContribution
               : null,
           knownPlannedBatchCost,
-          plannedBatchCost: lineReady ? authoritativeBatchCost : null,
+          plannedBatchCost: ready ? authoritativeBatchCost : null,
           issues: lineIssues.map(cloneIssue),
         });
       }
     }
 
     const laborKnown = cost.laborCostPerUnit !== null && finiteNonNegative(cost.laborCostPerUnit);
-    const overheadKnown =
-      cost.overheadCostPerUnit !== null && finiteNonNegative(cost.overheadCostPerUnit);
-
-    let laborBatchCost: number | null = laborKnown ? cost.laborCostPerUnit! * plannedQuantity : null;
-    let overheadBatchCost: number | null = overheadKnown
-      ? cost.overheadCostPerUnit! * plannedQuantity
-      : null;
+    const overheadKnown = cost.overheadCostPerUnit !== null && finiteNonNegative(cost.overheadCostPerUnit);
+    let laborBatchCost = laborKnown ? cost.laborCostPerUnit! * plannedQuantity : null;
+    let overheadBatchCost = overheadKnown ? cost.overheadCostPerUnit! * plannedQuantity : null;
 
     if (cost.laborCostPerUnit === null) {
-      issues.push({
+      addIssue({
         code: 'LABOR_COST_NOT_READY',
         message: `Product ${canonicalProductId} has no ready root labor cost evidence.`,
         productId: canonicalProductId,
@@ -834,7 +751,7 @@ export class PhysicalPlannedBatchProductionCostService {
     } else if (!laborKnown || laborBatchCost === null || !finiteNonNegative(laborBatchCost)) {
       contradiction = true;
       laborBatchCost = null;
-      issues.push({
+      addIssue({
         code: 'DERIVED_COST_INVALID',
         message: `Product ${canonicalProductId} produced an invalid root labor batch cost.`,
         productId: canonicalProductId,
@@ -842,7 +759,7 @@ export class PhysicalPlannedBatchProductionCostService {
     }
 
     if (cost.overheadCostPerUnit === null) {
-      issues.push({
+      addIssue({
         code: 'OVERHEAD_COST_NOT_READY',
         message: `Product ${canonicalProductId} has no ready root overhead cost evidence.`,
         productId: canonicalProductId,
@@ -850,35 +767,26 @@ export class PhysicalPlannedBatchProductionCostService {
     } else if (!overheadKnown || overheadBatchCost === null || !finiteNonNegative(overheadBatchCost)) {
       contradiction = true;
       overheadBatchCost = null;
-      issues.push({
+      addIssue({
         code: 'DERIVED_COST_INVALID',
         message: `Product ${canonicalProductId} produced an invalid root overhead batch cost.`,
         productId: canonicalProductId,
       });
     }
 
-    const hasKnownEvidence =
-      directKnown ||
-      materialComponentKnown ||
-      productComponentKnown ||
-      laborKnown ||
-      overheadKnown;
-
+    const hasKnownEvidence = directKnown || materialKnown || productKnown || laborKnown || overheadKnown;
     let knownPlannedProductionCostSubtotal: number | null = hasKnownEvidence
       ? directKnownSubtotal +
-        materialComponentKnownSubtotal +
-        productComponentKnownSubtotal +
+        materialKnownSubtotal +
+        productKnownSubtotal +
         (laborBatchCost ?? 0) +
         (overheadBatchCost ?? 0)
       : null;
 
-    if (
-      knownPlannedProductionCostSubtotal !== null &&
-      !finiteNonNegative(knownPlannedProductionCostSubtotal)
-    ) {
+    if (knownPlannedProductionCostSubtotal !== null && !finiteNonNegative(knownPlannedProductionCostSubtotal)) {
       contradiction = true;
       knownPlannedProductionCostSubtotal = null;
-      issues.push({
+      addIssue({
         code: 'DERIVED_COST_INVALID',
         message: `Product ${canonicalProductId} produced an invalid known physical batch cost subtotal.`,
         productId: canonicalProductId,
@@ -886,27 +794,21 @@ export class PhysicalPlannedBatchProductionCostService {
     }
 
     const financialComplete = laborKnown && overheadKnown && laborBatchCost !== null && overheadBatchCost !== null;
-    const allEvidenceComplete =
-      cost.status === 'ready' && directComplete && componentsComplete && financialComplete;
+    const allEvidenceComplete = cost.status === 'ready' && directComplete && componentsComplete && financialComplete;
 
-    let status: PhysicalPlannedBatchProductionCostStatus;
-    if (contradiction || cost.status === 'not-ready') {
-      status = 'not-ready';
-    } else if (allEvidenceComplete) {
-      status = 'ready';
-    } else if (hasKnownEvidence) {
-      status = 'partial';
-    } else {
-      status = 'not-ready';
-    }
+    let status: PhysicalPlannedBatchProductionCostStatus = contradiction || cost.status === 'not-ready'
+      ? 'not-ready'
+      : allEvidenceComplete
+        ? 'ready'
+        : hasKnownEvidence
+          ? 'partial'
+          : 'not-ready';
 
-    let plannedProductionCost =
-      status === 'ready' ? knownPlannedProductionCostSubtotal : null;
-
+    let plannedProductionCost = status === 'ready' ? knownPlannedProductionCostSubtotal : null;
     if (status === 'ready' && plannedProductionCost === null) {
       contradiction = true;
       status = 'not-ready';
-      issues.push({
+      addIssue({
         code: 'DERIVED_COST_INVALID',
         message: `Product ${canonicalProductId} reached ready state without an authoritative physical batch cost.`,
         productId: canonicalProductId,
@@ -916,15 +818,15 @@ export class PhysicalPlannedBatchProductionCostService {
     if (plannedProductionCost !== null) {
       const recomposed =
         directKnownSubtotal +
-        materialComponentKnownSubtotal +
-        productComponentKnownSubtotal +
+        materialKnownSubtotal +
+        productKnownSubtotal +
         (laborBatchCost ?? 0) +
         (overheadBatchCost ?? 0);
       if (!finiteNonNegative(recomposed) || recomposed !== plannedProductionCost) {
         contradiction = true;
-        plannedProductionCost = null;
         status = 'not-ready';
-        issues.push({
+        plannedProductionCost = null;
+        addIssue({
           code: 'COST_RECONCILIATION_FAILED',
           message: `Product ${canonicalProductId} physical batch subtotals do not reconcile to the authoritative planned production cost.`,
           productId: canonicalProductId,
@@ -933,22 +835,28 @@ export class PhysicalPlannedBatchProductionCostService {
     }
 
     let standardUnitCostTimesQuantity: number | null = null;
-    if (
-      cost.totalFullyLoadedUnitCost !== null &&
-      finiteNonNegative(cost.totalFullyLoadedUnitCost)
-    ) {
+    if (cost.totalFullyLoadedUnitCost !== null && finiteNonNegative(cost.totalFullyLoadedUnitCost)) {
       standardUnitCostTimesQuantity = cost.totalFullyLoadedUnitCost * plannedQuantity;
       if (!finiteNonNegative(standardUnitCostTimesQuantity)) {
         contradiction = true;
         standardUnitCostTimesQuantity = null;
-        plannedProductionCost = null;
         status = 'not-ready';
-        issues.push({
+        plannedProductionCost = null;
+        addIssue({
           code: 'DERIVED_COST_INVALID',
           message: `Product ${canonicalProductId} produced an invalid standard unit-cost batch comparison.`,
           productId: canonicalProductId,
         });
       }
+    } else if (cost.totalFullyLoadedUnitCost !== null) {
+      contradiction = true;
+      status = 'not-ready';
+      plannedProductionCost = null;
+      addIssue({
+        code: 'DERIVED_COST_INVALID',
+        message: `Product ${canonicalProductId} has invalid authoritative unit-cost evidence.`,
+        productId: canonicalProductId,
+      });
     }
 
     let physicalVsStandardCostDifference: number | null = null;
@@ -956,14 +864,9 @@ export class PhysicalPlannedBatchProductionCostService {
       physicalVsStandardCostDifference = plannedProductionCost - standardUnitCostTimesQuantity;
       if (!Number.isFinite(physicalVsStandardCostDifference)) {
         contradiction = true;
-        physicalVsStandardCostDifference = null;
-        plannedProductionCost = null;
         status = 'not-ready';
-        issues.push({
-          code: 'DERIVED_COST_INVALID',
-          message: `Product ${canonicalProductId} produced an invalid physical-versus-standard cost difference.`,
-          productId: canonicalProductId,
-        });
+        plannedProductionCost = null;
+        physicalVsStandardCostDifference = null;
       }
     }
 
@@ -981,25 +884,15 @@ export class PhysicalPlannedBatchProductionCostService {
       unitCostStatus: cost.status,
       requirementStatus: plan.status,
       plannedQuantity,
-      productionRequirements: cloneRequirementPlan(plan),
-      unitCostEvidence: cloneUnitCost(cost),
+      productionRequirements: structuredClone(plan),
+      unitCostEvidence: structuredClone(cost),
       directMaterialMode: cost.directMaterialMode,
-      directMaterialLines: directMaterialLines.map((line) => ({
-        ...line,
-        issues: line.issues.map(cloneIssue),
-      })),
-      materialComponentLines: materialComponentLines.map((line) => ({
-        ...line,
-        issues: line.issues.map(cloneIssue),
-      })),
-      productComponentLines: productComponentLines.map((line) => ({
-        ...line,
-        path: [...line.path],
-        issues: line.issues.map(cloneIssue),
-      })),
+      directMaterialLines: directMaterialLines.map((line) => ({ ...line, issues: line.issues.map(cloneIssue) })),
+      materialComponentLines: materialComponentLines.map((line) => ({ ...line, issues: line.issues.map(cloneIssue) })),
+      productComponentLines: productComponentLines.map((line) => ({ ...line, path: [...line.path], issues: line.issues.map(cloneIssue) })),
       plannedDirectMaterialCostSubtotal: directKnownSubtotal,
-      plannedMaterialComponentCostSubtotal: materialComponentKnownSubtotal,
-      plannedProductComponentCostSubtotal: productComponentKnownSubtotal,
+      plannedMaterialComponentCostSubtotal: materialKnownSubtotal,
+      plannedProductComponentCostSubtotal: productKnownSubtotal,
       laborCostPerUnit: laborKnown ? cost.laborCostPerUnit : null,
       laborBatchCost,
       overheadCostPerUnit: overheadKnown ? cost.overheadCostPerUnit : null,
