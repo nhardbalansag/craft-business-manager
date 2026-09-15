@@ -11,7 +11,7 @@ Desktop-first business costing, inventory, production-yield, production-planning
 
 The application uses **React + TypeScript + Vite** and is intended to be wrapped by **Tauri** for safe local desktop file access.
 
-The business/domain layer remains storage-agnostic. Excel (`.xlsx`) is the planned first persisted business-data format through a storage adapter, with SQLite as a later migration option without rewriting business rules.
+The business/domain layer remains storage-agnostic. Excel (`.xlsx`) is the first planned persisted business-data format through storage/persistence adapters, with SQLite as a later migration option without rewriting business rules.
 
 ## Architecture
 
@@ -22,8 +22,9 @@ Application / Business Services
    ↓
 Domain Models + Costing / Production / Pricing Engines
    ↓
-Storage Port
-   ├── ExcelStorage (Phase 5 — persistence work in progress)
+Persistence Boundaries
+   ├── WorkbookCodec -> SheetJsWorkbookCodec
+   ├── ExcelStorage (Phase 5 wiring still in progress)
    └── SQLiteStorage (future)
    ↓
 Tauri filesystem boundary (planned Phase 6)
@@ -31,7 +32,7 @@ Tauri filesystem boundary (planned Phase 6)
 
 React components do not directly read or write spreadsheet cells.
 
-## Implemented through Phase 5.1
+## Implemented through Phase 5.2A
 
 ### Materials, units, costing, inventory and calibration
 
@@ -72,7 +73,7 @@ Mold volume remains optional. Real sample production evidence is authoritative.
 - purchased glass/plastic/stainless vessels handled as count-based Material components;
 - handmade plaster pots and molded parts handled as Product-backed components;
 - positive whole-piece component quantities;
-- Product composition roles such as vessel, molded component, decorative component, insert, and accessory;
+- structural component roles;
 - direct and transitive cycle prevention;
 - nested Product composition with corruption-safe traversal guards;
 - active-source/dependency safeguards.
@@ -82,74 +83,71 @@ Mold volume remains optional. Real sample production evidence is authoritative.
 - explicit finished ProductStock in whole `pc` counts;
 - missing stock distinguished from explicit `0 pc`;
 - archived historical stock remains inspectable/correctable;
-- Material-backed component cost using Phase 1 costing;
-- recursive Product-backed child cost roll-up;
-- total component-aware Product cost/readiness;
-- overall current assembly capacity from direct materials plus immediate component availability;
-- Product-backed capacity uses explicit current ProductStock;
+- Material-backed and recursive Product-backed component cost;
+- component-aware Product cost/readiness;
+- direct-material plus component assembly capacity;
 - no silent recursive manufacture of missing child stock;
 - all tied limiting resources preserved with typed identity.
 
-### Phase 4 pricing and unit economics
+### Phase 4 pricing and production planning
 
-- Product financial profiles with explicit labor and overhead cost per unit;
-- fixed-profit, markup, and target-margin pricing policies;
-- missing financial evidence remains distinct from explicit zero;
-- waste-adjusted standard direct-material pricing cost with separately visible safety reserve;
-- recursively fully loaded Product-backed component production cost;
-- authoritative total unit cost and readiness;
-- selling price, profit per unit, effective markup, and effective margin;
-- consolidated Product pricing quote/readiness service;
-- dedicated Pricing workspace for financial-profile editing and read-only unit economics.
-
-### Phase 4 batch financial planning
-
-The Production workspace includes:
-
-- Q-specific physical planned production cost;
-- direct `pc` final-batch rounding effects;
-- expected revenue;
-- expected physical batch profit;
-- effective batch margin;
-- average physical cost per finished unit;
-- current capacity feasibility;
-- exact over-capacity quantity;
-- advisory capacity warnings;
-- every authoritative tied limiting resource;
-- financial and feasibility readiness/issues;
-- retained Phase 3 direct-material/component/capacity detail.
-
-Requested quantity is never silently clamped to current capacity, and Phase 4 does not reserve or deduct stock.
+- Product financial profiles with explicit labor/overhead and configurable pricing policy;
+- fixed-profit, markup, and target-margin pricing;
+- recursively fully loaded production cost;
+- selling price, profit, markup, and margin metrics;
+- Q-specific physical planned batch production cost;
+- expected revenue/profit/margin;
+- capacity feasibility and advisory warnings;
+- Pricing and Production financial workflows.
 
 ### Phase 5.1 persistence contract foundation
 
-Phase 5.1 is complete and establishes the storage-independent foundation required before XLSX byte encoding/decoding:
+Phase 5.1 is complete and provides:
 
-- complete versioned `BusinessDataset` covering all nine authoritative Phase 1–4 source collections;
-- Material calibration evidence included in persisted source state;
+- complete versioned `BusinessDataset` covering all nine authoritative source collections;
+- Material calibration evidence in persisted source state;
 - library-independent workbook v1 schema with 13 canonical normalized sheets;
 - exact sheet/column contracts and child-row relationships;
-- deterministic workbook ordering and source representation rules;
-- formula-cell rejection policy for authoritative fields;
+- deterministic workbook ordering/source-representation rules;
+- formula-cell rejection policy and literal-text semantics;
 - complete pre-hydration dataset semantic validation;
-- trim-aware/case-insensitive duplicate identity detection before repository hydration;
-- durable cross-reference validation across all source collections;
-- authoritative Product composition duplicate-source/self/cycle validation reuse;
-- deterministic structured dataset diagnostics;
-- missing-vs-zero/null source semantics preserved;
-- historical archived relationships remain round-trippable when active-state constraints are live-edit rules;
-- no silent repair or partial hydration of invalid candidates.
+- case-insensitive duplicate identity detection before repository hydration;
+- durable cross-reference and Product composition graph validation;
+- deterministic diagnostics;
+- missing-vs-zero/null semantics preserved;
+- legitimate historical archived relationships remain round-trippable;
+- no silent repair or partial hydration.
 
-No concrete XLSX library or XLSX byte codec has been introduced yet.
+### Phase 5.2A XLSX codec foundation
+
+Phase 5.2A is complete.
+
+- **SheetJS Community Edition 0.20.3** is selected and pinned from the exact maintained upstream tarball;
+- public npm `xlsx` is intentionally not used as the authoritative dependency source;
+- `WorkbookCodec` provides a library-neutral workbook-byte boundary;
+- `SheetJsWorkbookCodec` is the only SheetJS-specific production adapter;
+- XLSX encode/decode is fully in memory;
+- encode returns `Uint8Array`;
+- decode accepts `Uint8Array | ArrayBuffer`;
+- worksheet order and primitive cells round-trip through real `.xlsx` bytes;
+- formula-looking strings such as `=1+1` remain literal text;
+- authoritative formula writes are rejected;
+- real inbound formulas are surfaced as formula metadata rather than evaluated as source data;
+- decoded formulas feed the existing `FORMULA_CELL_NOT_ALLOWED` validation policy;
+- no Node filesystem, Tauri filesystem, or browser file-picker dependency is required by the codec;
+- 12 focused real-XLSX tests cover the codec boundary and safety behavior.
 
 ## Current phase boundaries
 
 The following remain intentionally not implemented:
 
-- XLSX byte encode/decode and actual workbook import/export — **Phase 5.2+**;
+- deterministic `BusinessDataset -> WorkbookNeutralDocument -> XLSX` export mapping — **Phase 5.2B**;
+- strict workbook-to-dataset reconstruction/import diagnostics — **Phase 5.2C**;
 - complete repository snapshot/hydration and load/save coordination — **Phase 5.3+**;
+- `ExcelStorage.load/save` runtime wiring — later Phase 5;
+- browser persistence UI — **Phase 5.5**;
 - native Tauri filesystem workflow — **Phase 6**;
-- stock reservation, automatic stock deduction, stock transaction history, or production posting — requires separate future planning;
+- stock reservation, automatic stock deduction, stock transaction history, or production posting — separate future planning;
 - tax/VAT, marketplace/payment fees, accounting posting, and global overhead allocation — outside completed Phase 4 scope.
 
 ## Branching
@@ -161,12 +159,12 @@ The following remain intentionally not implemented:
 
 ## Validation status
 
-Latest integrated technical baseline after Phase 5.1C implementation:
+Latest integrated technical baseline after Phase 5.2A implementation:
 
 ```text
-84 test files passed
-1048 tests passed
-30 Phase 5.1C focused tests
+85 test files passed
+1060 tests passed
+12 Phase 5.2A focused tests
 8 React workspace smoke tests
 7 Phase 4.6A real-service integration tests
 TypeScript typecheck passed
@@ -174,24 +172,24 @@ Production Vite build passed
 117 modules transformed
 ```
 
-Phase 5.1C implementation PR: **#137 — MERGED**
+Phase 5.2A implementation PR: **#140 — MERGED**
 
 Implementation merge:
 
-`95b6cb35a85dbc1e71a2b4d71bc3dba8de23b40a`
+`8468edf288b014a00f4f1529442fa043084f1102`
 
 Exact post-merge CI:
 
-`34997700828 — SUCCESS`
+`35002844064 — SUCCESS`
 
-The existing Vite warning for the minified main JavaScript chunk being slightly above 500 kB is non-blocking and remains a future performance/code-splitting concern.
+The existing Vite warning for the minified main JavaScript chunk being slightly above 500 kB remains non-blocking. SheetJS has not yet entered the React application entry bundle because the codec is not yet UI/application-reachable; later persistence wiring must remeasure bundle impact and may use deferred/dynamic loading.
 
 See:
 
 - `docs/DEVELOPMENT_PLAN.md`
 - `docs/PHASE_5_EXCEL_PERSISTENCE_PLAN.md`
 - `docs/PHASE_5_PROGRESS.md`
-- `docs/PHASE_5_1C_DATASET_VALIDATION_REFERENCE_INTEGRITY.md`
+- `docs/PHASE_5_2A_XLSX_LIBRARY_EVALUATION_CODEC_BOUNDARY.md`
 
 ## Current status
 
@@ -202,10 +200,10 @@ See:
 **Phase 4 — COMPLETE**  
 **Phase 5 — IN PROGRESS**
 
-Phase 5.1 is complete.
+Phase 5.1 is complete. Phase 5.2A is complete.
 
 Current next task:
 
-**Phase 5.2A — XLSX Library Evaluation & Codec Boundary — NEXT / NOT STARTED**
+**Phase 5.2B — Deterministic Dataset-to-XLSX Export — NEXT / NOT STARTED**
 
-Do not begin 5.2A implementation until separately requested from the exact final green Phase 5.1C closeout baseline.
+Do not begin 5.2B implementation until separately requested from the exact final green Phase 5.2A closeout baseline. It should first receive a dedicated scope/decomposition review and development plan.
