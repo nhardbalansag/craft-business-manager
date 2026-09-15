@@ -2,7 +2,7 @@
 
 ## Status
 
-**IN PROGRESS**
+**IMPLEMENTED — MERGE GATE PENDING**
 
 Authoritative base:
 
@@ -16,13 +16,13 @@ Feature branch:
 
 Define one storage-agnostic application resolver that returns current component-source availability for either `material` or `product` sources while preserving the lifecycle relationship rules already established in Phase 3.1C.
 
-3.2C must make current source readiness explicit without introducing assembly capacity, reservations, automatic deductions, stock transactions, costing, UI, or Excel persistence.
+3.2C makes current source readiness explicit without introducing assembly capacity, reservations, automatic deductions, stock transactions, costing, UI, or Excel persistence.
 
 ## Split assessment
 
 No deeper formal split is required.
 
-3.2C is cohesive enough to implement as one task. Internal implementation order:
+3.2C is cohesive enough to implement as one task. Implementation order:
 
 1. define the controlled availability/readiness result contract;
 2. implement Material-backed source resolution;
@@ -45,43 +45,19 @@ partial
 not-ready
 ```
 
-Semantics:
-
 ### `ready`
 
-The source relationship is eligible and current availability is resolved.
-
-`availableQuantity` is a finite non-negative quantity in canonical `pc` units.
-
-Explicit zero is **ready** availability with `availableQuantity = 0`; it is not an unresolved state.
+The source relationship is eligible and current availability is resolved. `availableQuantity` is a finite non-negative quantity in canonical `pc` units. Explicit zero is **ready** availability with `availableQuantity = 0`.
 
 ### `partial`
 
-The source relationship itself is valid/eligible, but current availability cannot be fully resolved from source evidence.
-
-Baseline examples:
-
-- active Product exists but has no ProductStock record;
-- active count-based Material exists but its current on-hand quantity cannot be normalized because required inventory conversion evidence is unresolved;
-- a persisted/corrupted ProductStock record exists but fails the 3.2A ProductStock contract.
-
-`availableQuantity` is `null` for unresolved partial results.
+The source relationship itself is valid/eligible, but current availability cannot be fully resolved from source evidence. Examples include missing ProductStock, unresolved Material conversion evidence, or corrupted persisted ProductStock. `availableQuantity` is `null`.
 
 ### `not-ready`
 
-The source relationship itself is invalid for active composition availability.
-
-Baseline examples:
-
-- source Material/Product is missing;
-- source Material/Product is archived/inactive;
-- Material source is not canonical count inventory (`baseUnit !== 'pc'`).
-
-`availableQuantity` is `null`.
+The source relationship itself is invalid for active composition availability. Examples include missing/inactive sources or a Material source whose canonical base unit is not `pc`. `availableQuantity` is `null`.
 
 ## Result shape
-
-Recommended derived application contract:
 
 ```text
 ComponentSourceAvailability
@@ -95,43 +71,37 @@ ComponentSourceAvailability
 - productStock?: ProductStock | null
 ```
 
-This is a derived application view and must **not** be added to `BusinessDataset`.
-
-Issue records use stable codes/messages so later 3.3/3.4/UI work can consume readiness without parsing exception text.
+This is a derived application view and is not added to `BusinessDataset`.
 
 ## Material-backed source rules
 
-Material availability resolution must:
+Material availability resolution:
 
-1. resolve Material by source ID;
-2. require the Material to exist;
-3. require `isActive === true`;
-4. require canonical `baseUnit === 'pc'`;
-5. obtain Material calibration evidence through the existing application evidence provider;
-6. normalize current on-hand quantity using Phase 1 `normalizeMaterialOnHand()` rules;
-7. reject negative normalized availability as unresolved/corrupted inventory data;
-8. return the normalized base quantity as available `pc` quantity;
-9. preserve the full `MaterialOnHandNormalization` evidence when resolution succeeds.
+1. resolves Material by source ID;
+2. requires the Material to exist and be active;
+3. requires canonical `baseUnit === 'pc'`;
+4. obtains Material calibration evidence through the shared application evidence provider;
+5. normalizes current on-hand quantity through Phase 1 `normalizeMaterialOnHand()` rules;
+6. treats negative normalized availability as corrupted/unresolved source data;
+7. returns the normalized base quantity as available `pc` quantity;
+8. preserves full `MaterialOnHandNormalization` evidence on success.
 
-If Phase 1 inventory normalization raises a controlled `MaterialInventoryError`, the relationship remains valid but availability becomes `partial` with the underlying error code preserved in an availability issue.
+Controlled Phase 1 `MaterialInventoryError` or package-conversion `MaterialCostingError` failures become `partial` availability with the underlying error code preserved.
 
-The resolver must not calculate cost or inventory value merely to answer availability.
+The resolver does not calculate cost or inventory value merely to answer availability.
 
 ## Product-backed source rules
 
-Product availability resolution must:
+Product availability resolution:
 
-1. resolve Product by source ID;
-2. require the Product to exist;
-3. require `isActive === true`;
-4. retrieve ProductStock by Product identity;
-5. treat a missing ProductStock record as `partial`, not zero;
-6. validate an existing ProductStock through the 3.2A contract as a corruption guard;
-7. return existing valid `onHandQuantity` as available `pc` quantity.
+1. resolves Product by source ID;
+2. requires the Product to exist and be active;
+3. retrieves ProductStock by Product identity;
+4. treats a missing ProductStock record as `partial`, not zero;
+5. validates persisted ProductStock through the 3.2A contract as a corruption guard;
+6. returns valid `onHandQuantity` as available `pc` quantity.
 
-Explicit ProductStock zero is a resolved `ready` result.
-
-Archived ProductStock remains historical source data but does not make an archived child Product eligible for active-parent availability.
+Explicit ProductStock zero is a resolved `ready` result. Archived ProductStock remains historical source data but does not make an archived Product eligible for active-parent availability.
 
 ## Relationship guard policy
 
@@ -142,15 +112,13 @@ Phase 3.1C already established the authoritative lifecycle guards:
 - active component Material cannot be changed away from `pc`;
 - Product reactivation revalidates retained component sources.
 
-3.2C must **reuse**, not duplicate, those lifecycle guards.
+3.2C reuses rather than duplicates these lifecycle guards. Dedicated regression tests prove availability eligibility and lifecycle protection remain aligned across both source kinds.
 
-Focused 3.2C regression tests must prove that the availability resolver and existing guards stay consistent across both source kinds.
-
-No new stock-reservation or quantity-dependent archive guard is introduced.
+No stock-reservation or quantity-dependent archive guard is introduced.
 
 ## Issue contract
 
-Baseline issue codes:
+Stable issue codes:
 
 ```text
 SOURCE_MATERIAL_NOT_FOUND
@@ -164,13 +132,11 @@ SOURCE_PRODUCT_STOCK_MISSING
 SOURCE_PRODUCT_STOCK_INVALID
 ```
 
-For Material inventory normalization failures, the issue also retains the underlying Phase 1 `MaterialInventoryError.code`.
-
-For invalid ProductStock, the issue retains the underlying 3.2A `ProductStockError.code`.
+Material availability issues may retain underlying Phase 1 `MaterialInventoryError.code` or `MaterialCostingError.code`. Invalid ProductStock issues retain the underlying 3.2A `ProductStockError.code`.
 
 ## Shared application session
 
-Add a shared resolver instance:
+Shared resolver:
 
 ```text
 componentSourceAvailabilityService
@@ -183,29 +149,28 @@ Dependencies:
 - `productStockRepository`
 - shared Material calibration-evidence provider
 
-The session should reuse one calibration-evidence provider rather than duplicate filtering logic.
+`materialCalibrationEvidenceProvider` is reused by both MaterialService and ComponentSourceAvailabilityService.
 
-## Test plan
+## Test result
 
-Focused tests must cover at minimum:
+The focused suite adds 18 tests covering:
 
-- active `pc` Material with direct `pc` on-hand -> ready;
-- packaged/count Material on-hand -> ready with preserved conversion evidence;
-- explicit zero Material stock -> ready zero;
-- missing Material -> not-ready;
-- inactive Material -> not-ready;
-- non-`pc` Material -> not-ready;
-- unresolved Material package conversion -> partial with Phase 1 error evidence;
-- negative/corrupted Material normalized stock -> partial;
-- active Product with valid ProductStock -> ready;
-- active Product with explicit zero ProductStock -> ready zero;
-- active Product with missing ProductStock -> partial;
-- missing Product -> not-ready;
-- inactive Product -> not-ready even if historical ProductStock exists;
-- corrupted ProductStock -> partial with 3.2A error evidence;
-- Material archive remains blocked while an active parent depends on it;
-- Product archive remains blocked while an active parent depends on it;
-- archived parent history does not create an active dependency guard.
+- direct/package/zero Material availability;
+- missing/inactive/non-count Material sources;
+- unresolved/negative Material inventory;
+- positive/zero/missing/invalid ProductStock;
+- missing/inactive Product sources;
+- ProductComponent source delegation;
+- Material/Product active dependency archive guards;
+- archived-parent historical relationship behavior.
+
+Feature-head validation:
+
+- CI run `34914060282` — SUCCESS;
+- 44 test files passed;
+- 422 tests passed;
+- TypeScript typecheck passed;
+- production build passed.
 
 ## Explicit deferrals
 
@@ -223,24 +188,24 @@ Not part of 3.2C:
 - React UI;
 - Excel persistence.
 
-These remain Phase 3.3+, 3.4+, 3.5, or Phase 5 according to the roadmap.
+These remain Phase 3.3+, 3.4+, 3.5, or Phase 5.
 
 ## Completion gate
 
-3.2C is complete only when:
+Implemented feature gates passed:
 
 - one controlled `ready | partial | not-ready` contract serves both source types;
 - Material-backed availability uses Phase 1 inventory normalization and preserves conversion evidence;
 - Product-backed availability uses authoritative ProductStock;
 - explicit zero is distinguishable from missing stock;
 - missing/inactive/incompatible sources are controlled `not-ready` results;
-- unresolved availability evidence is a controlled `partial` result;
+- unresolved availability evidence is controlled `partial`;
 - existing active dependency guards remain correct across Material and Product sources;
 - shared application-session wiring exists;
-- focused tests pass;
-- full repository tests pass;
-- TypeScript typecheck passes;
-- production build passes;
+- focused/full tests, TypeScript typecheck, and production build pass.
+
+Remaining gate:
+
 - implementation PR merges to `develop`;
 - exact post-merge `develop` CI is green.
 
@@ -248,4 +213,4 @@ These remain Phase 3.3+, 3.4+, 3.5, or Phase 5 according to the roadmap.
 
 **3.3A — Material-Backed Component Cost**
 
-Do not begin 3.3A until 3.2C is merged, exact post-merge `develop` CI is green, and the 3.2 closeout tracker has been updated.
+Do not begin 3.3A until 3.2C is merged, exact post-merge `develop` CI is green, and the Phase 3.2 closeout tracker is updated.
