@@ -1,21 +1,21 @@
 # Phase 4 — Pricing & Production Planning Progress
 
-Status: **MASTER PLAN ESTABLISHED — IMPLEMENTATION NOT STARTED**
+Status: **IN PROGRESS**
 
 Planning baseline: `docs/PHASE_4_PRICING_PRODUCTION_PLANNING_PLAN.md`
 
-Authoritative planning base:
+Authoritative planning merge:
 
-`develop` @ `b963f2d35f19f219df040208c5718cd4b9f078a3`
+`develop` @ `691651f15156c1258a6f1ef75b43d53b6836a426`
 
-Starting exact `develop` CI:
+Planning post-merge CI:
 
-`34930800736 — SUCCESS`
+`34931938705 — SUCCESS`
 
 ```text
-4.1 — Financial Profile & Pricing Policy Foundation      NOT STARTED
-    4.1A — Product Financial Profile Contract             NEXT
-    4.1B — Pricing Formula & Validation Engine            NOT STARTED
+4.1 — Financial Profile & Pricing Policy Foundation      IN PROGRESS
+    4.1A — Product Financial Profile Contract             COMPLETE
+    4.1B — Pricing Formula & Validation Engine            NEXT
     4.1C — Profile Repository & Application Services      NOT STARTED
 
 4.2 — Fully Loaded Product Unit Cost                      NOT STARTED
@@ -45,48 +45,71 @@ Starting exact `develop` CI:
 
 ## Locked Phase 4 decisions
 
-- Phase 4 financial source configuration is separate from the Phase 2/3 `Product` recipe/composition contract.
-- One configured Product financial profile carries explicit labor cost per unit, explicit overhead cost per unit, and an independently configurable pricing policy.
-- Missing financial profile is unresolved; a profile containing explicit `0` labor/overhead is known zero.
+- Phase 4 financial source configuration is separate from the Phase 2/3 Product recipe/composition contract.
+- One configured Product financial profile carries explicit labor cost per unit, explicit overhead cost per unit, and independently configurable pricing policy.
+- Missing financial profile is unresolved; explicit zero labor/overhead is known zero.
+- `pricingPolicy: null` explicitly represents unconfigured pricing while known cost adders remain valid source evidence.
 - Pricing methods are fixed profit amount, markup percentage, and target margin.
-- Internal percentage rates are canonical decimals; UI may present human percentages.
-- Target margin must satisfy `0 <= rate < 1`; invalid margin fails closed and never becomes a fake zero selling price.
-- Standard unit economics include the Product's explicit direct-material safety-waste planning reserve exactly once.
-- Observed yield defects are not re-applied in Phase 4.
-- Parent safety waste does not inflate discrete component quantities.
-- Handmade Product components contribute their recursively fully loaded production cost, including their own direct safety reserve/labor/overhead, but never their retail selling price/profit.
-- Unit financial math retains full precision; PHP currency rounding is presentation-only.
-- Physical planned batch cost uses Phase 2 final-batch count rounding and therefore can differ from `totalUnitCost × quantity`.
-- Expected batch profit is based on physical planned production cost, not the generic historical `plannedTotals()` shortcut.
-- Capacity feasibility uses Phase 3 `AssemblyCapacityTraceService`; requested quantity is never silently auto-clamped.
-- Derived prices/costs/revenue/profit are not persisted as authoritative source data.
-- Phase 4 introduces no payroll/timekeeping, global overhead allocator, tax/VAT, discounts, marketplace fees, accounting journal entries, stock reservation/deduction, Excel persistence, or Tauri integration.
+- Internal percentage rates use canonical decimals; UI may later present human percentages.
+- Target margin must satisfy `0 <= rate < 1`; authoritative numeric validation belongs to 4.1B.
+- Standard unit economics include direct-material safety waste exactly once.
+- Observed yield defects are not re-applied.
+- Parent safety waste does not inflate discrete component counts.
+- Handmade Product components roll up fully loaded production cost, never child retail profit.
+- Unit financial math retains full precision; currency formatting is presentation-only.
+- Physical batch cost uses Phase 2 final-batch count rounding and may differ from unit cost × quantity.
+- Expected batch profit uses physical planned production cost.
+- Capacity feasibility uses Phase 3 AssemblyCapacityTraceService and never silently clamps the requested quantity.
+- Derived cost/price/revenue/profit is not authoritative persisted source data.
+- Phase 4 excludes payroll/timekeeping, global overhead allocation, tax/VAT, discounts, marketplace fees, accounting posting, stock reservation/deduction, Excel persistence, and Tauri integration.
 
-## Planning discovery notes
+## Completed phase records
 
-Existing reusable contracts:
+### 4.1A — Product Financial Profile Contract
 
-- `ProductionRequirementService` — safety-waste-adjusted direct production requirements and physical batch quantities;
-- `ComponentAwareProductCostService` — authoritative Phase 3 material/component cost evidence and recursive component trace;
-- `AssemblyCapacityTraceService` — current final assembly capacity and all typed tied limiters;
-- existing `PricingMethod`/`PricingPolicy` and generic `costing.ts` pricing helpers — scaffold only; must be validated/hardened in 4.1B before being treated as authoritative.
+**COMPLETE**
 
-Existing gap requiring Phase 4:
+Delivered:
 
-- no product financial profile source record;
-- no explicit labor/overhead source data;
-- no readiness-aware fully loaded cost service;
-- no authoritative selling-price quote service;
-- no application-level physical batch financial plan;
-- no Pricing workspace;
-- current Production UI has no revenue/profit layer.
+- dedicated pricing source types and supported-method guard;
+- ProductFinancialProfile source contract;
+- explicit labor and overhead per-unit source values;
+- explicit configured/unconfigured pricing policy state;
+- missing-profile versus explicit-zero semantics;
+- validation/normalization/deep cloning;
+- BusinessDataset financial-profile collection;
+- no Product contract contamination;
+- no 4.1B formula/range implementation leakage.
+
+Evidence:
+
+```text
+Corrected implementation head 79c3f51f27b957721219a80a08078f603d7be214
+Implementation CI              34932357351 — SUCCESS
+Final feature head             8162732a7bbee01e92ce952c8c5d83a8b0d8041a
+Final feature-head CI          34932475789 — SUCCESS
+PR #96                         MERGED
+PR CI                          34932585076 — SUCCESS
+Implementation merge           cd520f581d96dbd0a3ed48d88a95e9b22f881af0
+Post-merge develop CI          34932640993 — SUCCESS
+57 test files / 649 tests
+18 ProductFinancialProfile tests
+3 pricing source-type tests
+7 React smoke tests
+TypeScript typecheck passed
+production build passed
+```
+
+Development plan:
+
+`docs/PHASE_4_1A_PRODUCT_FINANCIAL_PROFILE_CONTRACT_PLAN.md`
+
+Implementation record:
+
+`docs/PHASE_4_1A_PRODUCT_FINANCIAL_PROFILE_CONTRACT.md`
 
 ## Current active task
 
-**4.1A — Product Financial Profile Contract — NEXT / NOT STARTED**
+**4.1B — Pricing Formula & Validation Engine — NEXT / NOT STARTED**
 
-Do not begin 4.1A until:
-
-1. Phase 4 master plan/progress documentation is merged to `develop`;
-2. exact post-merge `develop` CI is green;
-3. a dedicated 4.1A development plan/scope review is created.
+Do not begin 4.1B until a dedicated 4.1B development plan/scope review is established after the 4.1A closeout is merged and exact final `develop` CI is green.
