@@ -18,13 +18,13 @@ Planning post-merge CI:
     4.1B — Pricing Formula & Validation Engine            COMPLETE
     4.1C — Profile Repository & Application Services      COMPLETE
 
-4.2 — Fully Loaded Product Unit Cost                      IN PROGRESS
+4.2 — Fully Loaded Product Unit Cost                      COMPLETE
     4.2A — Waste-Adjusted Direct-Material Unit Cost       COMPLETE
     4.2B — Recursive Fully Loaded Product Component Cost  COMPLETE
-    4.2C — Total Fully Loaded Unit Cost & Readiness       NEXT
+    4.2C — Total Fully Loaded Unit Cost & Readiness       COMPLETE
 
-4.3 — Selling Price & Unit Economics                      NOT STARTED
-    4.3A — Selling Price Derivation                       NOT STARTED
+4.3 — Selling Price & Unit Economics                      IN PROGRESS
+    4.3A — Selling Price Derivation                       NEXT
     4.3B — Profit / Markup / Margin Metrics               NOT STARTED
     4.3C — Product Pricing Quote & Readiness Service      NOT STARTED
 
@@ -61,13 +61,18 @@ Planning post-merge CI:
 - Base direct-material cost and forward safety-reserve cost remain separately traceable and reconcile to pricing direct-material cost.
 - Direct-material cost-per-base-unit evidence is reused from the existing authoritative cost engine; package conversion/calibration costing is not duplicated in Phase 4.
 - Existing `NO_REQUIREMENTS / not-ready` direct-material semantics remain intact in 4.2A.
-- 4.2B provides the controlled component-aware neutral direct-material interpretation for genuine component-only child Products; broken/partial direct evidence is never neutralized.
-- Product-backed child components roll up fully loaded **production cost**, never child retail selling price or profit.
+- 4.2B provides controlled component-aware neutral direct-material interpretation for genuine component-only child Products; broken/partial direct evidence is never neutralized.
+- Product-backed child components roll up fully loaded production cost, never child retail selling price or profit.
 - Each recursive child includes its own 4.2A waste-adjusted direct material, Material-backed component costs, nested Product-backed fully loaded costs, labor, and overhead exactly once.
 - Child `pricingPolicy` does not participate in recursive production-cost roll-up.
 - Missing or invalid child labor/overhead evidence blocks an authoritative fully loaded child total while preserving known partial cost evidence.
 - Partial known recursive cost is exposed separately from authoritative `childFullyLoadedUnitCost` / `componentCostContribution`.
-- Recursive component costing remains independent of ProductStock/current availability.
+- 4.2C now provides the authoritative root Product fully loaded unit-cost synthesis from 4.2A direct materials, Phase 3 Material-backed components, 4.2B Product-backed components, root labor, and root overhead.
+- Root `pricingPolicy` does not participate in 4.2C production-cost math or readiness.
+- Genuine component-only root Products can use the controlled neutral-direct interpretation; no-direct/no-component roots remain unresolved.
+- Missing/invalid root financial profile or unresolved component/direct evidence preserves known subtotal but blocks authoritative `totalFullyLoadedUnitCost`.
+- `totalFullyLoadedUnitCost` is the authoritative cost basis for Phase 4.3 only when 4.2C status is `ready`.
+- Recursive and root component costing remains independent of ProductStock/current availability.
 - Observed yield defects are not re-applied.
 - Parent safety waste does not inflate discrete component counts.
 - Unit financial math retains full precision; currency formatting is presentation-only.
@@ -82,8 +87,6 @@ Planning post-merge CI:
 ### 4.1A — Product Financial Profile Contract
 
 **COMPLETE**
-
-Evidence:
 
 ```text
 Corrected implementation head 79c3f51f27b957721219a80a08078f603d7be214
@@ -105,8 +108,6 @@ Record: `docs/PHASE_4_1A_PRODUCT_FINANCIAL_PROFILE_CONTRACT.md`
 
 **COMPLETE**
 
-Evidence:
-
 ```text
 Implementation head            d699f1ac11794a47a026290aa3ef2e963d84f2f4
 Implementation CI              34934079592 — SUCCESS
@@ -126,8 +127,6 @@ Record: `docs/PHASE_4_1B_PRICING_FORMULA_VALIDATION_ENGINE.md`
 ### 4.1C — Financial Profile Repository & Application Services
 
 **COMPLETE**
-
-Evidence:
 
 ```text
 Implementation head            29be0d69fcfc81867704a6d3b8878b923facb285
@@ -153,8 +152,6 @@ Record: `docs/PHASE_4_1C_FINANCIAL_PROFILE_REPOSITORY_SERVICES.md`
 ### 4.2A — Waste-Adjusted Direct-Material Unit Cost
 
 **COMPLETE**
-
-Evidence:
 
 ```text
 Initial implementation head    720cf61af18a597111c1e509888f828893c7b1c8
@@ -183,25 +180,6 @@ Record: `docs/PHASE_4_2A_WASTE_ADJUSTED_DIRECT_MATERIAL_UNIT_COST.md`
 
 **COMPLETE**
 
-Delivered:
-
-- dedicated Phase 4 recursive Product-backed component-cost service;
-- child 4.2A waste-adjusted direct-material cost included exactly once;
-- child Material-backed component cost delegated to the existing Phase 3/Phase 1 path;
-- nested Product-backed child fully loaded production cost recursion;
-- child labor and overhead included exactly once;
-- child pricing policy, selling price, markup, margin, and profit excluded;
-- explicit component-only child neutral-direct semantics without changing 4.2A;
-- known partial subtotal kept distinct from authoritative fully loaded totals/contributions;
-- deterministic nested paths and component ordering;
-- defensive duplicate-source and cycle protection;
-- missing/invalid/mismatched financial profile fail-closed behavior;
-- ProductStock/current availability excluded from production-cost math;
-- shared application-session wiring;
-- no 4.2C/pricing/UI/persistence/stock-mutation leakage.
-
-Evidence:
-
 ```text
 Plan commit                     06bb9aa4cffde4da050fda8be4c1faa17dc3d9f1
 Implementation head             fbf804234896d92a18c7721dfe53470d801f89fd
@@ -225,12 +203,62 @@ Plan: `docs/PHASE_4_2B_RECURSIVE_FULLY_LOADED_PRODUCT_COMPONENT_COST_PLAN.md`
 
 Record: `docs/PHASE_4_2B_RECURSIVE_FULLY_LOADED_PRODUCT_COMPONENT_COST.md`
 
+### 4.2C — Total Fully Loaded Unit Cost & Readiness
+
+**COMPLETE**
+
+Delivered:
+
+- authoritative root Product fully loaded unit-cost service;
+- 4.2A waste-adjusted direct material included exactly once;
+- Phase 3 Material-backed component costs;
+- 4.2B Product-backed fully loaded component costs;
+- root labor and overhead;
+- known partial subtotal kept distinct from authoritative total;
+- component-only root neutral-direct semantics;
+- financial-profile fail-closed readiness;
+- pricing-policy independence;
+- immediate component source-uniqueness guard;
+- deterministic component trace;
+- archived-root inspectability;
+- defensive cloning;
+- shared application-session wiring.
+
+Evidence:
+
+```text
+Plan commit                     f1fdf1957e3b17a07bc8ca756135c35d48b6d22c
+Initial implementation head     6a52451b7db593563cd747f7926dceeed82c4f76
+Initial CI                      34940513808 — FAILURE (Material-backed status type mismatch)
+Corrected type-contract head    4e5a186d3eb47a4d92d6070c98572c124d75b77d
+Corrected CI                    34940692457 — FAILURE (test-only duplicate-source fixture)
+Green implementation head       3f048062ccc76787b38d6eeddb8b8c2372c503df
+Implementation CI               34940853079 — SUCCESS
+Final feature head              3ba9a3f7f7d1e5fb088b1318354032ffdcac4b5d
+Final feature-head CI           34941112509 — SUCCESS
+PR #106                         MERGED
+PR CI                           34941214080 — SUCCESS
+Implementation merge            ecc361cee6ed4f9e45389c00e4c1b672a0bbf632
+Post-merge develop CI           34941302219 — SUCCESS
+65 test files / 779 tests
+24 FullyLoadedProductUnitCostService tests
+1 4.2C shared-session wiring test
+7 React smoke tests
+TypeScript typecheck passed
+production build passed
+103 modules transformed
+```
+
+Plan: `docs/PHASE_4_2C_TOTAL_FULLY_LOADED_UNIT_COST_READINESS_PLAN.md`
+
+Record: `docs/PHASE_4_2C_TOTAL_FULLY_LOADED_UNIT_COST_READINESS.md`
+
 ## Current active task
 
-**4.2C — Total Fully Loaded Unit Cost & Readiness — NEXT / NOT STARTED**
+**4.3A — Selling Price Derivation — NEXT / NOT STARTED**
 
-Do not begin 4.2C until:
+Do not begin 4.3A until:
 
-1. the 4.2B documentation-only closeout is merged to `develop`;
+1. the 4.2C documentation-only closeout is merged to `develop`;
 2. exact final closeout `develop` CI is green;
-3. a dedicated 4.2C development plan/scope review is established before implementation.
+3. a dedicated 4.3A development plan/scope review is established before implementation.
