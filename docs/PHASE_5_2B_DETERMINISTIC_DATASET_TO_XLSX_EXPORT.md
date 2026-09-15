@@ -2,7 +2,7 @@
 
 ## Status
 
-**IMPLEMENTED — AWAITING PR / MERGE VALIDATION**
+**COMPLETE**
 
 Plan:
 
@@ -28,7 +28,7 @@ src/storage/businessDatasetWorkbookExport.ts
 src/storage/businessDatasetWorkbookExport.test.ts
 ```
 
-The exporter now provides:
+The exporter provides:
 
 ```ts
 createBusinessDatasetWorkbookDocument(dataset, metadata)
@@ -78,7 +78,7 @@ exportedAt              explicitly supplied ISO-compatible text
 applicationVersion      optional explicitly supplied text
 ```
 
-The exporter contains no ambient clock. `exportedAt` is provided by the caller.
+The exporter contains no ambient clock. `exportedAt` is supplied by the caller.
 
 ### Deterministic ordering
 
@@ -111,7 +111,7 @@ INVALID_EXPORT_METADATA
 INVALID_GENERATED_WORKBOOK
 ```
 
-Invalid datasets fail before the codec is invoked and preserve the structured Phase 5.1C dataset issues.
+Invalid datasets fail before the codec is invoked and preserve structured Phase 5.1C dataset issues.
 
 Generated neutral workbooks are self-validated with `assertWorkbookSchema(...)` before XLSX byte encoding.
 
@@ -128,18 +128,17 @@ Verified:
 - formula-looking source text remains literal through real SheetJS XLSX encode/decode;
 - the exporter does not mutate the input dataset or nested source arrays.
 
-## Focused validation
-
-First implementation checkpoint:
+## Validation evidence
 
 ```text
-head       a1811b499dd065d9c4f7783708f1c74abd92699d
-CI         35007528923 — SUCCESS
-```
-
-Exact validation result:
-
-```text
+First implementation head       a1811b499dd065d9c4f7783708f1c74abd92699d
+First implementation CI         35007528923 — SUCCESS
+Documented feature head         172f49c2a7e08c25a874593372953aab768c2885
+Documented feature-head CI      35007663915 — SUCCESS
+Implementation PR #143          MERGED
+Dedicated PR CI                 35007802172 — SUCCESS
+Implementation merge            296960ee2f6e70999f4d279d59f977f4cf1c1d22
+Post-merge develop CI           35007932757 — SUCCESS
 86 test files / 1073 tests
 13 Phase 5.2B focused tests
 12 Phase 5.2A real-XLSX codec tests
@@ -152,14 +151,14 @@ Production Vite build passed
 117 modules transformed
 ```
 
-The existing non-blocking main-chunk warning remains unchanged at approximately:
+The existing non-blocking main-chunk warning remains approximately:
 
 ```text
 537.95 kB minified
 136.60 kB gzip
 ```
 
-The 5.2B exporter is not currently reachable from the React application path, so this phase did not increase the production application chunk count/module count.
+The exporter is not yet reachable from the React application path, so this phase did not increase the production application module count.
 
 ## Explicitly not implemented
 
@@ -178,13 +177,14 @@ The 5.2B exporter is not currently reachable from the React application path, so
 
 Those remain assigned to 5.2C and later Phase 5/6 tasks.
 
-## Merge gate
+## Completion decision
 
-Before 5.2B may be marked complete:
+All 5.2B implementation and merge gates are satisfied. The deterministic source-dataset export direction is authoritative on `develop` at implementation merge:
 
-1. this documented feature head must pass exact CI;
-2. implementation PR CI must pass on the unchanged exact head;
-3. guarded merge must use that exact expected head SHA;
-4. exact post-merge `develop` CI must pass;
-5. a docs-only closeout must mark 5.2B COMPLETE and advance 5.2C to NEXT / NOT STARTED;
-6. exact post-closeout `develop` CI must pass.
+`296960ee2f6e70999f4d279d59f977f4cf1c1d22`
+
+with exact post-merge CI:
+
+`35007932757 — SUCCESS`
+
+Phase 5.2C has not started. It remains the strict XLSX-to-dataset import/reconstruction and diagnostics task.
