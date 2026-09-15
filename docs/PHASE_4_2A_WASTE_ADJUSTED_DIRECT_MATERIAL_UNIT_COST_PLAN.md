@@ -2,9 +2,9 @@
 
 ## Status
 
-**IMPLEMENTED — MERGE GATE PENDING**
+**COMPLETE**
 
-Authoritative base:
+Authoritative starting base:
 
 `develop` @ `cf5661003e575d45b82143b109cc72b8bad6d0e9`
 
@@ -37,9 +37,9 @@ Delivered by combining:
 
 No deeper formal roadmap split was required.
 
-4.2A remained one cohesive derived-cost task. Recursive Product-backed cost remains 4.2B and total fully loaded unit cost remains 4.2C.
+4.2A remained one cohesive derived-cost task. Recursive Product-backed fully loaded cost remains 4.2B and total fully loaded unit cost remains 4.2C.
 
-## Delivered service
+## Delivered architecture
 
 Added:
 
@@ -51,7 +51,7 @@ Public API:
 costProduct(productId)
 ```
 
-Provider calls are loaded in parallel on a one-unit planning basis.
+The service loads one-unit requirement and direct cost evidence in parallel.
 
 ### Standard quantity basis
 
@@ -61,19 +61,15 @@ Provider calls are loaded in parallel on a one-unit planning basis.
 plannedBaseQuantityPerProduct
 ```
 
-It explicitly ignores:
+and explicitly ignores:
 
 ```text
 plannedBatchBaseQuantity
 ```
 
-for standard unit economics.
+for standard unit economics. This prevents indivisible `pc` materials from being prematurely rounded. Physical count rounding remains a 4.4A batch-financial concern.
 
-This prevents indivisible `pc` materials from being prematurely rounded when pricing one standard finished unit.
-
-Physical count rounding remains a future 4.4A batch-financial concern.
-
-## Cost formulas
+### Cost formulas
 
 Per direct material:
 
@@ -92,7 +88,7 @@ pricingDirectMaterialCostPerUnit
 = plannedBaseQuantityPerProduct × costPerBaseUnit
 ```
 
-Reconciliation:
+The service checks:
 
 ```text
 baseDirectMaterialCostPerUnit
@@ -100,11 +96,11 @@ baseDirectMaterialCostPerUnit
 ≈ pricingDirectMaterialCostPerUnit
 ```
 
-Domain/application math retains full precision.
+Full numeric precision is retained.
 
-## Safety-waste semantics
+### Safety-waste semantics
 
-The forward safety reserve is applied exactly once by consuming already-adjusted Phase 2 quantities.
+The forward reserve is applied exactly once by consuming already-adjusted Phase 2 quantities.
 
 The service does not:
 
@@ -113,26 +109,22 @@ The service does not:
 - apply parent safety waste to discrete components;
 - perform physical batch rounding.
 
-## Evidence and integrity
+### Evidence and readiness
 
-Material identity joins use trimmed/case-insensitive IDs while preserving the canonical requirement Material ID.
+Material identity joins use trimmed/case-insensitive IDs while preserving canonical requirement Material identity.
 
 The service fails closed for:
 
 - missing cost evidence;
-- cost evidence without a matching planned requirement;
+- cost evidence without a matching requirement;
 - base-unit mismatch;
 - non-finite/negative derived cost;
 - cost reconciliation failure;
-- Product identity mismatch between the two providers.
+- Product identity mismatch between providers.
 
-Provider Product mismatch raises typed:
+Product evidence mismatch raises typed `PRODUCT_EVIDENCE_MISMATCH`.
 
-`PRODUCT_EVIDENCE_MISMATCH`
-
-## Readiness
-
-Result status:
+Readiness:
 
 ```text
 ready
@@ -140,49 +132,11 @@ partial
 not-ready
 ```
 
-- `ready`: every planned direct material has compatible ready requirement/cost evidence;
-- `partial`: at least one valid direct-material cost is known, but source/integrity evidence remains unresolved;
-- `not-ready`: no valid direct-material cost line can be derived.
+Known partial subtotals remain visible under `partial` status. Existing authoritative `NO_REQUIREMENTS / not-ready` semantics are preserved; 4.2A does not invent component-only neutral handling without component context.
 
-Known partial subtotals remain visible under `partial` status.
+### Shared session
 
-The existing authoritative `NO_REQUIREMENTS / not-ready` behavior is preserved. 4.2A does not invent component-only neutral semantics because it has no component context.
-
-## Per-material traceability
-
-Each result line includes:
-
-```text
-materialId
-baseUnit
-source
-status
-
-effectiveBaseQuantityPerProduct
-wasteReserveBaseQuantityPerProduct
-plannedBaseQuantityPerProduct
-
-costPerBaseUnit
-baseDirectMaterialCostPerUnit
-safetyWasteReserveCostPerUnit
-pricingDirectMaterialCostPerUnit
-
-packageCost
-packageBaseQuantity
-packageConversionSource
-costingCalibrationId
-requirementContributions
-costContributions
-issues
-```
-
-## Shared session
-
-Updated:
-
-`src/application/session.ts`
-
-Added:
+Updated `src/application/session.ts` with:
 
 `wasteAdjustedDirectMaterialCostService`
 
@@ -214,10 +168,10 @@ Initial CI:
 
 `34936904329 — FAILURE`
 
-Reason:
+Cause:
 
 ```text
-A test fixture used lowercase "ml" instead of canonical BaseUnit "mL".
+Test fixture used lowercase "ml" instead of canonical BaseUnit "mL".
 TypeScript failed before tests/build.
 ```
 
@@ -229,7 +183,31 @@ Corrected implementation CI:
 
 `34937058854 — SUCCESS`
 
-Observed automated surface:
+Final documented feature head:
+
+`565e519b034a53edec525440f56b6996f17097d3`
+
+Final feature-head CI:
+
+`34937207673 — SUCCESS`
+
+Implementation PR:
+
+`#102 — MERGED`
+
+PR CI:
+
+`34937298973 — SUCCESS`
+
+Implementation merge:
+
+`5603fac7d8263e4b242a7d5a7bc76a8a9da84de3`
+
+Exact post-merge `develop` CI:
+
+`34937447317 — SUCCESS`
+
+Automated surface:
 
 ```text
 61 test files passed
@@ -263,7 +241,7 @@ Completed:
 
 1. dedicated development plan before code ✅
 2. exact authoritative source inspection ✅
-3. 4.2A derived service/result/provider contracts ✅
+3. 4.2A service/result/provider contracts ✅
 4. precise one-unit quantity/cost evidence join ✅
 5. base/reserve/pricing cost derivation ✅
 6. fail-closed readiness/issues ✅
@@ -271,30 +249,32 @@ Completed:
 8. focused tests ✅
 9. corrected full implementation CI ✅
 10. implementation record ✅
+11. clean documented feature-head CI ✅
+12. exact scope compare against starting `develop` ✅
+13. implementation PR #102 ✅
+14. independent PR CI ✅
+15. merge with expected-head protection ✅
+16. exact post-merge `develop` CI ✅
+17. documentation-only closeout prepared ✅
 
-Remaining:
+Remaining repository gates:
 
-11. clean documented feature-head CI;
-12. exact scope compare against starting `develop`;
-13. implementation PR to `develop`;
-14. independent PR CI;
-15. merge with expected-head protection;
-16. exact post-merge `develop` CI;
-17. documentation-only closeout;
-18. mark 4.2A COMPLETE / 4.2B NEXT;
-19. closeout PR CI and exact final `develop` CI.
+18. closeout PR CI;
+19. closeout merge and exact final `develop` CI.
 
 ## Completion gate
 
-4.2A is complete only when all implementation and closeout gates pass and the tracker advances to:
+The implementation work for 4.2A is complete. Repository lifecycle completion requires the documentation-only closeout to merge and final `develop` CI to pass.
+
+After closeout the authoritative tracker must read:
 
 ```text
-4.2A — Waste-Adjusted Direct-Material Unit Cost              COMPLETE
-4.2B — Recursive Fully Loaded Product Component Cost         NEXT
+4.2A — Waste-Adjusted Direct-Material Unit Cost       COMPLETE
+4.2B — Recursive Fully Loaded Product Component Cost  NEXT
 ```
 
 ## Next task after completion
 
 **4.2B — Recursive Fully Loaded Product Component Cost — NEXT / NOT STARTED**
 
-Do not begin 4.2B until 4.2A is fully merged, closed out, and exact final `develop` CI is green.
+Do not begin 4.2B until the 4.2A closeout is merged, exact final `develop` CI is green, and a dedicated 4.2B development plan/scope review is established.

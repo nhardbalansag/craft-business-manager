@@ -19,8 +19,8 @@ Planning post-merge CI:
     4.1C — Profile Repository & Application Services      COMPLETE
 
 4.2 — Fully Loaded Product Unit Cost                      IN PROGRESS
-    4.2A — Waste-Adjusted Direct-Material Unit Cost       NEXT
-    4.2B — Recursive Fully Loaded Product Component Cost  NOT STARTED
+    4.2A — Waste-Adjusted Direct-Material Unit Cost       COMPLETE
+    4.2B — Recursive Fully Loaded Product Component Cost  NEXT
     4.2C — Total Fully Loaded Unit Cost & Readiness       NOT STARTED
 
 4.3 — Selling Price & Unit Economics                      NOT STARTED
@@ -52,11 +52,15 @@ Planning post-merge CI:
 - Pricing methods are fixed profit amount, markup percentage, and target margin.
 - Internal percentage rates use canonical decimals; UI may later present human percentages.
 - Target margin must satisfy `0 <= rate < 1`; 4.1B enforces this fail-closed.
-- Financial-profile writes now pass through the 4.1C repository/application-service boundary and validate both 4.1A source rules and configured 4.1B pricing policy.
+- Financial-profile writes pass through the 4.1C repository/application-service boundary and validate both 4.1A source rules and configured 4.1B pricing policy.
 - Product financial-profile identity is Product-keyed, case-insensitive for lookup, and canonicalized to Product repository identity.
 - Archived Products retain readable/editable financial profiles.
 - No profile delete/reset contract exists; missing profile remains meaningful unresolved evidence.
 - Standard unit economics include direct-material safety waste exactly once.
+- 4.2A now derives standard direct-material pricing cost from precise `plannedBaseQuantityPerProduct`, not physical `plannedBatchBaseQuantity`.
+- Base direct-material cost and forward safety-reserve cost remain separately traceable and reconcile to pricing direct-material cost.
+- Direct-material cost-per-base-unit evidence is reused from the existing authoritative cost engine; package conversion/calibration costing is not duplicated in Phase 4.
+- Existing `NO_REQUIREMENTS / not-ready` direct-material semantics remain intact in 4.2A; component-aware neutral handling, if required, belongs to later fully loaded synthesis with component context.
 - Observed yield defects are not re-applied.
 - Parent safety waste does not inflate discrete component counts.
 - Handmade Product components roll up fully loaded production cost, never child retail profit.
@@ -117,21 +121,6 @@ Record: `docs/PHASE_4_1B_PRICING_FORMULA_VALIDATION_ENGINE.md`
 
 **COMPLETE**
 
-Delivered:
-
-- storage-agnostic ProductFinancialProfile repository boundary;
-- defensive in-memory Product-keyed repository;
-- one profile per Product identity via upsert;
-- ProductFinancialProfileService upsert/get/list API;
-- Product reference validation and canonical identity;
-- 4.1A profile validation + 4.1B configured-policy validation on writes;
-- explicit missing-profile versus zero-profile semantics;
-- archived Product profile preservation/editability;
-- deterministic filter/search/sort;
-- nested defensive cloning;
-- shared session repository/service wiring;
-- no React, persistence, delete/reset, or 4.2 leakage.
-
 Evidence:
 
 ```text
@@ -155,12 +144,57 @@ Plan: `docs/PHASE_4_1C_FINANCIAL_PROFILE_REPOSITORY_SERVICES_PLAN.md`
 
 Record: `docs/PHASE_4_1C_FINANCIAL_PROFILE_REPOSITORY_SERVICES.md`
 
+### 4.2A — Waste-Adjusted Direct-Material Unit Cost
+
+**COMPLETE**
+
+Delivered:
+
+- authoritative one-unit waste-adjusted direct-material cost service;
+- Phase 2 `ProductionRequirementService.plan(productId, 1)` quantity evidence reuse;
+- existing direct-material `costPerBaseUnit` evidence reuse;
+- precise `plannedBaseQuantityPerProduct` standard-cost basis;
+- no physical one-piece `pc` rounding in standard unit economics;
+- separate base direct-material and safety-reserve cost evidence;
+- reconciled pricing direct-material cost per unit;
+- per-material package/conversion/calibration/contribution traceability;
+- ready/partial/not-ready synthesis with fail-closed integrity issues;
+- case-insensitive Material evidence join and typed Product evidence mismatch guard;
+- existing `NO_REQUIREMENTS / not-ready` semantics preserved;
+- shared application-session wiring;
+- no 4.2B/4.2C, UI, batch-financial, persistence, or stock-mutation leakage.
+
+Evidence:
+
+```text
+Initial implementation head    720cf61af18a597111c1e509888f828893c7b1c8
+Initial CI                     34936904329 — FAILURE (test fixture "ml" vs canonical "mL")
+Corrected implementation head  6cd4579d6599e459b591c6f15ba8dc7a63850fc1
+Corrected implementation CI    34937058854 — SUCCESS
+Final feature head             565e519b034a53edec525440f56b6996f17097d3
+Final feature-head CI          34937207673 — SUCCESS
+PR #102                        MERGED
+PR CI                          34937298973 — SUCCESS
+Implementation merge           5603fac7d8263e4b242a7d5a7bc76a8a9da84de3
+Post-merge develop CI          34937447317 — SUCCESS
+61 test files / 730 tests
+14 WasteAdjustedDirectMaterialCostService tests
+1 4.2A shared-session wiring test
+7 React smoke tests
+TypeScript typecheck passed
+production build passed
+```
+
+Plan: `docs/PHASE_4_2A_WASTE_ADJUSTED_DIRECT_MATERIAL_UNIT_COST_PLAN.md`
+
+Record: `docs/PHASE_4_2A_WASTE_ADJUSTED_DIRECT_MATERIAL_UNIT_COST.md`
+
 ## Current active task
 
-**4.2A — Waste-Adjusted Direct-Material Unit Cost — NEXT / NOT STARTED**
+**4.2B — Recursive Fully Loaded Product Component Cost — NEXT / NOT STARTED**
 
-Do not begin 4.2A until:
+Do not begin 4.2B until:
 
-1. the 4.1C documentation-only closeout is merged to `develop`;
+1. the 4.2A documentation-only closeout is merged to `develop`;
 2. exact final closeout `develop` CI is green;
-3. a dedicated 4.2A development plan/scope review is established.
+3. a dedicated 4.2B development plan/scope review is established.
