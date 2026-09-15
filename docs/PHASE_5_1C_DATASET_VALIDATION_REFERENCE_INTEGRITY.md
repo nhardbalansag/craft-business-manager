@@ -2,7 +2,7 @@
 
 ## Status
 
-**IMPLEMENTATION VALIDATED — PR / MERGE PENDING**
+**COMPLETE**
 
 Planning document:
 
@@ -18,6 +18,10 @@ CI       34995743207 — SUCCESS
 Feature branch:
 
 `feature/phase-5-1c-dataset-validation-reference-integrity`
+
+Implementation PR:
+
+**#137 — MERGED**
 
 ---
 
@@ -177,19 +181,26 @@ The 30 focused tests cover:
 
 ---
 
-## First validated implementation checkpoint
+## Validation and merge evidence
 
 ```text
-Feature head     03dfb5ca8bb4089321df312c5b31e2a151dbbfe9
-CI               34997206352 — SUCCESS
-Test files       84 passed
-Tests            1048 passed
-5.1C tests       30 passed
-React smoke      8 passed
-Phase 4.6A       7 real-service integration tests passed
-Typecheck        PASS
-Production build PASS
-Modules          117 transformed
+Starting develop                  9fc8c9b48ebc896e57e8e25e312e88f68f6af070
+Starting CI                       34995743207 — SUCCESS
+First implementation checkpoint   03dfb5ca8bb4089321df312c5b31e2a151dbbfe9
+First implementation CI           34997206352 — SUCCESS
+Documented feature head           de7e297e9654625c2a6162acbec822b470c0760a
+Documented feature-head CI        34997361899 — SUCCESS
+PR #137                           MERGED
+PR CI                             34997498206 — SUCCESS
+Implementation merge              95b6cb35a85dbc1e71a2b4d71bc3dba8de23b40a
+Post-merge develop CI             34997700828 — SUCCESS
+84 test files / 1048 tests
+30 Phase 5.1C focused tests
+8 React workspace smoke tests
+7 Phase 4.6A real-service integration tests
+TypeScript typecheck passed
+Production Vite build passed
+117 modules transformed
 ```
 
 Existing non-blocking Vite warning remains:
@@ -204,7 +215,7 @@ This is the pre-existing code-splitting/performance warning and is not a 5.1C co
 
 ## Scope exclusions preserved
 
-5.1C does not implement:
+5.1C did not implement:
 
 - XLSX dependency/library selection;
 - XLSX encoding or decoding;
@@ -219,17 +230,14 @@ This is the pre-existing code-splitting/performance warning and is not a 5.1C co
 
 ---
 
-## Current gate
+## Completion result
 
-The implementation behavior is green on the feature branch.
+Phase **5.1C — Dataset Validation & Reference Integrity** is complete.
 
-Before 5.1C can be marked COMPLETE:
+With 5.1A, 5.1B, and 5.1C complete, **Phase 5.1 — Persisted Dataset & Workbook Contract Foundation** is complete.
 
-1. this documented feature head must pass exact CI;
-2. the implementation PR to `develop` must pass exact PR CI;
-3. the exact green PR head must be guarded-merged;
-4. the resulting exact `develop` merge commit must pass push CI;
-5. a docs-only closeout must mark 5.1C COMPLETE and advance the tracker to 5.2A;
-6. the final closeout `develop` commit must pass exact CI.
+The next roadmap task is:
 
-Do not begin 5.2A implementation as part of this implementation record.
+**5.2A — XLSX Library Evaluation & Codec Boundary — NEXT / NOT STARTED**
+
+Do not begin 5.2A implementation until it receives its own scope/development step from the exact final green 5.1C closeout baseline.
