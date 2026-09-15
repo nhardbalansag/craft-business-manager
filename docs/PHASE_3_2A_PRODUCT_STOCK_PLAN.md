@@ -2,13 +2,27 @@
 
 ## Status
 
-**IN PROGRESS**
+**COMPLETE**
+
+Implementation PR: `#67`
 
 Feature branch: `feature/phase-3-2a-product-stock-contract`
 
 Authoritative base:
 
 `develop` @ `bb2441390b6d833efe567369473358f19f7efdba`
+
+Implementation merge commit:
+
+`afc9ec9cac417b6f47a319174166abc048e86b40`
+
+Post-merge validation:
+
+`develop` CI run `34912611385` — SUCCESS
+
+Implementation record:
+
+`docs/PHASE_3_2A_PRODUCT_STOCK_CONTRACT.md`
 
 ## Objective
 
@@ -18,9 +32,9 @@ This phase establishes only the authoritative shape and validation semantics req
 
 ## Split assessment
 
-No deeper formal split is required.
+No deeper formal split was required.
 
-3.2A is small and cohesive enough to implement as one task. Internally, work follows this order:
+3.2A was small and cohesive enough to implement as one task. Internally, work followed this order:
 
 1. define the ProductStock source contract;
 2. define normalization/cloning helpers;
@@ -29,7 +43,7 @@ No deeper formal split is required.
 5. add focused unit tests;
 6. run full repository regression/typecheck/build validation.
 
-These are implementation steps, not new sub-phases.
+These were implementation steps, not new sub-phases.
 
 ## Authoritative contract
 
@@ -73,7 +87,7 @@ That relationship behavior belongs to 3.2B/3.2C rather than this source-contract
 
 ## Error contract
 
-Planned typed errors:
+Implemented typed errors:
 
 ```text
 INVALID_PRODUCT_ID
@@ -82,7 +96,7 @@ NON_INTEGER_ON_HAND_QUANTITY
 NEGATIVE_ON_HAND_QUANTITY
 ```
 
-Each error should retain useful source context such as Product ID and offending input.
+Each error retains useful source context such as Product ID and offending input.
 
 ## Explicit deferrals
 
@@ -104,9 +118,9 @@ Not part of 3.2A:
 - React UI;
 - Excel persistence.
 
-## Test plan
+## Test coverage
 
-Focused tests must cover:
+Focused tests cover:
 
 - valid zero stock;
 - valid positive whole stock;
@@ -117,27 +131,27 @@ Focused tests must cover:
 - fractional stock rejection;
 - negative stock rejection;
 - `NaN` rejection;
-- positive/negative infinity rejection.
+- positive/negative infinity rejection;
+- typed error context.
 
-## Completion gate
+## Completion gate result
 
-3.2A is complete only when:
+Passed:
 
-- the authoritative `ProductStock` source contract exists;
+- authoritative `ProductStock` source contract exists;
 - unit semantics remain implicitly `pc`;
 - zero stock is valid;
 - fractional, negative, and non-finite quantities are rejected;
 - Product identity is normalized and non-blank;
 - no repository/storage concern leaks into the domain contract;
-- focused tests pass;
-- full repository tests pass;
+- focused tests and full regression tests pass;
 - TypeScript typecheck passes;
 - production build passes;
-- implementation PR is merged to `develop`;
-- exact post-merge `develop` CI is green.
+- implementation PR #67 merged to `develop`;
+- exact post-merge `develop` CI run `34912611385` is green.
 
-## Next task after closeout
+## Next task
 
 **3.2B — Product Stock Repository & Services**
 
-Do not begin 3.2B until 3.2A is merged and its post-merge `develop` CI gate is green.
+Do not begin 3.2B until its own dedicated development plan/scope review is established.

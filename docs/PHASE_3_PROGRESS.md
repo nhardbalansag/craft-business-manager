@@ -11,8 +11,8 @@ Planning baseline: `docs/PHASE_3_PRODUCT_COMPONENTS_VESSELS_PLAN.md`
     3.1C — Component Repository & Application Services    COMPLETE
 
 3.2 — Finished Component Stock                            IN PROGRESS
-    3.2A — Product Stock Contract & Validation            IMPLEMENTED — MERGE GATE
-    3.2B — Product Stock Repository & Services            NOT STARTED
+    3.2A — Product Stock Contract & Validation            COMPLETE
+    3.2B — Product Stock Repository & Services            NEXT
     3.2C — Source Availability & Relationship Guards      NOT STARTED
 
 3.3 — Component-Aware Cost Roll-Up
@@ -115,8 +115,6 @@ Evidence:
 
 Implementation record: `docs/PHASE_3_1C_COMPONENT_REPOSITORY_SERVICES.md`
 
-## Implementation awaiting merge gate
-
 ### 3.2A — Product Stock Contract & Validation
 
 - dedicated `src/domain/productStock.ts` introduces authoritative finished Product/component stock source data;
@@ -127,12 +125,14 @@ Implementation record: `docs/PHASE_3_1C_COMPONENT_REPOSITORY_SERVICES.md`
 - fractional, negative, and non-finite quantities are rejected with typed domain errors;
 - defensive clone helper added;
 - `ProductStock` exported through the shared domain type surface;
-- Product existence lookup, uniqueness persistence enforcement, repositories/services, `BusinessDataset.productStocks`, and availability remain deferred to 3.2B/3.2C;
-- dedicated focused tests cover zero/positive stock, normalization, cloning, malformed identity and invalid quantities.
+- Product existence lookup, uniqueness persistence enforcement, repositories/services, `BusinessDataset.productStocks`, and availability remain deferred to 3.2B/3.2C.
 
-Feature evidence:
-- branch `feature/phase-3-2a-product-stock-contract`;
-- authoritative base `develop` @ `bb2441390b6d833efe567369473358f19f7efdba`.
+Evidence:
+- PR #67 merged;
+- implementation merge commit `afc9ec9cac417b6f47a319174166abc048e86b40`;
+- feature-head CI run `34912465333` passed;
+- PR CI run `34912541378` passed;
+- post-merge `develop` CI run `34912611385` passed.
 
 Development plan: `docs/PHASE_3_2A_PRODUCT_STOCK_PLAN.md`
 
@@ -140,6 +140,6 @@ Implementation record: `docs/PHASE_3_2A_PRODUCT_STOCK_CONTRACT.md`
 
 ## Current active task
 
-**3.2A — Product Stock Contract & Validation — merge/post-merge validation gate**
+**3.2B — Product Stock Repository & Services — NEXT / NOT STARTED**
 
-Do not start 3.2B until 3.2A is merged and exact post-merge `develop` CI is green.
+Do not begin 3.2B until a dedicated development plan/scope review is established for that task.
