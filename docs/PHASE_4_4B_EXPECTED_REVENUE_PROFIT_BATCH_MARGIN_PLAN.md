@@ -2,7 +2,7 @@
 
 ## Status
 
-**IMPLEMENTED — FEATURE VALIDATION GREEN — PENDING PR / MERGE**
+**COMPLETE — IMPLEMENTED, MERGED, AND POST-MERGE VALIDATED**
 
 Authoritative starting base:
 
@@ -469,6 +469,13 @@ Initial session-test head       1a1a31a35b448f8ff64739d178e7208adc216ea5
 Initial focused-test CI         34953949082 — FAILURE (test fixture typing only: notes null vs optional string)
 Corrected validation head       d8ca649aee3f4c782a74c707b000025145f5f0e9
 Corrected validation CI         34954110739 — SUCCESS
+Implementation record commit    bef3c09fcaa1b9cb8f13a23fea9c10239210a59f
+Final documented feature head   578fc3412c53f01d7c70ad5104288faeb110666b
+Final feature-head CI           34954391569 — SUCCESS
+Implementation PR               #116 — MERGED
+PR CI                           34954486934 — SUCCESS
+Implementation merge            d12f336a9e64a32e8bd0ffbecba0b6522006b67c
+Post-merge develop CI           34954576204 — SUCCESS
 75 test files / 907 tests
 22 ExpectedBatchFinancialsService tests
 1 4.4B shared-session wiring test
@@ -483,25 +490,12 @@ Implementation record:
 
 ## Completion gate
 
-4.4B is complete only when:
+All implementation and post-merge validation gates above are complete. This documentation-only closeout preserves the evidence and advances only the roadmap state.
 
-- exact starting `develop` SHA and CI are recorded;
-- this plan exists before implementation code;
-- no deeper split is introduced unless new evidence proves necessary;
-- authoritative selling price comes only from completed 4.3C evidence;
-- authoritative physical planned production cost comes only from completed 4.4A evidence;
-- revenue/profit/batch-margin/average physical cost semantics match this plan;
-- physical-vs-standard profit difference is explicit and traceable;
-- zero quantity/revenue are safe and do not produce Infinity/NaN;
-- partial/not-ready evidence never publishes a misleading authoritative expected profit;
-- cross-source consistency guards fail closed;
-- retained upstream evidence is defensively cloned;
-- focused tests pass;
-- shared-session wiring passes;
-- full typecheck/test/build validation passes;
-- implementation record is complete;
-- final feature-head CI passes;
-- implementation PR passes CI and merges from the expected head;
-- exact post-merge `develop` CI passes;
-- documentation-only closeout merges and exact final `develop` CI passes;
-- only then does 4.4C advance to NEXT.
+The next task is:
+
+```text
+4.4C — Capacity Feasibility & Warning Synthesis — NEXT / NOT STARTED
+```
+
+No 4.4C implementation is included in this closeout.

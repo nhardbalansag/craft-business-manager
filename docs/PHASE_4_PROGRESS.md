@@ -30,8 +30,8 @@ Planning post-merge CI:
 
 4.4 — Planned Batch Financials & Capacity                 IN PROGRESS
     4.4A — Physical Planned Batch Production Cost         COMPLETE
-    4.4B — Expected Revenue / Profit / Batch Margin       NEXT
-    4.4C — Capacity Feasibility & Warning Synthesis       NOT STARTED
+    4.4B — Expected Revenue / Profit / Batch Margin       COMPLETE
+    4.4C — Capacity Feasibility & Warning Synthesis       NEXT
 
 4.5 — Pricing & Production Planning UI                    NOT STARTED
     4.5A — Product Financial Profile Editor               NOT STARTED
@@ -99,6 +99,14 @@ Planning post-merge CI:
 - 4.4A preserves known physical cost subtotals for partial evidence but publishes `plannedProductionCost` only when the complete physical batch cost is authoritative.
 - Non-null invalid/non-finite physical cost evidence is unsafe and fails closed to `not-ready`; it is not treated as merely incomplete evidence.
 - `standardUnitCostTimesQuantity` and `physicalVsStandardCostDifference` are trace diagnostics only and are not alternate pricing or production-cost bases.
+- 4.4B is an orchestration/read-model boundary over completed 4.3C pricing and 4.4A physical planned production cost; it does not reopen lower-level cost or pricing repositories.
+- 4.4B expected revenue is authoritative selling price multiplied by requested quantity and may remain visible when pricing is ready but physical cost is incomplete.
+- 4.4B expected profit uses `expectedRevenue - plannedProductionCost`; partial known physical cost is never mislabeled as final profit evidence.
+- Finite negative physical batch profit and batch margin are valid business outcomes and are not sanitized to zero.
+- Zero expected revenue yields `batchMargin = null` with an explicit diagnostic rather than Infinity/NaN; zero quantity similarly yields no average physical cost per finished unit.
+- `profitPerUnit × Q` and `physicalVsUnitProfitDifference` are diagnostics only; physical planned production cost remains the authoritative batch-profit basis.
+- 4.4B validates Product identity, active state, requested quantity, unit-cost status, standard fully loaded unit cost, and authoritative numeric evidence across 4.3C/4.4A and fails closed on contradictions.
+- Complete 4.3C and 4.4A evidence is retained defensively for downstream inspection; derived 4.4B revenue/profit/margin values remain non-persisted.
 - Recursive and root component costing remains independent of ProductStock/current availability.
 - Observed yield defects are not re-applied.
 - Parent safety waste does not inflate discrete component counts.
@@ -448,12 +456,64 @@ Plan: `docs/PHASE_4_4A_PHYSICAL_PLANNED_BATCH_PRODUCTION_COST_PLAN.md`
 
 Record: `docs/PHASE_4_4A_PHYSICAL_PLANNED_BATCH_PRODUCTION_COST.md`
 
+### 4.4B — Expected Revenue / Profit / Batch Margin
+
+**COMPLETE**
+
+Delivered:
+
+- authoritative expected revenue from completed 4.3C selling-price evidence and requested quantity;
+- authoritative expected profit from expected revenue minus completed 4.4A physical planned production cost;
+- effective batch margin with explicit zero-revenue denominator diagnostics;
+- planned average physical cost per finished unit with explicit zero-quantity diagnostics;
+- standard `profitPerUnit × Q` comparison and physical-vs-unit-profit difference trace;
+- valid finite negative physical batch profit/margin preservation;
+- ready/partial/not-ready propagation while preserving independent authoritative expected revenue where valid;
+- fail-closed Product identity, active-state, requested-quantity, cost-status, standard-unit-cost, and numeric consistency guards;
+- controlled Product-not-found and 4.4A quantity/production-requirement error translation;
+- defensive cloning of complete retained 4.3C and 4.4A evidence;
+- shared application-session wiring;
+- no 4.4C+ leakage.
+
+Evidence:
+
+```text
+Starting develop                b634689bfc5b43071ff2426d3b4cb24d09e0b5aa
+Starting develop CI             34953319607 — SUCCESS
+Plan-before-code commit         8f19b98bcfc6c0a5f20c2459cc0d19bc0ec21463
+Service implementation          3283328c21c36f25cfafa739aaa0e235001ec603
+Session/wiring checkpoint       d6eaf6abd464306ea9eed0fd02c35588af9696f6
+Checkpoint CI                   34953761406 — SUCCESS
+Focused service-test commit     4d26032126c00df78973fcd1294b0ec42b4b710f
+Initial focused-test head       1a1a31a35b448f8ff64739d178e7208adc216ea5
+Initial focused-test CI         34953949082 — FAILURE (test fixture typing only: notes null vs optional string)
+Corrected validation head       d8ca649aee3f4c782a74c707b000025145f5f0e9
+Corrected validation CI         34954110739 — SUCCESS
+Implementation record commit    bef3c09fcaa1b9cb8f13a23fea9c10239210a59f
+Final feature head              578fc3412c53f01d7c70ad5104288faeb110666b
+Final feature-head CI           34954391569 — SUCCESS
+PR #116                         MERGED
+PR CI                           34954486934 — SUCCESS
+Implementation merge            d12f336a9e64a32e8bd0ffbecba0b6522006b67c
+Post-merge develop CI           34954576204 — SUCCESS
+75 test files / 907 tests
+22 ExpectedBatchFinancialsService tests
+1 4.4B shared-session wiring test
+TypeScript typecheck passed
+production Vite build passed
+108 modules transformed
+```
+
+Plan: `docs/PHASE_4_4B_EXPECTED_REVENUE_PROFIT_BATCH_MARGIN_PLAN.md`
+
+Record: `docs/PHASE_4_4B_EXPECTED_REVENUE_PROFIT_BATCH_MARGIN.md`
+
 ## Current active task
 
-**4.4B — Expected Revenue / Profit / Batch Margin — NEXT / NOT STARTED**
+**4.4C — Capacity Feasibility & Warning Synthesis — NEXT / NOT STARTED**
 
-Do not begin 4.4B implementation until:
+Do not begin 4.4C implementation until:
 
-1. this 4.4A documentation-only closeout is merged to `develop`;
+1. this 4.4B documentation-only closeout is merged to `develop`;
 2. exact final closeout `develop` CI is green;
-3. a dedicated 4.4B scope/split assessment and development plan are established before implementation.
+3. a dedicated 4.4C scope/split assessment and development plan are established before implementation.
