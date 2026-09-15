@@ -27,8 +27,8 @@ Planning baseline: `docs/PHASE_3_PRODUCT_COMPONENTS_VESSELS_PLAN.md`
 
 3.5 — Component / Stock / Production UI                   IN PROGRESS
     3.5A — Product Composition Editor                     COMPLETE
-    3.5B — Finished Component Stock UI                    NEXT
-    3.5C — Component-Aware Production Estimate UI         NOT STARTED
+    3.5B — Finished Component Stock UI                    COMPLETE
+    3.5C — Component-Aware Production Estimate UI         NEXT
 
 3.6 — Integration & Completion Gate                       NOT STARTED
     3.6A — Integrated Multi-Component Workflow            NOT STARTED
@@ -45,16 +45,18 @@ Planning baseline: `docs/PHASE_3_PRODUCT_COMPONENTS_VESSELS_PLAN.md`
 - Phase 3 baseline capacity is current assembly capacity, not hypothetical recursive manufacture of missing child stock;
 - Product-backed assembly capacity uses explicit current ProductStock only;
 - Phase 2 direct materials and Phase 3 discrete components remain distinct until derived synthesis views combine them;
-- a true Phase 2 `NO_REQUIREMENTS` direct side may be neutral for a valid component-only Product;
-- broken/unresolved direct-material requirements remain blocking;
-- unresolved required resources must not be silently treated as zero;
-- every resource tied at the final assembly-capacity minimum must remain visible;
+- genuine `NO_REQUIREMENTS` may be neutral for a valid component-only Product;
+- broken/unresolved required resources remain blocking and are not silently treated as zero;
+- every resource tied at the final assembly-capacity minimum remains visible;
 - limiting-resource identity is typed as direct Material requirement, Material-backed component, or Product-backed component;
-- capacity limiter paths terminate at the immediate current parent input used for assembly capacity and do not imply recursive manufacture;
-- Product composition UI must use `ProductComponentService` for authoritative writes;
-- UI source filtering is convenience only and cannot replace application/domain validation;
+- capacity limiter paths terminate at the immediate current parent input and do not imply recursive manufacture;
+- Product composition UI uses ProductComponentService for authoritative writes;
+- composition source filtering is UX convenience only; application/domain validation remains authoritative;
 - nested composition preview is read-only and corruption-guarded;
-- labor, overhead, and selling price remain Phase 4;
+- finished ProductStock UI preserves missing-versus-explicit-zero semantics;
+- archived relevant ProductStock remains inspectable/correctable;
+- no ProductStock delete/reset-to-missing shortcut is introduced without an application/domain contract;
+- labor, overhead, selling price, and profit remain Phase 4;
 - Excel persistence remains Phase 5;
 - no stock reservation, automatic deduction, or stock transaction ledger is introduced in Phase 3.
 
@@ -121,7 +123,7 @@ Implementation record: `docs/PHASE_3_4A_PER_COMPONENT_CAPACITY.md`
 ```text
 PR #81 merged
 implementation merge c598eb81b1521e63773c163f6aef1a3004cafbdb
-Post-merge develop CI 34920455875 — SUCCESS
+post-merge develop CI 34920455875 — SUCCESS
 50 test files / 551 tests
 27 dedicated 3.4B tests
 ```
@@ -135,7 +137,7 @@ Implementation record: `docs/PHASE_3_4B_DIRECT_MATERIAL_COMPONENT_CAPACITY_SYNTH
 ```text
 PR #83 merged
 implementation merge 2abd09b743cc88f4db06dc52916eb39b2bc9a52e
-Post-merge develop CI 34921631005 — SUCCESS
+post-merge develop CI 34921631005 — SUCCESS
 51 test files / 586 tests
 35 dedicated 3.4C tests
 ```
@@ -150,17 +152,11 @@ Implementation record: `docs/PHASE_3_4C_LIMITING_RESOURCE_TRACE_READINESS.md`
 
 Delivered:
 
-- Products workspace now exposes `Products`, `Mix presets`, and `Components` views;
-- active parent Product supports component add/edit/remove;
-- archived parent Product remains read-only for historical inspection;
-- component writes route through `ProductComponentService`;
-- Material candidates filter active/count-based/duplicate-invalid sources;
-- Product candidates filter active/self/duplicate/cycle-invalid sources for UX while save-time service validation remains authoritative;
-- authoritative roles and positive whole-piece quantities are exposed;
-- immediate composition cards provide readable source/role/quantity identity;
-- nested Product composition preview is deterministic, read-only, and guarded against corrupted cycles;
-- archived/missing source evidence remains inspectable;
-- no ProductStock UI, Production component UI, pricing, stock mutation, or persistence work leaked into 3.5A.
+- Products workspace exposes Products, Mix presets, and Components;
+- active parent Product supports component add/edit/remove through ProductComponentService;
+- archived parent is read-only for composition inspection;
+- active/count-based/self/duplicate/cycle-invalid candidates are filtered for UX while service validation remains authoritative;
+- immediate composition cards and guarded nested preview are available.
 
 Evidence:
 
@@ -174,16 +170,50 @@ Post-merge develop CI        34923517417 — SUCCESS
 52 test files / 596 tests
 9 dedicated composition-preview tests
 6 React workspace smoke tests
-TypeScript typecheck passed
-production build passed
 ```
 
 Development plan: `docs/PHASE_3_5A_PRODUCT_COMPOSITION_EDITOR_PLAN.md`
 
 Implementation record: `docs/PHASE_3_5A_PRODUCT_COMPOSITION_EDITOR.md`
 
+### 3.5B — Finished Component Stock UI
+
+**COMPLETE**
+
+Delivered:
+
+- Products workspace now exposes a `Finished stock` view;
+- relevant rows include current Product-backed child Products even when ProductStock is missing;
+- existing historical/no-longer-referenced ProductStock remains inspectable;
+- current stock is set/corrected through ProductStockService;
+- finished stock unit is fixed to whole `pc` counts;
+- missing ProductStock remains distinct from explicit zero ProductStock;
+- archived relevant ProductStock remains visible and correctable;
+- rows show current parent Product usage and support search/status/stock-state filtering;
+- no ProductStock delete/unset shortcut, transaction history, reservation, or automatic deduction was introduced.
+
+Evidence:
+
+```text
+PR #87 merged
+implementation merge c542021c60e1e276782fc484db7aa84ad0ac3952
+Corrected implementation CI 34924675552 — SUCCESS
+Final feature-head CI        34924830981 — SUCCESS
+PR CI                        34924911146 — SUCCESS
+Post-merge develop CI        34924968637 — SUCCESS
+53 test files / 608 tests
+11 dedicated productStockRows tests
+7 React workspace smoke tests
+TypeScript typecheck passed
+production build passed
+```
+
+Development plan: `docs/PHASE_3_5B_FINISHED_COMPONENT_STOCK_UI_PLAN.md`
+
+Implementation record: `docs/PHASE_3_5B_FINISHED_COMPONENT_STOCK_UI.md`
+
 ## Current active task
 
-**3.5B — Finished Component Stock UI — NEXT / NOT STARTED**
+**3.5C — Component-Aware Production Estimate UI — NEXT / NOT STARTED**
 
-Do not begin 3.5B until a dedicated development plan/scope review is established for that task.
+Do not begin 3.5C until a dedicated development plan/scope review is established for that task.
