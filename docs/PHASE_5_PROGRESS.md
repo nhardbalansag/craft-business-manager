@@ -25,7 +25,10 @@ Master plan:
         5.3B1 — Hydration Replacement Port & Bulk Replace COMPLETE
         5.3B2 — Validated Atomic Hydration + Rollback     COMPLETE
         5.3B3 — Session/Fault Injection/Completion Gate   COMPLETE
-    5.3C — Persistence Coordinator / Load-Save Lifecycle  NEXT / NOT STARTED
+    5.3C — Persistence Coordinator / Load-Save Lifecycle  PLANNING ESTABLISHED
+        5.3C1 — Persistence Lifecycle & Workbook Transport Contract  NEXT / NOT STARTED
+        5.3C2 — Snapshot-to-XLSX Export / Save Orchestration         NOT STARTED
+        5.3C3 — XLSX Load / Import / Hydrate & Completion Gate       NOT STARTED
 
 5.4 — Version Compatibility, Backup & Recovery Safety     NOT STARTED
     5.4A — Schema Migration & Compatibility Framework     NOT STARTED
@@ -63,6 +66,9 @@ Master plan:
 - 5.3B3 wires one shared hydration boundary into the application session and proves the parent atomicity contract with controlled failures at all nine replacement boundaries.
 - Optional source-field absence is source evidence: clone/hydration boundaries may not synthesize an own property merely with `undefined` when the source field was absent.
 - Rollback failure remains a distinct severe diagnostic and may never be reported as successful hydration.
+- 5.3C is formally split into C1 lifecycle/transport contract, C2 export/save orchestration, and C3 load/import/hydrate completion.
+- 5.3C transport is workbook-byte oriented; it must not expose a second dataset-level `load(): BusinessDataset` / `save(dataset)` persistence path.
+- 5.3C may carry only narrow backup-request/receipt semantics; 5.4B remains owner of detailed backup creation, staged writes, atomic replacement, cleanup, and recovery policy.
 - 5.3C owns load/save lifecycle orchestration; 5.4B owns backup/atomic filesystem transport; Phase 6 owns native Tauri filesystem behavior.
 
 ## Completed persistence foundation
@@ -215,6 +221,43 @@ Delivered:
 
 The initial B3 CI failure identified a real fidelity defect in `cloneMaterial(...)`: absent `source` metadata became an own property with value `undefined`. The clone boundary was corrected; the assertion was retained and the corrected head passed the complete suite.
 
+### Phase 5.3B parent closeout
+
+```text
+Closeout PR                #157 — MERGED
+Final develop              8e6935d4abcebd3c31e8c1237fc71995130793fa
+Final CI                   35034624914 — SUCCESS
+```
+
+## Phase 5.3C — Persistence Coordinator / Load-Save Lifecycle
+
+Status: **PLANNING ESTABLISHED — IMPLEMENTATION NOT STARTED**
+
+Dedicated plan:
+
+`docs/PHASE_5_3C_PERSISTENCE_COORDINATOR_LOAD_SAVE_LIFECYCLE_PLAN.md`
+
+Planning baseline:
+
+```text
+develop  8e6935d4abcebd3c31e8c1237fc71995130793fa
+CI       35034624914 — SUCCESS
+```
+
+Locked decomposition:
+
+```text
+5.3C1 — Persistence Lifecycle & Workbook Transport Contract  NEXT / NOT STARTED
+5.3C2 — Snapshot-to-XLSX Export / Save Orchestration         NOT STARTED
+5.3C3 — XLSX Load / Import / Hydrate & Completion Gate       NOT STARTED
+```
+
+Planning audit finding:
+
+The early `StoragePort` / `ExcelStorage` scaffold is dataset-level and predates the completed workbook architecture. 5.3C must establish one workbook-byte transport/lifecycle path so persistence orchestration cannot bypass the existing 5.2 codec/import/export contracts.
+
+No 5.3C runtime implementation has started in the planning branch.
+
 ## Current persistence boundary
 
 ```text
@@ -228,13 +271,16 @@ Repository snapshot service           COMPLETE — 5.3A
 Repository bulk replacement primitive COMPLETE — 5.3B1
 Validated atomic hydration/rollback   COMPLETE — 5.3B2
 Hydration session completion gate     COMPLETE — 5.3B3
-Persistence coordinator/load-save     NEXT / NOT STARTED — 5.3C
-ExcelStorage.load/save                placeholder
+Persistence coordinator plan          ESTABLISHED — 5.3C
+Workbook transport/lifecycle contract NEXT / NOT STARTED — 5.3C1
+Export/save orchestration             NOT STARTED — 5.3C2
+Load/import/hydrate orchestration     NOT STARTED — 5.3C3
+Detailed backup/atomic write          NOT STARTED — 5.4B
 Native filesystem                     Phase 6
 ```
 
 ## Current active task
 
-**5.3C — Persistence Coordinator / Load-Save Lifecycle — NEXT / NOT STARTED**
+**5.3C1 — Persistence Lifecycle & Workbook Transport Contract — NEXT / NOT STARTED**
 
-Do not begin 5.3C implementation until the Phase 5.3B parent closeout PR is merged, exact final `develop` CI is green, and the user separately says to proceed.
+Do not begin 5.3C1 implementation until the 5.3C planning PR is merged, exact final `develop` CI is green, and the user separately says to proceed.
