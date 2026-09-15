@@ -2,7 +2,7 @@
 
 ## Status
 
-**PLANNED — IMPLEMENTATION NOT STARTED**
+**IMPLEMENTED — FULL FEATURE VALIDATION PASSED — MERGE GATE**
 
 Authoritative base:
 
@@ -30,7 +30,7 @@ Previous completed prerequisites:
 
 Create the authoritative Product-level selling-price derivation boundary for Phase 4.
 
-For Product `P`, 4.3A must combine:
+For Product `P`:
 
 ```text
 4.2C authoritative totalFullyLoadedUnitCost(P)
@@ -42,39 +42,16 @@ P configured pricingPolicy
 authoritative derived sellingPrice(P)
 ```
 
-4.3A must fail closed. It may expose a ready fully loaded cost while selling price remains unresolved, but it must never invent a default pricing method/value and must never derive price from a partial/not-ready cost basis.
-
-## Authoritative master-plan contract
-
-Phase 4.3A says:
-
-> Combine the fully loaded cost from 4.2C with the Product's configured pricing policy.
-
-If pricing policy is unconfigured:
-
-- keep total unit cost visible when ready;
-- selling price remains unresolved/null;
-- do not invent a default markup or profit amount.
-
-Phase 4.3B separately owns:
-
-- profit per unit;
-- effective markup;
-- effective margin;
-- policy trace reconciliation.
-
-Phase 4.3C separately owns the consolidated Product pricing quote/readiness view.
-
-Therefore 4.3A must remain deliberately narrow.
+4.3A fails closed. A ready fully loaded cost may remain visible while selling price is unresolved, but no default policy is invented and no partial/not-ready cost basis is ever priced.
 
 ## Split assessment
 
-No deeper formal roadmap split is required.
+No deeper formal roadmap split was required.
 
-4.3A is one cohesive derivation capability. Internal implementation slices are:
+4.3A remained one cohesive application capability:
 
-1. obtain authoritative 4.2C cost evidence;
-2. preserve canonical Product identity from that evidence;
+1. consume authoritative 4.2C cost evidence;
+2. preserve canonical Product identity;
 3. read the Product financial profile through 4.1C;
 4. distinguish missing profile from unconfigured pricing policy;
 5. defensively verify profile Product identity;
@@ -82,35 +59,32 @@ No deeper formal roadmap split is required.
 7. derive selling price only from a ready authoritative 4.2C total;
 8. map controlled readiness/issues;
 9. preserve full numeric precision/no presentation rounding;
-10. shared session wiring;
-11. focused tests and full regression validation.
+10. wire the shared session boundary;
+11. validate with focused and full-regression tests.
 
-No separate 4.3A.1/4.3A.2 split is justified.
+No `4.3A.1/4.3A.2` split was justified.
 
-## Existing architecture reviewed
+## Authoritative inputs
 
-### 4.2C — authoritative cost basis
+### 4.2C cost basis
 
 Use:
 
 `FullyLoadedProductUnitCostService.costProduct(productId)`
 
-Authoritative priceable cost field:
+Only this field is priceable:
 
 `totalFullyLoadedUnitCost`
 
-Locked rule:
+and only when:
 
 ```text
 status = ready
-=> totalFullyLoadedUnitCost is the only authoritative cost basis for 4.3A
 ```
 
-`knownFullyLoadedUnitCostSubtotal` is diagnostic partial evidence only. It must never be used to derive an authoritative selling price.
+`knownFullyLoadedUnitCostSubtotal` remains diagnostic partial evidence and is never used to derive price.
 
-If 4.2C is `partial` or `not-ready`, selling price remains `null` even if a pricing policy exists.
-
-### 4.1C — pricing-policy source
+### 4.1C pricing source
 
 Use:
 
@@ -124,16 +98,16 @@ Semantics:
 
 ```text
 profile missing       = financial source configuration unresolved
-pricingPolicy = null  = cost source may be complete, pricing is intentionally unconfigured
+pricingPolicy = null  = cost source may be complete, pricing intentionally unconfigured
 ```
 
-4.3A must not mutate or synthesize the financial profile.
+### 4.1B pricing engine
 
-### 4.1B — authoritative pricing engine
+4.3A delegates validation and formula math to:
 
-Use the existing `src/domain/pricing.ts` contract.
+`src/domain/pricing.ts`
 
-Supported methods:
+Supported policies:
 
 ```text
 profit-amount
@@ -141,29 +115,11 @@ markup-percent
 margin-percent
 ```
 
-Canonical formulas:
+No formula is duplicated in the application service.
 
-```text
-profit-amount:
-sellingPrice = unitCost + profitAmount
+## Delivered application service
 
-markup-percent:
-sellingPrice = unitCost × (1 + markupRate)
-
-margin-percent:
-sellingPrice = unitCost / (1 - marginRate)
-```
-
-Use:
-
-- `validatePricingPolicy()` for defensive source validation;
-- `deriveSellingPrice()` for authoritative full-precision price derivation.
-
-Do not duplicate formulas in the application service.
-
-## Proposed application service
-
-Add:
+Added:
 
 `src/application/pricing/SellingPriceDerivationService.ts`
 
@@ -173,18 +129,16 @@ Public boundary:
 deriveForProduct(productId: string): Promise<SellingPriceDerivationResult>
 ```
 
-Expected dependencies:
+Dependencies:
 
 ```text
 FullyLoadedProductUnitCostService/provider
 ProductFinancialProfileService/provider
 ```
 
-A Product repository dependency is not required because 4.2C already owns Product existence/canonical identity.
+A Product repository dependency was not needed because 4.2C already owns Product existence and canonical identity.
 
-A root Product-not-found error from 4.2C may propagate as its existing typed service error.
-
-## Proposed result contract
+## Result contract
 
 Readiness:
 
@@ -192,33 +146,22 @@ Readiness:
 type SellingPriceDerivationStatus = 'ready' | 'partial' | 'not-ready';
 ```
 
-Expected fields:
+Result fields:
 
 ```text
 productId
 productName
 productIsActive
 status
-
 costStatus
 totalFullyLoadedUnitCost
 knownFullyLoadedUnitCostSubtotal
-
 pricingPolicy
 sellingPrice
 issues[]
 ```
 
-`pricingPolicy` is cloned source evidence when valid/configured; otherwise `null`.
-
-`sellingPrice` is non-null only when:
-
-1. 4.2C status is `ready`;
-2. `totalFullyLoadedUnitCost` is finite and non-negative;
-3. the Product financial profile exists and belongs to the same Product;
-4. `pricingPolicy` is configured;
-5. `pricingPolicy` passes 4.1B validation;
-6. `deriveSellingPrice()` returns a finite non-negative result.
+`selligPrice` is non-null only when all price prerequisites are valid.
 
 ## Readiness semantics
 
@@ -228,52 +171,43 @@ Requires:
 
 ```text
 4.2C status = ready
+finite non-negative totalFullyLoadedUnitCost
+financial profile identity valid
 pricing policy configured + valid
-derived selling price valid
-```
-
-Then:
-
-```text
-sellingPrice != null
+4.1B selling-price derivation valid
 ```
 
 ### partial
 
-Use when meaningful authoritative/partial cost evidence exists but price cannot be published yet.
+Use when meaningful cost evidence exists but price cannot be published.
 
 Examples:
 
-- 4.2C cost is ready but `pricingPolicy = null`;
-- 4.2C cost is ready but profile/policy evidence is corrupt or invalid;
-- 4.2C status is partial and known cost evidence exists;
-- pricing policy is valid but cost basis is partial.
-
-Keep `sellingPrice = null`.
+- ready cost + `pricingPolicy = null`;
+- ready cost + missing/invalid pricing source;
+- partial 4.2C cost with known subtotal;
+- valid pricing policy + partial cost basis;
+- valid cost/policy where derived selling price fails validation.
 
 ### not-ready
 
-Use when 4.2C itself is not ready and no authoritative priceable cost basis exists.
+Use when 4.2C is not ready or defensive ready-cost evidence is structurally invalid.
 
-A configured pricing policy alone does not make selling-price readiness partial/ready when production cost has no meaningful authoritative basis.
+A configured pricing policy alone never makes an unresolved production-cost basis priceable.
 
 ## Cost-basis safety
 
-4.3A must never calculate price from:
+4.3A never calculates price from:
 
 - `knownFullyLoadedUnitCostSubtotal`;
 - Phase 3 `totalComponentAwareCost`;
-- 4.2A direct material cost only;
+- 4.2A direct-material cost alone;
 - a child Product selling price;
-- a manually invented default unit cost.
+- an invented/manual default cost.
 
 Only 4.2C `totalFullyLoadedUnitCost` with `status = ready` is priceable.
 
-If a defensive provider returns `status = ready` with a null/non-finite/negative total, fail closed with a controlled issue.
-
 ## Pricing-policy semantics
-
-### Unconfigured policy
 
 For `pricingPolicy = null`:
 
@@ -281,27 +215,11 @@ For `pricingPolicy = null`:
 sellingPrice = null
 ```
 
-If cost is ready, status becomes `partial` because authoritative cost is visible while price configuration is incomplete.
-
 No default 20%, 30%, fixed peso profit, or other policy is allowed.
 
-### Invalid/corrupted policy
+Corrupted/imported invalid policies fail closed through 4.1B validation. Underlying `PricingError.code` remains available on 4.3A issues.
 
-Although 4.1C validates writes, future imported/corrupted data must still fail closed.
-
-Use 4.1B validation and preserve the underlying `PricingError.code` in the 4.3A issue trace.
-
-Do not sanitize:
-
-- negative profit amount;
-- negative markup;
-- margin >= 1;
-- non-finite policy value;
-- unsupported method.
-
-### Zero-value policies
-
-These are valid:
+Valid zero policies remain valid:
 
 ```text
 profit-amount 0
@@ -309,33 +227,23 @@ markup-percent 0
 margin-percent 0
 ```
 
-For a ready cost, they should derive selling price equal to unit cost.
+No monetary rounding/charm pricing is performed.
 
-### Full precision
+## Defensive identity and corruption checks
 
-4.3A performs no currency rounding or charm pricing.
+4.3A verifies:
 
-Presentation/UI formatting belongs to 4.5.
+- requested Product identity matches 4.2C Product evidence;
+- financial profile Product identity matches canonical cost Product identity;
+- ready 4.2C cost has finite non-negative authoritative total;
+- configured policy is valid;
+- derived selling price is valid.
 
-## Defensive identity checks
-
-Use the canonical Product identity returned by 4.2C when retrieving the financial profile.
-
-If a provider returns a profile whose `productId` does not case-insensitively match the cost result Product:
-
-- do not trust its pricing policy;
-- return a controlled mismatch issue;
-- do not derive selling price.
-
-If a defensive cost provider returns a Product identity that does not match the requested Product identity case-insensitively:
-
-- fail closed;
-- do not read/apply another Product's policy;
-- return a controlled cost-evidence mismatch issue.
+The financial profile is not read when cost evidence belongs to another Product.
 
 ## Controlled issue categories
 
-Expected 4.3A issue codes include at least:
+Implemented:
 
 ```text
 COST_PARTIAL
@@ -349,32 +257,22 @@ PRICING_POLICY_INVALID
 SELLING_PRICE_DERIVATION_FAILED
 ```
 
-Where useful, include the underlying 4.1B `PricingError.code`.
-
-4.2C retains its own detailed nested cost issues; 4.3A only summarizes why price derivation is blocked.
-
 ## Archived Product semantics
 
-4.2C already keeps archived root Products inspectable.
+Archived root Products remain inspectable/priceable when cost and pricing evidence are otherwise valid.
 
-4.3A preserves:
+`productIsActive` is preserved and no Product state is mutated.
 
-`productIsActive`
+## Scope boundaries retained
 
-and may derive historical/planning selling price for an archived root Product when cost and pricing policy are otherwise valid.
-
-4.3A must not mutate active state.
-
-## Scope boundaries
-
-4.3A must not implement:
+4.3A does not implement:
 
 - profit per unit;
 - effective markup;
 - effective margin;
-- consolidated Product pricing quote/readiness service;
+- consolidated Product pricing quote/readiness;
 - batch production cost;
-- expected batch revenue/profit;
+- expected revenue/profit;
 - batch margin;
 - capacity feasibility/warnings;
 - React pricing UI;
@@ -383,108 +281,123 @@ and may derive historical/planning selling price for an archived root Product wh
 - production posting;
 - Excel/Tauri persistence;
 - tax/VAT/discount/marketplace-fee logic;
-- charm-price or currency-rounding policy.
+- currency/charm-price rounding.
 
 Those remain in 4.3B+, 4.4+, 4.5+, or later work.
 
 ## Shared session wiring
 
-Update:
+Updated:
 
 `src/application/session.ts`
 
-Add shared:
+Added:
 
 ```text
 sellingPriceDerivationService
 ```
 
-constructed from existing shared:
+constructed from:
 
 ```text
 fullyLoadedProductUnitCostService
 productFinancialProfileService
 ```
 
-No React changes belong to 4.3A.
+No React changes were made.
 
-## Focused test matrix
+## Focused validation
 
-Cover at least:
+Added:
 
-1. fixed-profit selling-price derivation from ready 4.2C cost;
-2. markup-rate selling-price derivation;
-3. target-margin selling-price derivation;
-4. full precision retained for repeating margin result;
-5. zero fixed-profit policy;
-6. zero markup policy;
-7. zero margin policy;
-8. zero ready unit cost where formula remains valid;
-9. pricing policy null with ready cost -> partial/null price;
-10. missing financial profile -> fail closed;
-11. financial-profile Product mismatch -> fail closed;
-12. invalid negative profit/markup policy -> fail closed;
-13. invalid margin >= 1 -> fail closed;
-14. non-finite policy value -> fail closed;
-15. 4.2C partial cost -> no selling price, known subtotal preserved;
-16. 4.2C not-ready cost -> no selling price;
-17. 4.2C ready result with invalid/null total -> fail closed;
-18. requested Product/cost Product mismatch -> fail closed before policy use;
-19. 4.2C authoritative total is used rather than known partial subtotal;
-20. changing pricing policy changes price without changing cost evidence;
-21. archived Product remains inspectable/priceable;
-22. source pricing policy is defensively cloned;
-23. shared session wiring;
-24. full repository typecheck/tests/build.
+`src/application/pricing/SellingPriceDerivationService.test.ts`
 
-## Planned files
+with **27 focused tests**.
 
-Expected additions:
+Added:
 
-```text
-src/application/pricing/SellingPriceDerivationService.ts
-src/application/pricing/SellingPriceDerivationService.test.ts
-src/application/pricing/SellingPriceDerivationSession.test.ts
-docs/PHASE_4_3A_SELLING_PRICE_DERIVATION.md
-```
+`src/application/pricing/SellingPriceDerivationSession.test.ts`
 
-Expected updates:
+with **1 shared-session wiring test**.
 
-```text
-src/application/session.ts
-docs/PHASE_4_3A_SELLING_PRICE_DERIVATION_PLAN.md
-```
+Coverage includes:
 
-Closeout later updates:
+- all three pricing methods;
+- full precision;
+- zero-value policies;
+- zero ready unit cost;
+- missing/unconfigured/invalid pricing source;
+- invalid margin/non-finite policy values;
+- partial/not-ready cost blocking;
+- authoritative total versus known subtotal protection;
+- Product/profile identity mismatch protection;
+- archived Product behavior;
+- selling-price overflow failure;
+- defensive policy cloning;
+- canonical Product identity lookup.
+
+## Implementation evidence
+
+Plan-before-code commit:
+
+`4ae338331cf4f28d6ec6f997ab94339af9b4d056`
+
+Implementation head:
+
+`3cded1826b18aa46195e9d87e60cafcafc1d9cd6`
+
+Implementation CI:
+
+`34942368270 — SUCCESS`
+
+Observed regression surface:
 
 ```text
-docs/PHASE_4_PROGRESS.md
+67 test files passed
+807 tests passed
+27 SellingPriceDerivationService tests
+1 4.3A shared-session wiring test
+50 pricing-domain tests
+24 4.2C cost tests
+7 React smoke tests
+TypeScript typecheck passed
+production Vite build passed
+104 modules transformed
 ```
 
-No other file is expected unless implementation evidence proves a tightly related 4.3A correction is necessary.
+No implementation CI failure occurred.
 
-## Lifecycle
+Implementation record:
 
-1. verify exact authoritative `develop`;
-2. establish this dedicated plan before implementation;
-3. implement selling-price derivation service;
-4. add focused tests and shared session wiring;
-5. run full typecheck/tests/build;
-6. create implementation record;
-7. require clean CI on exact documented feature head;
-8. compare exact scope against starting `develop`;
-9. open implementation PR to `develop`;
-10. require independent PR CI;
-11. merge with expected-head protection;
-12. require exact post-merge `develop` CI;
-13. create documentation-only closeout;
-14. mark `4.3A COMPLETE`;
-15. advance `4.3B — Profit / Markup / Margin Metrics` to `NEXT / NOT STARTED`;
-16. require closeout PR CI and exact final `develop` CI.
+`docs/PHASE_4_3A_SELLING_PRICE_DERIVATION.md`
+
+## Current lifecycle gate
+
+Completed:
+
+1. exact `develop` verified;
+2. dedicated plan committed before implementation;
+3. service implemented;
+4. focused tests/session wiring added;
+5. full typecheck/tests/build passed;
+6. implementation record created.
+
+Pending:
+
+7. clean CI on exact final documented feature head;
+8. exact scope compare against starting `develop`;
+9. implementation PR to `develop`;
+10. independent PR CI;
+11. expected-head merge;
+12. exact post-merge `develop` CI;
+13. documentation-only closeout;
+14. tracker advancement to 4.3B NEXT;
+15. closeout PR CI;
+16. exact final `develop` CI.
 
 ## Completion gate
 
-4.3A is complete only when implementation and closeout gates pass and the tracker advances to:
+4.3A is complete only when all remaining lifecycle gates pass and the tracker becomes:
 
 ```text
 4.3 — Selling Price & Unit Economics                 IN PROGRESS
