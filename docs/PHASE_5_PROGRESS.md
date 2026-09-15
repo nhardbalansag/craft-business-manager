@@ -23,8 +23,8 @@ Master plan:
     5.3A — Complete Source Snapshot Service               COMPLETE
     5.3B — Validated Atomic Dataset Hydration             IN PROGRESS
         5.3B1 — Hydration Replacement Port & Bulk Replace COMPLETE
-        5.3B2 — Validated Atomic Hydration + Rollback     NEXT / NOT STARTED
-        5.3B3 — Session/Fault Injection/Completion Gate   NOT STARTED
+        5.3B2 — Validated Atomic Hydration + Rollback     COMPLETE
+        5.3B3 — Session/Fault Injection/Completion Gate   NEXT / NOT STARTED
     5.3C — Persistence Coordinator / Load-Save Lifecycle  NOT STARTED
 
 5.4 — Version Compatibility, Backup & Recovery Safety     NOT STARTED
@@ -59,8 +59,9 @@ Master plan:
 - 5.3B validates with `validateBusinessDatasetIntegrity(...)` before writes and uses the 5.3A snapshot as rollback evidence.
 - 5.3B uses persistence-only whole-collection replacement instead of replaying ordinary business CRUD workflows.
 - 5.3B1 established `CollectionReplacementPort<T>` across all nine in-memory repositories with staged cloned `Map` replacement, stale-row removal, empty clearing, preserved repository identity, and pre-swap failure safety.
-- 5.3B2 must coordinate all nine replacements atomically at the application level and automatically restore the pre-hydration snapshot when apply fails.
-- Rollback failure must remain a distinct severe diagnostic and may never be reported as successful hydration.
+- 5.3B2 coordinates all nine replacements through `ValidatedAtomicDatasetHydrationService`, restores the complete pre-hydration snapshot when apply fails, and distinguishes snapshot, restored-apply, and rollback-failure diagnostics.
+- Rollback failure remains a distinct severe diagnostic and may never be reported as successful hydration.
+- 5.3B3 owns shared-session integration plus exhaustive fault-injection and completion proof before the parent 5.3B phase can close.
 - 5.3C owns load/save lifecycle orchestration; 5.4B owns backup/atomic filesystem transport; Phase 6 owns native Tauri filesystem behavior.
 
 ## Completed persistence foundation
@@ -160,27 +161,45 @@ Delivered:
 
 ### 5.3B2 — Validated Atomic Hydration + Rollback
 
-Status: **NEXT / NOT STARTED**
+Status: **COMPLETE**
 
-B2 must implement the application-level hydration transaction:
+Completion record:
+
+`docs/PHASE_5_3B2_VALIDATED_ATOMIC_HYDRATION_ROLLBACK.md`
 
 ```text
-candidate BusinessDataset
-  -> validate complete candidate
-  -> clone hydration-owned candidate
-  -> snapshot current live source state
-  -> apply all nine collection replacements
-  -> success
-
-apply failure
-  -> restore all nine collections from pre-hydration snapshot
-  -> return controlled restored-failure result
-
-rollback failure
-  -> return distinct severe rollback-failure diagnostic
+Feature head               55604886406403055a06badeb7d8f5e74e155da2
+Implementation PR #154     MERGED
+PR CI                      35033331003 — SUCCESS
+Implementation merge       73f1bf3b28c5632a53d8958a7517d19e0eedb195
+Post-merge develop CI      35033404012 — SUCCESS
+90 test files / 1110 tests
+5 focused 5.3B2 hydration tests
+TypeScript typecheck passed
+Production Vite build passed
+119 modules transformed
 ```
 
-No 5.3B2 implementation has started as part of the 5.3B1 closeout.
+Delivered:
+
+- application-level `ValidatedAtomicDatasetHydrationService`;
+- authoritative complete-dataset validation before every write;
+- hydration-owned candidate cloning;
+- 5.3A pre-hydration snapshot reuse as rollback evidence;
+- deterministic nine-repository forward replacement order;
+- automatic complete rollback after apply failure;
+- controlled `SNAPSHOT_FAILED` diagnostics before writes;
+- controlled `APPLY_FAILED_RESTORED` diagnostics after successful rollback;
+- distinct severe `ROLLBACK_FAILED` diagnostics retaining apply and rollback causes;
+- focused success/rejection/snapshot/apply/rollback regression coverage.
+
+### 5.3B3 — Session Integration, Fault Injection & Completion Gate
+
+Status: **NEXT / NOT STARTED**
+
+B3 must wire the completed hydration service into the shared application session and prove the parent 5.3B atomicity contract with exhaustive controlled fault injection, including already-wired service observation after hydration.
+
+No 5.3B3 implementation has started as part of the 5.3B2 closeout.
 
 ## Current persistence boundary
 
@@ -193,8 +212,8 @@ Dataset -> XLSX export                COMPLETE
 XLSX -> dataset reconstruction        COMPLETE
 Repository snapshot service           COMPLETE — 5.3A
 Repository bulk replacement primitive COMPLETE — 5.3B1
-Validated atomic hydration/rollback   NEXT / NOT STARTED — 5.3B2
-Hydration session completion gate     NOT STARTED — 5.3B3
+Validated atomic hydration/rollback   COMPLETE — 5.3B2
+Hydration session completion gate     NEXT / NOT STARTED — 5.3B3
 Persistence coordinator/load-save     NOT STARTED — 5.3C
 ExcelStorage.load/save                placeholder
 Native filesystem                     Phase 6
@@ -202,6 +221,6 @@ Native filesystem                     Phase 6
 
 ## Current active task
 
-**5.3B2 — Validated Atomic Hydration + Rollback — NEXT / NOT STARTED**
+**5.3B3 — Session Integration, Fault Injection & Completion Gate — NEXT / NOT STARTED**
 
-Do not begin B2 implementation until the B1 closeout PR is merged, exact final `develop` CI is green, and the user separately says to proceed.
+Do not begin B3 implementation until the B2 closeout PR is merged, exact final `develop` CI is green, and the user separately says to proceed.
