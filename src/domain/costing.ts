@@ -1,4 +1,5 @@
 import type { PricingPolicy } from './types';
+import { calculateProfitPerUnit, deriveSellingPrice } from './pricing';
 
 export function costPerBaseUnit(
   packageCost: number,
@@ -43,23 +44,26 @@ export function totalUnitCost(costs: number[]): number {
   return costs.reduce((total, cost) => total + Math.max(0, cost || 0), 0);
 }
 
+/**
+ * Compatibility wrapper for older callers.
+ * Authoritative Phase 4 pricing validation/formulas live in `pricing.ts`.
+ */
 export function sellingPrice(unitCost: number, pricing: PricingPolicy): number {
-  const value = Math.max(0, pricing.value);
-
-  switch (pricing.method) {
-    case 'profit-amount':
-      return unitCost + value;
-    case 'markup-percent':
-      return unitCost * (1 + value);
-    case 'margin-percent':
-      return value >= 1 ? 0 : unitCost / (1 - value);
-  }
+  return deriveSellingPrice(unitCost, pricing);
 }
 
+/**
+ * Compatibility wrapper for older callers.
+ * Authoritative Phase 4 unit-profit validation/formula lives in `pricing.ts`.
+ */
 export function profitPerPiece(unitCost: number, price: number): number {
-  return price - unitCost;
+  return calculateProfitPerUnit(unitCost, price);
 }
 
+/**
+ * Historical generic helper retained until Phase 4.4 replaces it with the
+ * authoritative physical planned-batch financial model.
+ */
 export function plannedTotals(unitCost: number, price: number, quantity: number) {
   const safeQuantity = Math.max(0, Math.floor(quantity));
   const productionCost = unitCost * safeQuantity;
