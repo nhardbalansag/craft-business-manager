@@ -2,7 +2,7 @@
 
 ## Status
 
-**IMPLEMENTATION COMPLETE — MERGE GATE PENDING**
+**COMPLETE**
 
 Feature branch:
 
@@ -11,6 +11,14 @@ Feature branch:
 Authoritative implementation base:
 
 `develop` @ `403146275dfe4d6eee2a61c16de00c7a93c17f79`
+
+Implementation PR:
+
+`#73 — Phase 3.3A — Material-Backed Component Cost`
+
+Implementation merge commit:
+
+`f4fa4c7e287f24e9732cc1e2055edea4142873f5`
 
 Development plan:
 
@@ -46,7 +54,7 @@ Policy:
 - `ready` availability permits costing;
 - `partial` availability also permits costing to continue because current stock/on-hand readiness is distinct from package-cost readiness.
 
-This prevents stock quantity or damaged on-hand evidence from incorrectly changing the price/cost basis of a purchased component.
+This prevents current stock quantity or damaged on-hand evidence from incorrectly changing the price/cost basis of a purchased component.
 
 The complete 3.2C availability result remains attached to the derived line for diagnostics.
 
@@ -70,6 +78,8 @@ issues[]
 ```
 
 A single 3.3A line does not use `partial` cost status. It is either currently costable (`ready`) or not costable (`not-ready`). Product-level partial aggregation remains 3.3C.
+
+A legitimate zero package cost remains `ready` with zero unit cost and zero contribution.
 
 ## Cost traceability
 
@@ -110,7 +120,7 @@ Product-backed components are explicitly rejected from this service rather than 
 
 ## Shared session wiring
 
-`src/application/session.ts` now exports:
+`src/application/session.ts` exports:
 
 ```text
 materialBackedComponentCostService
@@ -143,25 +153,30 @@ Coverage includes:
 - Phase 1 manual-over-standard conversion precedence;
 - canonical Material identity/name;
 - partial stock availability with still-ready cost basis;
-- missing Material source;
-- inactive Material source;
-- non-count Material source;
+- missing/inactive/non-count Material sources;
 - Product-backed component exclusion;
 - invalid ProductComponent contract;
 - unresolved package conversion;
-- invalid package cost;
-- invalid purchase quantity;
+- invalid package cost and purchase quantity;
 - source immutability.
 
-Feature-head CI:
+## Validation evidence
 
 ```text
-run 34915288037 — SUCCESS
+Test-bearing feature CI: 34915288037 — SUCCESS
+Final feature-head CI:    34915430857 — SUCCESS
+PR #73 CI:                34915488170 — SUCCESS
+Post-merge develop CI:    34915579217 — SUCCESS
+
 45 test files passed
 438 tests passed
 TypeScript typecheck passed
 production build passed
 ```
+
+Exact validated implementation merge commit:
+
+`f4fa4c7e287f24e9732cc1e2055edea4142873f5`
 
 ## Explicit deferrals
 
@@ -179,9 +194,9 @@ Not implemented in 3.3A:
 
 These remain 3.3B+, 3.4+, Phase 4, 3.5, or Phase 5.
 
-## Completion gate state
+## Completion gate
 
-Feature implementation gates passed:
+All 3.3A gates passed:
 
 - Phase 1 costing is reused as the sole Material cost engine;
 - source Material identity/name and quantity are preserved;
@@ -194,16 +209,12 @@ Feature implementation gates passed:
 - derived cost is not persisted;
 - shared session wiring exists;
 - 45 test files / 438 tests pass;
-- TypeScript typecheck passes;
-- production build passes.
+- TypeScript typecheck and production build pass;
+- PR #73 merged to `develop`;
+- exact post-merge `develop` CI `34915579217` passed.
 
-Remaining before 3.3A may be marked fully complete:
+## Next task
 
-- implementation PR must merge to `develop`;
-- exact post-merge `develop` CI must pass.
+**3.3B — Recursive Product-Backed Component Cost — NEXT / NOT STARTED**
 
-## Next task after closeout
-
-**3.3B — Recursive Product-Backed Component Cost**
-
-Do not begin 3.3B until 3.3A is merged, exact post-merge `develop` CI is green, and a dedicated 3.3B plan/scope review is established.
+Do not begin 3.3B until a dedicated development plan/scope review is established for that task.

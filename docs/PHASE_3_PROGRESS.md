@@ -16,8 +16,8 @@ Planning baseline: `docs/PHASE_3_PRODUCT_COMPONENTS_VESSELS_PLAN.md`
     3.2C — Source Availability & Relationship Guards      COMPLETE
 
 3.3 — Component-Aware Cost Roll-Up                        IN PROGRESS
-    3.3A — Material-Backed Component Cost                 IMPLEMENTED — MERGE GATE
-    3.3B — Recursive Product-Backed Component Cost        NOT STARTED
+    3.3A — Material-Backed Component Cost                 COMPLETE
+    3.3B — Recursive Product-Backed Component Cost        NEXT
     3.3C — Total Product Cost & Readiness                  NOT STARTED
 
 3.4 — Component-Limited Assembly Capacity
@@ -79,7 +79,7 @@ Implementation record: `docs/PHASE_3_1A_PRODUCT_COMPONENT_CONTRACT.md`
 - product IDs are trimmed/case-insensitive for graph identity;
 - adjacency/traversal ordering is deterministic and locale-independent;
 - material-backed components do not create Product graph edges;
-- guarded depth-first descendant traversal is available for future recursive cost/capacity services;
+- guarded depth-first descendant traversal is available for future recursive services;
 - reachable corrupted cycles cannot recurse indefinitely;
 - unrelated corrupted cycles do not block traversal of a safe root.
 
@@ -103,7 +103,7 @@ Implementation record: `docs/PHASE_3_1B_COMPOSITION_GRAPH_INTEGRITY.md`
 - archived parent compositions are retained as historical source data;
 - Product reactivation revalidates retained source relationships and graph integrity;
 - `BusinessDataset.productComponents` added as authoritative source data;
-- shared `productComponentRepository` and `productComponentService` wired in `application/session.ts`;
+- shared repository/service session wiring added;
 - dedicated service suite adds 9 tests; full validation passes 41 files / 382 tests, typecheck, and build.
 
 Evidence:
@@ -118,9 +118,7 @@ Implementation record: `docs/PHASE_3_1C_COMPONENT_REPOSITORY_SERVICES.md`
 ### 3.2A — Product Stock Contract & Validation
 
 - dedicated `src/domain/productStock.ts` introduces authoritative finished Product/component stock source data;
-- contract fields: Product ID, current on-hand whole-piece quantity, optional notes;
 - unit is implicit `pc` and is not user-selectable;
-- Product ID and notes are normalized;
 - zero stock is valid;
 - fractional, negative, and non-finite quantities are rejected with typed domain errors;
 - defensive clone helper added;
@@ -140,17 +138,15 @@ Implementation record: `docs/PHASE_3_2A_PRODUCT_STOCK_CONTRACT.md`
 ### 3.2B — Product Stock Repository & Services
 
 - storage-agnostic `ProductStockRepository` added with list/find-by-Product/upsert operations;
-- defensive `InMemoryProductStockRepository` enforces one record per normalized Product identity;
-- `ProductStockService` provides set/set-record/get/list/filter behavior without React;
+- defensive in-memory repository enforces one record per normalized Product identity;
+- `ProductStockService` provides set/get/list/filter behavior;
 - all writes normalize/validate through 3.2A and resolve Product existence;
-- stored Product identity is canonicalized to the actual Product record ID;
-- archived Product stock remains inspectable/correctable and is not removed by Product archive operations;
+- archived Product stock remains inspectable/correctable;
 - missing ProductStock remains distinguishable from explicit zero stock;
-- no delete operation is exposed;
 - `BusinessDataset.productStocks` added as authoritative source data;
-- shared `productStockRepository` / `productStockService` wired into `application/session.ts`;
-- dedicated 3.2B suite adds 10 tests;
-- full validation passes 43 test files / 404 tests, typecheck, and production build.
+- shared session wiring added;
+- dedicated suite adds 10 tests;
+- full validation passes 43 files / 404 tests, typecheck, and build.
 
 Evidence:
 - PR #69 merged;
@@ -169,13 +165,12 @@ Implementation record: `docs/PHASE_3_2B_PRODUCT_STOCK_REPOSITORY_SERVICES.md`
 - controlled readiness contract is `ready | partial | not-ready`;
 - all resolved quantities use canonical `pc` units;
 - explicit zero remains `ready`, while missing ProductStock is `partial`/unresolved;
-- Material-backed availability requires active count-based Material inventory and uses Phase 1 on-hand normalization;
-- successful Material results preserve `MaterialOnHandNormalization` conversion evidence;
+- Material-backed availability uses Phase 1 on-hand normalization;
 - Product-backed availability requires an active child Product and valid ProductStock;
-- existing 3.1C Material/Product dependency guards are reused and regression-tested;
-- shared `componentSourceAvailabilityService` and reusable calibration-evidence provider are wired in `application/session.ts`;
-- dedicated 3.2C suite adds 18 tests;
-- full validation passes 44 test files / 422 tests, typecheck, and production build.
+- existing 3.1C dependency guards are reused and regression-tested;
+- shared resolver/calibration-evidence session wiring added;
+- dedicated suite adds 18 tests;
+- full validation passes 44 files / 422 tests, typecheck, and build.
 
 Evidence:
 - PR #71 merged;
@@ -193,28 +188,27 @@ Implementation record: `docs/PHASE_3_2C_COMPONENT_SOURCE_AVAILABILITY.md`
 
 **Phase 3.2 — Finished Component Stock is COMPLETE.**
 
-The authoritative ProductStock contract, repository/application services, Material/Product component-source availability resolver, zero-versus-missing stock semantics, conversion/readiness evidence, and cross-source relationship guards are all implemented and validated.
-
-## Implementation awaiting merge gate
-
 ### 3.3A — Material-Backed Component Cost
 
 - `MaterialBackedComponentCostService` derives one purchased/material-backed component line cost;
 - Phase 1 `calculateMaterialPackageCosting()` remains the sole package-cost engine;
-- cost per `pc` and contribution (`costPerPc × quantityPerParent`) are derived, never persisted;
-- source Material identity/name and full package/conversion traceability are preserved;
+- cost per `pc` and contribution (`costPerPc × quantityPerParent`) are derived and never persisted;
+- source Material identity/name and package/conversion traceability are preserved;
 - 3.2C source eligibility is reused rather than redefined;
 - `not-ready` source relationships block costing, while `partial` stock availability does not block an otherwise valid cost basis;
-- Product-backed component recursion is explicitly excluded and remains 3.3B;
-- controlled issue codes preserve underlying ProductComponent, availability, MaterialCosting, and calibration evidence;
+- Product-backed recursive costing remains excluded for 3.3B;
+- controlled issues preserve underlying ProductComponent, availability, MaterialCosting, and calibration codes;
 - shared `materialBackedComponentCostService` is wired in `application/session.ts`;
 - dedicated 3.3A suite adds 16 tests;
-- full feature validation passes 45 test files / 438 tests, typecheck, and production build.
+- full validation passes 45 test files / 438 tests, TypeScript typecheck, and production build.
 
-Feature evidence:
-- branch `feature/phase-3-3a-material-backed-component-cost`;
-- authoritative base `develop` @ `403146275dfe4d6eee2a61c16de00c7a93c17f79`;
-- feature-head CI run `34915288037` passed.
+Evidence:
+- PR #73 merged;
+- implementation merge commit `f4fa4c7e287f24e9732cc1e2055edea4142873f5`;
+- test-bearing feature CI run `34915288037` passed;
+- final feature-head CI run `34915430857` passed;
+- PR CI run `34915488170` passed;
+- post-merge `develop` CI run `34915579217` passed.
 
 Development plan: `docs/PHASE_3_3A_MATERIAL_BACKED_COMPONENT_COST_PLAN.md`
 
@@ -222,6 +216,6 @@ Implementation record: `docs/PHASE_3_3A_MATERIAL_BACKED_COMPONENT_COST.md`
 
 ## Current active task
 
-**3.3A — Material-Backed Component Cost — merge/post-merge validation gate**
+**3.3B — Recursive Product-Backed Component Cost — NEXT / NOT STARTED**
 
-Do not begin 3.3B until 3.3A is merged, exact post-merge `develop` CI is green, and a dedicated 3.3B development plan/scope review is established.
+Do not begin 3.3B until a dedicated development plan/scope review is established for that task.

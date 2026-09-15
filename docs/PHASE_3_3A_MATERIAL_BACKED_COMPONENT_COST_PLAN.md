@@ -2,7 +2,7 @@
 
 ## Status
 
-**IMPLEMENTED — MERGE GATE PENDING**
+**COMPLETE**
 
 Authoritative base:
 
@@ -11,6 +11,14 @@ Authoritative base:
 Feature branch:
 
 `feature/phase-3-3a-material-backed-component-cost`
+
+Implementation PR:
+
+`#73`
+
+Implementation merge commit:
+
+`f4fa4c7e287f24e9732cc1e2055edea4142873f5`
 
 Implementation record:
 
@@ -33,16 +41,7 @@ The result is derived application data only. No derived cost is persisted.
 
 ## Split assessment
 
-No deeper formal split was required.
-
-3.3A remained one cohesive task:
-
-1. define the line cost/readiness contract;
-2. reuse 3.2C source eligibility;
-3. derive cost through Phase 1 costing;
-4. preserve traceability;
-5. wire the shared session;
-6. validate with focused/full tests.
+No deeper formal split was required. 3.3A remained one cohesive task.
 
 ## Scope boundary
 
@@ -72,8 +71,6 @@ Implemented policy:
 - `ready` availability permits costing;
 - `partial` availability also permits costing to continue because stock/on-hand readiness is distinct from cost-basis readiness.
 
-The 3.2C result is retained on the derived cost line for diagnostics.
-
 This prevents current stock quantity or damaged on-hand evidence from incorrectly changing an otherwise valid purchase-cost basis.
 
 ## Cost mathematics
@@ -88,9 +85,9 @@ component contribution per parent
 
 Phase 1 `calculateMaterialPackageCosting()` is the sole Material package-cost engine. 3.3A does not reimplement conversion precedence.
 
-## Derived result contract
+## Derived result
 
-Implemented line result:
+Implemented:
 
 ```text
 MaterialBackedComponentCostLine
@@ -110,27 +107,9 @@ MaterialBackedComponentCostLine
 
 A single line is either costable (`ready`) or not costable (`not-ready`). Product-level `partial` aggregation remains 3.3C.
 
-Legitimate zero package cost remains a ready zero-cost line.
+## Traceability
 
-## Cost traceability
-
-Ready lines preserve:
-
-```text
-packageCost
-purchaseQuantity
-purchaseUnit
-baseUnit = pc
-standardBaseUnitsPerPurchaseUnit
-manualBaseUnitsPerPurchaseUnit
-calibrationBaseUnitsPerPurchaseUnit
-effectiveBaseUnitsPerPurchaseUnit
-packageBaseQuantity
-packageConversionSource
-costingCalibrationId
-```
-
-This mirrors Phase 1 costing output plus authoritative Material source inputs.
+Ready lines preserve Phase 1 package-cost evidence, including package source inputs, standard/manual/calibration factors, effective conversion, package base quantity, and calibration ID.
 
 ## Controlled issues
 
@@ -145,90 +124,63 @@ MATERIAL_COST_NOT_DERIVABLE
 DERIVED_COST_INVALID
 ```
 
-Issues preserve underlying ProductComponent, 3.2C availability, Phase 1 MaterialCosting, or MaterialCalibration codes where available.
+Underlying ProductComponent, availability, MaterialCosting, or calibration codes are retained when available.
 
-## Application service
+## Application/session implementation
 
 Added:
 
 `src/application/productComponents/MaterialBackedComponentCostService.ts`
 
-Primary operation:
+Shared session instance:
 
-```text
-costComponent(component: ProductComponent)
-```
-
-Dependencies:
-
-- MaterialRepository;
-- 3.2C availability provider;
-- shared Material calibration-evidence provider.
-
-ProductStock and Product-backed recursive costing are intentionally not part of this service.
-
-## Shared session
-
-Added shared:
-
-```text
-materialBackedComponentCostService
-```
+`materialBackedComponentCostService`
 
 Reuses:
 
-```text
-materialRepository
-componentSourceAvailabilityService
-materialCalibrationEvidenceProvider
-```
+- `materialRepository`;
+- `componentSourceAvailabilityService`;
+- `materialCalibrationEvidenceProvider`.
 
 No repository or BusinessDataset source collection was added.
 
-## Validation result
+## Validation
 
-Dedicated test file:
+Dedicated suite: **16 tests**.
 
-`src/application/productComponents/MaterialBackedComponentCostService.test.ts`
-
-Focused suite: **16 tests**.
-
-Feature-head CI:
+Final validation evidence:
 
 ```text
-run 34915288037 — SUCCESS
+Test-bearing feature CI: 34915288037 — SUCCESS
+Final feature-head CI:    34915430857 — SUCCESS
+PR #73 CI:                34915488170 — SUCCESS
+Post-merge develop CI:    34915579217 — SUCCESS
+
 45 test files passed
 438 tests passed
 TypeScript typecheck passed
 production build passed
 ```
 
-Coverage includes direct `pc` costing, packaged/manual conversion, quantity multiplication, zero cost, manual conversion precedence, canonical identity/name, partial availability with ready cost basis, source eligibility failures, Product-backed exclusion, invalid component input, unresolved package conversion, invalid cost/purchase quantity, and source immutability.
-
 ## Completion gate
 
-Implemented feature gates passed:
+All planning and implementation gates passed:
 
-- Phase 1 costing is reused as the sole Material cost engine;
+- Phase 1 costing is the sole Material cost engine;
 - source identity/name, quantity, cost per pc, and contribution are exposed;
 - package/conversion traceability is preserved;
 - 3.2C eligibility is reused;
 - partial stock availability does not incorrectly block cost readiness;
 - Product-backed components remain out of scope;
-- unresolved cost basis produces controlled not-ready issues;
+- unresolved cost basis produces controlled issues;
 - no derived cost is persisted;
-- session wiring exists;
-- focused/full tests pass;
-- TypeScript typecheck passes;
-- production build passes.
+- shared application-session wiring exists;
+- focused/full tests, TypeScript typecheck, and build pass;
+- PR #73 merged to `develop`;
+- exact post-merge CI `34915579217` passed on `f4fa4c7e287f24e9732cc1e2055edea4142873f5`.
 
-Remaining gate:
+## Next task
 
-- implementation PR merges to `develop`;
-- exact post-merge `develop` CI is green.
+**3.3B — Recursive Product-Backed Component Cost — NEXT / NOT STARTED**
 
-## Next task after closeout
-
-**3.3B — Recursive Product-Backed Component Cost**
-
-Do not begin 3.3B until 3.3A is merged, exact post-merge `develop` CI is green, and a dedicated 3.3B plan/scope review is established.
+Do not begin 3.3B until its own dedicated development plan/scope review is established.
