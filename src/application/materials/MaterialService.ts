@@ -3,6 +3,7 @@ import { calculateMaterialInventoryValuation } from '../../domain/materialInvent
 import { normalizeMaterialSourceMetadata } from '../../domain/materialSource';
 import type { Material, MaterialGroup } from '../../domain/materials';
 import { cloneMaterial, validateMaterialContract } from '../../domain/materials';
+import type { ProductComponentRelationshipGuard } from '../productComponents/ProductComponentRelationshipGuard';
 import type { MaterialRepository } from './MaterialRepository';
 
 export interface MaterialListFilter {
@@ -68,6 +69,7 @@ export class MaterialService {
   constructor(
     private readonly repository: MaterialRepository,
     private readonly calibrationEvidenceProvider: MaterialCalibrationEvidenceProvider = async () => [],
+    private readonly componentRelationshipGuard?: ProductComponentRelationshipGuard,
   ) {}
 
   async createMaterial(input: Material): Promise<Material> {
@@ -88,6 +90,7 @@ export class MaterialService {
 
     const all = await this.repository.list();
     this.assertUniqueIdentity(candidate, all, existing.id);
+    await this.componentRelationshipGuard?.assertMaterialUpdatePreservesActiveComponents(candidate);
 
     await this.repository.replace(candidate);
     return cloneMaterial(candidate);
@@ -116,6 +119,7 @@ export class MaterialService {
     const existing = await this.requireMaterial(id);
     if (!existing.isActive) return cloneMaterial(existing);
 
+    await this.componentRelationshipGuard?.assertMaterialCanArchive(existing.id);
     const archived = { ...existing, isActive: false };
     await this.repository.replace(archived);
     return cloneMaterial(archived);
