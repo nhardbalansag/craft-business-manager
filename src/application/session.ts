@@ -6,6 +6,8 @@ import { InMemoryMixPresetRepository } from './mixPresets/InMemoryMixPresetRepos
 import { MixPresetService } from './mixPresets/MixPresetService';
 import { ProductionCapacityService } from './production/ProductionCapacityService';
 import { ProductionRequirementService } from './production/ProductionRequirementService';
+import { InMemoryProductComponentRepository } from './productComponents/InMemoryProductComponentRepository';
+import { ProductComponentService } from './productComponents/ProductComponentService';
 import { InMemoryProductRepository } from './products/InMemoryProductRepository';
 import { ProductService } from './products/ProductService';
 import { RecipeMaterialCostPreviewService } from './recipeCosts/RecipeMaterialCostPreviewService';
@@ -21,17 +23,32 @@ export const materialRepository = new InMemoryMaterialRepository();
 export const calibrationRepository = new InMemoryCalibrationRepository();
 export const mixPresetRepository = new InMemoryMixPresetRepository();
 export const productRepository = new InMemoryProductRepository();
+export const productComponentRepository = new InMemoryProductComponentRepository();
 export const yieldSampleRepository = new InMemoryYieldSampleRepository();
 export const fixedRecipeItemRepository = new InMemoryFixedRecipeItemRepository();
 
-export const materialService = new MaterialService(materialRepository, async (materialId) => {
-  const records = await calibrationRepository.list();
-  const key = materialId.trim().toLocaleLowerCase();
-  return records.filter((record) => record.materialId.trim().toLocaleLowerCase() === key);
-});
+export const productComponentService = new ProductComponentService(
+  productComponentRepository,
+  productRepository,
+  materialRepository,
+);
+
+export const materialService = new MaterialService(
+  materialRepository,
+  async (materialId) => {
+    const records = await calibrationRepository.list();
+    const key = materialId.trim().toLocaleLowerCase();
+    return records.filter((record) => record.materialId.trim().toLocaleLowerCase() === key);
+  },
+  productComponentService,
+);
 
 export const calibrationService = new CalibrationService(calibrationRepository, materialRepository);
-export const productService = new ProductService(productRepository, mixPresetRepository);
+export const productService = new ProductService(
+  productRepository,
+  mixPresetRepository,
+  productComponentService,
+);
 export const mixPresetService = new MixPresetService(
   mixPresetRepository,
   materialRepository,
