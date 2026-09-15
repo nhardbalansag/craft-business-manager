@@ -13,7 +13,7 @@ Planning baseline: `docs/PHASE_3_PRODUCT_COMPONENTS_VESSELS_PLAN.md`
 3.2 — Finished Component Stock                            IN PROGRESS
     3.2A — Product Stock Contract & Validation            COMPLETE
     3.2B — Product Stock Repository & Services            COMPLETE
-    3.2C — Source Availability & Relationship Guards      NEXT
+    3.2C — Source Availability & Relationship Guards      IMPLEMENTED — MERGE GATE
 
 3.3 — Component-Aware Cost Roll-Up
     3.3A — Material-Backed Component Cost                 NOT STARTED
@@ -164,8 +164,36 @@ Development plan: `docs/PHASE_3_2B_PRODUCT_STOCK_REPOSITORY_SERVICES_PLAN.md`
 
 Implementation record: `docs/PHASE_3_2B_PRODUCT_STOCK_REPOSITORY_SERVICES.md`
 
+## Implementation awaiting merge gate
+
+### 3.2C — Component Source Availability & Relationship Guards
+
+- one `ComponentSourceAvailabilityService` resolves both `material` and `product` component sources;
+- controlled readiness contract is `ready | partial | not-ready`;
+- all resolved quantities use canonical `pc` units;
+- explicit zero remains `ready`, while missing ProductStock is `partial`/unresolved;
+- Material-backed availability requires active count-based Material inventory and uses Phase 1 on-hand normalization;
+- successful Material results preserve `MaterialOnHandNormalization` conversion evidence;
+- controlled Phase 1 inventory/package-conversion failures become `partial` with underlying error codes;
+- Product-backed availability requires an active child Product and valid ProductStock;
+- archived Products remain `not-ready` even when historical ProductStock exists;
+- corrupted ProductStock becomes controlled `partial` with its 3.2A error code;
+- existing 3.1C Material/Product dependency guards are reused and regression-tested instead of duplicated;
+- shared `componentSourceAvailabilityService` and reusable calibration-evidence provider are wired in `application/session.ts`;
+- dedicated 3.2C suite adds 18 tests;
+- full feature validation passes 44 test files / 422 tests, typecheck, and production build.
+
+Feature evidence:
+- branch `feature/phase-3-2c-component-source-availability`;
+- authoritative base `develop` @ `b9e7a03ed285486db50fb2c34ab9f3f82b58d41a`;
+- feature CI run `34914060282` passed.
+
+Development plan: `docs/PHASE_3_2C_COMPONENT_SOURCE_AVAILABILITY_PLAN.md`
+
+Implementation record: `docs/PHASE_3_2C_COMPONENT_SOURCE_AVAILABILITY.md`
+
 ## Current active task
 
-**3.2C — Component Source Availability & Relationship Guards — NEXT / NOT STARTED**
+**3.2C — Component Source Availability & Relationship Guards — merge/post-merge validation gate**
 
-Do not begin 3.2C until a dedicated development plan/scope review is established for that task.
+Do not start 3.3A until 3.2C is merged, exact post-merge `develop` CI is green, and Phase 3.2 is formally closed.
