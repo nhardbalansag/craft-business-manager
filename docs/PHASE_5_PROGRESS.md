@@ -27,8 +27,8 @@ Master plan:
         5.3B3 — Session/Fault Injection/Completion Gate   COMPLETE
     5.3C — Persistence Coordinator / Load-Save Lifecycle  IN PROGRESS
         5.3C1 — Persistence Lifecycle & Workbook Transport Contract  COMPLETE
-        5.3C2 — Snapshot-to-XLSX Export / Save Orchestration         NEXT / NOT STARTED
-        5.3C3 — XLSX Load / Import / Hydrate & Completion Gate       NOT STARTED
+        5.3C2 — Snapshot-to-XLSX Export / Save Orchestration         COMPLETE
+        5.3C3 — XLSX Load / Import / Hydrate & Completion Gate       NEXT / NOT STARTED
 
 5.4 — Version Compatibility, Backup & Recovery Safety     NOT STARTED
     5.4A — Schema Migration & Compatibility Framework     NOT STARTED
@@ -71,6 +71,9 @@ Master plan:
 - 5.3C1 removed the obsolete `StoragePort` / placeholder `ExcelStorage` scaffold and established `WorkbookTransport` over defensive workbook-byte ownership.
 - 5.3C1 defines only neutral backup request/receipt semantics; detailed backup creation, staged writes, atomic replacement, cleanup, and recovery remain 5.4B.
 - 5.3C1 defines stable lifecycle stages/codes and preserves structured import rejection plus distinct severe rollback-failure context.
+- 5.3C2 establishes one application-level `PersistenceCoordinator` for the non-destructive snapshot -> XLSX export -> optional transport-save lifecycle.
+- 5.3C2 obtains `exportedAt` through an injectable clock, keeps `applicationVersion` optional, preserves lower-level export/codec causes, and maps snapshot/export/transport-save operational stages without mutating live state.
+- 5.3C2 forwards only neutral backup intent/receipt and does not claim detailed backup or atomic-write semantics.
 - 5.3C owns load/save lifecycle orchestration; 5.4B owns backup/atomic filesystem transport; Phase 6 owns native Tauri filesystem behavior.
 
 ## Completed persistence foundation
@@ -253,8 +256,8 @@ Locked decomposition:
 
 ```text
 5.3C1 — Persistence Lifecycle & Workbook Transport Contract  COMPLETE
-5.3C2 — Snapshot-to-XLSX Export / Save Orchestration         NEXT / NOT STARTED
-5.3C3 — XLSX Load / Import / Hydrate & Completion Gate       NOT STARTED
+5.3C2 — Snapshot-to-XLSX Export / Save Orchestration         COMPLETE
+5.3C3 — XLSX Load / Import / Hydrate & Completion Gate       NEXT / NOT STARTED
 ```
 
 ### 5.3C1 — Persistence Lifecycle & Workbook Transport Contract
@@ -292,6 +295,41 @@ Delivered:
 - removal of obsolete dataset-level `StoragePort` and placeholder `ExcelStorage`;
 - regression proof that the removed scaffold had no active compile-time consumers.
 
+### 5.3C2 — Snapshot-to-XLSX Export / Save Orchestration
+
+Status: **COMPLETE**
+
+Completion record:
+
+`docs/PHASE_5_3C2_SNAPSHOT_XLSX_EXPORT_SAVE_ORCHESTRATION.md`
+
+```text
+Authoritative baseline     1deddb42ff0b451fe0d5cbdbf1563e43767f31f0
+Baseline CI                35036482810 — SUCCESS
+Feature head               9781330de883d21537969e4649be8d6c37eb5dad
+Implementation PR #161     MERGED
+PR CI                      35036820512 — SUCCESS
+Implementation merge       78f0444029905db801a53427e8c9b3bb3d119d69
+Post-merge develop CI      35036895766 — SUCCESS
+94 test files / 1147 tests
+7 focused 5.3C2 coordinator tests
+TypeScript typecheck passed
+Production Vite build passed
+121 modules transformed
+```
+
+Delivered:
+
+- one application-level `PersistenceCoordinator` for current source export/save;
+- complete 5.3A snapshot reuse rather than direct repository enumeration;
+- deterministic injectable export clock and optional application-version metadata;
+- direct `exportCurrentWorkbook()` returning caller-owned XLSX bytes and metadata;
+- transport-backed `saveCurrentWorkbook()` using the C1 byte transport;
+- forwarding of neutral backup intent and receipt without implementing backup internals;
+- distinct snapshot, export/encode, and transport-save failure stages/codes;
+- retained lower-level exporter/codec/transport causes;
+- regression proof that failed export/save does not mutate source state.
+
 ## Current persistence boundary
 
 ```text
@@ -307,14 +345,14 @@ Validated atomic hydration/rollback   COMPLETE — 5.3B2
 Hydration session completion gate     COMPLETE — 5.3B3
 Persistence coordinator plan          ESTABLISHED — 5.3C
 Workbook transport/lifecycle contract COMPLETE — 5.3C1
-Export/save orchestration             NEXT / NOT STARTED — 5.3C2
-Load/import/hydrate orchestration     NOT STARTED — 5.3C3
+Export/save orchestration             COMPLETE — 5.3C2
+Load/import/hydrate orchestration     NEXT / NOT STARTED — 5.3C3
 Detailed backup/atomic write          NOT STARTED — 5.4B
 Native filesystem                     Phase 6
 ```
 
 ## Current active task
 
-**5.3C2 — Snapshot-to-XLSX Export / Save Orchestration — NEXT / NOT STARTED**
+**5.3C3 — XLSX Load / Import / Hydrate & Completion Gate — NEXT / NOT STARTED**
 
-Do not begin 5.3C2 implementation until the 5.3C1 closeout PR is merged, exact final `develop` CI is green, and the user separately says to proceed.
+Do not begin 5.3C3 implementation until the 5.3C2 closeout PR is merged, exact final `develop` CI is green, and the user separately says to proceed.
