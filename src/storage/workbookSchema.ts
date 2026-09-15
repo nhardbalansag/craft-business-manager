@@ -4,14 +4,8 @@ import {
   type BusinessDatasetSourceCollectionKey,
 } from '../domain/businessDataset';
 import { FIXED_RECIPE_ITEM_ROLES } from '../domain/fixedRecipeItems';
-import {
-  MATERIAL_GROUPS,
-  MATERIAL_PACKAGE_UNITS,
-} from '../domain/materials';
-import {
-  MIX_PRESET_LINE_ROLES,
-  MIX_RATIO_BASES,
-} from '../domain/mixPresets';
+import { MATERIAL_GROUPS, MATERIAL_PACKAGE_UNITS } from '../domain/materials';
+import { MIX_PRESET_LINE_ROLES, MIX_RATIO_BASES } from '../domain/mixPresets';
 import { PRICING_METHODS } from '../domain/pricing';
 import {
   PRODUCT_COMPONENT_ROLES,
@@ -48,16 +42,12 @@ export type WorkbookRowOrderMode = 'text-ci-exact' | 'text' | 'number' | 'timest
 export interface WorkbookColumnContract {
   key: string;
   kind: WorkbookCellKind;
-  /** Whether a source row must contain a nonblank value for this column. */
   required: boolean;
-  /** Source semantic path. Null means workbook metadata/reconstruction-only. */
   sourcePath: string | null;
   allowedValues?: readonly string[];
   tokenKind?: WorkbookTokenKind;
   formulaPolicy: WorkbookFormulaPolicy;
-  /** Used by workbook-only child ordering fields. */
   positiveInteger?: boolean;
-  /** True when the column exists only to reconstruct workbook structure. */
   workbookOnly?: boolean;
 }
 
@@ -69,7 +59,6 @@ export interface WorkbookRowOrderKey {
 export interface WorkbookSheetContract {
   name: WorkbookSheetName;
   required: true;
-  /** Primary top-level source collection represented by this sheet, if any. */
   sourceCollection?: BusinessDatasetSourceCollectionKey;
   columns: readonly WorkbookColumnContract[];
   rowOrder?: readonly WorkbookRowOrderKey[];
@@ -85,10 +74,7 @@ export interface WorkbookRelationshipContract {
 }
 
 const BASE_UNIT_VALUES = ['g', 'mL', 'pc'] as const;
-const MATERIAL_PURCHASE_UNIT_VALUES = [
-  ...SUPPORTED_UNITS,
-  ...MATERIAL_PACKAGE_UNITS,
-] as const;
+const MATERIAL_PURCHASE_UNIT_VALUES = [...SUPPORTED_UNITS, ...MATERIAL_PACKAGE_UNITS] as const;
 const WEIGHT_UNIT_VALUES = SUPPORTED_UNITS.filter(
   (unit) => UNIT_CATALOG[unit].dimension === 'weight',
 );
@@ -116,7 +102,7 @@ function column(
   };
 }
 
-export const WORKBOOK_SHEETS = [
+export const WORKBOOK_SHEETS: readonly WorkbookSheetContract[] = [
   {
     name: '_Meta',
     required: true,
@@ -135,14 +121,8 @@ export const WORKBOOK_SHEETS = [
     columns: [
       column('id', 'text', true, 'id'),
       column('name', 'text', true, 'name'),
-      column('group', 'text', true, 'group', {
-        allowedValues: MATERIAL_GROUPS,
-        tokenKind: 'enum',
-      }),
-      column('baseUnit', 'text', true, 'baseUnit', {
-        allowedValues: BASE_UNIT_VALUES,
-        tokenKind: 'unit',
-      }),
+      column('group', 'text', true, 'group', { allowedValues: MATERIAL_GROUPS, tokenKind: 'enum' }),
+      column('baseUnit', 'text', true, 'baseUnit', { allowedValues: BASE_UNIT_VALUES, tokenKind: 'unit' }),
       column('purchaseQuantity', 'number', true, 'purchaseQuantity'),
       column('purchaseUnit', 'text', true, 'purchaseUnit', {
         allowedValues: MATERIAL_PURCHASE_UNIT_VALUES,
@@ -174,15 +154,9 @@ export const WORKBOOK_SHEETS = [
       column('id', 'text', true, 'id'),
       column('materialId', 'text', true, 'materialId'),
       column('measuredVolume', 'number', true, 'measuredVolume'),
-      column('volumeUnit', 'text', true, 'volumeUnit', {
-        allowedValues: VOLUME_UNIT_VALUES,
-        tokenKind: 'unit',
-      }),
+      column('volumeUnit', 'text', true, 'volumeUnit', { allowedValues: VOLUME_UNIT_VALUES, tokenKind: 'unit' }),
       column('knownWeight', 'number', true, 'knownWeight'),
-      column('weightUnit', 'text', true, 'weightUnit', {
-        allowedValues: WEIGHT_UNIT_VALUES,
-        tokenKind: 'unit',
-      }),
+      column('weightUnit', 'text', true, 'weightUnit', { allowedValues: WEIGHT_UNIT_VALUES, tokenKind: 'unit' }),
       column('recordedAt', 'text', true, 'recordedAt'),
       column('notes', 'text', false, 'notes'),
     ],
@@ -199,10 +173,7 @@ export const WORKBOOK_SHEETS = [
     columns: [
       column('id', 'text', true, 'id'),
       column('name', 'text', true, 'name'),
-      column('basis', 'text', true, 'basis', {
-        allowedValues: MIX_RATIO_BASES,
-        tokenKind: 'enum',
-      }),
+      column('basis', 'text', true, 'basis', { allowedValues: MIX_RATIO_BASES, tokenKind: 'enum' }),
       column('notes', 'text', false, 'notes'),
       column('isActive', 'boolean', true, 'isActive'),
     ],
@@ -213,10 +184,7 @@ export const WORKBOOK_SHEETS = [
     required: true,
     columns: [
       column('mixPresetId', 'text', true, 'parent.id'),
-      column('categoryOrder', 'number', true, null, {
-        positiveInteger: true,
-        workbookOnly: true,
-      }),
+      column('categoryOrder', 'number', true, null, { positiveInteger: true, workbookOnly: true }),
       column('category', 'text', true, 'compatibleCategories[]', {
         allowedValues: PRODUCT_CATEGORIES,
         tokenKind: 'enum',
@@ -232,10 +200,7 @@ export const WORKBOOK_SHEETS = [
     required: true,
     columns: [
       column('mixPresetId', 'text', true, 'parent.id'),
-      column('lineOrder', 'number', true, null, {
-        positiveInteger: true,
-        workbookOnly: true,
-      }),
+      column('lineOrder', 'number', true, null, { positiveInteger: true, workbookOnly: true }),
       column('materialId', 'text', true, 'lines[].materialId'),
       column('role', 'text', true, 'lines[].role', {
         allowedValues: MIX_PRESET_LINE_ROLES,
@@ -255,10 +220,7 @@ export const WORKBOOK_SHEETS = [
     columns: [
       column('id', 'text', true, 'id'),
       column('name', 'text', true, 'name'),
-      column('category', 'text', true, 'category', {
-        allowedValues: PRODUCT_CATEGORIES,
-        tokenKind: 'enum',
-      }),
+      column('category', 'text', true, 'category', { allowedValues: PRODUCT_CATEGORIES, tokenKind: 'enum' }),
       column('mixPresetId', 'text', false, 'mixPresetId'),
       column('safetyWasteRate', 'number', true, 'safetyWasteRate'),
       column('notes', 'text', false, 'notes'),
@@ -290,16 +252,10 @@ export const WORKBOOK_SHEETS = [
     required: true,
     columns: [
       column('yieldSampleId', 'text', true, 'parent.id'),
-      column('inputOrder', 'number', true, null, {
-        positiveInteger: true,
-        workbookOnly: true,
-      }),
+      column('inputOrder', 'number', true, null, { positiveInteger: true, workbookOnly: true }),
       column('materialId', 'text', true, 'materialInputs[].materialId'),
       column('quantity', 'number', true, 'materialInputs[].quantity'),
-      column('unit', 'text', true, 'materialInputs[].unit', {
-        allowedValues: SUPPORTED_UNITS,
-        tokenKind: 'unit',
-      }),
+      column('unit', 'text', true, 'materialInputs[].unit', { allowedValues: SUPPORTED_UNITS, tokenKind: 'unit' }),
     ],
     rowOrder: [
       { key: 'yieldSampleId', mode: 'text-ci-exact' },
@@ -315,14 +271,8 @@ export const WORKBOOK_SHEETS = [
       column('productId', 'text', true, 'productId'),
       column('materialId', 'text', true, 'materialId'),
       column('quantityPerProduct', 'number', true, 'quantityPerProduct'),
-      column('unit', 'text', true, 'unit', {
-        allowedValues: SUPPORTED_UNITS,
-        tokenKind: 'unit',
-      }),
-      column('role', 'text', true, 'role', {
-        allowedValues: FIXED_RECIPE_ITEM_ROLES,
-        tokenKind: 'enum',
-      }),
+      column('unit', 'text', true, 'unit', { allowedValues: SUPPORTED_UNITS, tokenKind: 'unit' }),
+      column('role', 'text', true, 'role', { allowedValues: FIXED_RECIPE_ITEM_ROLES, tokenKind: 'enum' }),
       column('notes', 'text', false, 'notes'),
     ],
     rowOrder: [
@@ -342,10 +292,7 @@ export const WORKBOOK_SHEETS = [
         tokenKind: 'enum',
       }),
       column('sourceId', 'text', true, 'sourceId'),
-      column('role', 'text', true, 'role', {
-        allowedValues: PRODUCT_COMPONENT_ROLES,
-        tokenKind: 'enum',
-      }),
+      column('role', 'text', true, 'role', { allowedValues: PRODUCT_COMPONENT_ROLES, tokenKind: 'enum' }),
       column('quantityPerParent', 'number', true, 'quantityPerParent'),
       column('notes', 'text', false, 'notes'),
     ],
@@ -382,11 +329,15 @@ export const WORKBOOK_SHEETS = [
     ],
     rowOrder: [{ key: 'productId', mode: 'text-ci-exact' }],
   },
-] as const satisfies readonly WorkbookSheetContract[];
+];
 
-export const WORKBOOK_SCHEMA_BY_NAME = Object.fromEntries(
-  WORKBOOK_SHEETS.map((sheet) => [sheet.name, sheet]),
-) as Readonly<Record<WorkbookSheetName, WorkbookSheetContract>>;
+const schemaByName = {} as Record<WorkbookSheetName, WorkbookSheetContract>;
+for (const sheet of WORKBOOK_SHEETS) {
+  schemaByName[sheet.name] = sheet;
+}
+export const WORKBOOK_SCHEMA_BY_NAME: Readonly<
+  Record<WorkbookSheetName, WorkbookSheetContract>
+> = schemaByName;
 
 export const WORKBOOK_PRIMARY_SHEET_BY_SOURCE_COLLECTION = {
   materials: 'Materials',
@@ -400,7 +351,7 @@ export const WORKBOOK_PRIMARY_SHEET_BY_SOURCE_COLLECTION = {
   productFinancialProfiles: 'ProductFinancialProfiles',
 } as const satisfies Record<BusinessDatasetSourceCollectionKey, WorkbookSheetName>;
 
-export const WORKBOOK_RELATIONSHIPS = [
+export const WORKBOOK_RELATIONSHIPS: readonly WorkbookRelationshipContract[] = [
   {
     parentSheet: 'MixPresets',
     parentKey: 'id',
@@ -425,9 +376,8 @@ export const WORKBOOK_RELATIONSHIPS = [
     orderColumn: 'inputOrder',
     sourceArrayPath: 'materialInputs',
   },
-] as const satisfies readonly WorkbookRelationshipContract[];
+];
 
-/** Compile-time and runtime evidence that every complete source collection has a primary sheet. */
 export function getPrimaryWorkbookSheetForSourceCollection(
   collection: BusinessDatasetSourceCollectionKey,
 ): WorkbookSheetName {
@@ -498,11 +448,7 @@ function isFormulaCell(value: unknown): value is WorkbookFormulaCell {
 }
 
 function isBlank(value: unknown): boolean {
-  return (
-    value === null ||
-    value === undefined ||
-    (typeof value === 'string' && value.trim().length === 0)
-  );
+  return value === null || value === undefined || (typeof value === 'string' && value.trim() === '');
 }
 
 function addIssue(
@@ -519,23 +465,17 @@ function parseNeutralSheets(
   issues: WorkbookSchemaIssue[],
 ): WorkbookNeutralSheet[] | null {
   if (!isRecord(input) || !Array.isArray(input.sheets)) {
-    addIssue(
-      issues,
-      'INVALID_WORKBOOK_SCHEMA',
-      'Workbook schema input must be an object with a sheets array.',
-      { input },
-    );
+    addIssue(issues, 'INVALID_WORKBOOK_SCHEMA', 'Workbook schema input must be an object with a sheets array.', { input });
     return null;
   }
 
   const sheets: WorkbookNeutralSheet[] = [];
-
   for (const rawSheet of input.sheets) {
     if (
       !isRecord(rawSheet) ||
       typeof rawSheet.name !== 'string' ||
       !Array.isArray(rawSheet.columns) ||
-      !rawSheet.columns.every((columnName) => typeof columnName === 'string') ||
+      !rawSheet.columns.every((name) => typeof name === 'string') ||
       !Array.isArray(rawSheet.rows) ||
       !rawSheet.rows.every(isRecord)
     ) {
@@ -554,7 +494,6 @@ function parseNeutralSheets(
       rows: [...rawSheet.rows] as Record<string, unknown>[],
     });
   }
-
   return sheets;
 }
 
@@ -566,26 +505,25 @@ function validateCell(
   issues: WorkbookSchemaIssue[],
 ): void {
   const value = row[contract.key];
-
   if (isBlank(value)) {
     if (contract.required) {
-      addIssue(
-        issues,
-        'MISSING_REQUIRED_CELL',
-        `Required cell ${sheet.name}.${contract.key} is blank.`,
-        { sheetName: sheet.name, column: contract.key, rowIndex, input: value },
-      );
+      addIssue(issues, 'MISSING_REQUIRED_CELL', `Required cell ${sheet.name}.${contract.key} is blank.`, {
+        sheetName: sheet.name,
+        column: contract.key,
+        rowIndex,
+        input: value,
+      });
     }
     return;
   }
 
   if (isFormulaCell(value)) {
-    addIssue(
-      issues,
-      'FORMULA_CELL_NOT_ALLOWED',
-      `Formula cells are not allowed in authoritative column ${sheet.name}.${contract.key}.`,
-      { sheetName: sheet.name, column: contract.key, rowIndex, input: value },
-    );
+    addIssue(issues, 'FORMULA_CELL_NOT_ALLOWED', `Formula cells are not allowed in authoritative column ${sheet.name}.${contract.key}.`, {
+      sheetName: sheet.name,
+      column: contract.key,
+      rowIndex,
+      input: value,
+    });
     return;
   }
 
@@ -595,12 +533,12 @@ function validateCell(
     (contract.kind === 'number' && typeof value === 'number' && Number.isFinite(value));
 
   if (!validPrimitive) {
-    addIssue(
-      issues,
-      'INVALID_CELL_TYPE',
-      `Cell ${sheet.name}.${contract.key} must be ${contract.kind}.`,
-      { sheetName: sheet.name, column: contract.key, rowIndex, input: value },
-    );
+    addIssue(issues, 'INVALID_CELL_TYPE', `Cell ${sheet.name}.${contract.key} must be ${contract.kind}.`, {
+      sheetName: sheet.name,
+      column: contract.key,
+      rowIndex,
+      input: value,
+    });
     return;
   }
 
@@ -609,12 +547,9 @@ function validateCell(
     contract.positiveInteger &&
     (typeof value !== 'number' || !Number.isInteger(value) || value < 1)
   ) {
-    const code: WorkbookSchemaIssueCode = contract.workbookOnly
-      ? 'INVALID_CHILD_ORDER'
-      : 'INVALID_CELL_TYPE';
     addIssue(
       issues,
-      code,
+      contract.workbookOnly ? 'INVALID_CHILD_ORDER' : 'INVALID_CELL_TYPE',
       `Cell ${sheet.name}.${contract.key} must be a positive integer.`,
       { sheetName: sheet.name, column: contract.key, rowIndex, input: value },
     );
@@ -636,17 +571,12 @@ function validateCell(
   }
 }
 
-function validateMeta(
-  sheet: WorkbookNeutralSheet,
-  issues: WorkbookSchemaIssue[],
-): void {
+function validateMeta(sheet: WorkbookNeutralSheet, issues: WorkbookSchemaIssue[]): void {
   if (sheet.rows.length !== 1) {
-    addIssue(
-      issues,
-      'INVALID_META_ROW_COUNT',
-      '_Meta must contain exactly one authoritative metadata row.',
-      { sheetName: sheet.name, input: sheet.rows.length },
-    );
+    addIssue(issues, 'INVALID_META_ROW_COUNT', '_Meta must contain exactly one authoritative metadata row.', {
+      sheetName: sheet.name,
+      input: sheet.rows.length,
+    });
     return;
   }
 
@@ -656,12 +586,12 @@ function validateMeta(
   const datasetSchemaVersion = row.datasetSchemaVersion;
 
   if (typeof formatId === 'string' && formatId !== CRAFT_BUSINESS_WORKBOOK_FORMAT_ID) {
-    addIssue(
-      issues,
-      'INVALID_FORMAT_ID',
-      `Workbook formatId must be ${CRAFT_BUSINESS_WORKBOOK_FORMAT_ID}.`,
-      { sheetName: sheet.name, column: 'formatId', rowIndex: 0, input: formatId },
-    );
+    addIssue(issues, 'INVALID_FORMAT_ID', `Workbook formatId must be ${CRAFT_BUSINESS_WORKBOOK_FORMAT_ID}.`, {
+      sheetName: sheet.name,
+      column: 'formatId',
+      rowIndex: 0,
+      input: formatId,
+    });
   }
 
   if (
@@ -674,32 +604,20 @@ function validateMeta(
       issues,
       'INVALID_WORKBOOK_FORMAT_VERSION',
       `Unsupported workbook format version ${workbookFormatVersion}. Expected ${CURRENT_WORKBOOK_FORMAT_VERSION}.`,
-      {
-        sheetName: sheet.name,
-        column: 'workbookFormatVersion',
-        rowIndex: 0,
-        input: workbookFormatVersion,
-      },
+      { sheetName: sheet.name, column: 'workbookFormatVersion', rowIndex: 0, input: workbookFormatVersion },
     );
   }
 
   if (
     !isBlank(datasetSchemaVersion) &&
-    (typeof datasetSchemaVersion !== 'number' ||
-      !Number.isInteger(datasetSchemaVersion) ||
-      datasetSchemaVersion < 1)
+    (typeof datasetSchemaVersion !== 'number' || !Number.isInteger(datasetSchemaVersion) || datasetSchemaVersion < 1)
   ) {
-    addIssue(
-      issues,
-      'INVALID_DATASET_SCHEMA_VERSION_SHAPE',
-      'Dataset schema version must be a positive integer.',
-      {
-        sheetName: sheet.name,
-        column: 'datasetSchemaVersion',
-        rowIndex: 0,
-        input: datasetSchemaVersion,
-      },
-    );
+    addIssue(issues, 'INVALID_DATASET_SCHEMA_VERSION_SHAPE', 'Dataset schema version must be a positive integer.', {
+      sheetName: sheet.name,
+      column: 'datasetSchemaVersion',
+      rowIndex: 0,
+      input: datasetSchemaVersion,
+    });
   } else if (
     typeof datasetSchemaVersion === 'number' &&
     datasetSchemaVersion !== CURRENT_BUSINESS_DATASET_SCHEMA_VERSION
@@ -708,47 +626,34 @@ function validateMeta(
       issues,
       'UNSUPPORTED_DATASET_SCHEMA_VERSION',
       `Unsupported dataset schema version ${datasetSchemaVersion}. Expected ${CURRENT_BUSINESS_DATASET_SCHEMA_VERSION}.`,
-      {
-        sheetName: sheet.name,
-        column: 'datasetSchemaVersion',
-        rowIndex: 0,
-        input: datasetSchemaVersion,
-      },
+      { sheetName: sheet.name, column: 'datasetSchemaVersion', rowIndex: 0, input: datasetSchemaVersion },
     );
   }
 }
 
 /**
- * Validates workbook shape only.
- *
- * This deliberately stops before Phase 5.1C source-row identity, reference,
- * relationship, and Product composition graph validation.
+ * Validates workbook shape only. Identity/reference/cycle semantics remain Phase 5.1C.
  */
 export function validateWorkbookSchema(input: unknown): WorkbookSchemaIssue[] {
   const issues: WorkbookSchemaIssue[] = [];
   const sheets = parseNeutralSheets(input, issues);
-  if (!sheets) {
-    return issues;
-  }
+  if (!sheets) return issues;
 
   const sheetCounts = new Map<string, number>();
   for (const sheet of sheets) {
     sheetCounts.set(sheet.name, (sheetCounts.get(sheet.name) ?? 0) + 1);
   }
-
   for (const [sheetName, count] of sheetCounts) {
     if (count > 1) {
-      addIssue(
-        issues,
-        'DUPLICATE_SHEET',
-        `Workbook contains duplicate sheet ${sheetName}.`,
-        { sheetName, input: count },
-      );
+      addIssue(issues, 'DUPLICATE_SHEET', `Workbook contains duplicate sheet ${sheetName}.`, {
+        sheetName,
+        input: count,
+      });
     }
   }
 
   for (const contract of WORKBOOK_SHEETS) {
-    const matchingSheets = sheets.filter((sheet) => sheet.name === contract.name);
+    const matchingSheets = sheets.filter((candidate) => candidate.name === contract.name);
     if (matchingSheets.length === 0) {
       addIssue(
         issues,
@@ -763,40 +668,32 @@ export function validateWorkbookSchema(input: unknown): WorkbookSchemaIssue[] {
     const seenColumns = new Set<string>();
     for (const columnName of sheet.columns) {
       if (seenColumns.has(columnName)) {
-        addIssue(
-          issues,
-          'DUPLICATE_COLUMN',
-          `Sheet ${sheet.name} contains duplicate column ${columnName}.`,
-          { sheetName: sheet.name, column: columnName },
-        );
+        addIssue(issues, 'DUPLICATE_COLUMN', `Sheet ${sheet.name} contains duplicate column ${columnName}.`, {
+          sheetName: sheet.name,
+          column: columnName,
+        });
       }
       seenColumns.add(columnName);
     }
 
-    for (const expectedColumn of contract.columns) {
-      if (!sheet.columns.includes(expectedColumn.key)) {
-        addIssue(
-          issues,
-          'MISSING_REQUIRED_COLUMN',
-          `Sheet ${sheet.name} is missing canonical column ${expectedColumn.key}.`,
-          { sheetName: sheet.name, column: expectedColumn.key },
-        );
+    for (const expected of contract.columns) {
+      if (!sheet.columns.includes(expected.key)) {
+        addIssue(issues, 'MISSING_REQUIRED_COLUMN', `Sheet ${sheet.name} is missing canonical column ${expected.key}.`, {
+          sheetName: sheet.name,
+          column: expected.key,
+        });
       }
     }
 
-    const canonicalIndexes = contract.columns.map((expectedColumn) =>
-      sheet.columns.indexOf(expectedColumn.key),
-    );
+    const indexes = contract.columns.map((expected) => sheet.columns.indexOf(expected.key));
     if (
-      canonicalIndexes.every((index) => index >= 0) &&
-      canonicalIndexes.some((index, position) => position > 0 && index <= canonicalIndexes[position - 1])
+      indexes.every((index) => index >= 0) &&
+      indexes.some((index, position) => position > 0 && index <= indexes[position - 1])
     ) {
-      addIssue(
-        issues,
-        'INVALID_COLUMN_ORDER',
-        `Canonical columns in ${sheet.name} are not in the required relative order.`,
-        { sheetName: sheet.name, input: sheet.columns },
-      );
+      addIssue(issues, 'INVALID_COLUMN_ORDER', `Canonical columns in ${sheet.name} are not in the required relative order.`, {
+        sheetName: sheet.name,
+        input: sheet.columns,
+      });
     }
 
     for (let rowIndex = 0; rowIndex < sheet.rows.length; rowIndex += 1) {
@@ -809,42 +706,29 @@ export function validateWorkbookSchema(input: unknown): WorkbookSchemaIssue[] {
         const methodBlank = isBlank(row.pricingMethod);
         const valueBlank = isBlank(row.pricingValue);
         if (methodBlank !== valueBlank) {
-          addIssue(
-            issues,
-            'INVALID_PAIRED_FIELDS',
-            'pricingMethod and pricingValue must both be blank or both be populated.',
-            { sheetName: sheet.name, rowIndex },
-          );
+          addIssue(issues, 'INVALID_PAIRED_FIELDS', 'pricingMethod and pricingValue must both be blank or both be populated.', {
+            sheetName: sheet.name,
+            rowIndex,
+          });
         }
       }
     }
 
-    if (sheet.name === '_Meta') {
-      validateMeta(sheet, issues);
-    }
+    if (sheet.name === '_Meta') validateMeta(sheet, issues);
   }
 
   return issues;
 }
 
-export function assertWorkbookSchema(
-  input: unknown,
-): asserts input is WorkbookNeutralDocument {
+export function assertWorkbookSchema(input: unknown): asserts input is WorkbookNeutralDocument {
   const issues = validateWorkbookSchema(input);
-  if (issues.length > 0) {
-    throw new WorkbookSchemaError(issues);
-  }
+  if (issues.length > 0) throw new WorkbookSchemaError(issues);
 }
 
-/** Runtime guard used by focused tests and later codecs. */
 export function isCurrentWorkbookSchema(input: unknown): input is WorkbookNeutralDocument {
   return validateWorkbookSchema(input).length === 0;
 }
 
-/**
- * Ensures the runtime inventory still agrees with the compile-time source-to-sheet map.
- * The test suite calls this to catch future source collection additions.
- */
 export function getMappedSourceCollections(): readonly BusinessDatasetSourceCollectionKey[] {
   return BUSINESS_DATASET_SOURCE_COLLECTION_KEYS.filter(
     (collection) => WORKBOOK_PRIMARY_SHEET_BY_SOURCE_COLLECTION[collection] !== undefined,
