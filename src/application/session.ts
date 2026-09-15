@@ -4,6 +4,7 @@ import { InMemoryMaterialRepository } from './materials/InMemoryMaterialReposito
 import { MaterialService } from './materials/MaterialService';
 import { InMemoryMixPresetRepository } from './mixPresets/InMemoryMixPresetRepository';
 import { MixPresetService } from './mixPresets/MixPresetService';
+import { CompleteSourceSnapshotService } from './persistence/CompleteSourceSnapshotService';
 import { FullyLoadedProductUnitCostService } from './productCosts/FullyLoadedProductUnitCostService';
 import { RecursiveFullyLoadedProductComponentCostService } from './productCosts/RecursiveFullyLoadedProductComponentCostService';
 import { WasteAdjustedDirectMaterialCostService } from './productCosts/WasteAdjustedDirectMaterialCostService';
@@ -48,6 +49,18 @@ export const productStockRepository = new InMemoryProductStockRepository();
 export const productFinancialProfileRepository = new InMemoryProductFinancialProfileRepository();
 export const yieldSampleRepository = new InMemoryYieldSampleRepository();
 export const fixedRecipeItemRepository = new InMemoryFixedRecipeItemRepository();
+
+export const completeSourceSnapshotService = new CompleteSourceSnapshotService({
+  materials: materialRepository,
+  calibrations: calibrationRepository,
+  mixPresets: mixPresetRepository,
+  products: productRepository,
+  yieldSamples: yieldSampleRepository,
+  recipeItems: fixedRecipeItemRepository,
+  productComponents: productComponentRepository,
+  productStocks: productStockRepository,
+  productFinancialProfiles: productFinancialProfileRepository,
+});
 
 export const materialCalibrationEvidenceProvider = async (materialId: string) => {
   const records = await calibrationRepository.list();
