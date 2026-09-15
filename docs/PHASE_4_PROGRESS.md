@@ -28,9 +28,9 @@ Planning post-merge CI:
     4.3B — Profit / Markup / Margin Metrics               COMPLETE
     4.3C — Product Pricing Quote & Readiness Service      COMPLETE
 
-4.4 — Planned Batch Financials & Capacity                 NOT STARTED
-    4.4A — Physical Planned Batch Production Cost         NEXT
-    4.4B — Expected Revenue / Profit / Batch Margin       NOT STARTED
+4.4 — Planned Batch Financials & Capacity                 IN PROGRESS
+    4.4A — Physical Planned Batch Production Cost         COMPLETE
+    4.4B — Expected Revenue / Profit / Batch Margin       NEXT
     4.4C — Capacity Feasibility & Warning Synthesis       NOT STARTED
 
 4.5 — Pricing & Production Planning UI                    NOT STARTED
@@ -90,6 +90,15 @@ Planning post-merge CI:
 - 4.3C validates Product identity, cost status, authoritative total cost, known subtotal, and configured pricing-policy consistency across independently retrieved sources and fails closed on contradictions.
 - 4.3C quote readiness is `ready`, `partial`, or `not-ready`; zero-denominator diagnostics inherited from 4.3B do not downgrade an otherwise ready quote.
 - 4.3C top-level cost/price/profit/markup/margin fields are convenience mirrors of authoritative nested evidence and remain non-persisted derived data.
+- 4.4A physical batch cost uses Phase 2 Q-specific `plannedBatchBaseQuantity`; it is not derived from standard unit cost multiplied by quantity.
+- Final-batch upward rounding for direct `pc` materials remains visible through precise quantity, physical quantity, rounding delta, and rounding-cost trace.
+- 4.4A reuses completed 4.2C cost-per-base-unit, component, labor, and overhead evidence instead of reopening lower-level costing repositories.
+- Material-backed and Product-backed component production cost scales by requested quantity without applying parent safety waste to discrete component counts.
+- Product-backed child retail selling price, profit, and pricing policy never participate in physical production-cost planning.
+- Genuine component-only Products retain the controlled `neutral-component-only` direct-material interpretation only when the current Phase 2 physical plan consistently reports no direct requirements.
+- 4.4A preserves known physical cost subtotals for partial evidence but publishes `plannedProductionCost` only when the complete physical batch cost is authoritative.
+- Non-null invalid/non-finite physical cost evidence is unsafe and fails closed to `not-ready`; it is not treated as merely incomplete evidence.
+- `standardUnitCostTimesQuantity` and `physicalVsStandardCostDifference` are trace diagnostics only and are not alternate pricing or production-cost bases.
 - Recursive and root component costing remains independent of ProductStock/current availability.
 - Observed yield defects are not re-applied.
 - Parent safety waste does not inflate discrete component counts.
@@ -387,12 +396,64 @@ Plan: `docs/PHASE_4_3C_PRODUCT_PRICING_QUOTE_READINESS_PLAN.md`
 
 Record: `docs/PHASE_4_3C_PRODUCT_PRICING_QUOTE_READINESS.md`
 
+### 4.4A — Physical Planned Batch Production Cost
+
+**COMPLETE**
+
+Delivered:
+
+- authoritative Q-specific physical production-cost service;
+- Phase 2 final-batch direct-material quantities as the physical direct-material cost basis;
+- explicit `pc` count-rounding quantity and cost trace;
+- completed 4.2C cost-per-base-unit evidence reuse;
+- Material-backed component quantity/cost scaling by requested quantity;
+- Product-backed child fully loaded production-cost scaling by requested quantity;
+- root labor and overhead batch scaling;
+- controlled component-only neutral direct-material semantics;
+- ready/partial/not-ready readiness with known physical subtotal preservation;
+- fail-closed Product, quantity, material-set, base-unit, and numeric consistency guards;
+- diagnostic standard unit-cost comparison without changing the physical production-cost basis;
+- planned-quantity and Product-not-found error translation;
+- defensive cloning of retained Phase 2/4.2C evidence;
+- shared application-session wiring;
+- no 4.4B+ leakage.
+
+Evidence:
+
+```text
+Starting develop                1a7629385c0e6dd84255ab014a3f3ec0210bfa68
+Starting develop CI             34949575060 — SUCCESS
+Plan-before-code commit         5fa6327d72766680b47b1ea95426e50ffc1f2c08
+Compile/wiring checkpoint       f286189dc9bbca1736f545fb75e60b80323b4a79
+Checkpoint CI                   34951009176 — SUCCESS
+Initial focused-test head       4145fb51eb84111804cb5ec3d394326579fce360
+Focused-test CI                 34951294935 — FAILURE (invalid-cost readiness classification corrected)
+Corrected implementation head   1306cc169d112049fc5fdc635c7ce0c68db44338
+Corrected CI                    34951713527 — SUCCESS
+Final feature head              a246b2f086da1a798dee09dbe319356e6561c834
+Final feature-head CI           34951843605 — SUCCESS
+PR #114                         MERGED
+PR CI                           34951946653 — SUCCESS
+Implementation merge            eec44812067740cc26f440f6751f4e34c5bd4f4e
+Post-merge develop CI           34952186409 — SUCCESS
+73 test files / 884 tests
+30 PhysicalPlannedBatchProductionCostService tests
+1 4.4A shared-session wiring test
+TypeScript typecheck passed
+production Vite build passed
+107 modules transformed
+```
+
+Plan: `docs/PHASE_4_4A_PHYSICAL_PLANNED_BATCH_PRODUCTION_COST_PLAN.md`
+
+Record: `docs/PHASE_4_4A_PHYSICAL_PLANNED_BATCH_PRODUCTION_COST.md`
+
 ## Current active task
 
-**4.4A — Physical Planned Batch Production Cost — NEXT / NOT STARTED**
+**4.4B — Expected Revenue / Profit / Batch Margin — NEXT / NOT STARTED**
 
-Do not begin 4.4A implementation until:
+Do not begin 4.4B implementation until:
 
-1. this 4.3C documentation-only closeout is merged to `develop`;
+1. this 4.4A documentation-only closeout is merged to `develop`;
 2. exact final closeout `develop` CI is green;
-3. a dedicated 4.4A scope/split assessment and development plan are established before implementation.
+3. a dedicated 4.4B scope/split assessment and development plan are established before implementation.

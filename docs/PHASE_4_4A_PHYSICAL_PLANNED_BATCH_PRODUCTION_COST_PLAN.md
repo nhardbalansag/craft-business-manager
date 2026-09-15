@@ -2,7 +2,7 @@
 
 ## Status
 
-**PLANNED — IMPLEMENTATION NOT STARTED**
+**COMPLETE — IMPLEMENTED, MERGED, AND POST-MERGE VALIDATED**
 
 Authoritative starting base:
 
@@ -23,6 +23,30 @@ Previous completed task:
 Master plan:
 
 `docs/PHASE_4_PRICING_PRODUCTION_PLANNING_PLAN.md`
+
+## Completion evidence
+
+```text
+Plan-before-code commit         5fa6327d72766680b47b1ea95426e50ffc1f2c08
+Compile/wiring checkpoint       f286189dc9bbca1736f545fb75e60b80323b4a79
+Checkpoint CI                   34951009176 — SUCCESS
+Initial focused-test head       4145fb51eb84111804cb5ec3d394326579fce360
+Focused-test CI                 34951294935 — FAILURE (invalid-cost readiness classification corrected)
+Corrected implementation head   1306cc169d112049fc5fdc635c7ce0c68db44338
+Corrected CI                    34951713527 — SUCCESS
+Final documented feature head   a246b2f086da1a798dee09dbe319356e6561c834
+Final feature-head CI           34951843605 — SUCCESS
+PR #114                         MERGED
+PR CI                           34951946653 — SUCCESS
+Implementation merge            eec44812067740cc26f440f6751f4e34c5bd4f4e
+Post-merge develop CI           34952186409 — SUCCESS
+73 test files / 884 tests
+30 PhysicalPlannedBatchProductionCostService tests
+1 Phase 4.4A shared-session wiring test
+TypeScript typecheck passed
+production Vite build passed
+107 modules transformed
+```
 
 ## Objective
 
