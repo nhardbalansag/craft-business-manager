@@ -2,9 +2,9 @@
 
 ## Status
 
-**IMPLEMENTED — MERGE GATE PENDING**
+**COMPLETE**
 
-Authoritative base:
+Authoritative starting base:
 
 `develop` @ `5189a074a71fa77098179ab1f7c858d6d82ac047`
 
@@ -12,7 +12,7 @@ Starting exact `develop` CI:
 
 `34934560619 — SUCCESS`
 
-Feature branch:
+Implementation branch:
 
 `feature/phase-4-1c-financial-profile-repository-services`
 
@@ -26,57 +26,40 @@ Master plan:
 
 ## Objective
 
-Establish the storage-agnostic application boundary for Product financial-profile source data created in 4.1A and hardened by the 4.1B pricing validation engine.
-
-Delivered scope:
-
-- one Product financial profile per Product identity;
-- storage-agnostic repository contract;
-- defensive in-memory repository;
-- Product-reference validation;
-- profile upsert/read/list application services;
-- deterministic identity canonicalization/filter/search/listing;
-- defensive cloning, including nested pricing policy data;
-- archived-Product profile preservation/editability;
-- shared session wiring;
-- no Excel/Tauri persistence.
+Establish a storage-agnostic repository/application-service boundary for Product financial-profile source data created in 4.1A and validated by the 4.1B pricing engine.
 
 ## Split assessment
 
-No deeper formal roadmap split was required.
+No deeper formal split was required.
 
-4.1C remained one cohesive repository/application-service task. The financial-profile editor stays in 4.5A, fully loaded Product cost stays in 4.2, and readiness-aware pricing quote orchestration stays in 4.3.
+4.1C remained one cohesive task covering repository abstraction, in-memory source management, Product-reference validation, deterministic reads/listing, defensive cloning, and shared session wiring.
 
 ## Delivered architecture
 
-### Repository boundary
+### Repository
 
 Added:
 
 ```text
-src/application/productFinancialProfiles/ProductFinancialProfileRepository.ts
-src/application/productFinancialProfiles/InMemoryProductFinancialProfileRepository.ts
+ProductFinancialProfileRepository
+InMemoryProductFinancialProfileRepository
 ```
 
 Contract:
 
-```ts
-interface ProductFinancialProfileRepository {
-  list(): Promise<ProductFinancialProfile[]>;
-  findByProductId(productId: string): Promise<ProductFinancialProfile | null>;
-  upsert(profile: ProductFinancialProfile): Promise<void>;
-}
+```text
+list()
+findByProductId(productId)
+upsert(profile)
 ```
 
-Identity uses trimmed, case-insensitive Product IDs. The in-memory repository deep-clones seed/write/read/list values, including nested pricing policies.
-
-No delete/reset operation was added because a missing profile is authoritative unresolved evidence rather than equivalent to an explicit zero profile.
+The repository uses trimmed/case-insensitive Product identity and deep-clones seed/write/read/list values including nested pricing policy.
 
 ### Application service
 
 Added:
 
-`src/application/productFinancialProfiles/ProductFinancialProfileService.ts`
+`ProductFinancialProfileService`
 
 Public API:
 
@@ -86,178 +69,110 @@ getProfile(productId)
 listProfiles(filter?)
 ```
 
-Write sequence:
+Service writes:
 
-1. normalize via `normalizeProductFinancialProfile()`;
-2. enforce `validateProductFinancialProfileContract()` from 4.1A;
-3. validate configured `pricingPolicy` through 4.1B `validatePricingPolicy()`;
-4. resolve Product via `ProductRepository.findById()`;
-5. reject missing Product with typed `PRODUCT_NOT_FOUND` application error;
-6. canonicalize `productId` to the exact repository Product identity;
-7. upsert the normalized profile;
-8. return a defensive clone.
+- normalize 4.1A source data;
+- enforce 4.1A financial-profile validation;
+- enforce 4.1B configured pricing-policy validation;
+- reject missing Product references;
+- canonicalize Product identity;
+- preserve archived Product profiles as readable/editable historical source records;
+- return defensive clones.
 
-Domain/profile and pricing validation errors propagate unchanged.
+No delete/reset API was introduced because missing profile remains a meaningful unresolved state.
 
-### Archived Products
+### Deterministic reads
 
-Archived Products remain existing identities, so their financial profiles stay readable and editable/correctable. Product archival does not delete the profile.
-
-### Missing versus explicit zero
-
-The implementation preserves:
-
-```text
-missing profile
-= unresolved financial configuration
-
-profile with laborCostPerUnit = 0 and overheadCostPerUnit = 0
-= explicit known zero adders
-```
-
-`pricingPolicy: null` remains an explicit valid unconfigured-pricing state.
-
-### Deterministic list behavior
-
-`listProfiles()` supports:
-
-```text
-productId filter
-query search
-```
-
-Query searches Product ID, notes, and configured pricing method. Product IDs compare trimmed/case-insensitively. Results sort deterministically by Product ID.
+List behavior supports Product ID filtering and query search over Product ID, notes, and pricing method, with deterministic case-insensitive Product-ID ordering.
 
 ### Shared session
 
-Updated `src/application/session.ts` with:
+`src/application/session.ts` now exposes:
 
 ```text
 productFinancialProfileRepository
 productFinancialProfileService
 ```
 
-The service shares the existing `productRepository`, giving future React work an application-service write boundary without direct source-array mutation.
+Future React financial-profile writes therefore have an application-service boundary.
 
-## Files changed
+## Focused test coverage
 
 ```text
-docs/PHASE_4_1C_FINANCIAL_PROFILE_REPOSITORY_SERVICES_PLAN.md
-docs/PHASE_4_1C_FINANCIAL_PROFILE_REPOSITORY_SERVICES.md
-src/application/productFinancialProfiles/ProductFinancialProfileRepository.ts
-src/application/productFinancialProfiles/InMemoryProductFinancialProfileRepository.ts
-src/application/productFinancialProfiles/ProductFinancialProfileService.ts
-src/application/productFinancialProfiles/ProductFinancialProfileService.test.ts
-src/application/productFinancialProfiles/ProductFinancialProfileSession.test.ts
-src/application/session.ts
+ProductFinancialProfileService.test.ts   16 tests
+ProductFinancialProfileSession.test.ts    1 test
 ```
 
-## Test coverage
+Coverage includes identity upsert, canonicalization, explicit-zero/missing semantics, null/configured policy, missing Product rejection, archived Product editing, 4.1A/4.1B validation propagation, deterministic list/filter/search/sort, defensive nested cloning, and shared-session wiring.
 
-Focused new tests:
-
-```text
-ProductFinancialProfileService.test.ts          16 tests
-ProductFinancialProfileSession.test.ts           1 test
-```
-
-Coverage includes:
-
-- one-profile-per-Product upsert identity;
-- canonical Product identity and trimmed/case-insensitive lookup;
-- explicit zero versus missing profile;
-- null and configured pricing policies;
-- missing Product rejection;
-- archived Product read/edit behavior;
-- 4.1A profile validation propagation;
-- 4.1B pricing validation propagation;
-- notes normalization;
-- deterministic list/filter/search/sort;
-- repository seed/write/read/list cloning;
-- nested pricing-policy cloning;
-- service result cloning;
-- shared session wiring.
-
-## Validation evidence
-
-Implementation head:
-
-`29be0d69fcfc81867704a6d3b8878b923facb285`
-
-Implementation CI:
-
-`34935572837 — SUCCESS`
-
-Observed automated surface:
+## Validation chain
 
 ```text
+Implementation head       29be0d69fcfc81867704a6d3b8878b923facb285
+Implementation CI         34935572837 — SUCCESS
+
+Final feature head        c8a7152b5cbd44f2e47d50ed1ea828c1277f2c57
+Feature-head CI           34935732585 — SUCCESS
+
+Implementation PR #100    MERGED
+PR CI                     34935817685 — SUCCESS
+
+Implementation merge      ebf3ebfbd3e3279c1f108effd50ac936fe057d8f
+Post-merge develop CI     34935914716 — SUCCESS
+
 59 test files passed
 715 tests passed
-16 ProductFinancialProfile repository/service tests
+16 repository/service tests
 1 shared-session wiring test
-50 pricing engine tests
-18 ProductFinancialProfile domain tests
 7 React smoke tests
 TypeScript typecheck passed
-production Vite build passed
-100 modules transformed
+production build passed
 ```
-
-No implementation CI failure occurred.
 
 ## Scope retained
 
-4.1C did not implement:
+4.1C did not implement React UI, fully loaded Product cost, waste-adjusted direct cost, recursive Phase 4 cost roll-up, pricing quote orchestration, batch financials, capacity warnings, profile deletion/reset, Excel/Tauri persistence, tax/VAT, discounts, fees, payroll/timekeeping, or accounting posting.
 
-- React financial-profile editor;
-- fully loaded Product unit cost;
-- safety-waste pricing direct cost;
-- recursive Phase 4 child production cost;
-- readiness-aware pricing quote service;
-- batch financial planning;
-- capacity warning synthesis;
-- delete/reset profile semantics;
-- Excel/Tauri persistence;
-- tax/VAT, discounts, marketplace fees, overhead allocation, payroll/timekeeping, or accounting posting.
-
-## Lifecycle state
+## Lifecycle result
 
 Completed:
 
-1. dedicated development plan before code ✅
+1. dedicated plan before implementation ✅
 2. repository interface ✅
 3. defensive in-memory repository ✅
-4. application service and Product-reference validation ✅
+4. application service + Product-reference validation ✅
 5. 4.1A + 4.1B write validation ✅
-6. deterministic get/list/filter/search ✅
+6. deterministic read/list/filter/search ✅
 7. shared session wiring ✅
 8. focused tests ✅
-9. full implementation CI ✅
+9. implementation CI ✅
 10. implementation record ✅
+11. final documented feature-head CI ✅
+12. scope compare ✅
+13. implementation PR #100 ✅
+14. independent PR CI ✅
+15. expected-head-protected merge ✅
+16. exact post-merge `develop` CI ✅
+17. documentation-only closeout prepared ✅
 
-Remaining:
+Remaining completion gates for the closeout branch:
 
-11. clean documented feature-head CI;
-12. scope compare against exact starting `develop`;
-13. implementation PR to `develop`;
-14. independent PR CI;
-15. merge with expected-head protection;
-16. exact post-merge `develop` CI;
-17. documentation-only closeout;
-18. mark 4.1C COMPLETE / 4.2A NEXT;
-19. closeout PR CI and exact final `develop` CI.
+18. closeout PR CI;
+19. closeout merge;
+20. exact final `develop` CI.
 
-## Completion gate
+## Completion target
 
-4.1C is complete only when all implementation and closeout gates pass and the tracker advances to:
+After the documentation closeout merges successfully, the authoritative tracker advances to:
 
 ```text
-4.1C — Profile Repository & Application Services    COMPLETE
-4.2A — Waste-Adjusted Direct-Material Unit Cost     NEXT
+4.1 — Financial Profile & Pricing Policy Foundation      COMPLETE
+4.2 — Fully Loaded Product Unit Cost                      IN PROGRESS
+    4.2A — Waste-Adjusted Direct-Material Unit Cost       NEXT
 ```
 
-## Next task after completion
+## Next task
 
 **4.2A — Waste-Adjusted Direct-Material Unit Cost — NEXT / NOT STARTED**
 
-Do not begin 4.2A until 4.1C is fully merged, closed out, and exact final `develop` CI is green.
+Do not begin 4.2A until the closeout PR is merged and exact final `develop` CI is green.
