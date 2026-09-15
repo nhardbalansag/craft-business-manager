@@ -2,9 +2,9 @@
 
 ## Status
 
-**IMPLEMENTED — MERGE GATE PENDING**
+**COMPLETE**
 
-Authoritative base:
+Authoritative implementation base:
 
 `develop` @ `cb62f446ef77b42d8f41b7ea6825704a2da09c0f`
 
@@ -16,9 +16,17 @@ Implementation record:
 
 `docs/PHASE_3_3C_TOTAL_COMPONENT_AWARE_PRODUCT_COST.md`
 
-## Objective
+Implementation PR:
 
-Create one derived Product-level cost view:
+`#77`
+
+Implementation merge commit:
+
+`742dd4d2e0882fc1d8f32904adad25a154082167`
+
+## Objective completed
+
+3.3C now provides one derived Product-level cost view:
 
 ```text
 Phase 2 direct-material cost
@@ -28,251 +36,99 @@ Phase 3 component contributions
 component-aware Product material/component cost
 ```
 
-The result remains storage-agnostic and becomes the material/component cost input for Phase 4 pricing.
+The result remains storage-agnostic and is the intended material/component cost input for Phase 4 pricing.
 
 ## Split assessment
 
 No deeper formal split was required.
 
-3.3C remained one cohesive application-service synthesis task covering root Product resolution, Phase 2 direct cost, 3.3A/3.3B component delegation, readiness aggregation, corruption guards, and shared session wiring.
+3.3C remained one cohesive application-service synthesis task covering root Product identity, Phase 2 direct cost, 3.3A/3.3B component delegation, readiness aggregation, immediate root corruption protection, and shared session wiring.
 
-## Scope boundary
+## Implemented boundaries
 
-3.3C is cost synthesis only.
+3.3C reuses:
 
-Explicitly excluded:
+- Phase 2 `RecipeMaterialCostPreviewService`;
+- 3.3A `MaterialBackedComponentCostService`;
+- 3.3B `ProductBackedComponentCostService`.
 
-- component/direct-material assembly capacity;
-- limiting-resource analysis;
-- ProductStock/current-stock effects on cost;
-- recursive manufacture of missing child stock;
-- inventory reservation/deduction/transactions;
-- safety-waste cost markup;
+It does not implement:
+
+- assembly capacity;
+- limiting resources;
+- ProductStock-based cost behavior;
+- recursive manufacture of missing stock;
+- inventory transactions/reservations;
 - labor/overhead/selling price/markup/margin/profit;
 - UI;
-- Excel persistence or authoritative cached cost.
-
-These remain Phase 3.4+, Phase 4, Phase 3.5, or Phase 5.
-
-## Authoritative cost sources
-
-Implemented composition reuses existing services:
-
-- root Phase 2 direct-material cost: `RecipeMaterialCostPreviewService.previewForProduct()`;
-- root Material-backed component cost: 3.3A `MaterialBackedComponentCostService.costComponent()`;
-- root Product-backed recursive cost: 3.3B `ProductBackedComponentCostService.costComponent()`.
-
-No lower-level cost formula was reimplemented.
-
-## Product-level result contract
-
-Implemented result:
-
-```text
-ComponentAwareProductCostResult
-- productId
-- productName
-- productIsActive
-- status: ready | partial | not-ready
-- directMaterialCost
-- directMaterialCostSubtotal
-- componentCostSubtotal
-- totalComponentAwareCost
-- componentLines[]
-- issues[]
-```
-
-`componentLines[]` is a typed union containing the original 3.3A or 3.3B line result. Recursive Product-backed trees remain nested in 3.3B rather than being flattened by 3.3C.
-
-## Cost aggregation semantics
-
-```text
-known direct subtotal
-= Phase 2 total when reliable direct cost lines exist
-= 0 when no reliable direct evidence exists
-
-known component subtotal
-= sum of finite non-negative non-null root component contributions
-
-known total
-= known direct subtotal + known component subtotal
-```
-
-Cost evidence is tracked separately from the numeric value so authoritative zero remains distinguishable from missing evidence.
+- Excel persistence or cached authoritative cost.
 
 ## Readiness contract
 
-### Ready
-
-The Phase 2 direct-material preview is ready with reliable cost evidence, every required root component line is ready, and the total is finite/non-negative.
-
-A direct-material-only Product may therefore be ready.
-
-### Partial
-
-At least one reliable numeric contribution exists but one or more required direct/component inputs remain unresolved.
-
-Implemented examples:
-
-- partial Phase 2 direct cost;
-- no reliable Phase 2 direct cost but valid component cost;
-- unresolved Material-backed component while direct cost remains known;
-- partial/not-ready Product-backed component while other evidence remains known;
-- nested 3.3B corruption/cycle evidence with a known partial contribution;
-- duplicate immediate root source corruption while independent direct evidence remains known;
-- invalid component contribution while other safe evidence remains known.
-
-The numeric result is the known current subtotal only.
-
-### Not ready
-
-No reliable numeric Product cost evidence exists or no safe aggregate can be produced.
-
-Examples:
-
-- no direct cost and no component contribution;
-- all component inputs unresolved with no direct evidence;
-- duplicate root source corruption with no independent evidence;
-- only available component contribution is invalid.
-
-In these cases `totalComponentAwareCost` is `null`.
-
-## Phase 2 `NO_REQUIREMENTS` policy
-
-3.3C preserves the Phase 2/3.3B readiness contract.
+Implemented statuses:
 
 ```text
-no reliable direct cost + no component evidence -> not-ready
-no reliable direct cost + valid component evidence -> partial
+ready
+partial
+not-ready
 ```
 
-3.3C does not silently reinterpret a Phase 2 `not-ready`/no-requirements result as authoritative zero.
+Locked semantics:
 
-## Root component guards
+- complete cost requires ready Phase 2 direct evidence and ready required root components;
+- known incomplete numeric cost remains `partial`;
+- no reliable numeric evidence remains `not-ready` with a null total;
+- reliable zero remains different from missing evidence;
+- Phase 2 no-requirements/not-ready is not silently treated as authoritative zero;
+- component-only known cost remains partial under the current Product contract.
 
-Immediate root component-source uniqueness is validated using the existing 3.1B rule before aggregation.
+## Defensive behavior
 
-Duplicate source corruption is never double-counted.
-
-Nested cycle/path handling remains delegated to 3.3B.
-
-Root lines are processed deterministically by source type, normalized source ID, then normalized component ID.
-
-## Product identity policy
-
-Missing root Product throws typed:
-
-```text
-ComponentAwareProductCostServiceError
-code = PRODUCT_NOT_FOUND
-```
-
-Inactive root Products remain historically inspectable. `productIsActive` is preserved and inactivity alone does not erase otherwise derivable cost evidence.
-
-## ProductStock exclusion
-
-3.3C has no ProductStock dependency.
-
-```text
-cost -> Phase 3.3
-availability/capacity -> Phase 3.4 using Phase 3.2C
-```
-
-Current finished stock therefore cannot change Product cost.
+- immediate root duplicate component sources are rejected before aggregation;
+- duplicate sources are never double-counted;
+- nested Product recursion/cycle protection remains delegated to 3.3B;
+- invalid component contributions do not contaminate safe known subtotal math;
+- missing Product uses typed `PRODUCT_NOT_FOUND`;
+- inactive Product state remains visible while historical cost may still be derived;
+- ProductStock does not affect cost.
 
 ## Derived-only rule
 
-No Product/ProductComponent cached total, repository write, or BusinessDataset derived-cost collection was added.
-
-Phase 4 should consume the derived 3.3C view.
-
-## Controlled issues
-
-Implemented summary codes:
-
-```text
-DIRECT_MATERIAL_COST_PARTIAL
-DIRECT_MATERIAL_COST_NOT_READY
-COMPONENT_GRAPH_INVALID
-COMPONENT_COST_PARTIAL
-COMPONENT_COST_NOT_READY
-DERIVED_COST_INVALID
-```
-
-Detailed lower-level evidence remains attached to direct/component results.
-
-## Application/session implementation
-
-Added:
-
-`src/application/productComponents/ComponentAwareProductCostService.ts`
-
-Shared session instance:
-
-`componentAwareProductCostService`
-
-Dependencies:
-
-- `productRepository`;
-- `productComponentRepository`;
-- `recipeMaterialCostPreviewService`;
-- `materialBackedComponentCostService`;
-- `productBackedComponentCostService`.
-
-No new repository or BusinessDataset collection was introduced.
+No authoritative cached cost field or derived-cost repository was added.
 
 ## Validation
 
 Dedicated suite:
 
-`src/application/productComponents/ComponentAwareProductCostService.test.ts`
+**25 tests**
 
-Focused suite: **25 tests**.
-
-Test-bearing feature CI:
+Full repository validation:
 
 ```text
-run 34918219698 — SUCCESS
 47 test files passed
 489 tests passed
 TypeScript typecheck passed
 production build passed
 ```
 
-Fully wired feature-head CI:
+Evidence:
 
 ```text
-run 34918240264 — SUCCESS
-TypeScript typecheck passed
-full test suite passed
-production build passed
+Test-bearing feature CI    34918219698 — SUCCESS
+Fully wired feature CI     34918240264 — SUCCESS
+Final feature-head CI      34918355372 — SUCCESS
+PR #77 CI                  34918417849 — SUCCESS
+Post-merge develop CI      34918526564 — SUCCESS
 ```
 
 ## Completion gate
 
-Implemented feature gates passed:
+All planned 3.3C gates are complete, including implementation merge and exact post-merge validation.
 
-- Product-level derived view combines Phase 2 direct cost and Phase 3 components;
-- root Material lines delegate to 3.3A;
-- root Product lines delegate to 3.3B;
-- recursive nested evidence remains inspectable;
-- ready/partial/not-ready propagates deterministically;
-- partial known subtotal remains visibly incomplete;
-- zero remains distinct from missing evidence;
-- duplicate root sources cannot be double-counted;
-- ProductStock is excluded from cost dependencies;
-- derived cost is not persisted;
-- shared session wiring exists;
-- 47 test files / 489 tests pass;
-- TypeScript typecheck and production build pass.
+**Phase 3.3 — Component-Aware Cost Roll-Up is ready to be formally closed in the Phase 3 tracker.**
 
-Remaining gate:
+## Next task
 
-- implementation PR merges to `develop`;
-- exact post-merge `develop` CI is green.
+**3.4A — Per-Component Availability & Capacity — NEXT / NOT STARTED**
 
-## Next task after closeout
-
-**3.4A — Per-Component Availability & Capacity**
-
-Do not begin 3.4A until 3.3C is merged, exact post-merge `develop` CI is green, Phase 3.3 is formally marked COMPLETE, and a dedicated 3.4A development plan/scope review is established.
+Do not begin 3.4A until a dedicated development plan/scope review is established.
