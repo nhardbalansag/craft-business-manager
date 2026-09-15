@@ -1,6 +1,6 @@
 # Phase 4.6A — Integrated Pricing / Production Workflow
 
-Status: **IMPLEMENTED — VALIDATED — AWAITING MERGE**
+Status: **COMPLETE — MERGED — POST-MERGE VALIDATED**
 
 Repository: `nhardbalansag/craft-business-manager`
 
@@ -27,6 +27,30 @@ Validated implementation head:
 Implementation CI:
 
 `34974785642 — SUCCESS`
+
+Documented feature head:
+
+`5d162a3f17abb14b1a7369d7cb102ca0f2c16db2`
+
+Documented feature-head CI:
+
+`34974955372 — SUCCESS`
+
+Implementation PR:
+
+`#126 — MERGED`
+
+PR CI:
+
+`34975093313 — SUCCESS`
+
+Implementation merge:
+
+`89e2f458be8e787dfe1f864d9dd9a998436ea0a5`
+
+Exact post-merge `develop` CI:
+
+`34975300493 — SUCCESS`
 
 ## Delivered
 
@@ -189,23 +213,23 @@ The suite exercises real instances of:
 
 ## Validation evidence
 
-Exact validated implementation head:
-
-`094fe4a631cb3ed8478798f8cc1bad0b93c39e72`
-
-CI:
-
-`34974785642 — SUCCESS`
-
-Validation summary:
-
 ```text
-TypeScript typecheck                  PASS
-81 test files                         PASS
-986 tests                             PASS
-7 Phase 4.6A integration tests        PASS
-8 React workspace smoke tests         PASS
-production Vite build                 PASS
+Starting develop                       f74579ce155a2462c1edb8ba9478536fae9fa3ef
+Starting develop CI                    34969616141 — SUCCESS
+Plan-before-code commit                365ab7233694b3aa31047bf9de40f3bc53efe8d1
+Validated implementation head          094fe4a631cb3ed8478798f8cc1bad0b93c39e72
+Implementation CI                      34974785642 — SUCCESS
+Documented feature head                5d162a3f17abb14b1a7369d7cb102ca0f2c16db2
+Documented feature-head CI             34974955372 — SUCCESS
+PR #126                                MERGED
+PR CI                                  34975093313 — SUCCESS
+Implementation merge                   89e2f458be8e787dfe1f864d9dd9a998436ea0a5
+Post-merge develop CI                  34975300493 — SUCCESS
+81 test files / 986 tests
+7 Phase 4.6A integration tests
+8 React workspace smoke tests
+TypeScript typecheck passed
+production Vite build passed
 117 modules transformed
 ```
 
@@ -219,12 +243,12 @@ The implementation adds integration validation and documentation only.
 
 No Phase 4.6B regression/completion work is included.
 
-## Next gate
+## Completion result
 
-Before Phase 4.6A can be declared complete:
+Phase **4.6A — Integrated Pricing / Production Workflow** is complete, merged to `develop`, and validated on the exact implementation merge.
 
-1. the documented feature head must receive exact green CI;
-2. implementation PR must target `develop` and pass PR CI;
-3. exact guarded implementation merge must pass post-merge `develop` CI;
-4. documentation-only closeout must be merged and validated;
-5. final tracker must advance only `4.6B — Regression / Build / Completion` to NEXT / NOT STARTED.
+The next roadmap task is:
+
+**4.6B — Regression / Build / Completion — NEXT / NOT STARTED**
+
+Phase 4 is **not yet complete**. Final Phase 4 completion belongs to 4.6B after its own scope assessment, plan, implementation/validation, merge, and closeout gates.
