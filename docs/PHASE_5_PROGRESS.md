@@ -21,11 +21,11 @@ Master plan:
 
 5.3 — Snapshot, Hydration & Persistence Coordination      IN PROGRESS
     5.3A — Complete Source Snapshot Service               COMPLETE
-    5.3B — Validated Atomic Dataset Hydration             IN PROGRESS
+    5.3B — Validated Atomic Dataset Hydration             COMPLETE
         5.3B1 — Hydration Replacement Port & Bulk Replace COMPLETE
         5.3B2 — Validated Atomic Hydration + Rollback     COMPLETE
-        5.3B3 — Session/Fault Injection/Completion Gate   NEXT / NOT STARTED
-    5.3C — Persistence Coordinator / Load-Save Lifecycle  NOT STARTED
+        5.3B3 — Session/Fault Injection/Completion Gate   COMPLETE
+    5.3C — Persistence Coordinator / Load-Save Lifecycle  NEXT / NOT STARTED
 
 5.4 — Version Compatibility, Backup & Recovery Safety     NOT STARTED
     5.4A — Schema Migration & Compatibility Framework     NOT STARTED
@@ -60,8 +60,9 @@ Master plan:
 - 5.3B uses persistence-only whole-collection replacement instead of replaying ordinary business CRUD workflows.
 - 5.3B1 established `CollectionReplacementPort<T>` across all nine in-memory repositories with staged cloned `Map` replacement, stale-row removal, empty clearing, preserved repository identity, and pre-swap failure safety.
 - 5.3B2 coordinates all nine replacements through `ValidatedAtomicDatasetHydrationService`, restores the complete pre-hydration snapshot when apply fails, and distinguishes snapshot, restored-apply, and rollback-failure diagnostics.
+- 5.3B3 wires one shared hydration boundary into the application session and proves the parent atomicity contract with controlled failures at all nine replacement boundaries.
+- Optional source-field absence is source evidence: clone/hydration boundaries may not synthesize an own property merely with `undefined` when the source field was absent.
 - Rollback failure remains a distinct severe diagnostic and may never be reported as successful hydration.
-- 5.3B3 owns shared-session integration plus exhaustive fault-injection and completion proof before the parent 5.3B phase can close.
 - 5.3C owns load/save lifecycle orchestration; 5.4B owns backup/atomic filesystem transport; Phase 6 owns native Tauri filesystem behavior.
 
 ## Completed persistence foundation
@@ -113,11 +114,15 @@ Post-merge CI                35019082343 — SUCCESS
 
 Delivered complete deterministic deep-cloned snapshots over all nine repositories with current dataset schema version and all-or-nothing read behavior.
 
-## Phase 5.3B — Validated Atomic Dataset Hydration
+## Phase 5.3B — Validated Atomic Dataset Hydration — COMPLETE
 
 Parent plan:
 
 `docs/PHASE_5_3B_VALIDATED_ATOMIC_DATASET_HYDRATION_PLAN.md`
+
+Parent completion record:
+
+`docs/PHASE_5_3B_VALIDATED_ATOMIC_DATASET_HYDRATION.md`
 
 Planning closeout baseline before B1:
 
@@ -148,16 +153,7 @@ Production Vite build passed
 119 modules transformed
 ```
 
-Delivered:
-
-- generic persistence-only `CollectionReplacementPort<T>`;
-- whole-collection `replaceAll(...)` in all nine source repositories;
-- fully staged cloned next-state Maps before live swap;
-- stale-record removal and empty-collection clearing;
-- defensive ownership of nested source evidence;
-- repository object identity preservation;
-- pre-swap preparation failure safety;
-- no business CRUD replay or derived output calculation.
+Delivered generic persistence-only whole-collection replacement over all nine source repositories with staged cloned state, stale-row removal, empty clearing, defensive ownership, repository identity preservation, and pre-swap failure safety.
 
 ### 5.3B2 — Validated Atomic Hydration + Rollback
 
@@ -180,26 +176,44 @@ Production Vite build passed
 119 modules transformed
 ```
 
-Delivered:
-
-- application-level `ValidatedAtomicDatasetHydrationService`;
-- authoritative complete-dataset validation before every write;
-- hydration-owned candidate cloning;
-- 5.3A pre-hydration snapshot reuse as rollback evidence;
-- deterministic nine-repository forward replacement order;
-- automatic complete rollback after apply failure;
-- controlled `SNAPSHOT_FAILED` diagnostics before writes;
-- controlled `APPLY_FAILED_RESTORED` diagnostics after successful rollback;
-- distinct severe `ROLLBACK_FAILED` diagnostics retaining apply and rollback causes;
-- focused success/rejection/snapshot/apply/rollback regression coverage.
+Delivered validation-before-write, hydration-owned cloning, pre-hydration rollback snapshotting, deterministic nine-repository replacement, automatic rollback, and controlled `SNAPSHOT_FAILED`, `APPLY_FAILED_RESTORED`, and `ROLLBACK_FAILED` diagnostics.
 
 ### 5.3B3 — Session Integration, Fault Injection & Completion Gate
 
-Status: **NEXT / NOT STARTED**
+Status: **COMPLETE**
 
-B3 must wire the completed hydration service into the shared application session and prove the parent 5.3B atomicity contract with exhaustive controlled fault injection, including already-wired service observation after hydration.
+```text
+Authoritative baseline     7ff9d51b0965add105e1c58943a2852f61d11145
+Baseline CI                35033683723 — SUCCESS
+Initial feature head       b7e207f714172e690d787b3f46f3902be6817cd9
+Initial CI                 35034071494 — FAILURE
+Corrected feature head     929f09049d9e24857ee2389688e8a64d9e24a70c
+Implementation PR #156     MERGED
+PR CI                      35034176226 — SUCCESS
+Implementation merge       50d0ae082095e4c3f397bee5a8b8d276ace93a26
+Post-merge develop CI      35034304286 — SUCCESS
+91 test files / 1128 tests
+18 focused 5.3B3 completion tests
+TypeScript typecheck passed
+Production Vite build passed
+121 modules transformed
+```
 
-No 5.3B3 implementation has started as part of the 5.3B2 closeout.
+Delivered:
+
+- one shared `validatedAtomicDatasetHydrationService` in the application session;
+- exhaustive forward failure injection at all nine replacement boundaries;
+- exact previous-state restoration proof after every tested apply failure;
+- zero-write proof for invalid candidates and pre-write snapshot failure;
+- distinct rollback-failure context proof;
+- complete replacement, stale-row removal, and empty-dataset clearing proof;
+- missing versus explicit zero/null source-fidelity proof;
+- defensive ownership proof;
+- preservation of truly absent optional Material source metadata;
+- already-wired service observation after hydration without rebuilding repositories/services;
+- UI boundary verification showing editing views continue through application services rather than persistence replacement ports.
+
+The initial B3 CI failure identified a real fidelity defect in `cloneMaterial(...)`: absent `source` metadata became an own property with value `undefined`. The clone boundary was corrected; the assertion was retained and the corrected head passed the complete suite.
 
 ## Current persistence boundary
 
@@ -213,14 +227,14 @@ XLSX -> dataset reconstruction        COMPLETE
 Repository snapshot service           COMPLETE — 5.3A
 Repository bulk replacement primitive COMPLETE — 5.3B1
 Validated atomic hydration/rollback   COMPLETE — 5.3B2
-Hydration session completion gate     NEXT / NOT STARTED — 5.3B3
-Persistence coordinator/load-save     NOT STARTED — 5.3C
+Hydration session completion gate     COMPLETE — 5.3B3
+Persistence coordinator/load-save     NEXT / NOT STARTED — 5.3C
 ExcelStorage.load/save                placeholder
 Native filesystem                     Phase 6
 ```
 
 ## Current active task
 
-**5.3B3 — Session Integration, Fault Injection & Completion Gate — NEXT / NOT STARTED**
+**5.3C — Persistence Coordinator / Load-Save Lifecycle — NEXT / NOT STARTED**
 
-Do not begin B3 implementation until the B2 closeout PR is merged, exact final `develop` CI is green, and the user separately says to proceed.
+Do not begin 5.3C implementation until the Phase 5.3B parent closeout PR is merged, exact final `develop` CI is green, and the user separately says to proceed.
