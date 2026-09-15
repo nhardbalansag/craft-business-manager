@@ -1,13 +1,16 @@
-import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   productFinancialProfileService,
+  productPricingQuoteService,
   productService,
 } from '../../application/session';
+import type { ProductPricingQuoteResult } from '../../application/pricing/ProductPricingQuoteService';
 import type { ProductFinancialProfile } from '../../domain/productFinancialProfile';
 import {
   PRODUCT_CATEGORY_RULES,
   type Product,
 } from '../../domain/products';
+import { ProductPricingQuotePanel } from './ProductPricingQuotePanel';
 import {
   createEmptyProductFinancialProfileForm,
   pricingValueHelp,
@@ -30,6 +33,12 @@ function errorMessage(error: unknown): string {
   return error instanceof Error
     ? error.message
     : 'Something went wrong. Please check the financial profile and try again.';
+}
+
+function quoteErrorMessage(error: unknown): string {
+  return error instanceof Error
+    ? error.message
+    : 'The authoritative unit-economics quote could not be loaded.';
 }
 
 function upsertProfileList(
@@ -57,6 +66,32 @@ export function PricingPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<Feedback>(null);
+  const [quote, setQuote] = useState<ProductPricingQuoteResult | null>(null);
+  const [quoteLoading, setQuoteLoading] = useState(false);
+  const [quoteError, setQuoteError] = useState<string | null>(null);
+  const quoteRequestVersion = useRef(0);
+
+  const loadQuote = useCallback(async (productId: string) => {
+    const requestVersion = ++quoteRequestVersion.current;
+    setQuoteLoading(true);
+    setQuoteError(null);
+    setQuote(null);
+
+    try {
+      const nextQuote = await productPricingQuoteService.quoteProduct(productId);
+      if (requestVersion === quoteRequestVersion.current) {
+        setQuote(nextQuote);
+      }
+    } catch (error) {
+      if (requestVersion === quoteRequestVersion.current) {
+        setQuoteError(quoteErrorMessage(error));
+      }
+    } finally {
+      if (requestVersion === quoteRequestVersion.current) {
+        setQuoteLoading(false);
+      }
+    }
+  }, []);
 
   const loadWorkspace = useCallback(async () => {
     setLoading(true);
@@ -90,6 +125,18 @@ export function PricingPage() {
     void loadWorkspace();
   }, [loadWorkspace]);
 
+  useEffect(() => {
+    if (selectedProductId === null) {
+      quoteRequestVersion.current += 1;
+      setQuote(null);
+      setQuoteLoading(false);
+      setQuoteError(null);
+      return;
+    }
+
+    void loadQuote(selectedProductId);
+  }, [loadQuote, selectedProductId]);
+
   const profileByProductId = useMemo(
     () => new Map(profiles.map((profile) => [comparable(profile.productId), profile])),
     [profiles],
@@ -119,6 +166,10 @@ export function PricingPage() {
     : null;
 
   function selectProduct(product: Product) {
+    quoteRequestVersion.current += 1;
+    setQuote(null);
+    setQuoteError(null);
+    setQuoteLoading(true);
     setSelectedProductId(product.id);
     setForm(
       productFinancialProfileToForm(
@@ -158,6 +209,7 @@ export function PricingPage() {
         type: 'success',
         message: `Financial profile saved for ${selectedProduct.name}.`,
       });
+      await loadQuote(selectedProduct.id);
     } catch (error) {
       setFeedback({ type: 'error', message: errorMessage(error) });
     } finally {
@@ -176,16 +228,16 @@ export function PricingPage() {
           <p className="eyebrow">PHASE 4 · PRICING</p>
           <h1>Financial profiles</h1>
           <p className="page-lead">
-            Configure the Product-level labor, overhead, and pricing-policy source values used by downstream cost and selling-price calculations.
+            Configure Product financial source values, then inspect the authoritative fully loaded unit cost and pricing result for the same Product.
           </p>
         </div>
         <div className="session-badge"><span className="status-dot" />Session workspace</div>
       </div>
 
       <div className="pricing-source-note">
-        <strong>Source configuration only.</strong>
+        <strong>Source + derived view.</strong>
         <span>
-          A missing profile is unresolved. Saving PHP 0 labor or overhead records an explicit known zero. Selling price and profit remain derived downstream.
+          The financial profile is editable source data. Unit cost, selling price, profit, markup, and margin below are read-only results from Phase 4 application services.
         </span>
       </div>
 
@@ -232,7 +284,7 @@ export function PricingPage() {
             <div className="empty-state compact-pricing-empty">
               <div className="empty-icon">+</div>
               <h3>Create a Product first</h3>
-              <p>The Pricing workspace needs a Product identity before a financial profile can be configured.</p>
+              <p>The Pricing workspace needs a Product identity before financial configuration or unit economics can be inspected.</p>
             </div>
           ) : visibleProducts.length === 0 ? (
             <div className="empty-state compact-pricing-empty">
@@ -298,7 +350,7 @@ export function PricingPage() {
               {!selectedProduct
                 ? 'Select a Product from the catalog before entering or saving financial source values.'
                 : selectedProfile
-                  ? 'These values are authoritative source inputs. Saving updates the same Product-keyed profile.'
+                  ? 'These values are authoritative source inputs. Saving updates the same Product-keyed profile and refreshes unit economics.'
                   : 'No source profile exists yet. Enter labor and overhead explicitly; use 0 only when zero cost is intentional.'}
             </span>
           </div>
@@ -406,6 +458,13 @@ export function PricingPage() {
           )}
         </form>
       </div>
+
+      <ProductPricingQuotePanel
+        productName={selectedProduct?.name ?? null}
+        quote={quote}
+        loading={quoteLoading}
+        error={quoteError}
+      />
     </section>
   );
 }
