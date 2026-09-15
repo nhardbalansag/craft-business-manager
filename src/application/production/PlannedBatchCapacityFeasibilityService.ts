@@ -134,7 +134,7 @@ function allowedTraceSynthesisStatusPair(trace: AssemblyCapacityTraceResult): bo
 }
 
 function cloneLimiters(resources: readonly LimitingResource[]): LimitingResource[] {
-  return structuredClone(resources);
+  return structuredClone([...resources]);
 }
 
 /**
