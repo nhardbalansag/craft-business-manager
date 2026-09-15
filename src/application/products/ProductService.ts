@@ -7,6 +7,7 @@ import {
   type ProductSafetyWastePolicy,
 } from '../../domain/safetyWastePolicy';
 import type { MixPresetRepository } from '../mixPresets/MixPresetRepository';
+import type { ProductComponentRelationshipGuard } from '../productComponents/ProductComponentRelationshipGuard';
 import type { ProductRepository } from './ProductRepository';
 
 export interface ProductListFilter {
@@ -69,6 +70,7 @@ export class ProductService {
   constructor(
     private readonly repository: ProductRepository,
     private readonly mixPresetRepository: MixPresetRepository,
+    private readonly componentRelationshipGuard?: ProductComponentRelationshipGuard,
   ) {}
 
   async createProduct(input: Product): Promise<Product> {
@@ -91,6 +93,13 @@ export class ProductService {
 
     const all = await this.repository.list();
     this.assertUniqueIdentity(candidate, all, existing.id);
+
+    if (existing.isActive && !candidate.isActive) {
+      await this.componentRelationshipGuard?.assertProductCanArchive(existing.id);
+    }
+    if (!existing.isActive && candidate.isActive) {
+      await this.componentRelationshipGuard?.assertProductCanActivate(candidate.id);
+    }
 
     await this.repository.replace(candidate);
     return cloneProduct(candidate);
@@ -123,6 +132,7 @@ export class ProductService {
     const existing = await this.requireProduct(id);
     if (!existing.isActive) return cloneProduct(existing);
 
+    await this.componentRelationshipGuard?.assertProductCanArchive(existing.id);
     const archived = { ...existing, isActive: false };
     await this.repository.replace(archived);
     return cloneProduct(archived);
