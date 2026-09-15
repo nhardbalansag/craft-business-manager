@@ -2,9 +2,9 @@
 
 ## Status
 
-**IMPLEMENTED — MERGE GATE PENDING**
+**COMPLETE**
 
-Authoritative base:
+Authoritative starting base:
 
 `develop` @ `691651f15156c1258a6f1ef75b43d53b6836a426`
 
@@ -16,15 +16,13 @@ Development plan:
 
 `docs/PHASE_4_1A_PRODUCT_FINANCIAL_PROFILE_CONTRACT_PLAN.md`
 
-## Delivered contract
+## Delivered
 
-### Dedicated pricing source domain
+4.1A established the authoritative Phase 4 financial source contract without changing the Phase 2/3 Product contract.
 
-Added:
+### Pricing source domain
 
-`src/domain/pricing.ts`
-
-It now owns:
+`src/domain/pricing.ts` now owns:
 
 ```text
 PRICING_METHODS
@@ -34,7 +32,7 @@ isPricingMethod()
 clonePricingPolicy()
 ```
 
-Supported source methods remain:
+Supported methods:
 
 ```text
 profit-amount
@@ -42,17 +40,11 @@ markup-percent
 margin-percent
 ```
 
-`src/domain/types.ts` re-exports `PricingMethod` and `PricingPolicy`, preserving compatibility for existing costing code while moving the Phase 4 concepts to their proper domain home.
-
-4.1A intentionally does not validate numeric policy-value ranges or make the old selling-price helpers authoritative. That belongs to 4.1B.
+`src/domain/types.ts` compatibility-re-exports these types so existing generic costing code remains compatible.
 
 ### ProductFinancialProfile
 
-Added:
-
-`src/domain/productFinancialProfile.ts`
-
-Authoritative source shape:
+`src/domain/productFinancialProfile.ts` defines:
 
 ```ts
 interface ProductFinancialProfile {
@@ -64,58 +56,35 @@ interface ProductFinancialProfile {
 }
 ```
 
-The financial profile remains separate from the Phase 2/3 `Product` record.
+Semantics:
 
-No pricing/labor/overhead fields were added to `Product`.
-
-### Missing versus explicit zero
-
-The contract preserves the master-plan evidence distinction:
-
-```text
-missing ProductFinancialProfile
-= financial configuration unresolved
-
-profile with labor=0 and overhead=0
-= labor and overhead explicitly known as zero
-```
-
-`pricingPolicy: null` explicitly means that pricing policy is not configured yet while known cost adders may still exist.
+- missing profile = financial configuration unresolved;
+- profile with zero labor/overhead = those costs explicitly known as zero;
+- `pricingPolicy: null` = pricing is explicitly not configured yet;
+- derived selling price, total cost, revenue, and profit are not stored on this source record.
 
 ### Validation
 
-`validateProductFinancialProfileContract()` rejects:
+The 4.1A contract rejects:
 
-- blank Product ID;
-- non-finite labor cost;
-- negative labor cost;
-- non-finite overhead cost;
-- negative overhead cost;
-- unsupported pricing method identifiers when a pricing-policy object is present.
+- blank Product identity;
+- non-finite/negative labor cost;
+- non-finite/negative overhead cost;
+- unsupported pricing method identifiers.
 
-Explicit zero labor and overhead are valid.
+Explicit zero labor/overhead is valid.
 
-Pricing policy numeric value/range validation remains intentionally deferred to 4.1B.
+Pricing-policy numeric ranges and formulas remain 4.1B.
 
-### Normalization and cloning
+### Normalization / cloning
 
-Added:
+The contract:
 
-```text
-normalizeProductFinancialProfile()
-cloneProductFinancialProfile()
-```
-
-Normalization:
-
-- trims Product ID;
-- trims notes;
+- trims Product ID and notes;
 - omits blank notes;
 - preserves monetary precision;
-- preserves `pricingPolicy: null`;
-- clones a configured nested pricing-policy object.
-
-Cloning deep-clones the nested policy so repository/service layers added later cannot leak nested mutable source references.
+- preserves explicit null pricing state;
+- deep-clones configured pricing-policy source data.
 
 ### BusinessDataset
 
@@ -125,72 +94,60 @@ Cloning deep-clones the nested policy so repository/service layers added later c
 productFinancialProfiles: ProductFinancialProfile[]
 ```
 
-This establishes the future Phase 5 source-data persistence shape without implementing persistence.
+This defines future source persistence shape without implementing Phase 5 persistence.
 
-## Focused tests
+## Focused coverage
 
-Added:
+```text
+src/domain/productFinancialProfile.test.ts  18 tests
+src/domain/pricing.test.ts                   3 tests
+```
 
-- `src/domain/pricing.test.ts` — 3 tests;
-- `src/domain/productFinancialProfile.test.ts` — 18 tests.
+## Validation history
 
-Focused coverage includes:
+Initial feature CI:
 
-- all supported pricing methods;
-- unsupported pricing-method detection;
-- pricing-policy cloning;
-- valid configured profile;
-- explicit zero labor/overhead;
-- explicit null pricing policy;
-- blank Product identity rejection;
-- NaN/infinite/negative labor rejection;
-- NaN/infinite/negative overhead rejection;
-- runtime unsupported pricing-method rejection;
-- Product ID/notes normalization;
-- blank-notes omission;
-- nested-policy deep cloning;
-- `BusinessDataset.productFinancialProfiles` source shape.
+```text
+87a83db3eb7cd52fa5783189582aea8df611350a
+34932287493 — FAILED AT TYPECHECK
+```
 
-## Validation evidence
+The failure was a test-fixture assertion used to simulate an invalid runtime method. It was corrected by casting corrupted input through `unknown`; no production contract change was required.
 
-### Initial branch CI
+Corrected implementation:
 
-Head:
+```text
+79c3f51f27b957721219a80a08078f603d7be214
+CI 34932357351 — SUCCESS
+```
 
-`87a83db3eb7cd52fa5783189582aea8df611350a`
+Final documented feature head:
 
-CI:
+```text
+8162732a7bbee01e92ce952c8c5d83a8b0d8041a
+CI 34932475789 — SUCCESS
+```
 
-`34932287493 — FAILED at typecheck`
+Implementation PR:
 
-Cause:
+```text
+PR #96 — MERGED
+PR CI 34932585076 — SUCCESS
+```
 
-The runtime-corruption test directly cast an object containing the deliberately invalid method `retail-price` to `PricingPolicy`. TypeScript correctly rejected the incompatible direct assertion before tests ran.
+Implementation merge:
 
-This was a test-fixture typing issue, not a production-contract defect.
+```text
+cd520f581d96dbd0a3ed48d88a95e9b22f881af0
+Post-merge develop CI 34932640993 — SUCCESS
+```
 
-Correction:
-
-The invalid runtime fixture now explicitly casts through `unknown`, accurately representing corrupted/imported runtime data that bypasses compile-time typing.
-
-No production source change was required for the failure.
-
-### Corrected implementation CI
-
-Head:
-
-`79c3f51f27b957721219a80a08078f603d7be214`
-
-CI:
-
-`34932357351 — SUCCESS`
-
-Observed surface:
+Observed automated surface:
 
 ```text
 57 test files passed
 649 tests passed
-18 ProductFinancialProfile contract tests
+18 ProductFinancialProfile tests
 3 pricing source-type tests
 7 React smoke tests
 TypeScript typecheck passed
@@ -200,39 +157,23 @@ production Vite build passed
 
 ## Scope retained
 
-4.1A did not add:
+4.1A did not implement:
 
-- Product repository/reference validation;
-- one-profile-per-Product persistence enforcement;
-- financial profile repository/service;
-- session wiring;
-- pricing policy numeric-value validation;
-- selling-price formulas;
-- fully loaded cost;
-- safety-waste pricing-cost service;
-- recursive Phase 4 child cost;
-- batch financial planning;
-- capacity warnings;
-- React pricing UI;
-- Excel/Tauri persistence.
+- profile repository/application service/session wiring — 4.1C;
+- pricing numeric range/formula authority — 4.1B;
+- fully loaded cost — 4.2;
+- selling-price quote services — 4.3;
+- planned batch financials/capacity financial warnings — 4.4;
+- pricing UI — 4.5;
+- Excel/Tauri persistence — Phase 5/6.
 
-Those remain assigned to later Phase 4/5/6 tasks.
+## Completion result
 
-## Merge gates remaining
+All implementation and post-merge technical gates passed.
 
-1. Update the development plan to implementation-complete / merge-gate-pending.
-2. Require a clean final documented feature-head CI.
-3. Verify diff against exact starting `develop` is limited to 4.1A contract/tests/docs.
-4. Open implementation PR to `develop`.
-5. Require independent PR CI on unchanged expected head.
-6. Merge with expected-head protection.
-7. Require exact post-merge `develop` CI.
-8. Create documentation-only closeout.
-9. Mark 4.1A COMPLETE / 4.1B NEXT in `docs/PHASE_4_PROGRESS.md`.
-10. Require closeout PR CI and exact final `develop` CI.
+The documentation closeout advances the roadmap to:
 
-## Next task
-
-**4.1B — Pricing Formula & Validation Engine — NOT STARTED**
-
-Do not begin 4.1B until all 4.1A merge/closeout gates pass.
+```text
+4.1A — Product Financial Profile Contract  COMPLETE
+4.1B — Pricing Formula & Validation Engine NEXT / NOT STARTED
+```
