@@ -34,8 +34,8 @@ CI       34984709583 — SUCCESS
     5.2C — Strict XLSX-to-Dataset Import & Diagnostics    COMPLETE
 
 5.3 — Snapshot, Hydration & Persistence Coordination      IN PROGRESS
-    5.3A — Complete Source Snapshot Service               PLAN ESTABLISHED / IMPLEMENTATION NOT STARTED
-    5.3B — Validated Atomic Dataset Hydration             NOT STARTED
+    5.3A — Complete Source Snapshot Service               COMPLETE
+    5.3B — Validated Atomic Dataset Hydration             NEXT / NOT STARTED
     5.3C — Persistence Coordinator / Load-Save Lifecycle  NOT STARTED
 
 5.4 — Version Compatibility, Backup & Recovery Safety     NOT STARTED
@@ -73,7 +73,8 @@ CI       34984709583 — SUCCESS
 - 5.3A snapshots all nine live source repositories through one application-level read-only boundary.
 - 5.3A uses the centralized dataset schema version and existing deep dataset clone boundary rather than duplicating persistence ownership logic.
 - 5.3A canonicalizes top-level source collection ordering without importing storage/workbook code into the application layer.
-- 5.3A does not hydrate, save, load, mutate repositories, or persist derived business results.
+- 5.3A preserves no-row vs explicit zero/null source semantics and does not synthesize missing evidence.
+- 5.3A rejects the whole snapshot when any source read fails and never performs repository writes.
 - Tauri filesystem/dialog behavior remains Phase 6.
 
 ## Phase 5.1 — Persisted Dataset & Workbook Contract Foundation
@@ -182,58 +183,43 @@ BusinessDataset -> canonical workbook -> XLSX bytes   COMPLETE
 XLSX bytes -> canonical workbook -> BusinessDataset   COMPLETE
 ```
 
-The codec/mapping layer is now bidirectional and fail-closed. Repository snapshot, hydration, and load/save lifecycle remain intentionally outside Phase 5.2.
+The codec/mapping layer is bidirectional and fail-closed. Repository snapshot, hydration, and load/save lifecycle remain separate application responsibilities.
 
 ## Phase 5.3A — Complete Source Snapshot Service
 
-Status: **PLAN ESTABLISHED — IMPLEMENTATION NOT STARTED**
+Status: **COMPLETE**
 
-Dedicated plan:
+Plan: `docs/PHASE_5_3A_COMPLETE_SOURCE_SNAPSHOT_SERVICE_PLAN.md`  
+Completion record: `docs/PHASE_5_3A_COMPLETE_SOURCE_SNAPSHOT_SERVICE.md`
 
-`docs/PHASE_5_3A_COMPLETE_SOURCE_SNAPSHOT_SERVICE_PLAN.md`
+Delivered:
 
-Planning base:
+- application-level `CompleteSourceSnapshotService` over all nine authoritative repository interfaces;
+- centralized `CURRENT_BUSINESS_DATASET_SCHEMA_VERSION` assignment;
+- deterministic top-level source collection ordering by durable identity;
+- final deep defensive ownership through `cloneBusinessDataset(...)`;
+- preservation of nested source representation and explicit zero/null/absence semantics;
+- all-or-nothing behavior when any repository read fails;
+- no repository writes, source repair, or derived business outputs;
+- shared `completeSourceSnapshotService` session composition;
+- focused empty/complete/order/isolation/evidence/failure regression coverage.
+
+Validation evidence:
 
 ```text
-develop  5109c7f045835ca4835349d49eff5ff3681cc8fc
-CI       35012885175 — SUCCESS
+Planning PR #148              MERGED
+Planning merge                e395166246cff04cdefcecf1a5f9c0477e97b437
+Planning post-merge CI        35018499386 — SUCCESS
+Implementation head           73b67db22da2287c74fb57cd8f3e62f38b32a1a9
+Implementation PR #149        MERGED
+Feature/PR CI                  35018972923 — SUCCESS
+Implementation merge          2d475f0eded6acafeb03830cba768b3d84cb078d
+Post-merge develop CI         35019082343 — SUCCESS
+5 focused Phase 5.3A tests
+TypeScript typecheck passed
+Full test suite passed
+Production Vite build passed
 ```
-
-### Split assessment
-
-5.3A does **not** require deeper formal numbered sub-phases.
-
-It remains one cohesive read-only application boundary with internal checkpoints for:
-
-1. the nine-repository dependency contract;
-2. complete source collection reads with no derived-service calls;
-3. deterministic top-level source ordering;
-4. current schema-version assignment and deep defensive snapshot ownership;
-5. shared session composition without React repository enumeration;
-6. complete/empty/deterministic/non-mutating/failure regression tests.
-
-### Locked planning decisions
-
-- depend on the nine repository interfaces, not concrete in-memory repository classes;
-- populate exactly the nine current `BusinessDataset` source collections;
-- use `CURRENT_BUSINESS_DATASET_SCHEMA_VERSION` centrally;
-- reuse `cloneBusinessDataset(...)` as the final deep defensive ownership boundary;
-- canonicalize top-level repository collections by durable identity while preserving nested source-array representation;
-- do not import workbook/export/storage ordering code into the application layer;
-- perform no repository write operation and no source repair/default synthesis;
-- preserve no-row vs explicit zero/null/false source semantics;
-- reject the snapshot operation if any repository read fails rather than return partial data;
-- expose one shared `completeSourceSnapshotService`-style boundary from `session.ts`;
-- keep full candidate semantic/reference/graph validation owned by the existing 5.1C validator rather than duplicating those rules;
-- keep hydration/atomic replacement in 5.3B;
-- keep load/save orchestration and user-facing persistence diagnostics in 5.3C;
-- keep workbook codecs, browser/native filesystem behavior, and persistence UI outside 5.3A.
-
-### Stop point
-
-This planning step contains no 5.3A runtime/source implementation.
-
-A separate implementation feature branch may be created only after this planning PR is merged, exact post-merge `develop` CI is green, and the user separately says to proceed.
 
 ## Current persistence boundary
 
@@ -244,7 +230,7 @@ Dataset integrity validator           COMPLETE
 XLSX library / byte codec             COMPLETE — SheetJS CE 0.20.3
 Dataset -> workbook/XLSX export       COMPLETE
 Workbook -> dataset reconstruction    COMPLETE
-Repository snapshot service           PLAN ESTABLISHED / IMPLEMENTATION NOT STARTED — 5.3A
+Repository snapshot service           COMPLETE — 5.3A
 Validated repository hydration        NOT STARTED — 5.3B
 Persistence coordinator/load-save     NOT STARTED — 5.3C
 ExcelStorage.load/save                placeholder
@@ -253,6 +239,6 @@ Native filesystem                     Phase 6
 
 ## Current active task
 
-**5.3A — Complete Source Snapshot Service — PLAN ESTABLISHED / IMPLEMENTATION NOT STARTED**
+**5.3B — Validated Atomic Dataset Hydration — NEXT / NOT STARTED**
 
-Do not begin 5.3A implementation until the dedicated planning PR is merged and exact post-merge `develop` CI is successful, followed by a separate user instruction to proceed.
+5.3B must begin with its own dedicated scope/decomposition review and development plan from the exact final green 5.3A closeout `develop` baseline. Do not start 5.3B implementation automatically as part of the 5.3A closeout.
