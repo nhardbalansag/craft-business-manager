@@ -28,13 +28,13 @@ Planning post-merge CI:
     4.3B — Profit / Markup / Margin Metrics               COMPLETE
     4.3C — Product Pricing Quote & Readiness Service      COMPLETE
 
-4.4 — Planned Batch Financials & Capacity                 IN PROGRESS
+4.4 — Planned Batch Financials & Capacity                 COMPLETE
     4.4A — Physical Planned Batch Production Cost         COMPLETE
     4.4B — Expected Revenue / Profit / Batch Margin       COMPLETE
-    4.4C — Capacity Feasibility & Warning Synthesis       NEXT
+    4.4C — Capacity Feasibility & Warning Synthesis       COMPLETE
 
 4.5 — Pricing & Production Planning UI                    NOT STARTED
-    4.5A — Product Financial Profile Editor               NOT STARTED
+    4.5A — Product Financial Profile Editor               NEXT
     4.5B — Unit Economics / Pricing Calculator UI         NOT STARTED
     4.5C — Production Financial Summary & Warnings UI     NOT STARTED
 
@@ -107,6 +107,13 @@ Planning post-merge CI:
 - `profitPerUnit × Q` and `physicalVsUnitProfitDifference` are diagnostics only; physical planned production cost remains the authoritative batch-profit basis.
 - 4.4B validates Product identity, active state, requested quantity, unit-cost status, standard fully loaded unit cost, and authoritative numeric evidence across 4.3C/4.4A and fails closed on contradictions.
 - Complete 4.3C and 4.4A evidence is retained defensively for downstream inspection; derived 4.4B revenue/profit/margin values remain non-persisted.
+- 4.4C is an orchestration/read-model boundary over completed 4.4B financials and completed Phase 3.4C assembly-capacity trace; it does not recompute financial or capacity mathematics.
+- 4.4C preserves the requested planned quantity exactly and never silently clamps it to current capacity.
+- A fully known over-capacity request is valid ready planning evidence; physical feasibility and joined-readiness are separate concepts.
+- When Phase 3 synthesis capacity is ready but limiter trace labeling/path evidence is partial, 4.4C preserves authoritative numeric within/over feasibility, marks joined readiness partial, publishes no misleading partial top-level limiter subset, and emits an incomplete-limiter-explanation warning.
+- Fully ready limiter evidence preserves every tied typed limiting resource across direct Material requirements, Material-backed components, and Product-backed components without choosing a single winner.
+- 4.4C validates Product identity, active state, trace/synthesis identity and status, authoritative numeric capacity, and limiter-capacity consistency and fails closed on contradictions.
+- Capacity warnings are advisory only; 4.4C does not reserve/deduct inventory, create production orders, or persist derived capacity/feasibility data.
 - Recursive and root component costing remains independent of ProductStock/current availability.
 - Observed yield defects are not re-applied.
 - Parent safety waste does not inflate discrete component counts.
@@ -508,12 +515,64 @@ Plan: `docs/PHASE_4_4B_EXPECTED_REVENUE_PROFIT_BATCH_MARGIN_PLAN.md`
 
 Record: `docs/PHASE_4_4B_EXPECTED_REVENUE_PROFIT_BATCH_MARGIN.md`
 
+### 4.4C — Capacity Feasibility & Warning Synthesis
+
+**COMPLETE**
+
+Delivered:
+
+- authoritative planned-batch feasibility synthesis over completed 4.4B financials and Phase 3.4C capacity trace;
+- unchanged requested quantity with no silent auto-clamping;
+- deterministic `within-current-capacity`, `over-current-capacity`, and `capacity-unresolved` classifications;
+- exact overage quantity when a requested batch exceeds current authoritative capacity;
+- preservation of financial projections even when a fully known request is over current capacity;
+- preservation of every authoritative tied limiter across direct Material, Material-backed component, and Product-backed component resource types;
+- explicit distinction between authoritative numeric capacity and incomplete limiter-label/path explanation;
+- structured `OVER_CURRENT_CAPACITY`, `CAPACITY_UNRESOLVED`, and `LIMITING_RESOURCE_EXPLANATION_INCOMPLETE` warnings;
+- fail-closed Product identity, active-state, trace/synthesis status, capacity, and limiter consistency guards;
+- controlled 4.4B request-error translation;
+- defensive cloning of complete 4.4B and Phase 3.4C evidence;
+- shared application-session wiring;
+- no stock reservation/deduction, production-order mutation, or derived persistence;
+- no Phase 4.5 UI leakage.
+
+Evidence:
+
+```text
+Starting develop                c2100da3c787784f83b1fc0408cfa05ef9c04327
+Starting develop CI             34955037015 — SUCCESS
+Plan-before-code commit         ebc4a47ffb87c6ab318a583ee55cb90a607d893c
+Service implementation          61ea9a03b5621b277d0b016a10c95f5e15f2dc10
+Session/wiring commit           7c33ed1ff635185a8464392968d2f72786294b47
+Initial focused-test head       7d7e645700526644a84f641e70c49b04a286f92f
+Initial focused-test CI         34959784315 — FAILURE (strict TypeScript fixture/clone typing only)
+Corrected validation head       aa294854e55289343683776d0607cc0ada2675d3
+Corrected validation CI         34960081875 — SUCCESS
+Implementation record commit    f37865be56c582c98f21b9b1107080210744ba93
+Final feature head              efb0d9f7bd61e9db1ef4464d38a2cfc1d5bdd02c
+Final feature-head CI           34960280693 — SUCCESS
+PR #118                         MERGED
+PR CI                           34960379820 — SUCCESS
+Implementation merge            06f6b8bead020d88e332052583d462126c45b988
+Post-merge develop CI           34960524805 — SUCCESS
+77 test files / 941 tests
+33 PlannedBatchCapacityFeasibilityService tests
+1 4.4C shared-session wiring test
+TypeScript typecheck passed
+production Vite build passed
+109 modules transformed
+```
+
+Plan: `docs/PHASE_4_4C_CAPACITY_FEASIBILITY_WARNING_SYNTHESIS_PLAN.md`
+
+Record: `docs/PHASE_4_4C_CAPACITY_FEASIBILITY_WARNING_SYNTHESIS.md`
+
 ## Current active task
 
-**4.4C — Capacity Feasibility & Warning Synthesis — NEXT / NOT STARTED**
+**4.5A — Product Financial Profile Editor — NEXT / NOT STARTED**
 
-Do not begin 4.4C implementation until:
+Do not begin 4.5A implementation until:
 
-1. this 4.4B documentation-only closeout is merged to `develop`;
+1. this 4.4C documentation-only closeout is merged to `develop`;
 2. exact final closeout `develop` CI is green;
-3. a dedicated 4.4C scope/split assessment and development plan are established before implementation.
+3. a dedicated 4.5A scope/split assessment and development plan are established before implementation.

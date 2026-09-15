@@ -2,7 +2,7 @@
 
 ## Status
 
-**IMPLEMENTED — FEATURE VALIDATED — PR NOT YET MERGED**
+**COMPLETE — IMPLEMENTED, MERGED, AND POST-MERGE VALIDATED**
 
 Authoritative starting base:
 
@@ -31,7 +31,7 @@ Provide the authoritative Phase 4 application-level feasibility view for a reque
 - completed 4.4B expected batch financials; and
 - completed Phase 3.4C current assembly-capacity trace.
 
-The result must answer, without changing the user's requested quantity:
+The result answers, without changing the user's requested quantity:
 
 ```text
 What quantity did the user request?
@@ -42,31 +42,29 @@ Which typed tied resources are limiting current capacity?
 What warning should the future UI show while preserving the financial projection?
 ```
 
-Phase 4.4C is advisory planning synthesis only. It must not reserve stock, deduct inventory, create production orders, persist derived capacity, alter pricing/cost inputs, or silently reduce the requested quantity.
+Phase 4.4C is advisory planning synthesis only. It does not reserve stock, deduct inventory, create production orders, persist derived capacity, alter pricing/cost inputs, or silently reduce the requested quantity.
 
 ## Split assessment
 
-No deeper roadmap split is required.
+No deeper roadmap split was required.
 
-4.4C is one cohesive application-service/read-model capability because the two authoritative upstream boundaries already exist:
+4.4C was kept as one cohesive application-service/read-model capability because the two authoritative upstream boundaries already existed:
 
 - `ExpectedBatchFinancialsService` owns the requested quantity and complete 4.4B financial projection/readiness;
 - `AssemblyCapacityTraceService` owns current Phase 3 assembly capacity plus typed tied limiting-resource trace and readiness.
 
-A deeper roadmap split would mostly separate consistency checks from a small feasibility comparison and warning projection, creating unnecessary intermediate contracts while increasing the risk of duplicated capacity logic.
-
-Implementation may still use ordinary checkpoints for plan, service, tests/session wiring, and documentation, but these are not new roadmap phases.
+A deeper roadmap split would have separated consistency checks from a small feasibility comparison/warning projection and increased the risk of duplicating capacity logic.
 
 ## Authoritative upstream boundaries
 
-Create one application service that consumes only compatible providers for:
+The implementation consumes only compatible providers for:
 
 ```text
 ExpectedBatchFinancialsService
 AssemblyCapacityTraceService
 ```
 
-The 4.4C service must not directly reopen:
+4.4C does not directly reopen:
 
 - Material inventory repositories;
 - ProductStock repositories;
@@ -82,50 +80,39 @@ All capacity mathematics remain owned by Phase 3. All financial mathematics rema
 
 ## Product identity and call order
 
-Use 4.4B as the initial Product/quantity boundary.
+4.4B is the initial Product/quantity boundary.
 
-Recommended call order:
+Implemented call order:
 
 1. call `projectBatch(requestedProductId, plannedQuantity)`;
-2. use the returned canonical `productId` when requesting `AssemblyCapacityTraceService.trace(...)`;
+2. use the returned canonical `productId` for `AssemblyCapacityTraceService.trace(...)`;
 3. validate Product identity and active-state consistency across both results before publishing combined top-level feasibility fields.
 
-Known request-level errors from 4.4B should be translated to a controlled 4.4C service error while preserving:
-
-- canonical/requested Product identity;
-- planned quantity;
-- underlying Phase 2/4.4A quantity or production-requirement code when present.
-
-Unexpected provider/infrastructure errors must propagate unchanged.
+Known request-level errors from 4.4B are translated to a controlled 4.4C service error while preserving Product identity, planned quantity, and the underlying Phase 2/4.4A quantity or production-requirement code when present. Unexpected provider/infrastructure errors propagate unchanged.
 
 ## Requested quantity semantics
 
 The requested quantity remains exactly the user's requested whole planned quantity from 4.4B.
 
-4.4C must never replace it with capacity.
+4.4C never replaces it with capacity.
 
-If:
+Example:
 
 ```text
 requestedQuantity = 100
 currentAssemblyCapacity = 80
-```
-
-then the result remains:
-
-```text
 plannedQuantity = 100
 feasibility = over-current-capacity
 overageQuantity = 20
 ```
 
-It must not return a silently adjusted requested quantity of `80`.
+It never silently returns a requested quantity of `80`.
 
 Quantity validation is delegated to 4.4B/4.4A. 4.4C does not invent a second quantity validation formula.
 
 ## Feasibility status
 
-Expose exactly these planning classifications:
+Implemented planning classifications:
 
 ```text
 within-current-capacity
@@ -165,9 +152,7 @@ feasibility = over-current-capacity
 overageQuantity = plannedQuantity - currentAssemblyCapacity
 ```
 
-This is an advisory business warning, not a calculation failure.
-
-A ready financial projection remains visible and authoritative even when the requested batch is over current capacity.
+This is an advisory business warning, not a calculation failure. A ready financial projection remains visible and authoritative even when the requested batch is over current capacity.
 
 ### Capacity unresolved
 
@@ -175,25 +160,15 @@ Publish:
 
 ```text
 feasibility = capacity-unresolved
-currentAssemblyCapacity = null at the combined top level when no authoritative numeric capacity exists
+currentAssemblyCapacity = null
 overageQuantity = null
 ```
 
-when Phase 3 does not provide a safe authoritative current capacity or cross-source contradictions make combination unsafe.
-
-Nested Phase 3 trace evidence must remain available for diagnosis.
+when Phase 3 does not provide a safe authoritative current capacity or cross-source contradictions make combination unsafe. Nested Phase 3 trace evidence remains available for diagnosis.
 
 ## Numeric capacity authority versus trace-label completeness
 
-Phase 3.4C explicitly preserves Phase 3.4B capacity evidence even when limiter-name/path tracing is partial.
-
-Therefore 4.4C must distinguish:
-
-```text
-numeric feasibility authority
-from
-complete limiting-resource explanation
-```
+Phase 3.4C preserves Phase 3.4B numeric capacity evidence even when limiter-name/path tracing is partial. 4.4C therefore distinguishes numeric feasibility authority from complete limiting-resource explanation.
 
 Numeric feasibility may still be determined when:
 
@@ -206,9 +181,9 @@ although `capacityTrace.status === 'partial'` because a limiter label/path could
 In that case:
 
 - preserve `within-current-capacity` or `over-current-capacity` as the numeric feasibility result;
-- set the overall 4.4C readiness to `partial`;
+- set overall 4.4C readiness to `partial`;
 - do not invent or expose a partial limiter subset;
-- emit a structured warning that limiting-resource explanation is incomplete.
+- emit `LIMITING_RESOURCE_EXPLANATION_INCOMPLETE`.
 
 If Phase 3.4B synthesis itself is partial/not-ready, numeric feasibility is `capacity-unresolved`.
 
@@ -222,23 +197,13 @@ material-backed-component
 product-backed-component
 ```
 
-Do not:
+4.4C does not select only one limiter, merge resource types, recursively manufacture Product-backed component capacity, recalculate capacity from availability/requirements, or derive a new limiter ranking.
 
-- select only one limiter;
-- merge resource types;
-- recursively manufacture Product-backed component capacity;
-- recalculate capacity from availability/requirements;
-- derive a new limiter ranking.
-
-When trace status is partial/not-ready, preserve the nested trace result but publish no top-level authoritative limiter subset.
-
-Returned top-level limiter evidence must be defensively cloned.
+When trace status is partial/not-ready, preserve the nested trace result but publish no top-level authoritative limiter subset. Returned top-level limiter evidence is defensively cloned.
 
 ## Warning synthesis
 
-Expose structured warnings separately from consistency/readiness issues.
-
-At minimum synthesize:
+Implemented structured warnings:
 
 ```text
 OVER_CURRENT_CAPACITY
@@ -246,43 +211,27 @@ CAPACITY_UNRESOLVED
 LIMITING_RESOURCE_EXPLANATION_INCOMPLETE
 ```
 
-### Over-capacity warning
+For `over-current-capacity`, warning text states requested quantity, current capacity, overage quantity, that the full requested batch is not currently feasible, and that the owner may increase availability of tied limiting resources or manually choose a lower requested quantity. It explicitly states that the request was not automatically reduced.
 
-For `over-current-capacity`, produce actionable text that states:
+When feasibility cannot be established, `CAPACITY_UNRESOLVED` states that current capacity evidence must be completed/corrected before feasibility can be trusted.
 
-- requested quantity;
-- current capacity;
-- overage quantity;
-- that the full requested batch is not currently feasible;
-- that the owner may increase availability of the tied limiting resources or manually choose a lower requested quantity.
-
-The warning must never say the system automatically reduced the request.
-
-### Capacity-unresolved warning
-
-When feasibility cannot be established, produce a warning that current capacity evidence must be completed/corrected before feasibility can be trusted.
-
-### Incomplete limiter explanation warning
-
-When numeric capacity is authoritative but the typed limiter trace is partial, preserve the numeric feasibility result while warning that the exact limiting-resource explanation is incomplete.
+When numeric capacity is authoritative but typed limiter trace is partial, numeric feasibility remains while `LIMITING_RESOURCE_EXPLANATION_INCOMPLETE` warns that exact limiting-resource explanation is incomplete.
 
 ## Cross-source consistency guards
 
-Fail closed instead of combining contradictory source evidence.
-
-At minimum validate:
+4.4C fails closed instead of combining contradictory evidence. Guards include:
 
 - 4.4B Product identity versus 3.4C Product identity;
 - Product active-state agreement;
-- 3.4C `capacitySynthesis.productId` agrees with 3.4C top-level `productId`;
-- 3.4C `capacitySynthesis.productIsActive` agrees with 3.4C top-level active state;
-- a Phase 3 synthesis status of `ready` has a finite, non-negative whole `overallAssemblyCapacity`;
-- a Phase 3 trace status of `ready` also has ready synthesis evidence;
-- a ready trace exposes at least one typed limiter;
-- every ready-trace limiter reports `capacityPieces` equal to the authoritative overall capacity;
-- all derived overage quantities are finite, non-negative whole numbers.
+- 3.4C `capacitySynthesis.productId` versus 3.4C top-level `productId`;
+- 3.4C synthesis active state versus trace active state;
+- ready synthesis must expose finite, non-negative whole `overallAssemblyCapacity`;
+- ready trace must have ready synthesis evidence;
+- ready trace must expose at least one typed limiter;
+- every ready-trace limiter `capacityPieces` must equal authoritative overall capacity;
+- derived overage must be finite, non-negative, and whole.
 
-A contradiction must force:
+A contradiction forces:
 
 ```text
 status = not-ready
@@ -296,7 +245,7 @@ while preserving complete defensively cloned nested financial and capacity-trace
 
 ## Overall readiness model
 
-Expose:
+4.4C exposes:
 
 ```text
 ready
@@ -304,18 +253,9 @@ partial
 not-ready
 ```
 
-This readiness describes confidence/completeness of the joined 4.4C planning read model. It is separate from whether the plan is physically feasible.
+Readiness describes confidence/completeness of the joined planning read model and is separate from physical feasibility.
 
-### ready
-
-All of the following hold:
-
-- 4.4B financials are `ready`;
-- 3.4C capacity trace is `ready`;
-- Product/capacity evidence is consistent;
-- numeric feasibility is authoritative.
-
-Both of these may be `ready` planning evidence:
+Both of these are valid fully ready outcomes:
 
 ```text
 ready + within-current-capacity
@@ -324,31 +264,15 @@ ready + over-current-capacity
 
 Being over capacity is a valid, fully known business condition, not a readiness failure.
 
-### partial
+`partial` is used when no contradiction exists and at least one required source is partial while useful safe evidence remains. This includes ready financials + partial limiter trace with authoritative numeric capacity, partial financials + ready capacity trace, or ready financials + partial capacity synthesis yielding unresolved capacity while preserving financial projections.
 
-No contradiction exists and at least one required source is partial, while useful safe evidence remains available.
+`not-ready` is used when 4.4B is not-ready, Phase 3 trace/synthesis is not-ready, cross-source Product/active-state evidence contradicts, authoritative capacity or overage is invalid/non-finite, or a supposedly ready trace violates the completed Phase 3 contract.
 
-Examples:
+Nested valid evidence is not suppressed merely because the joined result is not-ready.
 
-- financials are ready but limiter trace is partial while Phase 3.4B numeric capacity is still authoritative;
-- financials are partial while capacity trace is ready;
-- financials are ready and capacity synthesis is partial, leaving `capacity-unresolved` but preserving financial projections.
+## Application contract
 
-### not-ready
-
-Use `not-ready` when:
-
-- 4.4B is not-ready;
-- Phase 3 trace/synthesis is not-ready;
-- cross-source Product/active-state evidence contradicts;
-- authoritative capacity or derived overage is invalid/non-finite;
-- a supposedly ready trace violates the completed Phase 3 contract.
-
-Do not suppress nested valid evidence merely because the joined result is not-ready.
-
-## Proposed application contract
-
-Recommended names:
+Implemented names:
 
 ```text
 PlannedBatchCapacityFeasibilityService
@@ -359,7 +283,7 @@ PlannedBatchCapacityWarning
 PlannedBatchCapacityFeasibilityIssue
 ```
 
-Recommended result shape:
+Result shape:
 
 ```text
 productId
@@ -377,15 +301,11 @@ warnings                       structured advisory warnings
 issues                         readiness/consistency issues
 ```
 
-Do not add persisted source fields for 4.4C. All new values are derived read-model evidence.
+No persisted source fields were added for 4.4C. All new values are derived read-model evidence.
 
 ## Shared session wiring
 
-Expose one shared instance from:
-
-`src/application/session.ts`
-
-Conceptually:
+`src/application/session.ts` exposes:
 
 ```text
 plannedBatchCapacityFeasibilityService
@@ -393,73 +313,50 @@ plannedBatchCapacityFeasibilityService
   -> assemblyCapacityTraceService
 ```
 
-Do not create duplicate repository/service graphs.
+No duplicate repository/service graph is created.
 
-## Test plan
+## Test plan and completed coverage
 
-Dedicated service tests must cover at least:
+Dedicated service/session coverage includes:
 
 1. within-current-capacity with ready financials/trace;
 2. exact-capacity boundary;
 3. over-current-capacity with correct overage;
-4. zero-capacity with positive requested quantity;
+4. zero capacity with positive requested quantity;
 5. zero quantity with zero capacity;
-6. financial projections remain unchanged/visible when over capacity;
+6. financial projection remains unchanged/visible when over capacity;
 7. all typed tied limiters preserved on a ready trace;
 8. cross-category tied limiter preservation;
-9. Phase 3 numeric capacity ready but limiter trace partial -> determinate feasibility + partial readiness + incomplete-explanation warning;
-10. Phase 3 synthesis partial -> capacity-unresolved;
-11. Phase 3 not-ready -> joined not-ready/capacity-unresolved;
-12. 4.4B partial + capacity ready -> joined partial while feasibility remains determinate;
-13. 4.4B not-ready + capacity ready -> joined not-ready while nested capacity remains available;
-14. Product identity mismatch fails closed;
-15. active-state mismatch fails closed;
-16. trace/synthesis identity mismatch fails closed;
-17. trace/synthesis active-state mismatch fails closed;
-18. invalid/non-integer/non-finite authoritative capacity fails closed;
-19. ready trace with no limiting resources fails closed;
-20. ready limiter capacity mismatch fails closed;
-21. non-finite/invalid derived overage fails closed;
+9. ready numeric capacity + partial limiter trace -> determinate feasibility + partial readiness + incomplete-explanation warning;
+10. partial synthesis -> capacity-unresolved;
+11. not-ready Phase 3 -> joined not-ready/capacity-unresolved;
+12. partial 4.4B + ready capacity -> joined partial with determinate feasibility;
+13. not-ready 4.4B + ready capacity -> joined not-ready while safe nested capacity remains;
+14. Product identity mismatch fail-closed;
+15. active-state mismatch fail-closed;
+16. trace/synthesis identity mismatch fail-closed;
+17. trace/synthesis active-state mismatch fail-closed;
+18. invalid/noninteger/nonfinite authoritative capacity fail-closed;
+19. ready trace with no limiting resources fail-closed;
+20. ready limiter capacity mismatch fail-closed;
+21. invalid derived overage fail-closed;
 22. archived Product inspectability;
-23. controlled 4.4B Product-not-found error translation;
-24. controlled invalid planned-quantity error translation with underlying code;
+23. Product-not-found error translation;
+24. invalid planned-quantity translation with underlying code;
 25. production-requirement error translation;
 26. unexpected provider error propagation;
 27. defensive cloning of financials/capacity trace/limiters/warnings/issues;
-28. canonical Product identity from 4.4B is passed to capacity tracing;
+28. canonical Product identity from 4.4B passed to capacity tracing;
 29. shared-session wiring uses completed shared 4.4B + 3.4C services.
 
-## Validation gates
+Final dedicated inventory:
 
-Before implementation PR merge:
+```text
+33 PlannedBatchCapacityFeasibilityService tests
+1 Phase 4.4C shared-session wiring test
+```
 
-- dedicated 4.4C tests pass;
-- existing Phase 3 capacity tests remain green;
-- existing 4.4A/4.4B financial tests remain green;
-- full repository test suite passes;
-- TypeScript typecheck passes;
-- production Vite build passes;
-- final feature-head CI is green;
-- PR CI is green.
-
-After merge:
-
-- exact merged `develop` CI must be green before documentation closeout;
-- documentation closeout must preserve the full Phase 4 audit trail and advance the roadmap only after implementation evidence is verified.
-
-## Implementation evidence
-
-Implementation service:
-
-`src/application/production/PlannedBatchCapacityFeasibilityService.ts`
-
-Shared-session export:
-
-`plannedBatchCapacityFeasibilityService`
-
-Implementation record:
-
-`docs/PHASE_4_4C_CAPACITY_FEASIBILITY_WARNING_SYNTHESIS.md`
+## Validation gates and final evidence
 
 Plan-before-code commit:
 
@@ -497,6 +394,34 @@ Corrected checkpoint CI:
 
 `34960081875 — SUCCESS`
 
+Implementation record commit:
+
+`f37865be56c582c98f21b9b1107080210744ba93`
+
+Final documented feature head:
+
+`efb0d9f7bd61e9db1ef4464d38a2cfc1d5bdd02c`
+
+Final feature-head CI:
+
+`34960280693 — SUCCESS`
+
+Implementation PR:
+
+`#118 — MERGED`
+
+PR CI:
+
+`34960379820 — SUCCESS`
+
+Implementation merge:
+
+`06f6b8bead020d88e332052583d462126c45b988`
+
+Exact post-merge `develop` CI:
+
+`34960524805 — SUCCESS`
+
 Validated repository state:
 
 ```text
@@ -509,15 +434,11 @@ production Vite build passed
 109 modules transformed
 ```
 
-Implementation-record commit:
-
-`f37865be56c582c98f21b9b1107080210744ba93`
-
-The remaining feature gate is green CI on the final documented feature head, followed by a green implementation PR, guarded merge, exact post-merge `develop` CI, and documentation closeout.
+All implementation validation gates are satisfied. Documentation closeout is the only remaining administrative gate before the roadmap may advance.
 
 ## Completion gate
 
-4.4C is complete only when:
+4.4C implementation satisfies the planned completion requirements:
 
 - requested quantity is preserved exactly and never auto-clamped;
 - authoritative current assembly capacity is consumed from Phase 3 rather than recomputed;
@@ -531,10 +452,10 @@ The remaining feature gate is green CI on the final documented feature head, fol
 - nested 4.4B/3.4C evidence is defensively preserved;
 - shared-session wiring exists;
 - no inventory/source mutation or derived persistence exists;
-- focused/full tests, typecheck, build, PR CI, and exact post-merge CI all pass.
+- focused/full tests, typecheck, build, feature-head CI, PR CI, and exact post-merge CI pass.
 
-## Next task after completion
+## Next task after closeout
 
 `4.5A — Product Financial Profile Editor — NEXT / NOT STARTED`
 
-Do not begin Phase 4.5 UI implementation until 4.4C is fully merged, post-merge validated, documentation-closeout complete, and the next UI task has its own scope/split assessment and development plan.
+Do not begin Phase 4.5A implementation until this documentation-only closeout is merged, exact final closeout `develop` CI is green, and 4.5A receives its own scope/split assessment and dedicated development plan.

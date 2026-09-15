@@ -2,7 +2,7 @@
 
 ## Status
 
-**IMPLEMENTED — FEATURE VALIDATED — PR NOT YET MERGED**
+**COMPLETE — MERGED — POST-MERGE VALIDATED**
 
 Feature branch:
 
@@ -280,7 +280,7 @@ Unexpected provider/infrastructure errors propagate unchanged.
 
 ## Shared session wiring
 
-`src/application/session.ts` now exports:
+`src/application/session.ts` exports:
 
 ```text
 plannedBatchCapacityFeasibilityService
@@ -330,7 +330,7 @@ Coverage includes:
 - defensive cloning;
 - shared-session wiring.
 
-## CI evidence so far
+## CI and merge evidence
 
 Initial focused-test head:
 
@@ -355,7 +355,35 @@ Corrected CI:
 
 `34960081875 — SUCCESS`
 
-Validation result:
+Implementation record commit:
+
+`f37865be56c582c98f21b9b1107080210744ba93`
+
+Final documented feature head:
+
+`efb0d9f7bd61e9db1ef4464d38a2cfc1d5bdd02c`
+
+Final feature-head CI:
+
+`34960280693 — SUCCESS`
+
+Implementation PR:
+
+`#118 — Phase 4.4C — Capacity Feasibility & Warning Synthesis`
+
+PR CI:
+
+`34960379820 — SUCCESS`
+
+Guarded implementation merge:
+
+`06f6b8bead020d88e332052583d462126c45b988`
+
+Exact post-merge `develop` CI:
+
+`34960524805 — SUCCESS`
+
+Validated repository state:
 
 ```text
 TypeScript typecheck passed
@@ -369,12 +397,26 @@ production Vite build passed
 
 ## Completion state
 
-The application implementation and focused/full validation are complete on the feature branch.
+All Phase 4.4C implementation completion gates are satisfied:
 
-Remaining completion gates:
+- requested quantity remains explicit and is never auto-clamped;
+- current capacity is consumed from completed Phase 3 rather than recomputed;
+- within/over/unresolved feasibility is deterministic;
+- overage is correct and fail-closed;
+- over-capacity financial projections remain visible;
+- all authoritative tied limiters are preserved;
+- partial limiter tracing does not leak a misleading subset;
+- actionable structured warnings are exposed;
+- cross-source contradictions fail closed;
+- nested 4.4B/3.4C evidence is defensively preserved;
+- shared-session wiring exists;
+- no inventory/source mutation or derived persistence was added;
+- focused/full tests, typecheck, build, feature-head CI, PR CI, and exact post-merge `develop` CI pass.
 
-1. final documented feature head CI must be green;
-2. implementation PR to `develop` must be green and merged with expected-head guarding;
-3. exact post-merge `develop` CI must be green;
-4. documentation closeout must be merged and exact final closeout `develop` CI must be green;
-5. only then may the roadmap advance 4.4C to COMPLETE and Phase 4.5A to NEXT.
+The documentation-only closeout branch records this completion and advances the roadmap without starting Phase 4.5 implementation.
+
+## Next task
+
+`4.5A — Product Financial Profile Editor — NEXT / NOT STARTED`
+
+Do not begin Phase 4.5A implementation until its own scope/split assessment and dedicated development plan are established after this documentation closeout is merged and the exact final closeout `develop` CI is green.
