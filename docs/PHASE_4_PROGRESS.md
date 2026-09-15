@@ -33,13 +33,13 @@ Planning post-merge CI:
     4.4B — Expected Revenue / Profit / Batch Margin       COMPLETE
     4.4C — Capacity Feasibility & Warning Synthesis       COMPLETE
 
-4.5 — Pricing & Production Planning UI                    IN PROGRESS
+4.5 — Pricing & Production Planning UI                    COMPLETE
     4.5A — Product Financial Profile Editor               COMPLETE
     4.5B — Unit Economics / Pricing Calculator UI         COMPLETE
-    4.5C — Production Financial Summary & Warnings UI     NEXT
+    4.5C — Production Financial Summary & Warnings UI     COMPLETE
 
-4.6 — Integration & Completion Gate                       NOT STARTED
-    4.6A — Integrated Pricing / Production Workflow       NOT STARTED
+4.6 — Integration & Completion Gate                       IN PROGRESS
+    4.6A — Integrated Pricing / Production Workflow       NEXT
     4.6B — Regression / Build / Completion                NOT STARTED
 ```
 
@@ -130,6 +130,16 @@ Planning post-merge CI:
 - 4.5B never substitutes `knownFullyLoadedUnitCostSubtotal` for an unavailable authoritative `totalFullyLoadedUnitCost` and never converts null/unresolved evidence into fake zero.
 - 4.5B displays the configured pricing policy, selling price, profit per unit, effective markup, effective margin, readiness, and issues directly from authoritative 4.3C evidence.
 - 4.5B intentionally excludes requested batch quantity, physical batch cost, expected batch revenue/profit, batch margin, capacity feasibility, and over-capacity warnings; those remain 4.5C.
+- 4.5C consumes `plannedBatchCapacityFeasibilityService.assessBatch(...)` as the authoritative Phase 4 Product + requested-quantity planning boundary.
+- 4.5C reuses the exact Phase 3 `capacityTrace` retained by the 4.4C result instead of issuing a second independent assembly-capacity request from the Production page.
+- 4.5C displays physical planned production cost, expected revenue, expected profit, batch margin, and planned average physical cost directly from retained 4.4B evidence; React does not reproduce those formulas.
+- 4.5C displays within/over/unresolved feasibility, current authoritative capacity, and exact overage directly from 4.4C; requested quantity is never auto-clamped.
+- 4.5C preserves finite negative profit and keeps null/unresolved financial diagnostics unavailable rather than inventing zero.
+- 4.5C renders every authoritative 4.4C warning and treats a ready over-capacity result as valid planning evidence with a business advisory rather than a data-readiness failure.
+- 4.5C renders only the authoritative top-level `limitingResources` set from 4.4C for the Phase 4 feasibility summary, preserving every tied typed limiter when published and never reconstructing a misleading partial subset when explanation evidence is incomplete.
+- 4.5C keeps the complete Phase 3 Production direct-material, component, current-capacity, limiter, readiness, and recursive-cost detail available below the Phase 4 summary.
+- The historical Phase 3 `plannedInputCost` remains an input-only diagnostic and is explicitly separate from the authoritative Phase 4 physical `plannedProductionCost`.
+- 4.5C adds no application/domain/storage contract and performs no inventory reservation/deduction, production-order mutation, accounting posting, Excel persistence, or Tauri persistence.
 - Recursive and root component costing remains independent of ProductStock/current availability.
 - Observed yield defects are not re-applied.
 - Parent safety waste does not inflate discrete component counts.
@@ -687,12 +697,65 @@ Record: `docs/PHASE_4_5B_UNIT_ECONOMICS_PRICING_CALCULATOR_UI.md`
 
 Closeout: `docs/PHASE_4_5B_CLOSEOUT.md`
 
+### 4.5C — Production Financial Summary & Warnings UI
+
+**COMPLETE**
+
+Delivered:
+
+- authoritative Phase 4 batch-financial / feasibility presentation in the existing Production workspace;
+- one `plannedBatchCapacityFeasibilityService.assessBatch(...)` request as the Phase 4 batch planning boundary;
+- exact retained 4.4C `capacityTrace` reused for the existing Phase 3 capacity/detail presentation;
+- physical planned production cost, expected revenue, expected profit, effective batch margin, average physical cost, and unchanged requested quantity;
+- finite negative profit preservation and unavailable/null diagnostic preservation;
+- authoritative within/over/unresolved capacity-feasibility state, current capacity, and overage;
+- every structured 4.4C warning rendered without local warning formulas;
+- every authoritative top-level tied limiter rendered across direct Material, Material-backed component, and Product-backed component types;
+- deliberate empty top-level limiter publication preserved when 4.4C explanation evidence is partial;
+- 4.4C joined readiness/issues plus 4.4B financial readiness/issues;
+- existing Phase 3 direct-material, component, capacity, limiter, issue, component-aware-cost, and recursive-cost detail preserved;
+- Phase 3 planned-input-cost diagnostic explicitly separated from authoritative Phase 4 planned production cost;
+- no application/domain/storage contract changes and no inventory/production/accounting mutation.
+
+Evidence:
+
+```text
+Starting develop                e696c99810a82941fd0964f4cc23adedd5a44e78
+Starting develop CI             34967103982 — SUCCESS
+Plan-before-code commit         5c58621ff93f77f21763a69acc5e1df33aec39bf
+Validated implementation head   774ee8443833c12ceec7a0de34e0f6a9735ef15b
+Implementation CI               34968538373 — SUCCESS
+Implementation record commit    64688a78bdbe101aaf5dae2aca3d14a66a301efe
+Documented feature head         64688a78bdbe101aaf5dae2aca3d14a66a301efe
+Documented feature-head CI      34968681655 — SUCCESS
+PR #124                         MERGED
+PR CI                           34968901733 — SUCCESS
+Implementation merge            4ebbb3cdbfca3fec41f4bde55b467c75982a832d
+Post-merge develop CI           34968993894 — SUCCESS
+80 test files / 979 tests
+12 Phase 4.5C financial-view tests
+15 component-aware Production view tests
+33 PlannedBatchCapacityFeasibilityService tests
+22 ExpectedBatchFinancialsService tests
+30 PhysicalPlannedBatchProductionCostService tests
+8 React workspace smoke tests
+TypeScript typecheck passed
+production Vite build passed
+117 modules transformed
+```
+
+Plan: `docs/PHASE_4_5C_PRODUCTION_FINANCIAL_SUMMARY_WARNINGS_UI_PLAN.md`
+
+Record: `docs/PHASE_4_5C_PRODUCTION_FINANCIAL_SUMMARY_WARNINGS_UI.md`
+
+Closeout: `docs/PHASE_4_5C_CLOSEOUT.md`
+
 ## Current active task
 
-**4.5C — Production Financial Summary & Warnings UI — NEXT / NOT STARTED**
+**4.6A — Integrated Pricing / Production Workflow — NEXT / NOT STARTED**
 
-Do not begin 4.5C implementation until:
+Do not begin 4.6A implementation until:
 
-1. this 4.5B documentation-only closeout is merged to `develop`;
+1. this 4.5C documentation-only closeout is merged to `develop`;
 2. exact final closeout `develop` CI is green;
-3. a dedicated 4.5C scope/split assessment and development plan are established before implementation.
+3. a dedicated 4.6A scope/split assessment and development plan are established before implementation.
