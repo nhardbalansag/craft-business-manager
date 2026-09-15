@@ -6,6 +6,7 @@ import {
   formatBatchMoney,
   formatBatchPercent,
 } from './plannedBatchFinancialView';
+import './productionFinancial.css';
 
 interface ProductionFinancialSummaryProps {
   result: PlannedBatchCapacityFeasibilityResult | null;
