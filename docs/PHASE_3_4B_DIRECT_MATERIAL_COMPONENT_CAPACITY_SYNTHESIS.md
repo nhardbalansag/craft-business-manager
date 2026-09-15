@@ -2,91 +2,48 @@
 
 ## Status
 
-**IMPLEMENTATION COMPLETE — MERGE GATE PENDING**
+**COMPLETE**
 
-Feature branch:
+Implementation PR: **#81 — MERGED**
 
-`feature/phase-3-4b-capacity-synthesis`
+Implementation merge commit:
 
-Authoritative implementation base:
-
-`develop` @ `b8ff28922219e5c9ddbc1d5e2dcd244e6eda3119`
+`c598eb81b1521e63773c163f6aef1a3004cafbdb`
 
 Development plan:
 
 `docs/PHASE_3_4B_DIRECT_MATERIAL_COMPONENT_CAPACITY_SYNTHESIS_PLAN.md`
 
-## Implementation
+## Completed implementation
 
-Added Product-level synthesis service:
+`AssemblyCapacitySynthesisService` now provides the Product-level current assembly-capacity synthesis boundary.
 
-`src/application/production/AssemblyCapacitySynthesisService.ts`
+It combines:
 
-Primary operation:
+1. authoritative Phase 2.4C direct-material capacity; and
+2. every immediate Phase 3.4A component capacity.
 
-```text
-estimate(productId)
-```
-
-The service combines the existing Phase 2.4C direct-material capacity result with all immediate Phase 3.4A component capacity results.
-
-## Capacity formula
-
-When every actually-required resource is reliable:
+When every actually-required capacity source is reliable:
 
 ```text
 overall assembly capacity
 = min(direct-material capacity, all component capacities)
 ```
 
-No upstream formula is duplicated.
-
-- direct-material capacity remains owned by `ProductionCapacityService`;
-- per-component capacity remains owned by `ComponentCapacityService`;
-- 3.4B performs only Product-level synthesis/readiness.
-
-## Direct-material applicability
-
-A Phase 2.4C `not-ready` result is treated as neutral/no-direct-materials only when:
-
-```text
-materials.length = 0
-produciblePieces = null
-requirementStatus = not-ready
-issues = exactly one UPSTREAM_REQUIREMENT_ISSUE(NO_REQUIREMENTS)
-```
-
-That permits a valid component-only Product to become ready.
-
-Any additional/broken direct-material evidence remains blocking. Examples include non-derivable yield history, broken fixed requirements, missing/inactive Material, base-unit mismatch, or unresolved inventory.
+No upstream capacity formula is duplicated.
 
 ## Supported Product shapes
 
-### Direct-material only
+- direct-material-only Products use ready Phase 2.4C capacity;
+- component-only Products are supported when Phase 2 reports only the neutral `NO_REQUIREMENTS` state;
+- mixed Products synthesize direct and component capacities;
+- Products with no direct or component resources remain `not-ready`.
 
-Ready Phase 2.4C capacity with no component lines publishes the direct-material capacity as the overall assembly capacity.
+Authoritative zero is retained and participates normally in the minimum.
 
-### Component only
+## Readiness and diagnostics
 
-Neutral direct `NO_REQUIREMENTS` plus ready component lines publishes the minimum component capacity.
-
-### Mixed
-
-Ready Phase 2.4C capacity plus ready component lines publishes the minimum across both categories.
-
-### No capacity resources
-
-Neutral direct `NO_REQUIREMENTS` plus no component lines returns:
-
-```text
-status = not-ready
-overallAssemblyCapacity = null
-NO_CAPACITY_RESOURCES
-```
-
-## Readiness behavior
-
-3.4B exposes:
+The service exposes deterministic:
 
 ```text
 ready
@@ -94,194 +51,97 @@ partial
 not-ready
 ```
 
-### Ready
+If any required resource is unresolved, known Phase 2/3.4A diagnostic capacities remain inspectable but `overallAssemblyCapacity` is not published.
 
-Every applicable resource is reliable and at least one valid capacity candidate exists.
+The complete Phase 2.4C `ProductionCapacityResult` and each complete Phase 3.4A `ComponentCapacityResult` are preserved defensively.
 
-### Partial
+## Direct-material applicability
 
-Known diagnostic capacity evidence exists, but at least one required resource is unresolved or structurally invalid.
+Direct materials are neutral/not applicable only when Phase 2 reports exactly one `UPSTREAM_REQUIREMENT_ISSUE` with source code `NO_REQUIREMENTS`, no Material capacity lines, and no overall direct capacity.
 
-The final overall capacity remains `null`.
+Broken yield/fixed requirements, missing/inactive Materials, unit mismatches, and unresolved inventory remain blocking.
 
-### Not ready
+## Integrity guards
 
-No reliable capacity evidence can be produced.
+Immediate component lines use the existing `validateProductComponentSourceUniqueness()` guard before synthesis so duplicate/corrupted component sources cannot overstate capacity.
 
-The final overall capacity remains `null`.
+Ready direct/component candidates are also defensively required to be finite non-negative integers.
 
-## Diagnostic preservation
+## Session wiring
 
-The result preserves the complete Phase 2.4C `ProductionCapacityResult`, including per-Material diagnostic capacities and upstream `limitingMaterialIds`.
+Shared application session now exports:
 
-It also preserves every complete 3.4A `ComponentCapacityResult`, including 3.2C Material/ProductStock availability evidence.
-
-Known diagnostics are retained even when unresolved resources prevent publication of the final overall capacity.
-
-## Duplicate/corruption protection
-
-Before component arithmetic, immediate component lines are validated with:
-
-`validateProductComponentSourceUniqueness()`
-
-This prevents duplicate source corruption from overstating capacity by treating duplicate component lines as independent requirements.
-
-Malformed component contracts are surfaced through the same existing composition validation boundary.
-
-## Deterministic ordering
-
-Component capacity lines are ordered by:
-
-1. source type;
-2. canonical source ID;
-3. canonical component ID.
-
-This stabilizes diagnostics and future UI use.
-
-## Controlled issues
-
-Implemented synthesis issue codes:
-
-```text
-DIRECT_MATERIAL_CAPACITY_PARTIAL
-DIRECT_MATERIAL_CAPACITY_NOT_READY
-COMPONENT_GRAPH_INVALID
-COMPONENT_CAPACITY_PARTIAL
-COMPONENT_CAPACITY_NOT_READY
-CAPACITY_CANDIDATE_INVALID
-NO_CAPACITY_RESOURCES
-```
-
-The neutral sole `NO_REQUIREMENTS` condition is intentionally not emitted as a blocking issue when valid component capacity exists.
-
-## Defensive capacity validation
-
-Ready direct/component candidates are accepted only when they are finite non-negative integers.
-
-A corrupted ready provider cannot cause an invalid final capacity to be published.
-
-Authoritative zero is preserved and participates normally in the minimum.
-
-## 3.4C boundary
-
-3.4B does not synthesize typed overall limiting resources or ties.
-
-The nested Phase 2 result still preserves its own direct-material `limitingMaterialIds`, but no final cross-category:
-
-```text
-material requirement
-material-backed component
-product-backed component
-```
-
-limiting-resource output is introduced here.
-
-That remains Phase 3.4C.
-
-## Shared session wiring
-
-`src/application/session.ts` now exports:
-
-```text
-assemblyCapacitySynthesisService
-```
+`assemblyCapacitySynthesisService`
 
 It reuses:
 
+- `productionCapacityService`;
+- `productComponentService`;
+- `componentCapacityService`.
+
+No new repository or source-data persistence was introduced.
+
+## Validation
+
+Dedicated 3.4B tests:
+
 ```text
-productionCapacityService
-productComponentService
-componentCapacityService
+AssemblyCapacitySynthesisService.test.ts — 27 tests
 ```
 
-No new repository or `BusinessDataset` collection is introduced.
-
-## Validation coverage
-
-Added:
-
-`src/application/production/AssemblyCapacitySynthesisService.test.ts`
-
-Dedicated tests: **27**.
-
-Coverage includes:
-
-- direct-material-only capacity;
-- component-only capacity;
-- mixed direct/component capacity;
-- Material-backed and Product-backed component minima;
-- zero direct/component capacity;
-- multiple-component minimum;
-- deterministic ordering;
-- strict neutral `NO_REQUIREMENTS` handling;
-- broken direct requirements remaining blocking;
-- Phase 2 partial/not-ready propagation;
-- component partial/not-ready propagation;
-- component-only partial/not-ready behavior;
-- duplicate source corruption;
-- malformed component corruption;
-- invalid direct/component candidate defense;
-- Phase 2 diagnostic preservation;
-- 3.4A/3.2C trace preservation;
-- source-result immutability;
-- archived Product activity preservation;
-- canonical Product identity use;
-- explicit absence of 3.4C typed overall limiter output.
-
-Fully wired feature CI:
+Repository validation:
 
 ```text
-run 34920239411 — SUCCESS
 50 test files passed
 551 tests passed
 TypeScript typecheck passed
 production build passed
 ```
 
+CI evidence:
+
+```text
+Fully wired feature CI      34920239411 — SUCCESS
+Final feature-head CI       34920325840 — SUCCESS
+PR #81 CI                   34920392445 — SUCCESS
+Post-merge develop CI       34920455875 — SUCCESS
+```
+
+Post-merge CI was validated on exact implementation merge:
+
+`c598eb81b1521e63773c163f6aef1a3004cafbdb`
+
 ## Explicit deferrals
 
-Not implemented in 3.4B:
+3.4B does not implement:
 
 - typed overall limiting-resource identities;
-- limiting-resource tie synthesis;
-- nested component-path limiter trace;
-- recursive manufacture/buildable child quantity;
-- inventory/stock reservation, deduction, or transactions;
-- cost/pricing changes;
+- tied limiting-resource synthesis;
+- overall nested limiter path trace;
+- recursive manufacture of missing ProductStock;
+- inventory/stock reservation, deduction, or transaction history;
+- pricing;
 - UI;
 - Excel persistence.
 
-These remain 3.4C, later Phase 3, Phase 4, and Phase 5 work.
+These remain 3.4C and later phases.
 
-## Completion gate state
+## Completion gate
 
-Feature implementation gates passed:
+All 3.4B gates are complete:
 
-- Product-level synthesis service exists;
-- Phase 2.4C direct capacity is reused without recomputation;
-- all immediate component capacities delegate to 3.4A;
-- strict neutral `NO_REQUIREMENTS` supports valid component-only Products;
-- unresolved direct requirements remain blocking;
-- duplicate component corruption cannot overstate capacity;
+- Product-level direct/component capacity synthesis exists;
+- Phase 2.4C and 3.4A are reused without duplicated formulas;
 - direct-only, component-only, and mixed Products are supported;
-- final capacity is the minimum of all reliable applicable candidates;
-- zero is preserved as authoritative;
-- unresolved resources retain diagnostics while suppressing final overall capacity;
-- readiness is deterministic;
+- strict neutral `NO_REQUIREMENTS` handling is enforced;
+- unresolved required resources suppress final capacity while retaining diagnostics;
+- duplicate component corruption is guarded;
+- zero capacity remains authoritative;
 - no 3.4C typed limiting-resource synthesis leaked into 3.4B;
-- no source mutation or derived-capacity persistence exists;
-- shared session wiring exists;
-- 50 test files / 551 tests pass;
-- TypeScript typecheck passes;
-- production build passes.
+- tests, typecheck, build, implementation PR, and exact post-merge CI all passed.
 
-Remaining before 3.4B may be marked fully complete:
+## Next task
 
-- implementation PR must merge to `develop`;
-- exact post-merge `develop` CI must pass.
+**3.4C — Limiting Resource Trace & Readiness — NEXT / NOT STARTED**
 
-## Next task after closeout
-
-**3.4C — Limiting Resource Trace & Readiness**
-
-Do not begin 3.4C until 3.4B is merged, exact post-merge `develop` CI is green, and a dedicated 3.4C development plan/scope review is established.
+Do not begin 3.4C until its dedicated development plan/scope review is established.
