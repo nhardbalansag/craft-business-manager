@@ -94,7 +94,7 @@ describe('React workspace smoke validation', () => {
     expect(html).toContain('Set current stock');
     expect(html).toContain('Current finished stock (pc)');
     expect(html).toContain('Whole pieces only. Unit is fixed to pc');
-    expect(html).toContain('No finished component stock rows yet');
+    expect(html).toContain('Loading finished component stock…');
     expect(html).toContain('Missing stock is unresolved; explicit 0 pc is known zero.');
   });
 
