@@ -2,7 +2,7 @@
 
 ## Status
 
-**PLANNED — IMPLEMENTATION NOT STARTED**
+**IMPLEMENTED — MERGE GATE PENDING**
 
 Authoritative base:
 
@@ -16,7 +16,7 @@ Add the storage-agnostic repository and application-service layer for the Phase 
 
 No deeper formal split is required.
 
-3.2B is a cohesive repository/application boundary. Implementation should proceed in this order:
+3.2B is a cohesive repository/application boundary. Implementation proceeded in this order:
 
 1. add `ProductStockRepository`;
 2. add defensive `InMemoryProductStockRepository` keyed by Product identity;
@@ -103,7 +103,7 @@ getStock(productId)
 listStocks(filter?)
 ```
 
-All writes must:
+All writes:
 
 1. normalize using the 3.2A contract;
 2. validate the 3.2A contract;
@@ -122,7 +122,7 @@ Product active-state availability filtering is not required here because source 
 
 ## BusinessDataset
 
-Add authoritative source data:
+Authoritative source data added:
 
 ```text
 productStocks: ProductStock[]
@@ -134,7 +134,7 @@ Excel persistence remains Phase 5.
 
 ## Shared session wiring
 
-Add shared application-session instances:
+Shared application-session instances added:
 
 ```text
 productStockRepository
@@ -153,7 +153,7 @@ PRODUCT_NOT_FOUND
 
 3.2A `ProductStockError` remains authoritative for malformed ProductStock records/quantities.
 
-## Test plan
+## Test plan/result
 
 Focused tests cover:
 
@@ -169,6 +169,14 @@ Focused tests cover:
 - service defensive cloning;
 - 3.2A validation remains enforced through the service;
 - no Product archive operation deletes ProductStock.
+
+Feature-head validation:
+
+- CI run `34913228450` — SUCCESS;
+- 43 test files passed;
+- 404 tests passed;
+- TypeScript typecheck passed;
+- production build passed.
 
 ## Explicit deferrals
 
@@ -190,7 +198,7 @@ These remain 3.2C, 3.3+, 3.4+, 3.5, or Phase 5 according to the roadmap.
 
 ## Completion gate
 
-3.2B is complete only when:
+Implemented feature gates passed:
 
 - one ProductStock record per Product identity is enforced by repository/upsert behavior;
 - all stock writes validate Product existence;
@@ -204,7 +212,10 @@ These remain 3.2C, 3.3+, 3.4+, 3.5, or Phase 5 according to the roadmap.
 - focused tests pass;
 - full repository tests pass;
 - TypeScript typecheck passes;
-- production build passes;
+- production build passes.
+
+Remaining gate:
+
 - implementation PR merges to `develop`;
 - exact post-merge `develop` CI is green.
 
