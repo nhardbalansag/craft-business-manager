@@ -2,7 +2,7 @@
 
 ## Status
 
-**IMPLEMENTED — PENDING PR MERGE / POST-MERGE CLOSEOUT**
+**COMPLETE**
 
 Plan:
 
@@ -19,9 +19,17 @@ Implementation branch:
 
 `feature/phase-5-1b-workbook-schema-contracts`
 
-PR:
+Implementation PR:
 
-`#134 — Phase 5.1B — Workbook schema contracts`
+`#134 — Phase 5.1B — Workbook schema contracts — MERGED`
+
+Implementation merge:
+
+`9b5ca56f8574f922218fafa18540e7b11606d4b9`
+
+Exact post-merge `develop` CI:
+
+`34993623712 — SUCCESS`
 
 ## Delivered
 
@@ -110,7 +118,7 @@ This was a compile-time registry-construction typing issue only. No workbook-sch
 
 Correction:
 
-- replaced the ambiguous `Object.fromEntries(...)` cast with an explicit typed registry reducer/construction;
+- replaced the ambiguous `Object.fromEntries(...)` cast with an explicit typed registry construction;
 - kept the exact same sheet/column/validation contract;
 - did not weaken any type or runtime validation rule.
 
@@ -121,7 +129,23 @@ Head  7782d0ad7e77c6d52db928164ba9ae1facff4d55
 CI    34993382846 — SUCCESS
 ```
 
-Results:
+### Documented feature head
+
+```text
+Head  fd45db3a23bf7d00fc51e65fd36c354d61f2c5a4
+CI    34993513561 — SUCCESS
+```
+
+### Merge validation
+
+```text
+PR #134                  MERGED
+Expected feature head    fd45db3a23bf7d00fc51e65fd36c354d61f2c5a4
+Implementation merge     9b5ca56f8574f922218fafa18540e7b11606d4b9
+Post-merge develop CI    34993623712 — SUCCESS
+```
+
+Validated results:
 
 ```text
 TypeScript typecheck                    PASS
@@ -143,14 +167,8 @@ gzip ~136.60 kB
 
 It is unchanged from prior phases and is a future code-splitting/performance concern rather than a Phase 5.1B correctness blocker.
 
-## Merge gate
+## Completion decision
 
-Before 5.1B may be marked **COMPLETE**:
+All 5.1B implementation and merge gates are satisfied. The workbook schema contract is now authoritative on `develop` at implementation merge `9b5ca56f8574f922218fafa18540e7b11606d4b9`, backed by exact successful CI `34993623712`.
 
-1. this documented feature head must receive exact PR CI success;
-2. PR #134 must remain based on the expected `develop` baseline and be guarded-merged with the exact head SHA;
-3. exact merged `develop` CI must complete successfully;
-4. a docs-only closeout must update `docs/PHASE_5_PROGRESS.md` to mark 5.1B COMPLETE and advance 5.1C to NEXT;
-5. the final docs closeout merge must receive exact `develop` CI success.
-
-Do not begin 5.1C as part of this implementation PR.
+Phase 5.1C has **not** started. Its scope remains dataset-level business identity, cross-reference, relationship, and Product composition-graph validation before hydration.
