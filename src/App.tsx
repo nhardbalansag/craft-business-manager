@@ -1,9 +1,14 @@
 import { useRef, useState } from 'react';
 import { BrowserWorkbookExportCommand } from './application/persistence/BrowserWorkbookExportCommand';
 import { BrowserWorkbookImportCommand } from './application/persistence/BrowserWorkbookImportCommand';
+import { PublicGoogleSheetsImportCommand } from './application/persistence/PublicGoogleSheetsImportCommand';
 import { persistenceCoordinator } from './application/session';
 import { CalibrationPage } from './ui/calibration/CalibrationPage';
 import { MaterialsPage } from './ui/materials/MaterialsPage';
+import {
+  PublicGoogleSheetsImportPanel,
+  type PublicGoogleSheetsImportCommandPort,
+} from './ui/persistence/PublicGoogleSheetsImportPanel';
 import {
   WorkbookExportPanel,
   type WorkbookExportCommandPort,
@@ -28,6 +33,7 @@ export type PersistenceUiClock = () => Date;
 
 export interface AppProps {
   readonly workbookImportCommand?: BrowserWorkbookImportCommand;
+  readonly publicGoogleSheetsImportCommand?: PublicGoogleSheetsImportCommandPort;
   readonly workbookExportCommand?: WorkbookExportCommandPort;
   readonly persistenceUiClock?: PersistenceUiClock;
 }
@@ -38,6 +44,7 @@ function systemPersistenceUiClock(): Date {
 
 export default function App({
   workbookImportCommand,
+  publicGoogleSheetsImportCommand,
   workbookExportCommand,
   persistenceUiClock,
 }: AppProps = {}) {
@@ -51,10 +58,15 @@ export default function App({
   const [defaultWorkbookImportCommand] = useState(
     () => new BrowserWorkbookImportCommand(persistenceCoordinator),
   );
+  const [defaultPublicGoogleSheetsImportCommand] = useState(
+    () => new PublicGoogleSheetsImportCommand(persistenceCoordinator),
+  );
   const [defaultWorkbookExportCommand] = useState(
     () => new BrowserWorkbookExportCommand(persistenceCoordinator),
   );
   const importCommand = workbookImportCommand ?? defaultWorkbookImportCommand;
+  const googleSheetsImportCommand =
+    publicGoogleSheetsImportCommand ?? defaultPublicGoogleSheetsImportCommand;
   const exportCommand = workbookExportCommand ?? defaultWorkbookExportCommand;
   const uiClock = persistenceUiClock ?? systemPersistenceUiClock;
   const workbookIdentityLabel =
@@ -126,14 +138,14 @@ export default function App({
               <div className="workbook-tools-popover-heading">
                 <div>
                   <p className="panel-kicker">WORKBOOK TOOLS</p>
-                  <h2>Data file & workbook copies</h2>
+                  <h2>Data sources & workbook copies</h2>
                   <p>
-                    Open this panel only when you need import, session status, or workbook download tools.
-                    Your normal costing and production workspace stays unobstructed when it is closed.
+                    Open local XLSX files, import a public Google Sheets snapshot, review session
+                    status, or download the current workspace as a workbook copy.
                   </p>
                 </div>
                 <span className="workbook-tools-current-file" title={workbookIdentityLabel}>
-                  <small>Current imported file</small>
+                  <small>Current imported source</small>
                   <strong>{workbookIdentityLabel}</strong>
                 </span>
               </div>
@@ -141,6 +153,10 @@ export default function App({
               <WorkbookPersistenceStatusPanel status={persistenceStatus} />
               <WorkbookImportPanel
                 command={importCommand}
+                onHydrated={handleWorkbookHydrated}
+              />
+              <PublicGoogleSheetsImportPanel
+                command={googleSheetsImportCommand}
                 onHydrated={handleWorkbookHydrated}
               />
               <WorkbookExportPanel
