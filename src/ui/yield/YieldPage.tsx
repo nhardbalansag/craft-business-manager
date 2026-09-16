@@ -41,6 +41,8 @@ type YieldFormState = {
   materialInputs: YieldInputForm[];
 };
 
+type YieldHistorySort = 'newest' | 'oldest';
+
 let inputSequence = 0;
 
 function localDateTimeValue(): string {
@@ -89,6 +91,12 @@ function defectRate(sample: YieldSample): number {
   return total === 0 ? 0 : sample.rejectedPieces / total;
 }
 
+function numericField(value: string): number | null {
+  if (!value.trim()) return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 export function YieldPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [materials, setMaterials] = useState<Material[]>([]);
@@ -98,7 +106,11 @@ export function YieldPage() {
   const [effective, setEffective] = useState<EffectiveYieldSelection | null>(null);
   const [effectiveNotice, setEffectiveNotice] = useState('Select a product to inspect yield history.');
   const [loading, setLoading] = useState(true);
+  const [masterError, setMasterError] = useState<string | null>(null);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
+  const [historyQuery, setHistoryQuery] = useState('');
+  const [historySort, setHistorySort] = useState<YieldHistorySort>('newest');
   const [form, setForm] = useState<YieldFormState>(() => emptyForm());
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
@@ -129,15 +141,48 @@ export function YieldPage() {
     [mixPresets],
   );
 
+  const draftGoodPieces = numericField(form.goodPieces);
+  const draftRejectedPieces = numericField(form.rejectedPieces);
+  const draftTotalPieces =
+    draftGoodPieces !== null && draftRejectedPieces !== null
+      ? draftGoodPieces + draftRejectedPieces
+      : null;
+  const draftDefectRate =
+    draftTotalPieces !== null && draftTotalPieces > 0 && draftRejectedPieces !== null
+      ? draftRejectedPieces / draftTotalPieces
+      : null;
+  const draftGoodYield =
+    draftTotalPieces !== null && draftTotalPieces > 0 && draftGoodPieces !== null
+      ? draftGoodPieces / draftTotalPieces
+      : null;
+  const completeMaterialInputs = form.materialInputs.filter((input) => {
+    const quantity = numericField(input.quantity);
+    return Boolean(input.materialId) && quantity !== null && quantity > 0;
+  }).length;
+  const draftReady = Boolean(
+    selectedProduct?.isActive
+      && form.id.trim()
+      && form.materialInputs.length > 0
+      && completeMaterialInputs === form.materialInputs.length
+      && draftGoodPieces !== null
+      && Number.isInteger(draftGoodPieces)
+      && draftGoodPieces >= 1
+      && draftRejectedPieces !== null
+      && Number.isInteger(draftRejectedPieces)
+      && draftRejectedPieces >= 0,
+  );
+
   const loadHistory = useCallback(async (productId: string) => {
     if (!productId) {
       setHistory([]);
       setEffective(null);
+      setHistoryError(null);
       setEffectiveNotice('Select a product to inspect yield history.');
       return;
     }
 
     setHistoryLoading(true);
+    setHistoryError(null);
     try {
       const nextHistory = await yieldHistoryService.listHistory(productId);
       setHistory(nextHistory);
@@ -160,9 +205,11 @@ export function YieldPage() {
         }
       }
     } catch (error) {
+      const message = errorMessage(error);
       setHistory([]);
       setEffective(null);
-      setEffectiveNotice(errorMessage(error));
+      setHistoryError(message);
+      setEffectiveNotice(message);
     } finally {
       setHistoryLoading(false);
     }
@@ -170,6 +217,7 @@ export function YieldPage() {
 
   const loadMasters = useCallback(async () => {
     setLoading(true);
+    setMasterError(null);
     try {
       const [nextProducts, nextMaterials, nextMixes] = await Promise.all([
         productService.listProducts(),
@@ -183,6 +231,8 @@ export function YieldPage() {
         if (current && nextProducts.some((product) => product.id === current)) return current;
         return nextProducts.find((product) => product.isActive)?.id ?? nextProducts[0]?.id ?? '';
       });
+    } catch (error) {
+      setMasterError(errorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -197,7 +247,37 @@ export function YieldPage() {
     const product = products.find((item) => item.id === selectedProductId);
     setForm(emptyForm(product?.mixPresetId ?? ''));
     setFeedback(null);
+    setHistoryQuery('');
+    setHistorySort('newest');
   }, [loadHistory, products, selectedProductId]);
+
+  const visibleHistory = useMemo(() => {
+    const normalizedQuery = historyQuery.trim().toLocaleLowerCase();
+    const filtered = history.filter((sample) => {
+      if (!normalizedQuery) return true;
+      const mixName = sample.mixPresetId
+        ? mixById.get(sample.mixPresetId.toLocaleLowerCase())?.name ?? sample.mixPresetId
+        : 'no mix preset';
+      const materialNames = sample.materialInputs.map((input) =>
+        materialById.get(input.materialId.toLocaleLowerCase())?.name ?? input.materialId,
+      );
+      return [
+        sample.id,
+        sample.notes ?? '',
+        formatDate(sample.recordedAt),
+        mixName,
+        ...materialNames,
+      ].some((value) => value.toLocaleLowerCase().includes(normalizedQuery));
+    });
+
+    return [...filtered].sort((left, right) => {
+      const leftTime = new Date(left.recordedAt).getTime();
+      const rightTime = new Date(right.recordedAt).getTime();
+      const byTime = leftTime - rightTime;
+      const byId = left.id.localeCompare(right.id, undefined, { sensitivity: 'base' });
+      return historySort === 'oldest' ? byTime || byId : -(byTime || byId);
+    });
+  }, [history, historyQuery, historySort, materialById, mixById]);
 
   function unitOptions(materialId: string): InputUnit[] {
     const material = materialById.get(materialId.toLocaleLowerCase());
@@ -238,6 +318,11 @@ export function YieldPage() {
       ...current,
       materialInputs: current.materialInputs.filter((input) => input.key !== key),
     }));
+  }
+
+  function resetDraft() {
+    setForm(emptyForm(selectedProduct?.mixPresetId ?? ''));
+    setFeedback(null);
   }
 
   async function submitSample(event: FormEvent) {
@@ -286,280 +371,485 @@ export function YieldPage() {
 
   const effectiveId = effective?.sample.id ?? null;
   const skippedIds = new Set(effective?.skippedInvalidSampleIds ?? []);
+  const effectiveTotal = effective
+    ? effective.learning.goodPieces + effective.learning.rejectedPieces
+    : 0;
+  const effectiveGoodYield = effective && effectiveTotal > 0
+    ? effective.learning.goodPieces / effectiveTotal
+    : null;
 
   return (
-    <section className="materials-workspace yield-workspace">
-      <div className="page-heading-row">
+    <section className="materials-workspace yield-workspace" aria-labelledby="yield-heading">
+      <div className="page-heading-row yield-page-heading">
         <div>
           <p className="eyebrow">PHASE 2 · REAL PRODUCTION EVIDENCE</p>
-          <h1>Yield & history</h1>
+          <h1 id="yield-heading">Yield & history</h1>
           <p className="page-lead">
-            Record what a real batch consumed and how many good/rejected pieces it produced. The latest currently derivable sample becomes the effective learning source.
+            Record what a real batch consumed and how many good or rejected pieces it produced. The app uses the newest currently derivable sample as the learned material requirement for that product.
           </p>
         </div>
-        <div className="session-badge"><span className="status-dot" />Session workspace</div>
-      </div>
-
-      <div className="yield-product-bar panel">
-        <label className="field">
-          <span>Product</span>
-          <select
-            value={selectedProductId}
-            disabled={loading || products.length === 0}
-            onChange={(event) => setSelectedProductId(event.target.value)}
-          >
-            {products.length === 0 && <option value="">No products available</option>}
-            {products.map((product) => (
-              <option key={product.id} value={product.id}>
-                {product.name} · {PRODUCT_CATEGORY_RULES[product.category].label}{product.isActive ? '' : ' · archived'}
-              </option>
-            ))}
-          </select>
-        </label>
-        <div className="yield-product-context">
-          <strong>{selectedProduct?.name ?? 'Create a product first'}</strong>
-          <span>
-            {selectedProduct
-              ? `${PRODUCT_CATEGORY_RULES[selectedProduct.category].productionStyle} · ${selectedProduct.isActive ? 'active for new evidence' : 'historical view only'}`
-              : 'Yield evidence belongs to a product.'}
-          </span>
+        <div
+          className="session-badge"
+          title="Yield evidence is part of the authoritative workbook source dataset when you export or save a workbook copy."
+        >
+          <span className="status-dot" aria-hidden="true" />Included in workbook exports
         </div>
       </div>
 
-      <div className="materials-layout yield-layout">
-        <form className="panel material-form yield-form" onSubmit={submitSample}>
-          <div className="panel-heading">
-            <div>
-              <p className="panel-kicker">BATCH EVIDENCE</p>
-              <h2>Record a yield sample</h2>
-            </div>
-          </div>
+      <ol className="yield-guide panel" aria-label="Yield workflow">
+        <li>
+          <span className="yield-step-number">1</span>
+          <div><strong>Choose the product</strong><small>Yield history and learned requirements belong to one product.</small></div>
+        </li>
+        <li>
+          <span className="yield-step-number">2</span>
+          <div><strong>Record the real batch</strong><small>Enter actual material consumption plus good and rejected pieces.</small></div>
+        </li>
+        <li>
+          <span className="yield-step-number">3</span>
+          <div><strong>Review effective learning</strong><small>The newest derivable sample becomes the active per-good-piece evidence.</small></div>
+        </li>
+      </ol>
 
-          <div className="form-grid">
+      {loading ? (
+        <div className="panel yield-state-panel" role="status" aria-live="polite">
+          <div className="yield-state-icon" aria-hidden="true">◎</div>
+          <div>
+            <h2>Loading yield workspace</h2>
+            <p>Checking products, materials, mix presets, and production evidence…</p>
+          </div>
+        </div>
+      ) : masterError ? (
+        <div className="panel yield-state-panel yield-state-error" role="alert">
+          <div className="yield-state-icon" aria-hidden="true">!</div>
+          <div>
+            <h2>Yield workspace unavailable</h2>
+            <p>{masterError}</p>
+            <button type="button" className="button button-quiet" onClick={() => void loadMasters()}>
+              Retry loading
+            </button>
+          </div>
+        </div>
+      ) : products.length === 0 ? (
+        <div className="panel yield-state-panel">
+          <div className="yield-state-icon" aria-hidden="true">◇</div>
+          <div>
+            <h2>Create a product first</h2>
+            <p>Yield evidence needs a Product record before a real production batch can be recorded.</p>
+          </div>
+        </div>
+      ) : (
+        <>
+          <div className="yield-product-bar panel">
             <label className="field">
-              <span>Sample ID</span>
-              <input
-                value={form.id}
-                disabled={!selectedProduct?.isActive}
-                onChange={(event) => setForm({ ...form, id: event.target.value })}
-                placeholder="YS-ART-001-001"
-              />
-            </label>
-            <label className="field">
-              <span>Recorded at</span>
-              <input
-                type="datetime-local"
-                value={form.recordedAt}
-                disabled={!selectedProduct?.isActive}
-                onChange={(event) => setForm({ ...form, recordedAt: event.target.value })}
-              />
-            </label>
-            <label className="field field-wide">
-              <span>Mix preset used</span>
+              <span>Product</span>
               <select
-                value={form.mixPresetId}
-                disabled={!selectedProduct?.isActive}
-                onChange={(event) => setForm({ ...form, mixPresetId: event.target.value })}
+                value={selectedProductId}
+                disabled={products.length === 0}
+                onChange={(event) => setSelectedProductId(event.target.value)}
               >
-                <option value="">No preset / manual batch</option>
-                {compatibleMixes.map((preset) => (
-                  <option key={preset.id} value={preset.id}>{preset.name}</option>
+                {products.map((product) => (
+                  <option key={product.id} value={product.id}>
+                    {product.name} · {PRODUCT_CATEGORY_RULES[product.category].label}{product.isActive ? '' : ' · archived'}
+                  </option>
                 ))}
               </select>
-              <small>Optional evidence reference. The actual material quantities below remain authoritative.</small>
             </label>
-
-            <div className="field field-wide">
-              <span>Materials actually consumed</span>
-              <div className="yield-inputs">
-                {form.materialInputs.map((input, index) => (
-                  <div className="yield-input-row" key={input.key}>
-                    <select
-                      aria-label={`Yield material ${index + 1}`}
-                      value={input.materialId}
-                      disabled={!selectedProduct?.isActive}
-                      onChange={(event) => changeMaterial(input.key, event.target.value)}
-                    >
-                      <option value="">Select material</option>
-                      {activeMaterials.map((material) => (
-                        <option key={material.id} value={material.id}>{material.name} · {material.baseUnit}</option>
-                      ))}
-                    </select>
-                    <input
-                      aria-label={`Yield quantity ${index + 1}`}
-                      type="number"
-                      min="0.000001"
-                      step="any"
-                      value={input.quantity}
-                      disabled={!selectedProduct?.isActive}
-                      onChange={(event) => updateMaterialInput(input.key, { quantity: event.target.value })}
-                      placeholder="quantity"
-                    />
-                    <select
-                      aria-label={`Yield unit ${index + 1}`}
-                      value={input.unit}
-                      disabled={!selectedProduct?.isActive || !input.materialId}
-                      onChange={(event) => updateMaterialInput(input.key, { unit: event.target.value as InputUnit })}
-                    >
-                      {unitOptions(input.materialId).map((unit) => <option key={unit} value={unit}>{unit}</option>)}
-                    </select>
-                    <button
-                      type="button"
-                      className="text-button danger"
-                      disabled={!selectedProduct?.isActive || form.materialInputs.length === 1}
-                      onClick={() => removeMaterialInput(input.key)}
-                    >
-                      Remove
-                    </button>
-                  </div>
-                ))}
+            <div className="yield-product-context">
+              <div>
+                <span className="yield-context-label">Selected product</span>
+                <strong>{selectedProduct?.name ?? 'Select a product'}</strong>
+                <small>{selectedProduct ? PRODUCT_CATEGORY_RULES[selectedProduct.category].productionStyle : 'No production style'}</small>
               </div>
-              <button
-                type="button"
-                className="button button-quiet add-line-button"
-                disabled={!selectedProduct?.isActive}
-                onClick={addMaterialInput}
-              >
-                + Add material
-              </button>
-              <small>Enter the actual measured batch consumption, including material consumed by rejected pieces.</small>
+              <div>
+                <span className="yield-context-label">Compatible mixes</span>
+                <strong>{compatibleMixes.length}</strong>
+                <small>{compatibleMixes.length === 1 ? 'active preset' : 'active presets'}</small>
+              </div>
+              <div>
+                <span className="yield-context-label">Evidence</span>
+                <strong>{history.length}</strong>
+                <small>{effectiveId ? `effective: ${effectiveId}` : 'no effective sample yet'}</small>
+              </div>
+              <div>
+                <span className="yield-context-label">Status</span>
+                <strong>{selectedProduct?.isActive ? 'Active' : 'Archived'}</strong>
+                <small>{selectedProduct?.isActive ? 'ready for new evidence' : 'history view only'}</small>
+              </div>
             </div>
-
-            <label className="field">
-              <span>Good pieces</span>
-              <input
-                type="number"
-                min="1"
-                step="1"
-                value={form.goodPieces}
-                disabled={!selectedProduct?.isActive}
-                onChange={(event) => setForm({ ...form, goodPieces: event.target.value })}
-              />
-            </label>
-            <label className="field">
-              <span>Rejected pieces</span>
-              <input
-                type="number"
-                min="0"
-                step="1"
-                value={form.rejectedPieces}
-                disabled={!selectedProduct?.isActive}
-                onChange={(event) => setForm({ ...form, rejectedPieces: event.target.value })}
-              />
-            </label>
-            <label className="field field-wide">
-              <span>Notes</span>
-              <textarea
-                value={form.notes}
-                disabled={!selectedProduct?.isActive}
-                onChange={(event) => setForm({ ...form, notes: event.target.value })}
-                placeholder="Mold, curing time, spills, batch observation..."
-              />
-            </label>
           </div>
 
-          <button className="button button-primary button-full" type="submit" disabled={!selectedProduct?.isActive}>
-            Record yield sample
-          </button>
-          {selectedProduct && !selectedProduct.isActive && (
-            <div className="feedback">Archived products keep their history, but new yield evidence cannot be recorded.</div>
-          )}
-          {feedback && <div className={`feedback feedback-${feedback.type}`}>{feedback.message}</div>}
-        </form>
-
-        <div className="yield-history-stack">
-          <section className="panel effective-yield-card">
-            <div className="panel-heading">
-              <div>
-                <p className="panel-kicker">EFFECTIVE LEARNING</p>
-                <h2>{effective ? `Sample ${effective.sample.id}` : 'No effective sample'}</h2>
-              </div>
-              {effective && <span className="status-pill status-active">Effective</span>}
-            </div>
-            <p className="yield-notice">{effectiveNotice}</p>
-            {effective && (
-              <>
-                <div className="yield-metrics">
-                  <div><span>Good</span><strong>{effective.learning.goodPieces}</strong></div>
-                  <div><span>Rejected</span><strong>{effective.learning.rejectedPieces}</strong></div>
-                  <div><span>Defect rate</span><strong>{formatNumber(effective.learning.defectRate * 100, 2)}%</strong></div>
+          <div className="materials-layout yield-layout">
+            <form className="panel material-form yield-form" aria-label="Yield sample" onSubmit={submitSample}>
+              <div className="panel-heading yield-form-heading">
+                <div>
+                  <p className="panel-kicker">BATCH EVIDENCE</p>
+                  <h2>Record a yield sample</h2>
                 </div>
-                <div className="learned-requirements">
-                  {effective.learning.materialRequirements.map((requirement) => (
-                    <div key={requirement.materialId}>
-                      <span>{materialById.get(requirement.materialId.toLocaleLowerCase())?.name ?? requirement.materialId}</span>
-                      <strong>{formatNumber(requirement.baseQuantityPerGoodPiece)} {requirement.baseUnit} / good piece</strong>
-                      <small>{requirement.conversionSource}{requirement.calibrationId ? ` · ${requirement.calibrationId}` : ''}</small>
+                <span className={`status-pill ${draftReady ? 'status-active' : 'yield-draft-status'}`}>
+                  {draftReady ? 'Ready to record' : 'Draft incomplete'}
+                </span>
+              </div>
+
+              <div className="yield-draft-preview" aria-label="Draft yield preview">
+                <div>
+                  <span>Total pieces</span>
+                  <strong>{draftTotalPieces ?? '—'}</strong>
+                </div>
+                <div>
+                  <span>Good yield</span>
+                  <strong>{draftGoodYield === null ? '—' : `${formatNumber(draftGoodYield * 100, 2)}%`}</strong>
+                </div>
+                <div>
+                  <span>Defect rate</span>
+                  <strong>{draftDefectRate === null ? '—' : `${formatNumber(draftDefectRate * 100, 2)}%`}</strong>
+                </div>
+                <div>
+                  <span>Material lines</span>
+                  <strong>{completeMaterialInputs}/{form.materialInputs.length}</strong>
+                </div>
+              </div>
+              <p className="yield-draft-help">
+                {draftReady
+                  ? 'This draft has the minimum evidence needed to record the batch.'
+                  : 'Add a sample ID, complete every material line, and enter valid good/rejected piece counts.'}
+              </p>
+
+              <section className="yield-form-section" aria-labelledby="yield-batch-reference-heading">
+                <div className="yield-section-heading">
+                  <span className="yield-section-number">1</span>
+                  <div>
+                    <h3 id="yield-batch-reference-heading">Batch reference</h3>
+                    <p>Identify when the batch happened and which preset, if any, you followed.</p>
+                  </div>
+                </div>
+                <div className="form-grid">
+                  <label className="field">
+                    <span>Sample ID</span>
+                    <input
+                      value={form.id}
+                      disabled={!selectedProduct?.isActive}
+                      onChange={(event) => setForm({ ...form, id: event.target.value })}
+                      placeholder="YS-ART-001-001"
+                    />
+                    <small>Unique evidence ID for this real batch.</small>
+                  </label>
+                  <label className="field">
+                    <span>Recorded at</span>
+                    <input
+                      type="datetime-local"
+                      value={form.recordedAt}
+                      disabled={!selectedProduct?.isActive}
+                      onChange={(event) => setForm({ ...form, recordedAt: event.target.value })}
+                    />
+                  </label>
+                  <label className="field field-wide">
+                    <span>Mix preset used</span>
+                    <select
+                      value={form.mixPresetId}
+                      disabled={!selectedProduct?.isActive}
+                      onChange={(event) => setForm({ ...form, mixPresetId: event.target.value })}
+                    >
+                      <option value="">No preset / manual batch</option>
+                      {compatibleMixes.map((preset) => (
+                        <option key={preset.id} value={preset.id}>{preset.name}</option>
+                      ))}
+                    </select>
+                    <small>Optional evidence reference. The actual material quantities below remain authoritative.</small>
+                  </label>
+                </div>
+              </section>
+
+              <section className="yield-form-section" aria-labelledby="yield-materials-heading">
+                <div className="yield-section-heading">
+                  <span className="yield-section-number">2</span>
+                  <div>
+                    <h3 id="yield-materials-heading">Materials actually consumed</h3>
+                    <p>Use measured batch consumption, including material lost to rejects, spills, or process waste.</p>
+                  </div>
+                  <span className="yield-line-count">{completeMaterialInputs}/{form.materialInputs.length} complete</span>
+                </div>
+                <div className="yield-inputs">
+                  {form.materialInputs.map((input, index) => (
+                    <div className="yield-input-row" key={input.key}>
+                      <span className="yield-line-index" aria-hidden="true">{index + 1}</span>
+                      <select
+                        aria-label={`Yield material ${index + 1}`}
+                        value={input.materialId}
+                        disabled={!selectedProduct?.isActive}
+                        onChange={(event) => changeMaterial(input.key, event.target.value)}
+                      >
+                        <option value="">Select material</option>
+                        {activeMaterials.map((material) => (
+                          <option key={material.id} value={material.id}>{material.name} · {material.baseUnit}</option>
+                        ))}
+                      </select>
+                      <input
+                        aria-label={`Yield quantity ${index + 1}`}
+                        type="number"
+                        min="0.000001"
+                        step="any"
+                        value={input.quantity}
+                        disabled={!selectedProduct?.isActive}
+                        onChange={(event) => updateMaterialInput(input.key, { quantity: event.target.value })}
+                        placeholder="quantity"
+                      />
+                      <select
+                        aria-label={`Yield unit ${index + 1}`}
+                        value={input.unit}
+                        disabled={!selectedProduct?.isActive || !input.materialId}
+                        onChange={(event) => updateMaterialInput(input.key, { unit: event.target.value as InputUnit })}
+                      >
+                        {unitOptions(input.materialId).map((unit) => <option key={unit} value={unit}>{unit}</option>)}
+                      </select>
+                      <button
+                        type="button"
+                        className="text-button danger"
+                        aria-label={`Remove yield material ${index + 1}`}
+                        disabled={!selectedProduct?.isActive || form.materialInputs.length === 1}
+                        onClick={() => removeMaterialInput(input.key)}
+                      >
+                        Remove
+                      </button>
                     </div>
                   ))}
                 </div>
-              </>
-            )}
-          </section>
+                <button
+                  type="button"
+                  className="button button-quiet add-line-button"
+                  disabled={!selectedProduct?.isActive}
+                  onClick={addMaterialInput}
+                >
+                  + Add material
+                </button>
+              </section>
 
-          <section className="panel material-list yield-history-panel">
-            <div className="panel-heading list-heading">
-              <div>
-                <p className="panel-kicker">IMMUTABLE HISTORY</p>
-                <h2>Recorded batches</h2>
-              </div>
-              <div className="material-count"><strong>{history.length}</strong><span>samples</span></div>
-            </div>
-
-            <div className="yield-history-list">
-              {historyLoading ? (
-                <div className="empty-state"><p>Loading yield history…</p></div>
-              ) : history.length === 0 ? (
-                <div className="empty-state">
-                  <div className="empty-icon">◎</div>
-                  <h3>No yield history yet</h3>
-                  <p>Record a real sample batch to start learning material consumption per good piece.</p>
+              <section className="yield-form-section" aria-labelledby="yield-outcome-heading">
+                <div className="yield-section-heading">
+                  <span className="yield-section-number">3</span>
+                  <div>
+                    <h3 id="yield-outcome-heading">Batch outcome</h3>
+                    <p>Count saleable pieces separately from rejected pieces so the learned requirement reflects real yield.</p>
+                  </div>
                 </div>
-              ) : history.map((sample) => {
-                const sampleIsEffective = sample.id === effectiveId;
-                const skippedInvalid = skippedIds.has(sample.id);
-                return (
-                  <article className={`yield-history-item ${sampleIsEffective ? 'effective-history-item' : ''}`} key={sample.id}>
-                    <div className="yield-history-heading">
-                      <div>
-                        <strong>{sample.id}</strong>
-                        <span>{formatDate(sample.recordedAt)}</span>
-                      </div>
-                      <div className="history-badges">
-                        {sampleIsEffective && <span className="status-pill status-active">Effective</span>}
-                        {skippedInvalid && <span className="status-pill status-warning">Skipped invalid</span>}
-                      </div>
+                <div className="form-grid yield-outcome-grid">
+                  <label className="field">
+                    <span>Good pieces</span>
+                    <input
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={form.goodPieces}
+                      disabled={!selectedProduct?.isActive}
+                      onChange={(event) => setForm({ ...form, goodPieces: event.target.value })}
+                    />
+                  </label>
+                  <label className="field">
+                    <span>Rejected pieces</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={form.rejectedPieces}
+                      disabled={!selectedProduct?.isActive}
+                      onChange={(event) => setForm({ ...form, rejectedPieces: event.target.value })}
+                    />
+                  </label>
+                </div>
+              </section>
+
+              <details className="yield-notes-details">
+                <summary>Optional batch notes</summary>
+                <label className="field">
+                  <span>Notes</span>
+                  <textarea
+                    value={form.notes}
+                    disabled={!selectedProduct?.isActive}
+                    onChange={(event) => setForm({ ...form, notes: event.target.value })}
+                    placeholder="Mold, curing time, spills, batch observation..."
+                  />
+                </label>
+              </details>
+
+              <div className="yield-form-actions">
+                <button
+                  type="button"
+                  className="button button-quiet"
+                  disabled={!selectedProduct?.isActive}
+                  onClick={resetDraft}
+                >
+                  Reset sample
+                </button>
+                <button className="button button-primary" type="submit" disabled={!draftReady}>
+                  Record yield sample
+                </button>
+              </div>
+              {selectedProduct && !selectedProduct.isActive && (
+                <div className="feedback">Archived products keep their history, but new yield evidence cannot be recorded.</div>
+              )}
+              {feedback && (
+                <div
+                  className={`feedback feedback-${feedback.type}`}
+                  role={feedback.type === 'error' ? 'alert' : 'status'}
+                >
+                  {feedback.message}
+                </div>
+              )}
+            </form>
+
+            <div className="yield-history-stack">
+              <section className="panel effective-yield-card" aria-label="Effective yield learning">
+                <div className="panel-heading">
+                  <div>
+                    <p className="panel-kicker">EFFECTIVE LEARNING</p>
+                    <h2>{effective ? `Sample ${effective.sample.id}` : 'No effective sample'}</h2>
+                  </div>
+                  {effective && <span className="status-pill status-active">Effective</span>}
+                </div>
+                <p className="yield-notice">{effectiveNotice}</p>
+                {effective && (
+                  <>
+                    <div className="yield-effective-meta">
+                      <span>Recorded {formatDate(effective.sample.recordedAt)}</span>
+                      <span>{effective.learning.materialRequirements.length} learned material requirement{effective.learning.materialRequirements.length === 1 ? '' : 's'}</span>
                     </div>
-                    <div className="history-summary">
-                      <span>{sample.goodPieces} good</span>
-                      <span>{sample.rejectedPieces} rejected</span>
-                      <span>{formatNumber(defectRate(sample) * 100, 2)}% defect</span>
-                      <span>{sample.mixPresetId ? (mixById.get(sample.mixPresetId.toLocaleLowerCase())?.name ?? sample.mixPresetId) : 'No mix preset'}</span>
+                    <div className="yield-metrics">
+                      <div><span>Good</span><strong>{effective.learning.goodPieces}</strong></div>
+                      <div><span>Rejected</span><strong>{effective.learning.rejectedPieces}</strong></div>
+                      <div><span>Good yield</span><strong>{effectiveGoodYield === null ? '—' : `${formatNumber(effectiveGoodYield * 100, 2)}%`}</strong></div>
+                      <div><span>Defect rate</span><strong>{formatNumber(effective.learning.defectRate * 100, 2)}%</strong></div>
                     </div>
-                    <div className="history-materials">
-                      {sample.materialInputs.map((input) => (
-                        <span key={input.materialId}>
-                          {materialById.get(input.materialId.toLocaleLowerCase())?.name ?? input.materialId}: {formatNumber(input.quantity)} {input.unit}
-                        </span>
+                    <div className="learned-requirements-heading">
+                      <strong>Material required per good piece</strong>
+                      <span>Derived from this effective batch</span>
+                    </div>
+                    <div className="learned-requirements">
+                      {effective.learning.materialRequirements.map((requirement) => (
+                        <div key={requirement.materialId}>
+                          <span>{materialById.get(requirement.materialId.toLocaleLowerCase())?.name ?? requirement.materialId}</span>
+                          <strong>{formatNumber(requirement.baseQuantityPerGoodPiece)} {requirement.baseUnit} / good piece</strong>
+                          <small>{requirement.conversionSource}{requirement.calibrationId ? ` · ${requirement.calibrationId}` : ''}</small>
+                        </div>
                       ))}
                     </div>
-                    {sample.notes && <p className="history-notes">{sample.notes}</p>}
-                    <div className="history-actions">
-                      <button type="button" className="text-button danger" onClick={() => void deleteSample(sample)}>
-                        Delete correction
-                      </button>
-                    </div>
-                  </article>
-                );
-              })}
+                  </>
+                )}
+              </section>
+
+              <section className="panel material-list yield-history-panel" aria-label="Yield history">
+                <div className="panel-heading list-heading yield-history-heading-row">
+                  <div>
+                    <p className="panel-kicker">IMMUTABLE HISTORY</p>
+                    <h2>Recorded batches</h2>
+                  </div>
+                  <div className="material-count"><strong>{history.length}</strong><span>samples</span></div>
+                </div>
+
+                <div className="yield-history-toolbar">
+                  <label className="field yield-history-search">
+                    <span>Search history</span>
+                    <input
+                      aria-label="Search yield history"
+                      type="search"
+                      value={historyQuery}
+                      onChange={(event) => setHistoryQuery(event.target.value)}
+                      placeholder="Sample, material, mix, notes…"
+                    />
+                  </label>
+                  <label className="field yield-history-sort">
+                    <span>Sort</span>
+                    <select
+                      aria-label="Sort yield history"
+                      value={historySort}
+                      onChange={(event) => setHistorySort(event.target.value as YieldHistorySort)}
+                    >
+                      <option value="newest">Newest first</option>
+                      <option value="oldest">Oldest first</option>
+                    </select>
+                  </label>
+                </div>
+
+                {historyError ? (
+                  <div className="yield-history-error" role="alert">
+                    <strong>Yield history unavailable</strong>
+                    <span>{historyError}</span>
+                    <button type="button" className="button button-quiet" onClick={() => void loadHistory(selectedProductId)}>
+                      Retry history
+                    </button>
+                  </div>
+                ) : (
+                  <div className="yield-history-list">
+                    {historyLoading ? (
+                      <div className="empty-state"><p>Loading yield history…</p></div>
+                    ) : history.length === 0 ? (
+                      <div className="empty-state">
+                        <div className="empty-icon">◎</div>
+                        <h3>No yield history yet</h3>
+                        <p>Record a real sample batch to start learning material consumption per good piece.</p>
+                      </div>
+                    ) : visibleHistory.length === 0 ? (
+                      <div className="empty-state">
+                        <div className="empty-icon">⌕</div>
+                        <h3>No matching batches</h3>
+                        <p>Try a different sample ID, material, mix preset, date, or note.</p>
+                      </div>
+                    ) : visibleHistory.map((sample) => {
+                      const sampleIsEffective = sample.id === effectiveId;
+                      const skippedInvalid = skippedIds.has(sample.id);
+                      return (
+                        <article
+                          className={`yield-history-item ${sampleIsEffective ? 'effective-history-item' : ''}`}
+                          key={sample.id}
+                          aria-label={`Yield sample ${sample.id}`}
+                        >
+                          <div className="yield-history-heading">
+                            <div>
+                              <strong>{sample.id}</strong>
+                              <span>{formatDate(sample.recordedAt)}</span>
+                            </div>
+                            <div className="history-badges">
+                              {sampleIsEffective && <span className="status-pill status-active">Effective</span>}
+                              {skippedInvalid && <span className="status-pill status-warning">Skipped invalid</span>}
+                            </div>
+                          </div>
+                          <div className="history-summary">
+                            <span>{sample.goodPieces} good</span>
+                            <span>{sample.rejectedPieces} rejected</span>
+                            <span>{formatNumber((1 - defectRate(sample)) * 100, 2)}% good yield</span>
+                            <span>{formatNumber(defectRate(sample) * 100, 2)}% defect</span>
+                            <span>{sample.mixPresetId ? (mixById.get(sample.mixPresetId.toLocaleLowerCase())?.name ?? sample.mixPresetId) : 'No mix preset'}</span>
+                          </div>
+                          <div className="history-materials">
+                            {sample.materialInputs.map((input, index) => (
+                              <span key={`${input.materialId}-${index}`}>
+                                {materialById.get(input.materialId.toLocaleLowerCase())?.name ?? input.materialId}: {formatNumber(input.quantity)} {input.unit}
+                              </span>
+                            ))}
+                          </div>
+                          {sample.notes && <p className="history-notes">{sample.notes}</p>}
+                          <div className="history-actions">
+                            <button type="button" className="text-button danger" onClick={() => void deleteSample(sample)}>
+                              Delete as correction
+                            </button>
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+                )}
+                <div className="list-footer yield-history-footer">
+                  <span>
+                    {historyQuery.trim()
+                      ? `Showing ${visibleHistory.length} of ${history.length} samples`
+                      : 'Samples are immutable evidence; delete is an explicit correction.'}
+                  </span>
+                  <span>{effectiveId ? `Effective: ${effectiveId}` : 'No effective sample'}</span>
+                </div>
+              </section>
             </div>
-            <div className="list-footer">
-              <span>Samples are immutable evidence; delete is an explicit correction and protected for active products.</span>
-              <span>{effectiveId ? `Effective: ${effectiveId}` : 'No effective sample'}</span>
-            </div>
-          </section>
-        </div>
-      </div>
+          </div>
+        </>
+      )}
     </section>
   );
 }
