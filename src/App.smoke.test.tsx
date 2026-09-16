@@ -110,32 +110,12 @@ describe('React workspace smoke validation', () => {
     expect(html).toContain('Recorded batches');
   });
 
-  it('renders the Phase 3 + Phase 4 Production planning workspace without browser-side effects', () => {
-    const html = renderToStaticMarkup(<ProductionPage />);
-
-    expect(html).toContain('Component-aware production estimate');
-    expect(html).toContain('Planned finished pieces');
-    expect(html).toContain('PHASE 4 · BATCH FINANCIAL PLAN');
-    expect(html).toContain('Production financial summary &amp; warnings');
-    expect(html).toContain('Planned production cost');
-    expect(html).toContain('Expected revenue');
-    expect(html).toContain('Expected profit');
-    expect(html).toContain('Effective batch margin');
-    expect(html).toContain('Average physical cost per unit');
-    expect(html).toContain('CAPACITY FEASIBILITY');
-    expect(html).toContain('Current capacity');
-    expect(html).toContain('Overage');
-    expect(html).toContain('CAPACITY WARNINGS');
-    expect(html).toContain('AUTHORITATIVE TIED LIMITERS');
-    expect(html).toContain('FINANCIAL / FEASIBILITY READINESS');
-    expect(html).toContain('PHASE 3 INPUT &amp; CURRENT CAPACITY DETAIL');
-    expect(html).toContain('Assembly capacity');
-    expect(html).toContain('Direct materials to prepare');
-    expect(html).toContain('Components to prepare');
-    expect(html).toContain('Limiting resources');
-    expect(html).toContain('Component-aware cost');
-    expect(html).toContain('Nested component cost');
-    expect(html).toContain('Issues to resolve');
+  it('renders production loading without publishing a ready estimate before effects run', () => {
+    const html = renderToStaticMarkup(<ProductionPage onOpenProducts={() => {}} />);
+    expect(html).toContain('Plan your next batch');
+    expect(html).toContain('Loading products and materials');
+    expect(html).not.toContain('Estimate is ready');
+    expect(html).not.toContain('Expected profit');
   });
 
   it('renders the Phase 4 financial profile editor and unit-economics calculator shell without browser-side effects', () => {

@@ -19,6 +19,7 @@ import {
   buildProductionIssueRows,
 } from './componentAwareProductionView';
 import { ProductionFinancialSummary } from './ProductionFinancialSummary';
+import { capacityPlan, parsePlannedQuantity, stockShortfall } from './productionPlanningView';
 import './production.css';
 
 const peso = new Intl.NumberFormat('en-PH', {
@@ -47,21 +48,28 @@ function sourceTypeLabel(sourceType: 'material' | 'product'): string {
   return sourceType === 'material' ? 'Material component' : 'Product component';
 }
 
-export function ProductionPage() {
+export function ProductionPage({ onOpenProducts }: { onOpenProducts: () => void }) {
   const [products, setProducts] = useState<Product[]>([]);
   const [materials, setMaterials] = useState<Material[]>([]);
   const [productId, setProductId] = useState('');
   const [plannedQuantity, setPlannedQuantity] = useState('1');
-  const [plan, setPlan] = useState<ProductionRequirementPlanResult | null>(null);
-  const [capacityTrace, setCapacityTrace] = useState<AssemblyCapacityTraceResult | null>(null);
-  const [componentCost, setComponentCost] = useState<ComponentAwareProductCostResult | null>(null);
-  const [batchFeasibility, setBatchFeasibility] = useState<PlannedBatchCapacityFeasibilityResult | null>(null);
+  const [estimate, setEstimate] = useState<{
+    productId: string;
+    quantity: number;
+    plan: ProductionRequirementPlanResult;
+    cost: ComponentAwareProductCostResult;
+    feasibility: PlannedBatchCapacityFeasibilityResult;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
-  const [estimating, setEstimating] = useState(false);
-  const [feedback, setFeedback] = useState<string | null>(null);
+  const [masterError, setMasterError] = useState<string | null>(null);
+  const [failure, setFailure] = useState<{ productId: string; quantity: number; message: string } | null>(null);
+  const [retry, setRetry] = useState(0);
+  const [view, setView] = useState<'overview' | 'preparation' | 'details'>('overview');
+  const [showCalculations, setShowCalculations] = useState(false);
 
   const reloadMasters = useCallback(async () => {
     setLoading(true);
+    setMasterError(null);
     try {
       const [nextProducts, nextMaterials] = await Promise.all([
         productService.listProducts(),
@@ -73,6 +81,8 @@ export function ProductionPage() {
         if (current && nextProducts.some((product) => product.id === current)) return current;
         return nextProducts.find((product) => product.isActive)?.id ?? nextProducts[0]?.id ?? '';
       });
+    } catch (error) {
+      setMasterError(errorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -82,51 +92,44 @@ export function ProductionPage() {
     void reloadMasters();
   }, [reloadMasters]);
 
-  const quantity = Number(plannedQuantity);
-  const quantityValid =
-    plannedQuantity.trim() !== '' && Number.isFinite(quantity) && Number.isInteger(quantity) && quantity >= 0;
+  const parsedQuantity = parsePlannedQuantity(plannedQuantity);
+  const quantityValid = parsedQuantity !== null;
+  const quantity = parsedQuantity ?? 0;
+  // Match results to the visible request, including the render before its effect runs.
+  const currentEstimate =
+    quantityValid && estimate?.productId === productId && estimate.quantity === quantity ? estimate : null;
+  const feedback =
+    quantityValid && failure?.productId === productId && failure.quantity === quantity ? failure.message : null;
+  const estimating = Boolean(productId && quantityValid && !currentEstimate && !feedback);
+  const plan = currentEstimate?.plan ?? null;
+  const componentCost = currentEstimate?.cost ?? null;
+  const batchFeasibility = currentEstimate?.feasibility ?? null;
+  const capacityTrace: AssemblyCapacityTraceResult | null = batchFeasibility?.capacityTrace ?? null;
+  const currentCapacityPlan = capacityPlan(batchFeasibility);
 
   useEffect(() => {
-    if (!productId || !quantityValid) {
-      setPlan(null);
-      setCapacityTrace(null);
-      setComponentCost(null);
-      setBatchFeasibility(null);
-      return;
-    }
+    setEstimate(null);
+    setFailure(null);
+    if (!productId || !quantityValid) return;
 
     let cancelled = false;
-    setEstimating(true);
-    setFeedback(null);
-
     void Promise.all([
       productionRequirementService.plan(productId, quantity),
       componentAwareProductCostService.costProduct(productId),
       plannedBatchCapacityFeasibilityService.assessBatch(productId, quantity),
     ])
       .then(([nextPlan, nextCost, nextBatchFeasibility]) => {
-        if (cancelled) return;
-        setPlan(nextPlan);
-        setComponentCost(nextCost);
-        setBatchFeasibility(nextBatchFeasibility);
-        setCapacityTrace(nextBatchFeasibility.capacityTrace);
+        if (!cancelled)
+          setEstimate({ productId, quantity, plan: nextPlan, cost: nextCost, feasibility: nextBatchFeasibility });
       })
       .catch((error) => {
-        if (cancelled) return;
-        setPlan(null);
-        setCapacityTrace(null);
-        setComponentCost(null);
-        setBatchFeasibility(null);
-        setFeedback(errorMessage(error));
-      })
-      .finally(() => {
-        if (!cancelled) setEstimating(false);
+        if (!cancelled) setFailure({ productId, quantity, message: errorMessage(error) });
       });
 
     return () => {
       cancelled = true;
     };
-  }, [productId, quantity, quantityValid]);
+  }, [productId, quantity, quantityValid, retry]);
 
   const selectedProduct = products.find((product) => product.id === productId) ?? null;
   const materialById = useMemo(
@@ -145,7 +148,8 @@ export function ProductionPage() {
   );
 
   const componentRows = useMemo(
-    () => buildComponentRequirementRows(componentCost, capacityTrace, quantityValid ? quantity : 0, materials, products),
+    () =>
+      buildComponentRequirementRows(componentCost, capacityTrace, quantityValid ? quantity : 0, materials, products),
     [componentCost, capacityTrace, quantity, quantityValid, materials, products],
   );
   const costBreakdownRows = useMemo(
@@ -169,16 +173,14 @@ export function ProductionPage() {
     directCost?.status === 'ready' &&
     plan.requirements.every((requirement) => directCostById.has(requirement.materialId.toLocaleLowerCase())),
   );
-  const componentBatchKnownCost = componentRows.reduce(
-    (total, row) => total + (row.plannedCostContribution ?? 0),
-    0,
-  );
+  const componentBatchKnownCost = componentRows.reduce((total, row) => total + (row.plannedCostContribution ?? 0), 0);
   const componentBatchComplete = componentRows.every(
     (row) => row.costStatus === 'ready' && row.plannedCostContribution !== null,
   );
-  const plannedInputCost = plan && componentCost?.totalComponentAwareCost !== null
-    ? directBatchKnownCost + componentBatchKnownCost
-    : null;
+  const plannedInputCost =
+    plan && componentCost && componentCost.totalComponentAwareCost !== null
+      ? directBatchKnownCost + componentBatchKnownCost
+      : null;
   const plannedInputCostComplete = Boolean(
     plannedInputCost !== null && componentCost?.status === 'ready' && directBatchComplete && componentBatchComplete,
   );
@@ -194,239 +196,690 @@ export function ProductionPage() {
     <section className="materials-workspace production-workspace">
       <div className="page-heading-row">
         <div>
-          <p className="eyebrow">PHASE 3 + 4 · PRODUCTION PLANNING</p>
-          <h1>Component-aware production estimate</h1>
-          <p className="page-lead">
-            Plan direct materials and discrete assembly components, then inspect physical batch cost, revenue, profit, margin, current capacity feasibility, and authoritative warnings for the same unchanged request.
-          </p>
+          <p className="eyebrow">WORKSHOP / PRODUCTION</p>
+          <h1>Plan your next batch</h1>
+          <p className="page-lead">Choose a product, set your quantity, and see what it takes to make it.</p>
         </div>
-        <div className="session-badge"><span className="status-dot" />Live derived estimate</div>
+        <div className="session-badge">Planning only - stock stays unchanged</div>
       </div>
 
-      <section className="panel production-controls">
-        <label className="field">
-          <span>Product</span>
-          <select value={productId} disabled={loading || products.length === 0} onChange={(event) => setProductId(event.target.value)}>
-            {products.length === 0 ? <option value="">No products available</option> : products.map((product) => (
-              <option key={product.id} value={product.id}>{product.name}{product.isActive ? '' : ' (archived)'}</option>
-            ))}
-          </select>
-        </label>
-        <label className="field">
-          <span>Planned finished pieces</span>
-          <input
-            type="number"
-            min="0"
-            step="1"
-            value={plannedQuantity}
-            disabled={!productId}
-            onChange={(event) => setPlannedQuantity(event.target.value)}
-          />
-          <small>The requested quantity is never silently reduced to current capacity.</small>
-        </label>
-        <div className="production-context">
-          <strong>{selectedProduct?.name ?? 'Select a product'}</strong>
-          <span>{selectedProduct ? `${selectedProduct.category} · ${selectedProduct.isActive ? 'active' : 'archived'}` : 'Production estimates require a product.'}</span>
+      {loading ? (
+        <div className="panel production-page-state" role="status">
+          Loading products and materials...
         </div>
-      </section>
-
-      {!quantityValid && productId && <div className="feedback feedback-error">Planned quantity must be a non-negative whole number.</div>}
-      {feedback && <div className="feedback feedback-error">{feedback}</div>}
-
-      <ProductionFinancialSummary result={batchFeasibility} loading={estimating} />
-
-      <div className="production-phase3-divider">
-        <span>PHASE 3 INPUT &amp; CURRENT CAPACITY DETAIL</span>
-        <p>The detail below remains the physical/material trace behind the Phase 4 planning result.</p>
-      </div>
-
-      <div className="production-summary-grid production-summary-grid-phase3">
-        <article className="panel production-summary-card">
-          <span>Production readiness</span>
-          <strong>{capacityTrace ? statusLabel(capacityTrace.status) : estimating ? 'Calculating…' : '—'}</strong>
-          <small>{componentCost ? `Cost: ${statusLabel(componentCost.status)}` : 'Assembly capacity + cost readiness'}</small>
-        </article>
-        <article className="panel production-summary-card">
-          <span>Assembly capacity</span>
-          <strong>{capacityTrace?.status === 'ready' ? capacityTrace.overallAssemblyCapacity ?? '—' : '—'}</strong>
-          <small>{capacityTrace ? `${statusLabel(capacityTrace.status)} · direct materials + current component stock` : 'Current parent pieces assemblable'}</small>
-        </article>
-        <article className="panel production-summary-card">
-          <span>Limiting resources</span>
-          <strong className="summary-text">{limitingRows.length ? limitingRows.map((row) => row.sourceName).join(', ') : '—'}</strong>
-          <small>{capacityTrace?.status === 'ready' ? `${limitingRows.length} tied at the final minimum` : 'Published only with reliable final assembly capacity'}</small>
-        </article>
-        <article className="panel production-summary-card">
-          <span>Component-aware cost / product</span>
-          <strong>{componentCost?.totalComponentAwareCost !== null && componentCost?.totalComponentAwareCost !== undefined ? peso.format(componentCost.totalComponentAwareCost) : '—'}</strong>
-          <small>{componentCost ? (componentCost.status === 'ready' ? 'Complete material + component input cost' : `${statusLabel(componentCost.status)} · known subtotal only`) : 'Excludes labor, overhead, markup, and profit'}</small>
-        </article>
-        <article className="panel production-summary-card">
-          <span>Planned input cost</span>
-          <strong>{plannedInputCost !== null ? peso.format(plannedInputCost) : '—'}</strong>
-          <small>{plannedInputCost !== null ? (plannedInputCostComplete ? 'Phase 3 input-only diagnostic' : 'Known partial Phase 3 input subtotal') : 'Separate from Phase 4 planned production cost'}</small>
-        </article>
-      </div>
-
-      <section className="panel material-list production-requirements-panel production-input-panel">
-        <div className="production-section-marker direct-marker">DIRECT MATERIALS · MAKE THE PARENT</div>
-        <div className="panel-heading list-heading">
-          <div><p className="panel-kicker">PARENT-MAKING INPUTS</p><h2>Direct materials to prepare</h2></div>
-          <div className="material-count"><strong>{plan?.requirements.length ?? 0}</strong><span>materials</span></div>
+      ) : masterError ? (
+        <div className="panel production-page-state" role="alert">
+          <h2>Could not load your workshop</h2>
+          <p>{masterError}</p>
+          <button type="button" className="button button-primary" onClick={() => void reloadMasters()}>
+            Try again
+          </button>
         </div>
-        <p className="production-section-help">Consumable recipe/yield requirements for making the parent. The parent Product&apos;s safety-waste reserve applies here.</p>
-        <div className="table-wrap">
-          {estimating ? (
-            <div className="empty-state"><p>Calculating direct-material requirements…</p></div>
-          ) : !plan || plan.requirements.length === 0 ? (
-            componentOnlyParent ? (
-              <div className="empty-state"><div className="empty-icon">✓</div><h3>No direct materials required for this parent</h3><p>Assembly depends on the discrete components in the next section.</p></div>
-            ) : (
-              <div className="empty-state"><div className="empty-icon">▦</div><h3>No derivable direct-material requirements</h3><p>Resolve the direct requirement readiness issues below if this Product should have a parent recipe.</p></div>
-            )
-          ) : (
-            <table className="materials-table production-table">
-              <thead><tr><th>Material</th><th>Effective / piece</th><th>Waste reserve</th><th>Planned / piece</th><th>Batch required</th><th>On hand</th><th>Direct capacity</th><th>Batch cost</th></tr></thead>
-              <tbody>{plan.requirements.map((requirement) => {
-                const key = requirement.materialId.toLocaleLowerCase();
-                const material = materialById.get(key);
-                const inventory = directCapacityById.get(key);
-                const cost = directCostById.get(key);
-                const batchCost = cost ? cost.costPerBaseUnit * requirement.plannedBatchBaseQuantity : null;
-                return (
-                  <tr key={requirement.materialId} className={inventory?.isLimiting ? 'limiting-row' : ''}>
-                    <td><strong>{material?.name ?? requirement.materialId}</strong><span className="material-id">{requirement.materialId} · {requirement.source}</span></td>
-                    <td>{number(requirement.effectiveBaseQuantityPerProduct)} {requirement.baseUnit}</td>
-                    <td>+{number(requirement.wasteReserveBaseQuantityPerProduct)} {requirement.baseUnit}</td>
-                    <td><strong>{number(requirement.plannedBaseQuantityPerProduct)} {requirement.baseUnit}</strong></td>
-                    <td><strong>{number(requirement.plannedBatchBaseQuantity)} {requirement.baseUnit}</strong></td>
-                    <td>{inventory ? <>{number(inventory.normalizedOnHandBaseQuantity)} {inventory.baseUnit}<span className="material-id">entered {number(inventory.enteredOnHandQuantity)} {inventory.enteredOnHandUnit} · {inventory.inventoryConversionSource}</span></> : 'Unresolved'}</td>
-                    <td>{inventory ? <><strong>{inventory.capacityPieces}</strong>{inventory.isLimiting && <span className="capacity-limiter">Direct limiter</span>}</> : '—'}</td>
-                    <td>{batchCost !== null ? peso.format(batchCost) : 'Unpriced'}</td>
-                  </tr>
-                );
-              })}</tbody>
-            </table>
-          )}
+      ) : products.length === 0 ? (
+        <div className="panel production-page-state">
+          <p className="panel-kicker">YOUR FIRST BATCH STARTS HERE</p>
+          <h2>Add a product to start planning</h2>
+          <p>Set up a product and its recipe or assembly components, then return here to check costs and stock.</p>
+          <button type="button" className="button button-primary" onClick={onOpenProducts}>
+            Go to Products
+          </button>
         </div>
-        <div className="list-footer">
-          <span>Direct-material quantities include the parent safety-waste policy.</span>
-          <span>{plan?.effectiveYieldSampleId ? `Yield: ${plan.effectiveYieldSampleId}` : 'No effective yield sample'}</span>
-        </div>
-      </section>
-
-      <section className="panel material-list production-requirements-panel production-input-panel component-input-panel">
-        <div className="production-section-marker component-marker">DISCRETE COMPONENTS · ASSEMBLE THE PARENT</div>
-        <div className="panel-heading list-heading">
-          <div><p className="panel-kicker">ASSEMBLY INPUTS</p><h2>Components to prepare</h2></div>
-          <div className="material-count"><strong>{componentRows.length}</strong><span>components</span></div>
-        </div>
-        <p className="production-section-help">Whole-piece vessels, molded child Products, inserts, accessories, and other discrete inputs. Parent safety waste is not added to these counts.</p>
-        <div className="table-wrap">
-          {estimating ? (
-            <div className="empty-state"><p>Calculating component requirements…</p></div>
-          ) : componentRows.length === 0 ? (
-            <div className="empty-state"><div className="empty-icon">◇</div><h3>No discrete components</h3><p>This Product currently has no Phase 3 assembly component requirements.</p></div>
-          ) : (
-            <table className="materials-table production-table component-requirements-table">
-              <thead><tr><th>Component</th><th>Role</th><th>Per parent</th><th>Planned batch</th><th>Available</th><th>Capacity</th><th>Unit cost</th><th>Planned component cost</th><th>Readiness</th></tr></thead>
-              <tbody>{componentRows.map((row) => (
-                <tr key={row.componentId} className={limitingRows.some((limiter) => limiter.sourceId.toLocaleLowerCase() === row.sourceId.toLocaleLowerCase() && limiter.resourceType !== 'material-requirement') ? 'limiting-row' : ''}>
-                  <td><strong>{row.sourceName}</strong><span className="material-id">{row.sourceId}</span><span className="component-kind-pill">{sourceTypeLabel(row.sourceType)}</span></td>
-                  <td><span className="component-role-pill">{roleLabel(row.role)}</span></td>
-                  <td><strong>{number(row.quantityPerParent)} pc</strong></td>
-                  <td><strong>{number(row.plannedQuantity)} pc</strong></td>
-                  <td>{row.availabilityState === 'missing' ? <strong className="component-state-missing">Missing ProductStock</strong> : row.availableQuantity !== null ? <strong>{number(row.availableQuantity)} pc</strong> : <strong>Unresolved</strong>}<span className="material-id">{row.availabilityState === 'zero' ? 'Explicit known zero' : statusLabel(row.availabilityStatus)}</span></td>
-                  <td>{row.capacityPieces !== null ? <><strong>{row.capacityPieces}</strong><span className="material-id">parent pieces</span></> : <><strong>—</strong><span className="material-id">{statusLabel(row.capacityStatus)}</span></>}</td>
-                  <td>{row.unitCost !== null ? peso.format(row.unitCost) : 'Unpriced'}</td>
-                  <td>{row.plannedCostContribution !== null ? peso.format(row.plannedCostContribution) : 'Unresolved'}</td>
-                  <td><strong>{statusLabel(row.capacityStatus)}</strong><span className="material-id">Cost: {statusLabel(row.costStatus)}</span>{row.issues.length ? <span className="component-row-issue">{row.issues[0]}</span> : null}</td>
-                </tr>
-              ))}</tbody>
-            </table>
-          )}
-        </div>
-        <div className="list-footer">
-          <span>Component availability is current stock only; Production does not reserve or deduct stock.</span>
-          <span>Missing ProductStock ≠ explicit 0 pc.</span>
-        </div>
-      </section>
-
-      <section className="panel production-limiter-panel">
-        <div className="panel-heading list-heading">
-          <div><p className="panel-kicker">CURRENT ASSEMBLY BOTTLENECK</p><h2>Limiting resources</h2></div>
-          <div className="material-count"><strong>{limitingRows.length}</strong><span>tied</span></div>
-        </div>
-        {capacityTrace?.status === 'ready' && limitingRows.length ? (
-          <div className="production-limiter-grid">
-            {limitingRows.map((limiter) => (
-              <article key={`${limiter.resourceType}-${limiter.sourceId}`} className="production-limiter-card">
-                <div><span className="component-kind-pill">{limiter.typeLabel}</span><strong>{limiter.sourceName}</strong></div>
-                <span className="limiter-capacity">Capacity {limiter.capacityPieces} parent pieces</span>
-                <small>{limiter.evidence}</small>
-                <small className="limiter-path">{limiter.pathLabel}</small>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <p className="yield-notice">{capacityTrace ? `Final limiter identity is not published while assembly capacity is ${statusLabel(capacityTrace.status).toLocaleLowerCase()}.` : 'Select a Product to resolve current limiting resources.'}</p>
-        )}
-      </section>
-
-      <div className="production-detail-grid production-phase3-detail-grid">
-        <section className="panel production-detail-card">
-          <div className="panel-heading"><div><p className="panel-kicker">COST BASIS</p><h2>Component-aware cost</h2></div></div>
-          {componentCost ? (
-            <div className="production-cost-list">
-              <div className="production-cost-total"><span>Parent direct materials / product</span><strong>{peso.format(componentCost.directMaterialCostSubtotal)}</strong></div>
-              <div className="production-cost-total"><span>Root discrete components / product</span><strong>{peso.format(componentCost.componentCostSubtotal)}</strong></div>
-              <div className="production-cost-total production-grand-total"><span>Known component-aware total / product</span><strong>{componentCost.totalComponentAwareCost !== null ? peso.format(componentCost.totalComponentAwareCost) : 'Unresolved'}</strong></div>
-              <p className="production-cost-status">Cost readiness: <strong>{statusLabel(componentCost.status)}</strong>{componentCost.status === 'partial' ? ' — numeric totals are known partial subtotals.' : ''}</p>
+      ) : (
+        <>
+          <section className="panel production-controls" aria-label="Batch setup">
+            <div className="production-controls-heading">
+              <span className="production-step">01</span>
+              <div>
+                <h2>Set up your batch</h2>
+                <p>Estimates update as you plan.</p>
+              </div>
             </div>
-          ) : <p className="yield-notice">Component-aware cost has not been calculated yet.</p>}
-        </section>
+            <label className="field">
+              <span>Product to make</span>
+              <select
+                value={productId}
+                disabled={loading || products.length === 0}
+                onChange={(event) => setProductId(event.target.value)}
+              >
+                {products.length === 0 ? (
+                  <option value="">No products available</option>
+                ) : (
+                  products.map((product) => (
+                    <option key={product.id} value={product.id}>
+                      {product.name}
+                      {product.isActive ? '' : ' (archived)'}
+                    </option>
+                  ))
+                )}
+              </select>
+            </label>
+            <label className="field">
+              <span>Planned finished pieces</span>
+              <input
+                type="number"
+                aria-invalid={!quantityValid}
+                aria-describedby={quantityValid ? 'quantity-help' : 'quantity-help quantity-error'}
+                min="0"
+                step="1"
+                value={plannedQuantity}
+                disabled={!productId}
+                onChange={(event) => setPlannedQuantity(event.target.value)}
+              />
+              <small id="quantity-help">Enter a whole number, including zero to explore costs.</small>
+            </label>
+            <div className="production-quantity-actions" aria-label="Quantity shortcuts">
+              <span>Quick quantities</span>
+              <div>
+                {[10, 25, 50, 100].map((amount) => (
+                  <button
+                    key={amount}
+                    type="button"
+                    aria-pressed={quantityValid && quantity === amount}
+                    onClick={() => setPlannedQuantity(String(amount))}
+                  >
+                    {amount}
+                  </button>
+                ))}
+              </div>
+              <button
+                className="production-capacity-action"
+                type="button"
+                disabled={!currentCapacityPlan}
+                onClick={() => currentCapacityPlan && setPlannedQuantity(String(currentCapacityPlan.capacity))}
+              >
+                Use current capacity{currentCapacityPlan ? ` - ${number(currentCapacityPlan.capacity)} pc` : ''}
+              </button>
+            </div>
+            <div className="production-context">
+              <strong>{selectedProduct?.name ?? 'Select a product'}</strong>
+              <span>
+                {selectedProduct
+                  ? `${selectedProduct.category} · ${selectedProduct.isActive ? 'active' : 'archived'}`
+                  : 'Production estimates require a product.'}
+              </span>
+            </div>
+          </section>
 
-        <section className="panel production-detail-card">
-          <div className="panel-heading"><div><p className="panel-kicker">READINESS</p><h2>Issues to resolve</h2></div></div>
-          {allIssues.length === 0 ? (
-            <div className="production-ready"><strong>Ready</strong><span>No direct-requirement, component-cost, current assembly-capacity, or component-availability issues are currently reported.</span></div>
-          ) : (
-            <ul className="production-issues">
-              {allIssues.map((issue, index) => <li key={`${issue.source}-${index}`}><strong>{issue.source}</strong><span>{issue.message}</span></li>)}
-            </ul>
+          {!quantityValid && productId && (
+            <div id="quantity-error" role="alert" className="feedback feedback-error">
+              Enter a non-negative whole number within the supported range.
+            </div>
           )}
-          {directCapacity?.skippedInvalidYieldSampleIds.length ? (
-            <p className="production-skipped">Skipped newer invalid yield samples: {directCapacity.skippedInvalidYieldSampleIds.join(', ')}</p>
-          ) : null}
-        </section>
-      </div>
-
-      <section className="panel production-nested-cost-panel">
-        <div className="panel-heading list-heading">
-          <div><p className="panel-kicker">RECURSIVE COST TRACE</p><h2>Nested component cost</h2></div>
-          <div className="material-count"><strong>{costBreakdownRows.length}</strong><span>lines</span></div>
-        </div>
-        <p className="production-section-help">Read-only cost paths from the completed recursive Product/component costing services. Current ProductStock does not change cost mathematics.</p>
-        {costBreakdownRows.length ? (
-          <div className="nested-cost-list">
-            {costBreakdownRows.map((row, index) => (
-              <article key={`${row.componentId}-${index}`} className="nested-cost-row" style={{ '--nested-depth': row.depth } as React.CSSProperties}>
-                <div className="nested-cost-main">
-                  <span className="component-kind-pill">{sourceTypeLabel(row.sourceType)}</span>
-                  <strong>{row.sourceName}</strong>
-                  <span className="component-role-pill">{roleLabel(row.role)}</span>
-                </div>
-                <span className="nested-cost-path">{row.pathLabel}</span>
-                <span>{number(row.quantityPerParent)} pc / parent</span>
-                <span>{row.unitCost !== null ? `${peso.format(row.unitCost)} unit cost` : 'Unit cost unresolved'}</span>
-                <strong>{row.contribution !== null ? `${peso.format(row.contribution)} contribution` : 'Contribution unresolved'}</strong>
-                <span className={`nested-status nested-status-${row.status}`}>{statusLabel(row.status)}</span>
-                {row.issues.length ? <small className="component-row-issue">{row.issues.join(' · ')}</small> : null}
-              </article>
+          {feedback && (
+            <div className="feedback feedback-error" role="alert">
+              {feedback}{' '}
+              <button
+                type="button"
+                className="text-button"
+                onClick={() => {
+                  setFailure(null);
+                  setRetry((value) => value + 1);
+                }}
+              >
+                Retry estimate
+              </button>
+            </div>
+          )}
+          {selectedProduct && !selectedProduct.isActive && (
+            <p className="production-warning">
+              This product is archived. You can still explore its production estimate.
+            </p>
+          )}
+          <p className="sr-only" role="status">
+            {estimating
+              ? 'Updating batch estimate.'
+              : batchFeasibility
+                ? `Estimate updated for ${batchFeasibility.productName}, ${batchFeasibility.plannedQuantity} pieces.`
+                : 'Enter a valid quantity to see an estimate.'}
+          </p>
+          <nav className="production-view-nav" aria-label="Production plan views">
+            {(
+              [
+                { id: 'overview', label: 'Batch overview', step: '02' },
+                { id: 'preparation', label: 'Materials to prepare', step: '03' },
+                { id: 'details', label: 'Cost details', step: '04' },
+              ] as const
+            ).map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                aria-pressed={view === item.id}
+                aria-controls={`production-${item.id}`}
+                onClick={() => setView(item.id)}
+              >
+                <span>{item.step}</span>
+                {item.label}
+              </button>
             ))}
+          </nav>
+          <div id="production-overview" hidden={view !== 'overview'} aria-busy={estimating}>
+            <ProductionFinancialSummary
+              result={batchFeasibility}
+              loading={estimating}
+              onPrepare={() => setView('preparation')}
+            />
           </div>
-        ) : <p className="yield-notice">No component cost breakdown is available for the selected Product.</p>}
-      </section>
+          <div
+            id="production-details"
+            className="production-view-content"
+            hidden={view !== 'details'}
+            aria-busy={estimating}
+          >
+            <div className="production-phase3-divider">
+              <span>INPUT COST AT A GLANCE</span>
+              <p>
+                Material and component costs before labor, overhead, and pricing. Partial estimates are labeled below.
+              </p>
+            </div>
+
+            <div className="production-summary-grid production-summary-grid-phase3">
+              <article className="panel production-summary-card">
+                <span>Production readiness</span>
+                <strong>{capacityTrace ? statusLabel(capacityTrace.status) : estimating ? 'Calculating…' : '—'}</strong>
+                <small>
+                  {componentCost ? `Cost: ${statusLabel(componentCost.status)}` : 'Assembly capacity + cost readiness'}
+                </small>
+              </article>
+              <article className="panel production-summary-card">
+                <span>Assembly capacity</span>
+                <strong>
+                  {capacityTrace?.status === 'ready' ? (capacityTrace.overallAssemblyCapacity ?? '—') : '—'}
+                </strong>
+                <small>
+                  {capacityTrace
+                    ? `${statusLabel(capacityTrace.status)} · direct materials + current component stock`
+                    : 'Current parent pieces assemblable'}
+                </small>
+              </article>
+              <article className="panel production-summary-card">
+                <span>Limiting resources</span>
+                <strong className="summary-text">
+                  {limitingRows.length ? limitingRows.map((row) => row.sourceName).join(', ') : '—'}
+                </strong>
+                <small>
+                  {capacityTrace?.status === 'ready'
+                    ? `${limitingRows.length} tied at the final minimum`
+                    : 'Published only with reliable final assembly capacity'}
+                </small>
+              </article>
+              <article className="panel production-summary-card">
+                <span>Component-aware cost / product</span>
+                <strong>
+                  {componentCost?.totalComponentAwareCost !== null &&
+                  componentCost?.totalComponentAwareCost !== undefined
+                    ? peso.format(componentCost.totalComponentAwareCost)
+                    : '—'}
+                </strong>
+                <small>
+                  {componentCost
+                    ? componentCost.status === 'ready'
+                      ? 'Complete material + component input cost'
+                      : `${statusLabel(componentCost.status)} · known subtotal only`
+                    : 'Excludes labor, overhead, markup, and profit'}
+                </small>
+              </article>
+              <article className="panel production-summary-card">
+                <span>Planned input cost</span>
+                <strong>{plannedInputCost !== null ? peso.format(plannedInputCost) : '—'}</strong>
+                <small>
+                  {plannedInputCost !== null
+                    ? plannedInputCostComplete
+                      ? 'Materials and components only'
+                      : 'Known partial input subtotal'
+                    : 'Excludes labor and overhead'}
+                </small>
+              </article>
+            </div>
+
+            <div className="production-detail-grid production-phase3-detail-grid">
+              <section className="panel production-detail-card">
+                <div className="panel-heading">
+                  <div>
+                    <p className="panel-kicker">COST BASIS</p>
+                    <h2>Component-aware cost</h2>
+                  </div>
+                </div>
+                {componentCost ? (
+                  <div className="production-cost-list">
+                    <div className="production-cost-total">
+                      <span>Parent direct materials / product</span>
+                      <strong>{peso.format(componentCost.directMaterialCostSubtotal)}</strong>
+                    </div>
+                    <div className="production-cost-total">
+                      <span>Root discrete components / product</span>
+                      <strong>{peso.format(componentCost.componentCostSubtotal)}</strong>
+                    </div>
+                    <div className="production-cost-total production-grand-total">
+                      <span>Known component-aware total / product</span>
+                      <strong>
+                        {componentCost.totalComponentAwareCost !== null
+                          ? peso.format(componentCost.totalComponentAwareCost)
+                          : 'Unresolved'}
+                      </strong>
+                    </div>
+                    <p className="production-cost-status">
+                      Cost readiness: <strong>{statusLabel(componentCost.status)}</strong>
+                      {componentCost.status === 'partial' ? ' — numeric totals are known partial subtotals.' : ''}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="yield-notice">Component-aware cost has not been calculated yet.</p>
+                )}
+              </section>
+
+              <section className="panel production-detail-card">
+                <div className="panel-heading">
+                  <div>
+                    <p className="panel-kicker">READINESS</p>
+                    <h2>Issues to resolve</h2>
+                  </div>
+                </div>
+                {!currentEstimate ? (
+                  <p className="yield-notice">
+                    {estimating ? 'Checking requirements...' : 'Enter a valid batch to check readiness.'}
+                  </p>
+                ) : allIssues.length === 0 ? (
+                  <div className="production-ready">
+                    <strong>Ready</strong>
+                    <span>No material, component, or stock issues were reported for this estimate.</span>
+                  </div>
+                ) : (
+                  <ul className="production-issues">
+                    {allIssues.map((issue, index) => (
+                      <li key={`${issue.source}-${index}`}>
+                        <strong>{issue.source}</strong>
+                        <span>{issue.message}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {directCapacity?.skippedInvalidYieldSampleIds.length ? (
+                  <p className="production-skipped">
+                    Skipped newer invalid yield samples: {directCapacity.skippedInvalidYieldSampleIds.join(', ')}
+                  </p>
+                ) : null}
+              </section>
+            </div>
+
+            <section className="panel production-nested-cost-panel">
+              <div className="panel-heading list-heading">
+                <div>
+                  <p className="panel-kicker">RECURSIVE COST TRACE</p>
+                  <h2>Nested component cost</h2>
+                </div>
+                <div className="material-count">
+                  <strong>{costBreakdownRows.length}</strong>
+                  <span>lines</span>
+                </div>
+              </div>
+              <p className="production-section-help">
+                Explore how each component contributes to this product input cost, including components used by other
+                components.
+              </p>
+              {costBreakdownRows.length ? (
+                <div className="nested-cost-list">
+                  {costBreakdownRows.map((row, index) => (
+                    <article
+                      key={`${row.componentId}-${index}`}
+                      className="nested-cost-row"
+                      style={{ '--nested-depth': row.depth } as React.CSSProperties}
+                    >
+                      <div className="nested-cost-main">
+                        <span className="component-kind-pill">{sourceTypeLabel(row.sourceType)}</span>
+                        <strong>{row.sourceName}</strong>
+                        <span className="component-role-pill">{roleLabel(row.role)}</span>
+                      </div>
+                      <span className="nested-cost-path">{row.pathLabel}</span>
+                      <span>{number(row.quantityPerParent)} pc / parent</span>
+                      <span>
+                        {row.unitCost !== null ? `${peso.format(row.unitCost)} unit cost` : 'Unit cost unresolved'}
+                      </span>
+                      <strong>
+                        {row.contribution !== null
+                          ? `${peso.format(row.contribution)} contribution`
+                          : 'Contribution unresolved'}
+                      </strong>
+                      <span className={`nested-status nested-status-${row.status}`}>{statusLabel(row.status)}</span>
+                      {row.issues.length ? (
+                        <small className="component-row-issue">{row.issues.join(' · ')}</small>
+                      ) : null}
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <p className="yield-notice">No component cost breakdown is available for the selected Product.</p>
+              )}
+            </section>
+          </div>
+          <div
+            id="production-preparation"
+            className="production-view-content"
+            hidden={view !== 'preparation'}
+            aria-busy={estimating}
+          >
+            <div className="production-preparation-heading">
+              <div>
+                <p className="panel-kicker">PREPARATION LIST</p>
+                <h2>Gather everything for your batch</h2>
+                <p>
+                  {quantityValid ? `${number(quantity)} finished pieces` : 'Enter a valid quantity'} - Check on-hand
+                  stock and shortages before making.
+                </p>
+              </div>
+              <label className="production-toggle">
+                <input
+                  type="checkbox"
+                  checked={showCalculations}
+                  onChange={(event) => setShowCalculations(event.target.checked)}
+                />
+                Show calculations
+              </label>
+            </div>
+            <section className="panel material-list production-requirements-panel production-input-panel">
+              <div className="production-section-marker direct-marker">DIRECT MATERIALS · MAKE THE PARENT</div>
+              <div className="panel-heading list-heading">
+                <div>
+                  <p className="panel-kicker">PARENT-MAKING INPUTS</p>
+                  <h2>Direct materials to prepare</h2>
+                </div>
+                <div className="material-count">
+                  <strong>{plan?.requirements.length ?? 0}</strong>
+                  <span>materials</span>
+                </div>
+              </div>
+              <p className="production-section-help">
+                Consumable recipe/yield requirements for making the parent. The parent Product&apos;s safety-waste
+                reserve applies here.
+              </p>
+              <div className="table-wrap" tabIndex={0} role="region" aria-label="Scrollable requirements table">
+                {estimating ? (
+                  <div className="empty-state">
+                    <p>Calculating direct-material requirements…</p>
+                  </div>
+                ) : !plan || plan.requirements.length === 0 ? (
+                  componentOnlyParent ? (
+                    <div className="empty-state">
+                      <div className="empty-icon">✓</div>
+                      <h3>No direct materials required for this parent</h3>
+                      <p>Assembly depends on the discrete components in the next section.</p>
+                    </div>
+                  ) : (
+                    <div className="empty-state">
+                      <div className="empty-icon">▦</div>
+                      <h3>No derivable direct-material requirements</h3>
+                      <p>Review Cost details for recipe or yield issues if this product needs direct materials.</p>
+                    </div>
+                  )
+                ) : (
+                  <table className="materials-table production-table">
+                    <thead>
+                      <tr>
+                        <th>Material</th>
+                        {showCalculations && (
+                          <>
+                            <th>Effective / piece</th>
+                            <th>Waste reserve</th>
+                            <th>Planned / piece</th>
+                          </>
+                        )}
+                        <th>Batch required</th>
+                        <th>On hand</th>
+                        <th>Still needed</th>
+                        {showCalculations && <th>Direct capacity</th>}
+                        <th>Batch cost</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {plan.requirements.map((requirement) => {
+                        const key = requirement.materialId.toLocaleLowerCase();
+                        const material = materialById.get(key);
+                        const inventory = directCapacityById.get(key);
+                        const cost = directCostById.get(key);
+                        const batchCost = cost ? cost.costPerBaseUnit * requirement.plannedBatchBaseQuantity : null;
+                        return (
+                          <tr key={requirement.materialId} className={inventory?.isLimiting ? 'limiting-row' : ''}>
+                            <td>
+                              <strong>{material?.name ?? requirement.materialId}</strong>
+                              <span className="material-id">
+                                {requirement.materialId} · {requirement.source}
+                              </span>
+                            </td>
+                            {showCalculations && (
+                              <>
+                                <td>
+                                  {number(requirement.effectiveBaseQuantityPerProduct)} {requirement.baseUnit}
+                                </td>
+                                <td>
+                                  +{number(requirement.wasteReserveBaseQuantityPerProduct)} {requirement.baseUnit}
+                                </td>
+                                <td>
+                                  <strong>
+                                    {number(requirement.plannedBaseQuantityPerProduct)} {requirement.baseUnit}
+                                  </strong>
+                                </td>
+                              </>
+                            )}
+                            <td>
+                              <strong>
+                                {number(requirement.plannedBatchBaseQuantity)} {requirement.baseUnit}
+                              </strong>
+                            </td>
+                            <td>
+                              {inventory ? (
+                                <>
+                                  {number(inventory.normalizedOnHandBaseQuantity)} {inventory.baseUnit}
+                                  <span className="material-id">
+                                    entered {number(inventory.enteredOnHandQuantity)} {inventory.enteredOnHandUnit} ·{' '}
+                                    {inventory.inventoryConversionSource}
+                                  </span>
+                                </>
+                              ) : (
+                                'Unresolved'
+                              )}
+                            </td>
+                            <td>
+                              <StockShortfall
+                                required={requirement.plannedBatchBaseQuantity}
+                                available={inventory?.normalizedOnHandBaseQuantity}
+                                unit={requirement.baseUnit}
+                              />
+                            </td>
+                            {showCalculations && (
+                              <td>
+                                {inventory ? (
+                                  <>
+                                    <strong>{inventory.capacityPieces}</strong>
+                                    {inventory.isLimiting && <span className="capacity-limiter">Direct limiter</span>}
+                                  </>
+                                ) : (
+                                  '—'
+                                )}
+                              </td>
+                            )}
+                            <td>{batchCost !== null ? peso.format(batchCost) : 'Unpriced'}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+              <div className="list-footer">
+                <span>Direct-material quantities include the parent safety-waste policy.</span>
+                <span>
+                  {plan?.effectiveYieldSampleId
+                    ? `Yield: ${plan.effectiveYieldSampleId}`
+                    : 'Fixed recipe or no effective yield sample'}
+                </span>
+              </div>
+            </section>
+
+            <section className="panel material-list production-requirements-panel production-input-panel component-input-panel">
+              <div className="production-section-marker component-marker">
+                DISCRETE COMPONENTS · ASSEMBLE THE PARENT
+              </div>
+              <div className="panel-heading list-heading">
+                <div>
+                  <p className="panel-kicker">ASSEMBLY INPUTS</p>
+                  <h2>Components to prepare</h2>
+                </div>
+                <div className="material-count">
+                  <strong>{componentRows.length}</strong>
+                  <span>components</span>
+                </div>
+              </div>
+              <p className="production-section-help">
+                Whole-piece vessels, molded child Products, inserts, accessories, and other discrete inputs. Parent
+                safety waste is not added to these counts.
+              </p>
+              <div className="table-wrap" tabIndex={0} role="region" aria-label="Scrollable requirements table">
+                {estimating ? (
+                  <div className="empty-state">
+                    <p>Calculating component requirements…</p>
+                  </div>
+                ) : !currentEstimate ? (
+                  <div className="empty-state">
+                    <h3>Requirements unavailable</h3>
+                    <p>Enter a valid quantity or retry the estimate to check components.</p>
+                  </div>
+                ) : componentRows.length === 0 ? (
+                  <div className="empty-state">
+                    <div className="empty-icon">◇</div>
+                    <h3>No discrete components</h3>
+                    <p>This product has no assembly component requirements.</p>
+                  </div>
+                ) : (
+                  <table className="materials-table production-table component-requirements-table">
+                    <thead>
+                      <tr>
+                        <th>Component</th>
+                        <th>Role</th>
+                        <th>Per parent</th>
+                        <th>Planned batch</th>
+                        <th>Available</th>
+                        <th>Still needed</th>
+                        {showCalculations && (
+                          <>
+                            <th>Capacity</th>
+                            <th>Unit cost</th>
+                          </>
+                        )}
+                        <th>Planned component cost</th>
+                        <th>Readiness</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {componentRows.map((row) => (
+                        <tr
+                          key={row.componentId}
+                          className={
+                            limitingRows.some(
+                              (limiter) =>
+                                limiter.sourceId.toLocaleLowerCase() === row.sourceId.toLocaleLowerCase() &&
+                                limiter.resourceType !== 'material-requirement',
+                            )
+                              ? 'limiting-row'
+                              : ''
+                          }
+                        >
+                          <td>
+                            <strong>{row.sourceName}</strong>
+                            <span className="material-id">{row.sourceId}</span>
+                            <span className="component-kind-pill">{sourceTypeLabel(row.sourceType)}</span>
+                          </td>
+                          <td>
+                            <span className="component-role-pill">{roleLabel(row.role)}</span>
+                          </td>
+                          <td>
+                            <strong>{number(row.quantityPerParent)} pc</strong>
+                          </td>
+                          <td>
+                            <strong>{number(row.plannedQuantity)} pc</strong>
+                          </td>
+                          <td>
+                            {row.availabilityState === 'missing' ? (
+                              <strong className="component-state-missing">Stock not recorded</strong>
+                            ) : row.availableQuantity !== null ? (
+                              <strong>{number(row.availableQuantity)} pc</strong>
+                            ) : (
+                              <strong>Unresolved</strong>
+                            )}
+                            <span className="material-id">
+                              {row.availabilityState === 'zero'
+                                ? 'No stock on hand'
+                                : statusLabel(row.availabilityStatus)}
+                            </span>
+                          </td>
+                          <td>
+                            <StockShortfall
+                              required={row.plannedQuantity}
+                              available={row.availabilityStatus === 'ready' ? row.availableQuantity : null}
+                              unit="pc"
+                            />
+                          </td>
+                          {showCalculations && (
+                            <>
+                              <td>
+                                {row.capacityPieces !== null ? (
+                                  <>
+                                    <strong>{row.capacityPieces}</strong>
+                                    <span className="material-id">parent pieces</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <strong>—</strong>
+                                    <span className="material-id">{statusLabel(row.capacityStatus)}</span>
+                                  </>
+                                )}
+                              </td>
+                              <td>{row.unitCost !== null ? peso.format(row.unitCost) : 'Unpriced'}</td>
+                            </>
+                          )}
+                          <td>
+                            {row.plannedCostContribution !== null
+                              ? peso.format(row.plannedCostContribution)
+                              : 'Unresolved'}
+                          </td>
+                          <td>
+                            <strong>{statusLabel(row.capacityStatus)}</strong>
+                            <span className="material-id">Cost: {statusLabel(row.costStatus)}</span>
+                            {row.issues.length ? <span className="component-row-issue">{row.issues[0]}</span> : null}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+              <div className="list-footer">
+                <span>Component availability is current stock only; Production does not reserve or deduct stock.</span>
+                <span>Unrecorded stock is different from zero stock.</span>
+              </div>
+            </section>
+          </div>
+        </>
+      )}
     </section>
+  );
+}
+
+function StockShortfall({
+  required,
+  available,
+  unit,
+}: {
+  required: number;
+  available: number | null | undefined;
+  unit: string;
+}) {
+  const shortfall = stockShortfall(required, available);
+  return shortfall === null ? (
+    <span className="stock-check">Check stock</span>
+  ) : shortfall > 0 ? (
+    <span className="stock-shortfall">
+      {number(shortfall)} {unit} short
+    </span>
+  ) : (
+    <span className="stock-covered">Covered</span>
   );
 }

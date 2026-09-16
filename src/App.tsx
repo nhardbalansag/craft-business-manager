@@ -35,7 +35,7 @@ export default function App() {
       {section === 'calibration' && <CalibrationPage />}
       {section === 'products' && <ProductsPage />}
       {section === 'yield' && <YieldPage />}
-      {section === 'production' && <ProductionPage />}
+      {section === 'production' && <ProductionPage onOpenProducts={() => setSection('products')} />}
       {section === 'pricing' && <PricingPage />}
     </main>
   );
