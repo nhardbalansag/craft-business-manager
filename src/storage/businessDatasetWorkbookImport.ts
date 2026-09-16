@@ -27,6 +27,15 @@ import {
   type WorkbookCurrentImportPreparationIssue,
 } from './workbookImportCompatibility';
 import {
+  WorkbookResourceLimitError,
+  createWorkbookResourceLimits,
+  validateNeutralWorkbookResourceLimits,
+  validateWorkbookBinaryResourceLimit,
+  type WorkbookResourceLimitIssue,
+  type WorkbookResourceLimitKind,
+  type WorkbookResourceLimits,
+} from './workbookResourceLimits';
+import {
   CANONICAL_WORKBOOK_SHEET_NAMES,
   CRAFT_BUSINESS_WORKBOOK_FORMAT_ID,
   CURRENT_WORKBOOK_FORMAT_VERSION,
@@ -46,6 +55,7 @@ export interface ImportedWorkbookMetadata {
 }
 
 export type BusinessDatasetWorkbookImportIssueStage =
+  | 'resource-limit'
   | 'codec'
   | 'compatibility'
   | 'migration'
@@ -69,6 +79,9 @@ export interface BusinessDatasetWorkbookImportIssue {
   targetVersion?: WorkbookVersionKey;
   stepIndex?: number;
   causeValue?: unknown;
+  limitKind?: WorkbookResourceLimitKind;
+  actual?: number;
+  maximum?: number;
 }
 
 export type BusinessDatasetWorkbookImportResult =
@@ -89,13 +102,14 @@ type ChildEntry = {
 };
 
 const STAGE_ORDER: Readonly<Record<BusinessDatasetWorkbookImportIssueStage, number>> = {
-  codec: 0,
-  compatibility: 1,
-  migration: 2,
-  schema: 3,
-  metadata: 4,
-  reconstruction: 5,
-  dataset: 6,
+  'resource-limit': 0,
+  codec: 1,
+  compatibility: 2,
+  migration: 3,
+  schema: 4,
+  metadata: 5,
+  reconstruction: 6,
+  dataset: 7,
 };
 
 const SHEET_ORDER = new Map<string, number>(
@@ -140,6 +154,25 @@ function failure(
   issues: readonly BusinessDatasetWorkbookImportIssue[],
 ): BusinessDatasetWorkbookImportResult {
   return { ok: false, issues: sortIssues(issues) };
+}
+
+function resourceLimitIssues(
+  issues: readonly WorkbookResourceLimitIssue[],
+): BusinessDatasetWorkbookImportIssue[] {
+  return issues.map((issue) => ({
+    stage: 'resource-limit',
+    code: issue.code,
+    message: issue.message,
+    sheetName: issue.sheetName,
+    limitKind: issue.kind,
+    actual: issue.actual,
+    maximum: issue.maximum,
+    input: {
+      kind: issue.kind,
+      actual: issue.actual,
+      maximum: issue.maximum,
+    },
+  }));
 }
 
 function preparationIssues(
@@ -691,17 +724,31 @@ export function reconstructBusinessDatasetFromWorkbook(
 export function importBusinessDatasetFromXlsx(
   bytes: WorkbookBinaryInput,
   codec: WorkbookCodec,
+  resourceLimitOverrides: Partial<WorkbookResourceLimits> = {},
 ): BusinessDatasetWorkbookImportResult {
+  const resourceLimits = createWorkbookResourceLimits(resourceLimitOverrides);
+  const binaryIssues = validateWorkbookBinaryResourceLimit(bytes, resourceLimits);
+  if (binaryIssues.length > 0) return failure(resourceLimitIssues(binaryIssues));
+
   let document: WorkbookNeutralDocument;
   try {
     document = codec.decode(bytes);
   } catch (error) {
+    if (error instanceof WorkbookResourceLimitError) {
+      return failure(resourceLimitIssues([error.issue]));
+    }
+
     const code = error instanceof WorkbookCodecError ? error.code : 'WORKBOOK_DECODE_FAILED';
     const message =
       error instanceof Error
         ? `Workbook decode failed: ${error.message}`
         : 'Workbook decode failed unexpectedly.';
     return failure([{ stage: 'codec', code, message }]);
+  }
+
+  const neutralResourceIssues = validateNeutralWorkbookResourceLimits(document, resourceLimits);
+  if (neutralResourceIssues.length > 0) {
+    return failure(resourceLimitIssues(neutralResourceIssues));
   }
 
   const prepared = prepareWorkbookForCurrentImport(document);

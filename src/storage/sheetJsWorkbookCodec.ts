@@ -9,6 +9,12 @@ import {
   type WorkbookBinaryInput,
   type WorkbookCodec,
 } from './workbookCodec';
+import {
+  WorkbookResourceLimitError,
+  createWorkbookResourceLimitIssue,
+  createWorkbookResourceLimits,
+  type WorkbookResourceLimits,
+} from './workbookResourceLimits';
 
 export const SHEETJS_CE_VERSION = XLSX.version;
 export const SHEETJS_CE_EXPECTED_VERSION = '0.20.3' as const;
@@ -129,6 +135,95 @@ function decodeDataCell(cell: XLSX.CellObject | undefined): unknown {
   return cell.v;
 }
 
+interface WorksheetResourceMetrics {
+  readonly columns: number;
+  readonly rows: number;
+  readonly cells: number;
+}
+
+function worksheetResourceMetrics(worksheet: XLSX.WorkSheet): WorksheetResourceMetrics {
+  const ref = worksheet['!ref'];
+  if (!ref) return { columns: 0, rows: 0, cells: 0 };
+
+  const range = XLSX.utils.decode_range(ref);
+  const columns = range.e.c - range.s.c + 1;
+  const rows = Math.max(0, range.e.r - range.s.r);
+  return {
+    columns,
+    rows,
+    cells: columns * (rows + 1), // Includes the header row.
+  };
+}
+
+function worksheetOrThrow(workbook: XLSX.WorkBook, name: string): XLSX.WorkSheet {
+  const worksheet = workbook.Sheets[name];
+  if (!worksheet) {
+    throw new WorkbookCodecError(
+      'XLSX_DECODE_FAILED',
+      `Workbook references missing worksheet ${name}.`,
+    );
+  }
+  return worksheet;
+}
+
+function assertWorkbookRangesWithinLimits(
+  workbook: XLSX.WorkBook,
+  limits: Readonly<WorkbookResourceLimits>,
+): void {
+  if (workbook.SheetNames.length > limits.maxWorksheetCount) {
+    throw new WorkbookResourceLimitError(
+      createWorkbookResourceLimitIssue(
+        'worksheet-count',
+        workbook.SheetNames.length,
+        limits.maxWorksheetCount,
+      ),
+    );
+  }
+
+  let totalRows = 0;
+  let totalCells = 0;
+
+  for (const name of workbook.SheetNames) {
+    const metrics = worksheetResourceMetrics(worksheetOrThrow(workbook, name));
+    totalRows += metrics.rows;
+    totalCells += metrics.cells;
+
+    if (metrics.columns > limits.maxColumnsPerSheet) {
+      throw new WorkbookResourceLimitError(
+        createWorkbookResourceLimitIssue(
+          'sheet-columns',
+          metrics.columns,
+          limits.maxColumnsPerSheet,
+          name,
+        ),
+      );
+    }
+
+    if (metrics.rows > limits.maxRowsPerSheet) {
+      throw new WorkbookResourceLimitError(
+        createWorkbookResourceLimitIssue(
+          'sheet-rows',
+          metrics.rows,
+          limits.maxRowsPerSheet,
+          name,
+        ),
+      );
+    }
+  }
+
+  if (totalRows > limits.maxTotalRows) {
+    throw new WorkbookResourceLimitError(
+      createWorkbookResourceLimitIssue('total-rows', totalRows, limits.maxTotalRows),
+    );
+  }
+
+  if (totalCells > limits.maxTotalCells) {
+    throw new WorkbookResourceLimitError(
+      createWorkbookResourceLimitIssue('total-cells', totalCells, limits.maxTotalCells),
+    );
+  }
+}
+
 function decodeSheet(name: string, worksheet: XLSX.WorkSheet): WorkbookNeutralSheet {
   const ref = worksheet['!ref'];
   if (!ref) return { name, columns: [], rows: [] };
@@ -161,6 +256,12 @@ function decodeSheet(name: string, worksheet: XLSX.WorkSheet): WorkbookNeutralSh
 }
 
 export class SheetJsWorkbookCodec implements WorkbookCodec {
+  private readonly resourceLimits: Readonly<WorkbookResourceLimits>;
+
+  constructor(resourceLimits: Partial<WorkbookResourceLimits> = {}) {
+    this.resourceLimits = createWorkbookResourceLimits(resourceLimits);
+  }
+
   encode(document: WorkbookNeutralDocument): Uint8Array {
     assertDocument(document);
 
@@ -197,20 +298,17 @@ export class SheetJsWorkbookCodec implements WorkbookCodec {
         cellDates: false,
       });
 
+      assertWorkbookRangesWithinLimits(workbook, this.resourceLimits);
+
       return {
-        sheets: workbook.SheetNames.map((name) => {
-          const worksheet = workbook.Sheets[name];
-          if (!worksheet) {
-            throw new WorkbookCodecError(
-              'XLSX_DECODE_FAILED',
-              `Workbook references missing worksheet ${name}.`,
-            );
-          }
-          return decodeSheet(name, worksheet);
-        }),
+        sheets: workbook.SheetNames.map((name) =>
+          decodeSheet(name, worksheetOrThrow(workbook, name)),
+        ),
       };
     } catch (error) {
-      if (error instanceof WorkbookCodecError) throw error;
+      if (error instanceof WorkbookCodecError || error instanceof WorkbookResourceLimitError) {
+        throw error;
+      }
       throw new WorkbookCodecError('XLSX_DECODE_FAILED', 'SheetJS failed to decode workbook bytes.', error);
     }
   }
