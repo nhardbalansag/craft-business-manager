@@ -1,0 +1,101 @@
+.workbook-import-panel {
+  width: min(1460px, calc(100% - 40px));
+  margin: 26px auto 0;
+  padding: 18px 20px;
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) auto;
+  gap: 16px 24px;
+  align-items: center;
+  border: 1px solid #d9d2c6;
+  border-radius: 20px;
+  background: #fffdf8;
+  box-shadow: 0 10px 24px rgba(55, 45, 32, .04);
+}
+
+.workbook-import-copy h2 {
+  margin: 4px 0 6px;
+  font-size: 1.2rem;
+  letter-spacing: -.02em;
+}
+
+.workbook-import-copy p:last-child {
+  margin: 0;
+  max-width: 760px;
+  color: #6f685e;
+  font-size: .85rem;
+  line-height: 1.5;
+}
+
+.workbook-import-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.workbook-selection {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 3px 14px;
+  padding: 12px 14px;
+  border-radius: 13px;
+  background: #f4efe6;
+  color: #4e4942;
+}
+
+.workbook-selection strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #27231f;
+}
+
+.workbook-selection span {
+  color: #756d63;
+  font-size: .82rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.workbook-selection small {
+  grid-column: 1 / -1;
+  color: #7e756a;
+  line-height: 1.4;
+}
+
+.workbook-import-feedback {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 11px;
+  font-size: .84rem;
+  line-height: 1.45;
+}
+
+.workbook-import-feedback-success {
+  background: #e8f2e7;
+  color: #365c35;
+}
+
+.workbook-import-feedback-error {
+  background: #f8e6e3;
+  color: #8a3029;
+}
+
+@media (max-width: 880px) {
+  .workbook-import-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .workbook-import-actions {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 760px) {
+  .workbook-import-panel {
+    width: min(100% - 24px, 1460px);
+    margin-top: 16px;
+  }
+}

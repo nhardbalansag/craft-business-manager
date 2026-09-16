@@ -1,6 +1,9 @@
 import { useState } from 'react';
+import { BrowserWorkbookImportCommand } from './application/persistence/BrowserWorkbookImportCommand';
+import { persistenceCoordinator } from './application/session';
 import { CalibrationPage } from './ui/calibration/CalibrationPage';
 import { MaterialsPage } from './ui/materials/MaterialsPage';
+import { WorkbookImportPanel } from './ui/persistence/WorkbookImportPanel';
 import { PricingPage } from './ui/pricing/PricingPage';
 import { ProductsPage } from './ui/products/ProductsPage';
 import { ProductionPage } from './ui/production/ProductionPage';
@@ -8,8 +11,17 @@ import { YieldPage } from './ui/yield/YieldPage';
 
 type AppSection = 'materials' | 'calibration' | 'products' | 'yield' | 'production' | 'pricing';
 
-export default function App() {
+export interface AppProps {
+  readonly workbookImportCommand?: BrowserWorkbookImportCommand;
+}
+
+export default function App({ workbookImportCommand }: AppProps = {}) {
   const [section, setSection] = useState<AppSection>('materials');
+  const [workspaceRevision, setWorkspaceRevision] = useState(0);
+  const [defaultWorkbookImportCommand] = useState(
+    () => new BrowserWorkbookImportCommand(persistenceCoordinator),
+  );
+  const importCommand = workbookImportCommand ?? defaultWorkbookImportCommand;
 
   return (
     <main className="app-shell">
@@ -31,12 +43,19 @@ export default function App() {
         </nav>
       </header>
 
-      {section === 'materials' && <MaterialsPage />}
-      {section === 'calibration' && <CalibrationPage />}
-      {section === 'products' && <ProductsPage />}
-      {section === 'yield' && <YieldPage />}
-      {section === 'production' && <ProductionPage onOpenProducts={() => setSection('products')} />}
-      {section === 'pricing' && <PricingPage />}
+      <WorkbookImportPanel
+        command={importCommand}
+        onHydrated={() => setWorkspaceRevision((current) => current + 1)}
+      />
+
+      <div className="workspace-revision-boundary" data-workspace-revision={workspaceRevision} key={workspaceRevision}>
+        {section === 'materials' && <MaterialsPage />}
+        {section === 'calibration' && <CalibrationPage />}
+        {section === 'products' && <ProductsPage />}
+        {section === 'yield' && <YieldPage />}
+        {section === 'production' && <ProductionPage onOpenProducts={() => setSection('products')} />}
+        {section === 'pricing' && <PricingPage />}
+      </div>
     </main>
   );
 }
