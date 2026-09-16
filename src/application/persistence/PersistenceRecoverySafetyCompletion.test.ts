@@ -438,7 +438,7 @@ describe('Phase 5.4C3 recovery safety completion gate', () => {
       new Uint8Array([15]),
       'resource-limit',
       {
-        issueCode: 'WORKSHEET_COUNT_LIMIT_EXCEEDED',
+        issueCode: 'WORKSHEET_COUNT_EXCEEDED',
         action: 'reduce-workbook-size',
         backupRestoreRecommended: false,
       },
