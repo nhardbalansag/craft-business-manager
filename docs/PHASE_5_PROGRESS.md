@@ -6,11 +6,11 @@ Master plan:
 
 `docs/PHASE_5_EXCEL_PERSISTENCE_PLAN.md`
 
-Current authoritative implementation baseline after 5.5A1:
+Current authoritative implementation baseline after 5.5A2:
 
 ```text
-develop  13e51998a55789a1fafe3da233344928c889b4a0
-CI       35061438644 — SUCCESS
+develop  e4be2a7b3f9f4289b00177a5f96bd61da113420d
+CI       35062713682 — SUCCESS
 ```
 
 ## Live task map
@@ -29,13 +29,7 @@ CI       35061438644 — SUCCESS
 5.3 — Snapshot, Hydration & Persistence Coordination      COMPLETE
     5.3A — Complete Source Snapshot Service               COMPLETE
     5.3B — Validated Atomic Dataset Hydration             COMPLETE
-        5.3B1 — Hydration Replacement Port & Bulk Replace COMPLETE
-        5.3B2 — Validated Atomic Hydration + Rollback     COMPLETE
-        5.3B3 — Session/Fault Injection/Completion Gate   COMPLETE
     5.3C — Persistence Coordinator / Load-Save Lifecycle  COMPLETE
-        5.3C1 — Persistence Lifecycle & Workbook Transport Contract  COMPLETE
-        5.3C2 — Snapshot-to-XLSX Export / Save Orchestration         COMPLETE
-        5.3C3 — XLSX Load / Import / Hydrate & Completion Gate       COMPLETE
 
 5.4 — Version Compatibility, Backup & Recovery Safety     COMPLETE
     5.4A — Schema Migration & Compatibility Framework     COMPLETE
@@ -45,8 +39,8 @@ CI       35061438644 — SUCCESS
 5.5 — Excel Persistence UI                                IN PROGRESS
     5.5A — Import / Open Workbook Workflow                IN PROGRESS
         5.5A1 — Browser File Selection & Import Command Boundary  COMPLETE
-        5.5A2 — React Open/Replace Workflow & Workspace Refresh   NEXT / NOT STARTED
-        5.5A3 — Browser Import Regression & 5.5A Completion Gate  NOT STARTED
+        5.5A2 — React Open/Replace Workflow & Workspace Refresh   COMPLETE
+        5.5A3 — Browser Import Regression & 5.5A Completion Gate  NEXT / NOT STARTED
     5.5B — Export / Save & Backup Workflow                NOT STARTED
     5.5C — Persistence Status / Validation / Recovery UX  NOT STARTED
 
@@ -95,38 +89,44 @@ Plan:
 
 `docs/PHASE_5_5A_IMPORT_OPEN_WORKBOOK_WORKFLOW_PLAN.md`
 
-Completion record for A1:
+Completion records:
 
-`docs/PHASE_5_5A1_BROWSER_FILE_SELECTION_IMPORT_COMMAND.md`
+- `docs/PHASE_5_5A1_BROWSER_FILE_SELECTION_IMPORT_COMMAND.md`
+- `docs/PHASE_5_5A2_REACT_OPEN_REPLACE_WORKSPACE_REFRESH.md`
 
 Current decomposition:
 
 ```text
 5.5A1 — Browser File Selection & Import Command Boundary  COMPLETE
-5.5A2 — React Open/Replace Workflow & Workspace Refresh   NEXT / NOT STARTED
-5.5A3 — Browser Import Regression & 5.5A Completion Gate  NOT STARTED
+5.5A2 — React Open/Replace Workflow & Workspace Refresh   COMPLETE
+5.5A3 — Browser Import Regression & 5.5A Completion Gate  NEXT / NOT STARTED
 ```
 
-Locked decisions now proven by A1:
+A1 established:
 
 - selecting a file is non-destructive;
 - browser file bytes are defensively owned before apply;
 - `.xlsx` filename filtering is UX guidance only and never replaces content validation;
 - chooser cancellation is a non-error/no-op;
 - unsupported-extension and file-read failures are controlled workflow errors;
-- an explicit apply command is required before persistence is invoked;
-- apply delegates to `PersistenceCoordinator.importAndApplyWorkbook(...)`;
-- coordinator rejection/results and operational errors retain their existing meaning;
-- no React, Tauri/native filesystem, workbook-schema or business-rule behavior entered A1.
+- explicit apply delegates to `PersistenceCoordinator.importAndApplyWorkbook(...)`;
+- coordinator rejection/results and operational errors retain their existing meaning.
 
-Still owned by A2:
+A2 established:
 
-- React Open / Import workbook surface;
-- selected file summary and replacement confirmation;
-- pending/importing and duplicate-submit protection;
-- successful-hydration workspace revision/remount;
-- preservation of the active navigation section where practical;
-- basic success/rejection/operational feedback.
+- the React shell exposes **Open / Import workbook** through the A1 command;
+- selected filename and byte size are visible before apply;
+- successful replacement requires explicit user confirmation;
+- cancel/change-file and reading/importing states are controlled;
+- duplicate apply is prevented while an import is active;
+- successful hydrate, expected rejection and operational failure remain distinct;
+- `workspaceRevision` advances only after `{ status: 'hydrated' }`;
+- the visible repository-backed workspace remounts/refetches after successful hydration;
+- the existing singleton repository/service graph remains intact;
+- active navigation remains stable across the successful remount;
+- rejected/failed import does not manufacture a successful workspace refresh.
+
+A3 now owns the end-to-end browser regression/completion proof against representative real valid and rejected workbooks before parent 5.5A can close.
 
 Rich recovery presentation remains 5.5C, browser export/save remains 5.5B, and native dialogs/filesystem remain Phase 6.
 
@@ -151,15 +151,6 @@ Final Phase 5.4 develop         b8584d8681e95676c209c2e5a9dde0ee6278b71a
 Final Phase 5.4 CI              35055715946 — SUCCESS
 ```
 
-### Post-5.4 UI work
-
-```text
-PR #186 — Production planning UI / estimate reliability — MERGED
-PR #187 — Products catalog / workshop UX                — MERGED
-Pre-5.5A planning develop  728b9b99b1da5192fd894f04c64d7ab3d1447d07
-CI                         35058157911 — SUCCESS
-```
-
 ### Phase 5.5A planning
 
 ```text
@@ -171,21 +162,35 @@ Post-merge CI      35059276175 — SUCCESS
 ### Phase 5.5A1 — COMPLETE
 
 ```text
-Baseline develop           95d63ccb3f20e0412376ae35ea0f5c13652fa753
-Baseline CI                35059276175 — SUCCESS
-Initial feature CI         35061184236 — FAILURE (test-helper type only)
 Corrected feature head     54f7d3af36984d9bd2fcd5aae041ae0012ce195a
 Corrected branch CI        35061273728 — SUCCESS
 Implementation PR #189     MERGED
 PR CI                      35061356082 — SUCCESS
 Implementation merge       13e51998a55789a1fafe3da233344928c889b4a0
 Post-merge CI              35061438644 — SUCCESS
-114 test files / 1339 tests
-12 focused A1 tests
-135 modules transformed
+Final A1 closeout develop  15fbdf5ae44b08a8bd2070dfd85a55c98eeda185
+Final A1 CI                35061767967 — SUCCESS
 ```
 
-The initial A1 branch failure was isolated to the synthetic test helper's `ArrayBufferLike` type. The helper was corrected before PR merge; runtime command semantics were unchanged.
+### Phase 5.5A2 — COMPLETE
+
+```text
+Baseline develop           15fbdf5ae44b08a8bd2070dfd85a55c98eeda185
+Baseline CI                35061767967 — SUCCESS
+Initial feature CI         35062380717 — FAILURE (test callback typing only)
+Corrected feature head     a154942b1945c44bd7ae4057d25eadc5dc7aff76
+Corrected branch CI        35062474596 — SUCCESS
+Implementation PR #191     MERGED
+PR CI                      35062595529 — SUCCESS
+Implementation merge       e4be2a7b3f9f4289b00177a5f96bd61da113420d
+Post-merge CI              35062713682 — SUCCESS
+116 test files / 1351 tests
+8 focused import-panel tests
+4 app-shell workspace-refresh tests
+138 modules transformed
+```
+
+The initial A2 branch failure was isolated to the synthetic test callback mock type. The mock was narrowed before PR merge; production behavior was unchanged.
 
 ## Current persistence boundary
 
@@ -201,8 +206,8 @@ Schema compatibility / migration      COMPLETE — 5.4A
 Backup / atomic-write safety          COMPLETE — 5.4B
 Corruption / resource / recovery      COMPLETE — 5.4C
 Browser import command boundary       COMPLETE — 5.5A1
-React open/replace + refresh           NEXT — 5.5A2
-Browser import completion gate        NOT STARTED — 5.5A3
+React open/replace + refresh           COMPLETE — 5.5A2
+Browser import completion gate        NEXT — 5.5A3
 Browser export/save                    NOT STARTED — 5.5B
 Recovery/status UX                     NOT STARTED — 5.5C
 Native filesystem                     Phase 6
@@ -210,6 +215,6 @@ Native filesystem                     Phase 6
 
 ## Current active task
 
-**5.5A2 — React Open/Replace Workflow & Workspace Refresh — NEXT / NOT STARTED**
+**5.5A3 — Browser Import Regression & 5.5A Completion Gate — NEXT / NOT STARTED**
 
-Do not begin 5.5A2 until the 5.5A1 docs-only closeout is merged, the exact resulting `develop` CI is green, and the user separately says to proceed.
+Do not begin 5.5A3 until the 5.5A2 docs-only closeout is merged, the exact resulting `develop` CI is green, and the user separately says to proceed.
