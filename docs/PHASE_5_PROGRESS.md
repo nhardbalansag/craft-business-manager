@@ -6,11 +6,11 @@ Master plan:
 
 `docs/PHASE_5_EXCEL_PERSISTENCE_PLAN.md`
 
-Current authoritative green baseline after the Phase 5.5B parent closeout:
+Current authoritative green implementation baseline after Phase 5.5C1:
 
 ```text
-develop  a1c175176ce4df9fe1c3ae8ec91afd5151dd1e59
-CI       35129979872 — SUCCESS
+develop  0a3a68c78a93824da1c01644cfa24723fbfaf8e5
+CI       35132771870 — SUCCESS
 ```
 
 ## Live task map
@@ -45,9 +45,9 @@ CI       35129979872 — SUCCESS
         5.5B1 — Browser Workbook Export & Download Command Boundary      COMPLETE
         5.5B2 — React Export / Save-Copy Workflow & Backup Truthfulness COMPLETE
         5.5B3 — Browser Export Regression & 5.5B Completion Gate        COMPLETE
-    5.5C — Persistence Status / Validation / Recovery UX           IN PROGRESS
-        5.5C1 — Persistence Session Status & Workbook Identity     NEXT / NOT STARTED
-        5.5C2 — Validation Detail & Recovery Guidance UX           NOT STARTED
+    5.5C — Persistence Status / Validation / Recovery UX              IN PROGRESS
+        5.5C1 — Persistence Session Status & Workbook Identity        COMPLETE
+        5.5C2 — Validation Detail & Recovery Guidance UX              NEXT / NOT STARTED
         5.5C3 — Persistence UX Regression & Phase 5.5 Completion Gate NOT STARTED
 
 5.6 — Integration & Completion Gate                       NOT STARTED
@@ -267,8 +267,8 @@ Dedicated plan:
 Decomposition:
 
 ```text
-5.5C1 — Persistence Session Status & Workbook Identity           NEXT / NOT STARTED
-5.5C2 — Validation Detail & Recovery Guidance UX                 NOT STARTED
+5.5C1 — Persistence Session Status & Workbook Identity           COMPLETE
+5.5C2 — Validation Detail & Recovery Guidance UX                 NEXT / NOT STARTED
 5.5C3 — Persistence UX Regression & Phase 5.5 Completion Gate    NOT STARTED
 ```
 
@@ -283,7 +283,61 @@ Decomposition:
 - browser backup/restore guidance means selecting a known-good workbook copy the user possesses; it must not claim a Phase 5.4B transport backup was created;
 - dirty/clean state is deliberately not introduced because there is no complete mutation-tracking contract across all business edits.
 
-Rich validation/recovery details belong to C2; C1 is status/identity only. C3 closes the full browser persistence UX and Phase 5.5.
+### 5.5C1 — Persistence Session Status & Workbook Identity — COMPLETE
+
+Completion record:
+
+`docs/PHASE_5_5C1_PERSISTENCE_SESSION_STATUS_WORKBOOK_IDENTITY.md`
+
+C1 established:
+
+- an immutable browser-session persistence status model;
+- current format ID, workbook version, and dataset schema version sourced from existing constants;
+- truthful empty state before successful import/export activity;
+- browser-known successful imported filename/size and returned workbook metadata;
+- session-observed import time kept distinct from workbook `exportedAt`;
+- last successful downloaded-copy filename/size and export metadata;
+- session-observed download-dispatch time kept distinct from workbook `exportedAt`;
+- rejected/failed imports preserve the previous successful imported identity;
+- failed exports preserve the previous successful export identity;
+- exporting a copy does not replace the active imported workbook identity;
+- successful import continues to advance `workspaceRevision` exactly once;
+- export status does not remount the workspace or change active navigation;
+- browser filenames are explicitly identity labels, not managed native paths;
+- no dirty/clean synchronization claim is introduced.
+
+Evidence:
+
+```text
+Planning PR #203                 MERGED
+Planning head                    82e7a168443688b28262d1c666adae94a902ef68
+Planning PR CI                   35131606179 — SUCCESS
+C1 baseline                      f37529c3886ad52bc53347b1b275c8142b15d093
+C1 baseline CI                   35131746177 — SUCCESS
+Initial feature head             5ac1220d3f535aa9476d30e482f333f65a2c3a9d
+Initial feature CI               35132299736 — FAILURE (test-harness typing only)
+Corrected feature head           8ec0ec92c122ed72084a4274a5a26e300f72c586
+Corrected branch CI              35132491552 — SUCCESS
+Implementation PR #204           MERGED
+PR CI                            35132643889 — SUCCESS
+Implementation merge             0a3a68c78a93824da1c01644cfa24723fbfaf8e5
+Post-merge CI                    35132771870 — SUCCESS
+125 test files / 1413 tests
+12 focused C1 tests
+Typecheck PASS
+Production build PASS
+146 modules transformed
+```
+
+The initial feature failure was isolated to a new test mock whose inferred zero-argument signature did not match the real import command `(bytes) => Promise<...>` signature. Production code was not implicated; the test harness was corrected and all gates then passed.
+
+### 5.5C2 — Validation Detail & Recovery Guidance UX — NEXT / NOT STARTED
+
+C2 will preserve raw importer issues as authoritative technical evidence and surface deterministic recovery guidance from the existing recovery diagnostics model. It will cover unsupported versions, corrupt/unreadable workbooks, resource limits, workbook structure/value problems, invalid business data, and browser-truthful known-good-copy restore guidance.
+
+### 5.5C3 — Persistence UX Regression & Phase 5.5 Completion Gate — NOT STARTED
+
+C3 will prove the complete browser persistence UI across import, export, status, validation, and recovery, then close parent Phase 5.5 and advance exactly to `5.6A — Integrated Excel Round-Trip Workflow — NEXT / NOT STARTED`.
 
 ## Current persistence boundary
 
@@ -303,14 +357,14 @@ Browser export command boundary       COMPLETE — 5.5B1
 React browser export/save-copy UX     COMPLETE — 5.5B2
 Browser export completion regression  COMPLETE — 5.5B3
 Export / Save & Backup parent         COMPLETE — 5.5B
-Persistence session status            NEXT — 5.5C1
-Validation/recovery UX                NOT STARTED — 5.5C2
+Persistence session status            COMPLETE — 5.5C1
+Validation/recovery UX                NEXT — 5.5C2
 Persistence UX completion regression  NOT STARTED — 5.5C3
 Native filesystem                     Phase 6
 ```
 
 ## Current active task
 
-**5.5C1 — Persistence Session Status & Workbook Identity — NEXT / NOT STARTED**
+**5.5C2 — Validation Detail & Recovery Guidance UX — NEXT / NOT STARTED**
 
-Do not begin 5.5C1 until the 5.5C planning change is merged into `develop`, the exact resulting `develop` CI is green, and the user has instructed the session to proceed.
+Do not begin 5.5C2 until the 5.5C1 docs-only closeout is merged into `develop`, the exact resulting `develop` CI is green, and the user separately says to proceed.
