@@ -37,8 +37,8 @@ Master plan:
         5.4A3 — Compatibility Regression & Completion Gate                             COMPLETE
     5.4B — Backup & Atomic-Write Transport Contract       IN PROGRESS
         5.4B1 — Safe-Save Capability, Policy & Transaction Contract                    COMPLETE
-        5.4B2 — Backup + Staged-Commit In-Memory Reference Transport                   NEXT / NOT STARTED
-        5.4B3 — Failure Recovery, Coordinator Regression & Completion Gate             NOT STARTED
+        5.4B2 — Backup + Staged-Commit In-Memory Reference Transport                   COMPLETE
+        5.4B3 — Failure Recovery, Coordinator Regression & Completion Gate             NEXT / NOT STARTED
     5.4C — Corruption, Limits & Recovery Diagnostics      NOT STARTED
 
 5.5 — Excel Persistence UI                                NOT STARTED
@@ -97,7 +97,12 @@ Master plan:
 - 5.4B1 makes backup support, staged replacement, and atomic-vs-direct replacement explicit immutable transport capabilities.
 - 5.4B1 save receipts report the replacement guarantee actually delivered and distinguish `not-needed / no-existing-workbook` from backup failure.
 - `WorkbookTransportSaveError` preserves safe-save stage, stable code, commit state, and original cause; B2/B3 must build on this vocabulary rather than invent a parallel failure path.
-- The simple `InMemoryWorkbookTransport` intentionally remains `backup: unsupported`, `stagedReplacement: false`, `direct-non-atomic`; B2 owns the actual backup/staging reference implementation.
+- The simple `InMemoryWorkbookTransport` intentionally remains `backup: unsupported`, `stagedReplacement: false`, `direct-non-atomic`.
+- 5.4B2 introduces a dedicated `SafeInMemoryWorkbookTransport`; it does not replace or upgrade the simple transport.
+- The B2 safe transport owns caller bytes before async checkpoints, backs up exact pre-save primary bytes, stages separately, commits with one logical in-memory reference swap, then cleans staging.
+- B2 backup references are deterministic under an injected clock and sequence counter; retained backup bytes remain independent from later primary changes.
+- B2 `atomic` means logical in-memory commit only and does not imply native filesystem durability, rename atomicity, `fsync`, locking, or crash consistency.
+- B2 exposes deterministic test/reference fault injection for `read-existing`, `backup`, `stage`, `commit`, and `cleanup`; B3 owns exhaustive failure/recovery regression.
 
 ## Completion evidence index
 
@@ -277,8 +282,8 @@ Locked decomposition:
 
 ```text
 5.4B1 — Safe-Save Capability, Policy & Transaction Contract                    COMPLETE
-5.4B2 — Backup + Staged-Commit In-Memory Reference Transport                   NEXT / NOT STARTED
-5.4B3 — Failure Recovery, Coordinator Regression & Completion Gate             NOT STARTED
+5.4B2 — Backup + Staged-Commit In-Memory Reference Transport                   COMPLETE
+5.4B3 — Failure Recovery, Coordinator Regression & Completion Gate             NEXT / NOT STARTED
 ```
 
 ### 5.4B1 — COMPLETE
@@ -305,7 +310,31 @@ Production Vite build passed
 
 B1 established explicit immutable transport capabilities, `none` / `if-supported` / `required` backup policy, truthful atomic-vs-direct replacement receipts, distinct no-existing-workbook backup outcome, and transport save errors carrying failure stage, commit state, stable code, and original cause. The existing simple in-memory transport remains intentionally direct/non-atomic and does not implement B2 backup/staging behavior.
 
-Do not begin B2 until this B1 closeout PR is merged, the exact resulting `develop` CI is green, and the user separately says to proceed.
+### 5.4B2 — COMPLETE
+
+Completion record:
+
+`docs/PHASE_5_4B2_BACKUP_STAGED_COMMIT_IN_MEMORY_REFERENCE_TRANSPORT.md`
+
+```text
+Authoritative baseline     bae01571e707b820d90f5ed182c938e7a152899d
+Baseline CI                35049365565 — SUCCESS
+Feature head               89b5f1bc49d00cfbe14bc26dc224381a019ff6a8
+Branch CI                  35050007808 — SUCCESS
+Implementation PR #175     MERGED
+PR CI                      35050081527 — SUCCESS
+Implementation merge       163fa33b6dab018b938f37071920e85cf5137d72
+Post-merge develop CI      35050167491 — SUCCESS
+103 test files / 1232 tests
+13 focused B2 tests
+TypeScript typecheck passed
+Production Vite build passed
+132 modules transformed
+```
+
+B2 added a dedicated deterministic `SafeInMemoryWorkbookTransport` that creates exact pre-save backup evidence, stages replacement bytes separately, commits through one logical in-memory primary-reference swap, cleans staging on success, returns defensive diagnostic byte views, and exposes deterministic safe-save fault injection for B3. The original simple `InMemoryWorkbookTransport` remains direct/non-atomic and unchanged.
+
+Do not begin B3 until this B2 closeout PR is merged, the exact resulting `develop` CI is green, and the user separately says to proceed.
 
 ## Current persistence boundary
 
@@ -330,14 +359,14 @@ Migration execution/import handoff    COMPLETE — 5.4A2
 Compatibility completion gate         COMPLETE — 5.4A3
 Backup/atomic-write planning          ESTABLISHED — 5.4B
 Safe-save transport contract          COMPLETE — 5.4B1
-Reference safe-save transport         NEXT / NOT STARTED — 5.4B2
-Safe-save recovery completion gate    NOT STARTED — 5.4B3
+Reference safe-save transport         COMPLETE — 5.4B2
+Safe-save recovery completion gate    NEXT / NOT STARTED — 5.4B3
 Recovery/corruption limits            NOT STARTED — 5.4C
 Native filesystem                     Phase 6
 ```
 
 ## Current active task
 
-**5.4B2 — Backup + Staged-Commit In-Memory Reference Transport — NEXT / NOT STARTED**
+**5.4B3 — Failure Recovery, Coordinator Regression & Completion Gate — NEXT / NOT STARTED**
 
-Do not begin 5.4B2 implementation until the Phase 5.4B1 closeout PR is merged, the exact resulting `develop` CI is green, and the user separately says to proceed.
+Do not begin 5.4B3 implementation until the Phase 5.4B2 closeout PR is merged, the exact resulting `develop` CI is green, and the user separately says to proceed.
