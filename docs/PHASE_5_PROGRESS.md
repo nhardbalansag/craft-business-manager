@@ -31,11 +31,11 @@ Master plan:
         5.3C3 — XLSX Load / Import / Hydrate & Completion Gate       COMPLETE
 
 5.4 — Version Compatibility, Backup & Recovery Safety     IN PROGRESS
-    5.4A — Schema Migration & Compatibility Framework     IN PROGRESS
+    5.4A — Schema Migration & Compatibility Framework     COMPLETE
         5.4A1 — Version Preflight, Compatibility Matrix & Migration Registry Contract  COMPLETE
         5.4A2 — Version-Aware Migration Execution & Current-Contract Handoff           COMPLETE
-        5.4A3 — Compatibility Regression & Completion Gate                             NEXT / NOT STARTED
-    5.4B — Backup & Atomic-Write Transport Contract       NOT STARTED
+        5.4A3 — Compatibility Regression & Completion Gate                             COMPLETE
+    5.4B — Backup & Atomic-Write Transport Contract       NEXT / NOT STARTED
     5.4C — Corruption, Limits & Recovery Diagnostics      NOT STARTED
 
 5.5 — Excel Persistence UI                                NOT STARTED
@@ -142,11 +142,15 @@ with strict validation, atomic hydration/rollback, one shared `PersistenceCoordi
 
 ## Phase 5.4A — Schema Migration & Compatibility Framework
 
-Status: **IN PROGRESS**
+Status: **COMPLETE**
 
 Plan:
 
 `docs/PHASE_5_4A_SCHEMA_MIGRATION_COMPATIBILITY_PLAN.md`
+
+Parent completion record:
+
+`docs/PHASE_5_4A_SCHEMA_MIGRATION_COMPATIBILITY.md`
 
 Planning evidence:
 
@@ -158,25 +162,21 @@ Planning merge             f773a2cd928a87c74e62a547b3043c04dcaef577
 Planning post-merge CI     35040392356 — SUCCESS
 ```
 
-Locked decomposition:
+Completed decomposition:
 
 ```text
 5.4A1 — Version Preflight, Compatibility Matrix & Migration Registry Contract  COMPLETE
 5.4A2 — Version-Aware Migration Execution & Current-Contract Handoff           COMPLETE
-5.4A3 — Compatibility Regression & Completion Gate                             NEXT / NOT STARTED
+5.4A3 — Compatibility Regression & Completion Gate                             COMPLETE
 ```
 
-### 5.4A1 — Version Preflight, Compatibility Matrix & Migration Registry Contract
-
-Status: **COMPLETE**
+### 5.4A1 — COMPLETE
 
 Completion record:
 
 `docs/PHASE_5_4A1_VERSION_PREFLIGHT_MIGRATION_REGISTRY.md`
 
 ```text
-Authoritative baseline     f773a2cd928a87c74e62a547b3043c04dcaef577
-Baseline CI                35040392356 — SUCCESS
 Corrected feature head     104beacd503b33b57e0180c0c642017c6ddb07a8
 Corrected branch CI        35041223493 — SUCCESS
 Implementation PR #166     MERGED
@@ -190,9 +190,7 @@ Post-merge develop CI      35041385616 — SUCCESS
 
 A1 established minimal metadata preflight, deterministic compatibility classification, pure migration-step and registry contracts, cycle/no-downgrade protections, defensive neutral-workbook ownership, and an intentionally empty production registry at v1/v1.
 
-### 5.4A2 — Version-Aware Migration Execution & Current-Contract Handoff
-
-Status: **COMPLETE**
+### 5.4A2 — COMPLETE
 
 Completion record:
 
@@ -201,8 +199,6 @@ Completion record:
 ```text
 Authoritative baseline     049cc5cfe38090f87dbbe702b140915e8224b998
 Baseline CI                35041734689 — SUCCESS
-Initial feature head       5cf395dfd32722fc609bd269c4de48962cafef3f
-Initial CI                 35042246720 — FAILURE (legacy test stage expectation only)
 Corrected feature head     c7ed54af3b38f8f9dacee52384af39472dac5d8b
 Corrected branch CI        35042353048 — SUCCESS
 Implementation PR #168     MERGED
@@ -212,24 +208,36 @@ Post-merge develop CI      35042566109 — SUCCESS
 99 test files / 1203 tests
 12 focused migration-preparation tests
 5 focused importer compatibility/handoff tests
+132 modules transformed
+```
+
+A2 delivered version-aware preparation/migration after codec decode, deterministic migration execution, defensive migration ownership, fail-closed migration diagnostics, and handoff to the unchanged strict current workbook/dataset contract.
+
+### 5.4A3 — COMPLETE
+
+Completion record:
+
+`docs/PHASE_5_4A3_COMPATIBILITY_REGRESSION_COMPLETION_GATE.md`
+
+```text
+Authoritative baseline     c2816d5c0c293ba24f74f20c31edf2c61eb0f26f
+Baseline CI                35042813430 — SUCCESS
+Feature head               ca282c8c3317482bc02d74eb5ea4acc347941ab3
+Branch CI                  35046943869 — SUCCESS
+Implementation PR #170     MERGED
+PR CI                      35047034132 — SUCCESS
+Implementation merge       75473f92766a0b66d5955dec89869eaaf5712939
+Post-merge develop CI      35047100605 — SUCCESS
+102 test files / 1214 tests
+11 focused new A3 tests
 TypeScript typecheck passed
 Production Vite build passed
 132 modules transformed
 ```
 
-A2 delivered:
+A3 proved current v1/v1 preservation, fail-closed future/invalid metadata behavior, synthetic migration isolation, strict current workbook/dataset validation authority, direct/transport-backed current import, and zero-hydration compatibility/migration rejection. The A3 implementation changed tests only and introduced no production/runtime code changes.
 
-- `prepareWorkbookForCurrentImport(...)` between codec decode and strict current reconstruction;
-- deterministic single/multi-step migration execution over neutral workbook documents;
-- defensive step input/output ownership;
-- fail-closed future, no-path, malformed-output, format-mismatch, version-mismatch, and thrown-step handling;
-- structured compatibility/migration importer diagnostics with contextual version/step/cause data;
-- version-aware `importBusinessDatasetFromXlsx(...)` while preserving its external result shape;
-- unchanged strict current-form reconstruction and dataset validation authority;
-- unchanged `PersistenceCoordinator` runtime API and zero-hydration rejection behavior;
-- no public version bump and no fabricated production migration predecessor.
-
-The initial feature CI failure was a regression-test expectation only: Phase 5.3C3 had restricted import rejection stages to `codec`/`schema`. The assertion was expanded for A2's structured `compatibility`/`migration` stages while retaining the zero-hydration safety assertion.
+Phase 5.4A closes with public v1/v1 unchanged and no production migration registrations until a real historical predecessor exists.
 
 ## Current persistence boundary
 
@@ -248,16 +256,17 @@ Persistence coordinator lifecycle     COMPLETE — 5.3C
 Workbook transport/lifecycle contract COMPLETE — 5.3C1
 Export/save orchestration             COMPLETE — 5.3C2
 Load/import/hydrate orchestration     COMPLETE — 5.3C3
-Schema compatibility/migration plan   ESTABLISHED — 5.4A
+Schema compatibility/migration        COMPLETE — 5.4A
 Version preflight/registry contract   COMPLETE — 5.4A1
 Migration execution/import handoff    COMPLETE — 5.4A2
-Compatibility completion gate         NEXT / NOT STARTED — 5.4A3
-Detailed backup/atomic write          NOT STARTED — 5.4B
+Compatibility completion gate         COMPLETE — 5.4A3
+Detailed backup/atomic write          NEXT / NOT STARTED — 5.4B
+Recovery/corruption limits            NOT STARTED — 5.4C
 Native filesystem                     Phase 6
 ```
 
 ## Current active task
 
-**5.4A3 — Compatibility Regression & Completion Gate — NEXT / NOT STARTED**
+**5.4B — Backup & Atomic-Write Transport Contract — NEXT / NOT STARTED**
 
-Do not begin 5.4A3 implementation until the 5.4A2 closeout PR is merged, the exact resulting `develop` CI is green, and the user separately says to proceed.
+Do not begin 5.4B until the Phase 5.4A closeout PR is merged, the exact resulting `develop` CI is green, and the user separately says to proceed.
