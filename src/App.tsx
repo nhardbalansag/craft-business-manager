@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { BrowserWorkbookExportCommand } from './application/persistence/BrowserWorkbookExportCommand';
 import { BrowserWorkbookImportCommand } from './application/persistence/BrowserWorkbookImportCommand';
 import { persistenceCoordinator } from './application/session';
@@ -42,6 +42,8 @@ export default function App({
   persistenceUiClock,
 }: AppProps = {}) {
   const [section, setSection] = useState<AppSection>('materials');
+  const workbookToolsRef = useRef<HTMLDetailsElement>(null);
+  const workbookTriggerRef = useRef<HTMLElement>(null);
   const [workspaceRevision, setWorkspaceRevision] = useState(0);
   const [persistenceStatus, setPersistenceStatus] = useState(() =>
     createWorkbookPersistenceSessionStatus(),
@@ -57,6 +59,11 @@ export default function App({
   const uiClock = persistenceUiClock ?? systemPersistenceUiClock;
   const workbookIdentityLabel =
     persistenceStatus.activeImportedWorkbook?.fileName ?? 'No workbook imported';
+
+  function closeWorkbookTools() {
+    if (workbookToolsRef.current) workbookToolsRef.current.open = false;
+    workbookTriggerRef.current?.focus();
+  }
 
   function handleWorkbookHydrated(event: WorkbookImportHydratedEvent) {
     const observedAt = uiClock();
@@ -83,16 +90,25 @@ export default function App({
 
         <div className="app-header-actions">
           <nav className="phase-nav" aria-label="Application sections">
-            <button className={`nav-item ${section === 'materials' ? 'active' : ''}`} type="button" onClick={() => setSection('materials')}>Materials</button>
-            <button className={`nav-item ${section === 'calibration' ? 'active' : ''}`} type="button" onClick={() => setSection('calibration')}>Calibration</button>
-            <button className={`nav-item ${section === 'products' ? 'active' : ''}`} type="button" onClick={() => setSection('products')}>Products</button>
-            <button className={`nav-item ${section === 'yield' ? 'active' : ''}`} type="button" onClick={() => setSection('yield')}>Yield</button>
-            <button className={`nav-item ${section === 'production' ? 'active' : ''}`} type="button" onClick={() => setSection('production')}>Production</button>
-            <button className={`nav-item ${section === 'pricing' ? 'active' : ''}`} type="button" onClick={() => setSection('pricing')}>Pricing</button>
+            <button className={`nav-item ${section === 'materials' ? 'active' : ''}`} type="button" aria-current={section === 'materials' ? 'page' : undefined} onClick={() => setSection('materials')}>Materials</button>
+            <button className={`nav-item ${section === 'calibration' ? 'active' : ''}`} type="button" aria-current={section === 'calibration' ? 'page' : undefined} onClick={() => setSection('calibration')}>Calibration</button>
+            <button className={`nav-item ${section === 'products' ? 'active' : ''}`} type="button" aria-current={section === 'products' ? 'page' : undefined} onClick={() => setSection('products')}>Products</button>
+            <button className={`nav-item ${section === 'yield' ? 'active' : ''}`} type="button" aria-current={section === 'yield' ? 'page' : undefined} onClick={() => setSection('yield')}>Yield</button>
+            <button className={`nav-item ${section === 'production' ? 'active' : ''}`} type="button" aria-current={section === 'production' ? 'page' : undefined} onClick={() => setSection('production')}>Production</button>
+            <button className={`nav-item ${section === 'pricing' ? 'active' : ''}`} type="button" aria-current={section === 'pricing' ? 'page' : undefined} onClick={() => setSection('pricing')}>Pricing</button>
           </nav>
 
-          <details className="workbook-tools">
-            <summary className="workbook-tools-trigger">
+          <details
+            className="workbook-tools"
+            ref={workbookToolsRef}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape' && event.currentTarget.open) {
+                event.preventDefault();
+                closeWorkbookTools();
+              }
+            }}
+          >
+            <summary className="workbook-tools-trigger" ref={workbookTriggerRef} aria-label="Workbook tools">
               <span className="workbook-tools-icon" aria-hidden="true">▣</span>
               <span className="workbook-tools-trigger-copy">
                 <strong>Workbook</strong>
@@ -102,6 +118,11 @@ export default function App({
             </summary>
 
             <div className="workbook-tools-popover">
+              <div className="workbook-tools-close-row">
+                <button className="button button-quiet" type="button" onClick={closeWorkbookTools}>
+                  Close workbook tools
+                </button>
+              </div>
               <div className="workbook-tools-popover-heading">
                 <div>
                   <p className="panel-kicker">WORKBOOK TOOLS</p>
