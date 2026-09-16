@@ -1,4 +1,5 @@
 import type { PlannedBatchCapacityFeasibilityResult } from '../../application/production/PlannedBatchCapacityFeasibilityService';
+import { BatchProductionRequestPrintButton } from './BatchProductionRequestPrintButton';
 import {
   buildFinancialLimiterRows,
   capacityFeasibilityLabel,
@@ -149,6 +150,8 @@ export function ProductionFinancialSummary({
           Selling price / piece <strong>{formatBatchMoney(financials?.sellingPrice)}</strong>
         </span>
       </div>
+
+      <BatchProductionRequestPrintButton result={result} />
 
       {result.warnings.length > 0 && (
         <section className="panel production-financial-warning-panel" aria-label="Batch advisories">
