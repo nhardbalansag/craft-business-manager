@@ -1,9 +1,5 @@
-import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  materialService,
-  mixPresetService,
-  productService,
-} from '../../application/session';
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { materialService, mixPresetService, productService } from '../../application/session';
 import type { Material } from '../../domain/materials';
 import {
   MIX_PRESET_LINE_ROLES,
@@ -13,12 +9,8 @@ import {
   type MixPresetLineRole,
   type RatioBasis,
 } from '../../domain/mixPresets';
-import {
-  PRODUCT_CATEGORIES,
-  PRODUCT_CATEGORY_RULES,
-  type Product,
-  type ProductCategory,
-} from '../../domain/products';
+import { PRODUCT_CATEGORIES, PRODUCT_CATEGORY_RULES, type Product, type ProductCategory } from '../../domain/products';
+import { ProductCatalog } from './ProductCatalog';
 import { ProductComponentsView } from './ProductComponentsView';
 import { ProductStockView } from './ProductStockView';
 import './products.css';
@@ -169,9 +161,11 @@ export function ProductsPage() {
   const [productForm, setProductForm] = useState<ProductFormState>(EMPTY_PRODUCT_FORM);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [productFeedback, setProductFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-  const [productQuery, setProductQuery] = useState('');
-  const [productStatus, setProductStatus] = useState<ActiveFilter>('active');
-  const [productCategory, setProductCategory] = useState<ProductCategory | 'all'>('all');
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const mutationInFlight = useRef(false);
+  const productNameInput = useRef<HTMLInputElement>(null);
+  const [componentProductId, setComponentProductId] = useState('');
 
   const [mixForm, setMixForm] = useState<MixFormState>(() => emptyMixForm());
   const [editingMixId, setEditingMixId] = useState<string | null>(null);
@@ -182,6 +176,7 @@ export function ProductsPage() {
 
   const reload = useCallback(async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       const [nextProducts, nextMixes, nextMaterials] = await Promise.all([
         productService.listProducts(),
@@ -191,6 +186,8 @@ export function ProductsPage() {
       setProducts(nextProducts);
       setMixPresets(nextMixes);
       setMaterials(nextMaterials);
+    } catch (error) {
+      setLoadError(errorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -200,21 +197,6 @@ export function ProductsPage() {
     void reload();
   }, [reload]);
 
-  const visibleProducts = useMemo(() => {
-    const query = normalizeQuery(productQuery);
-    return products.filter((product) => {
-      const statusMatches =
-        productStatus === 'all' || (productStatus === 'active' ? product.isActive : !product.isActive);
-      const categoryMatches = productCategory === 'all' || product.category === productCategory;
-      const queryMatches =
-        !query ||
-        [product.id, product.name, product.notes ?? '', product.mixPresetId ?? ''].some((value) =>
-          value.toLocaleLowerCase().includes(query),
-        );
-      return statusMatches && categoryMatches && queryMatches;
-    });
-  }, [products, productCategory, productQuery, productStatus]);
-
   const visibleMixes = useMemo(() => {
     const query = normalizeQuery(mixQuery);
     return mixPresets.filter((preset) => {
@@ -222,12 +204,19 @@ export function ProductsPage() {
       const basisMatches = mixBasis === 'all' || preset.basis === mixBasis;
       const queryMatches =
         !query ||
-        [preset.id, preset.name, preset.notes ?? '', ...preset.compatibleCategories, ...preset.lines.map((line) => line.materialId)].some(
-          (value) => value.toLocaleLowerCase().includes(query),
-        );
+        [
+          preset.id,
+          preset.name,
+          preset.notes ?? '',
+          ...preset.compatibleCategories,
+          ...preset.lines.flatMap((line) => [
+            line.materialId,
+            materials.find((material) => material.id.toLowerCase() === line.materialId.toLowerCase())?.name ?? '',
+          ]),
+        ].some((value) => value.toLocaleLowerCase().includes(query));
       return statusMatches && basisMatches && queryMatches;
     });
-  }, [mixBasis, mixPresets, mixQuery, mixStatus]);
+  }, [mixBasis, mixPresets, mixQuery, mixStatus, materials]);
 
   const compatibleMixes = useMemo(
     () =>
@@ -255,8 +244,13 @@ export function ProductsPage() {
 
   async function submitProduct(event: FormEvent) {
     event.preventDefault();
+    if (mutationInFlight.current || loading || loadError) return;
+    mutationInFlight.current = true;
+    setBusy(true);
     setProductFeedback(null);
     try {
+      if (productForm.safetyWastePercent.trim() === '')
+        throw new Error('Enter a material reserve percentage, including 0 for no reserve.');
       if (editingProductId) {
         const existing = products.find((product) => product.id === editingProductId);
         const candidate = formToProduct(productForm, existing?.isActive ?? true);
@@ -276,23 +270,39 @@ export function ProductsPage() {
       await reload();
     } catch (error) {
       setProductFeedback({ type: 'error', message: errorMessage(error) });
+    } finally {
+      mutationInFlight.current = false;
+      setBusy(false);
     }
   }
 
   async function archiveProduct(product: Product) {
+    if (mutationInFlight.current || loading || loadError) return;
+    mutationInFlight.current = true;
+    setBusy(true);
     setProductFeedback(null);
     try {
-      await productService.archiveProduct(product.id);
+      if (product.isActive) await productService.archiveProduct(product.id);
+      else await productService.updateProduct(product.id, { isActive: true });
       if (editingProductId === product.id) resetProductForm();
       await reload();
-      setProductFeedback({ type: 'success', message: `${product.name} archived.` });
+      setProductFeedback({
+        type: 'success',
+        message: `${product.name} ${product.isActive ? 'archived' : 'restored'}.`,
+      });
     } catch (error) {
       setProductFeedback({ type: 'error', message: errorMessage(error) });
+    } finally {
+      mutationInFlight.current = false;
+      setBusy(false);
     }
   }
 
   async function submitMix(event: FormEvent) {
     event.preventDefault();
+    if (mutationInFlight.current || loading || loadError) return;
+    mutationInFlight.current = true;
+    setBusy(true);
     setMixFeedback(null);
     try {
       if (editingMixId) {
@@ -314,18 +324,28 @@ export function ProductsPage() {
       await reload();
     } catch (error) {
       setMixFeedback({ type: 'error', message: errorMessage(error) });
+    } finally {
+      mutationInFlight.current = false;
+      setBusy(false);
     }
   }
 
   async function archiveMix(preset: MixPreset) {
+    if (mutationInFlight.current || loading || loadError) return;
+    mutationInFlight.current = true;
+    setBusy(true);
     setMixFeedback(null);
     try {
-      await mixPresetService.archiveMixPreset(preset.id);
+      if (preset.isActive) await mixPresetService.archiveMixPreset(preset.id);
+      else await mixPresetService.updateMixPreset(preset.id, { isActive: true });
       if (editingMixId === preset.id) resetMixForm();
       await reload();
-      setMixFeedback({ type: 'success', message: `${preset.name} archived.` });
+      setMixFeedback({ type: 'success', message: `${preset.name} ${preset.isActive ? 'archived' : 'restored'}.` });
     } catch (error) {
       setMixFeedback({ type: 'error', message: errorMessage(error) });
+    } finally {
+      mutationInFlight.current = false;
+      setBusy(false);
     }
   }
 
@@ -354,7 +374,9 @@ export function ProductsPage() {
   }
 
   const materialName = useCallback(
-    (materialId: string) => materials.find((material) => material.id.toLocaleLowerCase() === materialId.toLocaleLowerCase())?.name ?? materialId,
+    (materialId: string) =>
+      materials.find((material) => material.id.toLocaleLowerCase() === materialId.toLocaleLowerCase())?.name ??
+      materialId,
     [materials],
   );
 
@@ -362,93 +384,506 @@ export function ProductsPage() {
     <section className="materials-workspace products-workspace">
       <div className="page-heading-row">
         <div>
-          <p className="eyebrow">PHASE 3 · PRODUCT COMPOSITION</p>
-          <h1>Products, mixes, components & stock</h1>
-          <p className="page-lead">
-            Define sellable Products, reusable material ratios, discrete assembly components, and current finished component stock.
-          </p>
+          <p className="eyebrow">WORKSHOP / PRODUCTS</p>
+          <h1>Your product workshop</h1>
+          <p className="page-lead">Build your collection, refine your mixes, and bring every component together.</p>
         </div>
-        <div className="session-badge"><span className="status-dot" />Session workspace</div>
+        <div className="session-badge">Catalog &amp; recipe setup</div>
       </div>
 
-      <div className="workspace-switcher" role="tablist" aria-label="Product workspace views">
-        <button type="button" className={view === 'products' ? 'active' : ''} onClick={() => setView('products')}>Products</button>
-        <button type="button" className={view === 'mixes' ? 'active' : ''} onClick={() => setView('mixes')}>Mix presets</button>
-        <button type="button" className={view === 'components' ? 'active' : ''} onClick={() => setView('components')}>Components</button>
-        <button type="button" className={view === 'stock' ? 'active' : ''} onClick={() => setView('stock')}>Finished stock</button>
+      <div className="products-overview" aria-label="Workshop summary">
+        <article className="panel">
+          <span>Active products</span>
+          <strong>{loading || loadError ? '-' : products.filter((item) => item.isActive).length}</strong>
+          <small>Your current collection</small>
+        </article>
+        <article className="panel">
+          <span>Mix presets</span>
+          <strong>{loading || loadError ? '-' : mixPresets.filter((item) => item.isActive).length}</strong>
+          <small>Reusable material ratios</small>
+        </article>
+        <article className="panel">
+          <span>Archived products</span>
+          <strong>{loading || loadError ? '-' : products.filter((item) => !item.isActive).length}</strong>
+          <small>Keep history; restore when needed</small>
+        </article>
       </div>
+      <nav className="workspace-switcher" aria-label="Product workspace views">
+        {(
+          [
+            { id: 'products', title: 'Products', hint: 'Your collection' },
+            { id: 'mixes', title: 'Mix presets', hint: 'Reusable ratios' },
+            { id: 'components', title: 'Components', hint: 'Assembly setup' },
+            { id: 'stock', title: 'Finished stock', hint: 'Ready to assemble' },
+          ] as const
+        ).map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            disabled={busy}
+            className={view === item.id ? 'active' : ''}
+            aria-pressed={view === item.id}
+            aria-controls={`products-view-${item.id}`}
+            onClick={() => setView(item.id)}
+          >
+            <strong>{item.title}</strong>
+            <small>{item.hint}</small>
+          </button>
+        ))}
+      </nav>
+      {loadError && (
+        <div className="feedback feedback-error" role="alert">
+          Could not refresh the workshop: {loadError}{' '}
+          <button type="button" className="text-button" disabled={busy || loading} onClick={() => void reload()}>
+            Retry loading
+          </button>
+        </div>
+      )}
+      {view === 'products' && productFeedback && (
+        <div
+          className={`feedback feedback-${productFeedback.type}`}
+          role={productFeedback.type === 'error' ? 'alert' : 'status'}
+        >
+          {productFeedback.message}
+        </div>
+      )}
+      {view === 'mixes' && mixFeedback && (
+        <div
+          className={`feedback feedback-${mixFeedback.type}`}
+          role={mixFeedback.type === 'error' ? 'alert' : 'status'}
+        >
+          {mixFeedback.message}
+        </div>
+      )}
 
-      {view === 'products' ? (
-        <div className="materials-layout product-layout">
-          <form className="panel material-form" onSubmit={submitProduct}>
-            <div className="panel-heading">
-              <div><p className="panel-kicker">PRODUCT MASTER</p><h2>{editingProductId ? 'Edit product' : 'Add a product'}</h2></div>
-              {editingProductId && <button type="button" className="text-button" onClick={resetProductForm}>Cancel</button>}
+      <div id="products-view-products" hidden={view !== 'products'} className="product-catalog-layout">
+        <ProductCatalog
+          products={products}
+          mixPresets={mixPresets}
+          loading={loading}
+          loadFailed={Boolean(loadError)}
+          disabled={busy || loading || Boolean(loadError)}
+          editingId={editingProductId}
+          onNew={() => {
+            resetProductForm();
+            productNameInput.current?.focus();
+          }}
+          onEdit={(product) => {
+            setEditingProductId(product.id);
+            setProductForm(productToForm(product));
+            setProductFeedback(null);
+            productNameInput.current?.focus();
+          }}
+          onComponents={(product) => {
+            setComponentProductId(product.id);
+            setView('components');
+          }}
+          onToggleActive={(product) => void archiveProduct(product)}
+        />
+        <form
+          className="panel material-form product-details-form"
+          aria-label="Product details"
+          onSubmit={submitProduct}
+          aria-busy={busy}
+        >
+          <div className="panel-heading">
+            <div>
+              <p className="panel-kicker">PRODUCT DETAILS</p>
+              <h2>{editingProductId ? 'Edit product' : 'Add a product'}</h2>
+              <p className="product-editor-hint">
+                {editingProductId
+                  ? `Editing ${editingProductId}. Your ID stays the same.`
+                  : 'Start with a name and category, then choose how to make it.'}
+              </p>
             </div>
-
-            <div className="form-grid">
-              <label className="field"><span>Product ID</span><input value={productForm.id} disabled={Boolean(editingProductId)} onChange={(event) => setProductForm({ ...productForm, id: event.target.value })} placeholder="ART-001" /></label>
-              <label className="field"><span>Name</span><input value={productForm.name} onChange={(event) => setProductForm({ ...productForm, name: event.target.value })} placeholder="Paintable star" /></label>
-              <label className="field"><span>Category</span><select value={productForm.category} onChange={(event) => setProductForm({ ...productForm, category: event.target.value as ProductCategory, mixPresetId: '' })}>{PRODUCT_CATEGORIES.map((category) => <option key={category} value={category}>{categoryLabel(category)}</option>)}</select><small>{PRODUCT_CATEGORY_RULES[productForm.category].productionStyle} · typical {PRODUCT_CATEGORY_RULES[productForm.category].typicalMixBasis} mix</small></label>
-              <label className="field"><span>Safety waste (%)</span><input type="number" min="0" max="99.999" step="0.1" value={productForm.safetyWastePercent} onChange={(event) => setProductForm({ ...productForm, safetyWastePercent: event.target.value })} /><small>Forward-looking production reserve, separate from defect rate.</small></label>
-              <label className="field field-wide"><span>Mix preset</span><select value={productForm.mixPresetId} onChange={(event) => setProductForm({ ...productForm, mixPresetId: event.target.value })}><option value="">No mix preset</option>{compatibleMixes.map((preset) => <option key={preset.id} value={preset.id}>{preset.name}{preset.isActive ? '' : ' (archived)'}</option>)}</select><small>Only presets compatible with {categoryLabel(productForm.category)} are shown.</small></label>
-              <label className="field field-wide"><span>Notes</span><textarea value={productForm.notes} onChange={(event) => setProductForm({ ...productForm, notes: event.target.value })} placeholder="Mold, curing or production notes..." /></label>
-            </div>
-
-            <button className="button button-primary button-full" type="submit">{editingProductId ? 'Save product' : 'Create product'}</button>
-            {productFeedback && <div className={`feedback feedback-${productFeedback.type}`}>{productFeedback.message}</div>}
-          </form>
-
-          <div className="panel material-list">
-            <div className="panel-heading list-heading"><div><p className="panel-kicker">PRODUCT CATALOG</p><h2>Sellable products</h2></div><div className="material-count"><strong>{visibleProducts.length}</strong><span>shown</span></div></div>
-            <div className="filters products-filters">
-              <label className="search-field"><span className="sr-only">Search products</span><input value={productQuery} onChange={(event) => setProductQuery(event.target.value)} placeholder="Search product, ID or mix..." /></label>
-              <select aria-label="Product category filter" value={productCategory} onChange={(event) => setProductCategory(event.target.value as ProductCategory | 'all')}><option value="all">All categories</option>{PRODUCT_CATEGORIES.map((category) => <option key={category} value={category}>{categoryLabel(category)}</option>)}</select>
-              <select aria-label="Product status filter" value={productStatus} onChange={(event) => setProductStatus(event.target.value as ActiveFilter)}><option value="active">Active</option><option value="archived">Archived</option><option value="all">All status</option></select>
-            </div>
-            <div className="table-wrap">
-              {loading ? <div className="empty-state"><p>Loading products…</p></div> : visibleProducts.length === 0 ? <div className="empty-state"><div className="empty-icon">◇</div><h3>No products yet</h3><p>Create a product or adjust your filters.</p></div> : (
-                <table className="materials-table products-table"><thead><tr><th>Product</th><th>Category</th><th>Mix</th><th>Safety waste</th><th>Status</th><th>Actions</th></tr></thead><tbody>{visibleProducts.map((product) => {
-                  const preset = mixPresets.find((item) => item.id.toLocaleLowerCase() === product.mixPresetId?.toLocaleLowerCase());
-                  return <tr key={product.id} className={product.isActive ? '' : 'archived-row'}><td><strong>{product.name}</strong><span className="material-id">{product.id}</span></td><td><span className="group-pill">{categoryLabel(product.category)}</span></td><td>{preset?.name ?? product.mixPresetId ?? '—'}</td><td>{(product.safetyWasteRate * 100).toLocaleString(undefined, { maximumFractionDigits: 2 })}%</td><td><span className={`status-pill ${product.isActive ? 'status-active' : ''}`}>{product.isActive ? 'Active' : 'Archived'}</span></td><td className="row-actions"><button type="button" className="text-button" onClick={() => { setEditingProductId(product.id); setProductForm(productToForm(product)); setProductFeedback(null); }}>Edit</button>{product.isActive && <button type="button" className="text-button danger" onClick={() => void archiveProduct(product)}>Archive</button>}</td></tr>;
-                })}</tbody></table>
-              )}
-            </div>
-            <div className="list-footer"><span>Products may combine Phase 2 direct materials with Phase 3 discrete components.</span><span>{products.filter((item) => item.isActive).length} active</span></div>
+            {editingProductId && (
+              <button type="button" className="text-button" disabled={busy} onClick={resetProductForm}>
+                Clear
+              </button>
+            )}
           </div>
-        </div>
-      ) : view === 'mixes' ? (
+
+          <fieldset className="product-form-fields" disabled={busy || loading || Boolean(loadError)}>
+            <div className="form-grid">
+              <label className="field">
+                <span>Product ID</span>
+                <input
+                  required
+                  value={productForm.id}
+                  disabled={Boolean(editingProductId)}
+                  onChange={(event) => setProductForm({ ...productForm, id: event.target.value })}
+                  placeholder="ART-001"
+                />
+              </label>
+              <label className="field">
+                <span>Name</span>
+                <input
+                  ref={productNameInput}
+                  required
+                  value={productForm.name}
+                  onChange={(event) => setProductForm({ ...productForm, name: event.target.value })}
+                  placeholder="Paintable star"
+                />
+              </label>
+              <label className="field">
+                <span>Category</span>
+                <select
+                  value={productForm.category}
+                  onChange={(event) =>
+                    setProductForm({
+                      ...productForm,
+                      category: event.target.value as ProductCategory,
+                      mixPresetId: mixPresets.some(
+                        (preset) =>
+                          preset.id === productForm.mixPresetId &&
+                          preset.compatibleCategories.includes(event.target.value as ProductCategory),
+                      )
+                        ? productForm.mixPresetId
+                        : '',
+                    })
+                  }
+                >
+                  {PRODUCT_CATEGORIES.map((category) => (
+                    <option key={category} value={category}>
+                      {categoryLabel(category)}
+                    </option>
+                  ))}
+                </select>
+                <small>
+                  {PRODUCT_CATEGORY_RULES[productForm.category].productionStyle} · typical{' '}
+                  {PRODUCT_CATEGORY_RULES[productForm.category].typicalMixBasis} mix
+                </small>
+              </label>
+              <label className="field">
+                <span>Safety waste (%)</span>
+                <input
+                  required
+                  type="number"
+                  min="0"
+                  max="99.999"
+                  step="0.1"
+                  value={productForm.safetyWastePercent}
+                  onChange={(event) => setProductForm({ ...productForm, safetyWastePercent: event.target.value })}
+                />
+                <small>Extra direct material to allow for production waste. Enter 0 for no reserve.</small>
+              </label>
+              <label className="field field-wide">
+                <span>Mix preset</span>
+                <select
+                  value={productForm.mixPresetId}
+                  onChange={(event) => setProductForm({ ...productForm, mixPresetId: event.target.value })}
+                >
+                  <option value="">No mix preset</option>
+                  {compatibleMixes.map((preset) => (
+                    <option key={preset.id} value={preset.id}>
+                      {preset.name}
+                      {preset.isActive ? '' : ' (archived)'}
+                    </option>
+                  ))}
+                </select>
+                <small>Only presets compatible with {categoryLabel(productForm.category)} are shown.</small>
+              </label>
+              <label className="field field-wide">
+                <span>Notes</span>
+                <textarea
+                  value={productForm.notes}
+                  onChange={(event) => setProductForm({ ...productForm, notes: event.target.value })}
+                  placeholder="Mold, curing or production notes..."
+                />
+              </label>
+            </div>
+
+            <button className="button button-primary button-full" type="submit">
+              {busy ? 'Saving...' : editingProductId ? 'Save product' : 'Create product'}
+            </button>
+          </fieldset>
+        </form>
+      </div>
+      <div id="products-view-mixes" hidden={view !== 'mixes'}>
         <div className="materials-layout product-layout">
           <form className="panel material-form" onSubmit={submitMix}>
-            <div className="panel-heading"><div><p className="panel-kicker">RATIO LIBRARY</p><h2>{editingMixId ? 'Edit mix preset' : 'Add a mix preset'}</h2></div>{editingMixId && <button type="button" className="text-button" onClick={resetMixForm}>Cancel</button>}</div>
-            <div className="form-grid">
-              <label className="field"><span>Preset ID</span><input value={mixForm.id} disabled={Boolean(editingMixId)} onChange={(event) => setMixForm({ ...mixForm, id: event.target.value })} placeholder="MIX-PLASTER-2-1" /></label>
-              <label className="field"><span>Name</span><input value={mixForm.name} onChange={(event) => setMixForm({ ...mixForm, name: event.target.value })} placeholder="Plaster 2:1" /></label>
-              <label className="field field-wide"><span>Ratio basis</span><select value={mixForm.basis} onChange={(event) => setMixForm({ ...mixForm, basis: event.target.value as RatioBasis })}>{MIX_RATIO_BASES.map((basis) => <option key={basis} value={basis}>{basis === 'weight' ? 'Weight' : 'Volume'}</option>)}</select><small>All ratio quantities will be resolved using a {mixForm.basis} anchor unit.</small></label>
-              <div className="field field-wide"><span>Compatible product categories</span><div className="category-checkboxes">{PRODUCT_CATEGORIES.map((category) => <label key={category}><input type="checkbox" checked={mixForm.compatibleCategories.includes(category)} onChange={() => toggleCompatibleCategory(category)} />{categoryLabel(category)}</label>)}</div></div>
-              <div className="field field-wide"><span>Ratio lines</span><div className="mix-lines">{mixForm.lines.map((line, index) => <div className="mix-line-row" key={line.key}>
-                <select aria-label={`Mix material ${index + 1}`} value={line.materialId} onChange={(event) => updateMixLine(line.key, { materialId: event.target.value })}><option value="">Select material</option>{activeMaterials.map((material) => <option key={material.id} value={material.id}>{material.name} · {material.baseUnit}</option>)}</select>
-                <select aria-label={`Mix role ${index + 1}`} value={line.role} onChange={(event) => updateMixLine(line.key, { role: event.target.value as MixPresetLineRole })}>{MIX_PRESET_LINE_ROLES.map((role) => <option key={role} value={role}>{role}</option>)}</select>
-                <input aria-label={`Mix parts ${index + 1}`} type="number" min="0.000001" step="any" value={line.parts} onChange={(event) => updateMixLine(line.key, { parts: event.target.value })} placeholder="parts" />
-                <button type="button" className="text-button danger" disabled={mixForm.lines.length === 1} onClick={() => removeMixLine(line.key)}>Remove</button>
-              </div>)}</div><button type="button" className="button button-quiet add-line-button" onClick={addMixLine}>+ Add material line</button><small>Exactly one line must be primary. Parts are relative, not absolute batch quantities.</small></div>
-              <label className="field field-wide"><span>Notes</span><textarea value={mixForm.notes} onChange={(event) => setMixForm({ ...mixForm, notes: event.target.value })} placeholder="Mixing order, brand-specific notes..." /></label>
+            <div className="panel-heading">
+              <div>
+                <p className="panel-kicker">RATIO LIBRARY</p>
+                <h2>{editingMixId ? 'Edit mix preset' : 'Add a mix preset'}</h2>
+              </div>
+              {editingMixId && (
+                <button type="button" className="text-button" disabled={busy} onClick={resetMixForm}>
+                  Cancel
+                </button>
+              )}
             </div>
-            <button className="button button-primary button-full" type="submit">{editingMixId ? 'Save mix preset' : 'Create mix preset'}</button>
-            {mixFeedback && <div className={`feedback feedback-${mixFeedback.type}`}>{mixFeedback.message}</div>}
+            <fieldset className="product-form-fields" disabled={busy || loading || Boolean(loadError)}>
+              <div className="form-grid">
+                <label className="field">
+                  <span>Preset ID</span>
+                  <input
+                    required
+                    value={mixForm.id}
+                    disabled={Boolean(editingMixId)}
+                    onChange={(event) => setMixForm({ ...mixForm, id: event.target.value })}
+                    placeholder="MIX-PLASTER-2-1"
+                  />
+                </label>
+                <label className="field">
+                  <span>Name</span>
+                  <input
+                    required
+                    value={mixForm.name}
+                    onChange={(event) => setMixForm({ ...mixForm, name: event.target.value })}
+                    placeholder="Plaster 2:1"
+                  />
+                </label>
+                <label className="field field-wide">
+                  <span>Ratio basis</span>
+                  <select
+                    value={mixForm.basis}
+                    onChange={(event) => setMixForm({ ...mixForm, basis: event.target.value as RatioBasis })}
+                  >
+                    {MIX_RATIO_BASES.map((basis) => (
+                      <option key={basis} value={basis}>
+                        {basis === 'weight' ? 'Weight' : 'Volume'}
+                      </option>
+                    ))}
+                  </select>
+                  <small>All ratio quantities will be resolved using a {mixForm.basis} anchor unit.</small>
+                </label>
+                <div className="field field-wide">
+                  <span>Compatible product categories</span>
+                  <div className="category-checkboxes">
+                    {PRODUCT_CATEGORIES.map((category) => (
+                      <label key={category}>
+                        <input
+                          type="checkbox"
+                          checked={mixForm.compatibleCategories.includes(category)}
+                          onChange={() => toggleCompatibleCategory(category)}
+                        />
+                        {categoryLabel(category)}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <div className="field field-wide">
+                  <span>Ratio lines</span>
+                  <div className="mix-lines">
+                    {mixForm.lines.map((line, index) => (
+                      <div className="mix-line-row" key={line.key}>
+                        <select
+                          aria-label={`Mix material ${index + 1}`}
+                          value={line.materialId}
+                          onChange={(event) => updateMixLine(line.key, { materialId: event.target.value })}
+                        >
+                          <option value="">Select material</option>
+                          {activeMaterials.map((material) => (
+                            <option key={material.id} value={material.id}>
+                              {material.name} · {material.baseUnit}
+                            </option>
+                          ))}
+                        </select>
+                        <select
+                          aria-label={`Mix role ${index + 1}`}
+                          value={line.role}
+                          onChange={(event) =>
+                            updateMixLine(line.key, { role: event.target.value as MixPresetLineRole })
+                          }
+                        >
+                          {MIX_PRESET_LINE_ROLES.map((role) => (
+                            <option key={role} value={role}>
+                              {role}
+                            </option>
+                          ))}
+                        </select>
+                        <input
+                          required
+                          aria-label={`Mix parts ${index + 1}`}
+                          type="number"
+                          min="0.000001"
+                          step="any"
+                          value={line.parts}
+                          onChange={(event) => updateMixLine(line.key, { parts: event.target.value })}
+                          placeholder="parts"
+                        />
+                        <button
+                          type="button"
+                          className="text-button danger"
+                          disabled={mixForm.lines.length === 1}
+                          onClick={() => removeMixLine(line.key)}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <button type="button" className="button button-quiet add-line-button" onClick={addMixLine}>
+                    + Add material line
+                  </button>
+                  <small>Exactly one line must be primary. Parts are relative, not absolute batch quantities.</small>
+                </div>
+                <label className="field field-wide">
+                  <span>Notes</span>
+                  <textarea
+                    value={mixForm.notes}
+                    onChange={(event) => setMixForm({ ...mixForm, notes: event.target.value })}
+                    placeholder="Mixing order, brand-specific notes..."
+                  />
+                </label>
+              </div>
+              <button className="button button-primary button-full" type="submit">
+                {busy ? 'Saving...' : editingMixId ? 'Save mix preset' : 'Create mix preset'}
+              </button>
+            </fieldset>
           </form>
 
           <div className="panel material-list">
-            <div className="panel-heading list-heading"><div><p className="panel-kicker">MIX PRESETS</p><h2>Reusable ratios</h2></div><div className="material-count"><strong>{visibleMixes.length}</strong><span>shown</span></div></div>
-            <div className="filters products-filters"><label className="search-field"><span className="sr-only">Search mix presets</span><input value={mixQuery} onChange={(event) => setMixQuery(event.target.value)} placeholder="Search mix, ID or material..." /></label><select aria-label="Mix basis filter" value={mixBasis} onChange={(event) => setMixBasis(event.target.value as RatioBasis | 'all')}><option value="all">All bases</option><option value="weight">Weight</option><option value="volume">Volume</option></select><select aria-label="Mix status filter" value={mixStatus} onChange={(event) => setMixStatus(event.target.value as ActiveFilter)}><option value="active">Active</option><option value="archived">Archived</option><option value="all">All status</option></select></div>
-            <div className="table-wrap">{loading ? <div className="empty-state"><p>Loading mix presets…</p></div> : visibleMixes.length === 0 ? <div className="empty-state"><div className="empty-icon">∶</div><h3>No mix presets yet</h3><p>Create a reusable ratio such as plaster 2:1 or wax 100:8.</p></div> : <table className="materials-table products-table mix-table"><thead><tr><th>Preset</th><th>Basis</th><th>Ratio</th><th>Compatible with</th><th>Status</th><th>Actions</th></tr></thead><tbody>{visibleMixes.map((preset) => <tr key={preset.id} className={preset.isActive ? '' : 'archived-row'}><td><strong>{preset.name}</strong><span className="material-id">{preset.id}</span></td><td><span className="group-pill">{preset.basis}</span></td><td><span className="ratio-summary">{ratioSummary(preset, materials)}</span><small className="line-detail">{preset.lines.map((line) => `${materialName(line.materialId)} · ${line.role}`).join(' · ')}</small></td><td>{preset.compatibleCategories.map(categoryLabel).join(', ')}</td><td><span className={`status-pill ${preset.isActive ? 'status-active' : ''}`}>{preset.isActive ? 'Active' : 'Archived'}</span></td><td className="row-actions"><button type="button" className="text-button" onClick={() => { setEditingMixId(preset.id); setMixForm(mixToForm(preset)); setMixFeedback(null); }}>Edit</button>{preset.isActive && <button type="button" className="text-button danger" onClick={() => void archiveMix(preset)}>Archive</button>}</td></tr>)}</tbody></table>}</div>
-            <div className="list-footer"><span>Preset ratios stay relative; Phase 1 handles material-specific normalization.</span><span>{mixPresets.filter((item) => item.isActive).length} active</span></div>
+            <div className="panel-heading list-heading">
+              <div>
+                <p className="panel-kicker">MIX PRESETS</p>
+                <h2>Reusable ratios</h2>
+              </div>
+              <div className="material-count">
+                <strong>{visibleMixes.length}</strong>
+                <span>shown</span>
+              </div>
+            </div>
+            <div className="filters products-filters">
+              <label className="search-field">
+                <span className="sr-only">Search mix presets</span>
+                <input
+                  value={mixQuery}
+                  onChange={(event) => setMixQuery(event.target.value)}
+                  placeholder="Search mix, ID or material..."
+                />
+              </label>
+              <select
+                aria-label="Mix basis filter"
+                value={mixBasis}
+                onChange={(event) => setMixBasis(event.target.value as RatioBasis | 'all')}
+              >
+                <option value="all">All bases</option>
+                <option value="weight">Weight</option>
+                <option value="volume">Volume</option>
+              </select>
+              <select
+                aria-label="Mix status filter"
+                value={mixStatus}
+                onChange={(event) => setMixStatus(event.target.value as ActiveFilter)}
+              >
+                <option value="active">Active</option>
+                <option value="archived">Archived</option>
+                <option value="all">All status</option>
+              </select>
+            </div>
+            <div className="table-wrap" tabIndex={0} role="region" aria-label="Mix preset list">
+              {loading ? (
+                <div className="empty-state">
+                  <p>Loading mix presets…</p>
+                </div>
+              ) : visibleMixes.length === 0 ? (
+                <div className="empty-state">
+                  <div className="empty-icon">∶</div>
+                  <h3>{mixPresets.length ? 'No matching mix presets' : 'No mix presets yet'}</h3>
+                  <p>
+                    {mixPresets.length
+                      ? 'Adjust your search or filters to find a preset.'
+                      : 'Create a reusable ratio such as plaster 2:1 or wax 100:8.'}
+                  </p>
+                  {mixPresets.length > 0 && (
+                    <button
+                      type="button"
+                      className="button button-quiet"
+                      onClick={() => {
+                        setMixQuery('');
+                        setMixStatus('active');
+                        setMixBasis('all');
+                      }}
+                    >
+                      Clear mix filters
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <table className="materials-table products-table mix-table">
+                  <thead>
+                    <tr>
+                      <th>Preset</th>
+                      <th>Basis</th>
+                      <th>Ratio</th>
+                      <th>Compatible with</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {visibleMixes.map((preset) => (
+                      <tr key={preset.id} className={preset.isActive ? '' : 'archived-row'}>
+                        <td>
+                          <strong>{preset.name}</strong>
+                          <span className="material-id">{preset.id}</span>
+                        </td>
+                        <td>
+                          <span className="group-pill">{preset.basis}</span>
+                        </td>
+                        <td>
+                          <span className="ratio-summary">{ratioSummary(preset, materials)}</span>
+                          <small className="line-detail">
+                            {preset.lines.map((line) => `${materialName(line.materialId)} · ${line.role}`).join(' · ')}
+                          </small>
+                        </td>
+                        <td>{preset.compatibleCategories.map(categoryLabel).join(', ')}</td>
+                        <td>
+                          <span className={`status-pill ${preset.isActive ? 'status-active' : ''}`}>
+                            {preset.isActive ? 'Active' : 'Archived'}
+                          </span>
+                        </td>
+                        <td className="row-actions">
+                          <button
+                            type="button"
+                            className="text-button"
+                            disabled={busy || loading || Boolean(loadError)}
+                            onClick={() => {
+                              setEditingMixId(preset.id);
+                              setMixForm(mixToForm(preset));
+                              setMixFeedback(null);
+                            }}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            className="text-button danger"
+                            disabled={busy || loading || Boolean(loadError)}
+                            onClick={() => void archiveMix(preset)}
+                          >
+                            {preset.isActive ? 'Archive' : 'Restore'}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+            <div className="list-footer">
+              <span>Presets describe proportions. Actual batch quantities are calculated during planning.</span>
+              <span>{mixPresets.filter((item) => item.isActive).length} active</span>
+            </div>
           </div>
         </div>
-      ) : view === 'components' ? (
-        <ProductComponentsView products={products} materials={materials} catalogLoading={loading} />
-      ) : (
-        <ProductStockView products={products} catalogLoading={loading} />
+      </div>
+      {view === 'components' && (
+        <div id="products-view-components">
+          <ProductComponentsView
+            products={products}
+            materials={materials}
+            catalogLoading={loading}
+            initialProductId={componentProductId}
+          />
+        </div>
+      )}
+      {view === 'stock' && (
+        <div id="products-view-stock">
+          <ProductStockView products={products} catalogLoading={loading} />
+        </div>
       )}
     </section>
   );
