@@ -1,10 +1,9 @@
 import type { WorkbookBinaryInput } from './workbookCodec';
 
 /**
- * A neutral backup request that does not define how backups are created.
- * Detailed backup naming, staging, atomic replacement, cleanup, and recovery remain Phase 5.4B.
+ * Backup policy requested by the application without prescribing transport implementation details.
  */
-export type WorkbookBackupRequest = 'none' | 'if-supported';
+export type WorkbookBackupRequest = 'none' | 'if-supported' | 'required';
 
 export interface WorkbookSaveOptions {
   readonly backup?: WorkbookBackupRequest;
@@ -13,7 +12,32 @@ export interface WorkbookSaveOptions {
 export type WorkbookBackupReceipt =
   | { readonly status: 'not-requested' }
   | { readonly status: 'unsupported' }
+  | { readonly status: 'not-needed'; readonly reason: 'no-existing-workbook' }
   | { readonly status: 'created'; readonly reference: string };
+
+export type WorkbookBackupSupport = 'supported' | 'unsupported';
+export type WorkbookReplacementGuarantee = 'atomic' | 'direct-non-atomic';
+
+/**
+ * Explicit transport guarantees. These describe only byte-storage behavior and must never be
+ * inferred from an implementation class name or runtime environment.
+ */
+export interface WorkbookTransportCapabilities {
+  readonly backup: WorkbookBackupSupport;
+  readonly stagedReplacement: boolean;
+  readonly replacement: WorkbookReplacementGuarantee;
+}
+
+/** Create an immutable capability value that callers may safely retain. */
+export function createWorkbookTransportCapabilities(
+  capabilities: WorkbookTransportCapabilities,
+): Readonly<WorkbookTransportCapabilities> {
+  return Object.freeze({ ...capabilities });
+}
+
+export interface WorkbookReplacementReceipt {
+  readonly guarantee: WorkbookReplacementGuarantee;
+}
 
 /**
  * Transport-owned acknowledgement of a workbook save.
@@ -25,6 +49,51 @@ export type WorkbookBackupReceipt =
 export interface WorkbookSaveReceipt {
   readonly reference?: string;
   readonly backup: WorkbookBackupReceipt;
+  readonly replacement: WorkbookReplacementReceipt;
+}
+
+export type WorkbookTransportSaveFailureStage =
+  | 'capability'
+  | 'read-existing'
+  | 'backup'
+  | 'stage'
+  | 'commit'
+  | 'cleanup';
+
+export type WorkbookTransportSaveErrorCode =
+  | 'REQUIRED_BACKUP_UNSUPPORTED'
+  | 'READ_EXISTING_FAILED'
+  | 'BACKUP_FAILED'
+  | 'STAGE_FAILED'
+  | 'COMMIT_FAILED'
+  | 'CLEANUP_FAILED';
+
+/**
+ * Whether the new primary workbook is authoritative at the point a safe-save error is reported.
+ * This prevents a post-commit cleanup problem from being mistaken for a rolled-back replacement.
+ */
+export type WorkbookTransportCommitState = 'not-committed' | 'committed';
+
+export class WorkbookTransportSaveError extends Error {
+  readonly stage: WorkbookTransportSaveFailureStage;
+  readonly code: WorkbookTransportSaveErrorCode;
+  readonly commitState: WorkbookTransportCommitState;
+  readonly causeValue: unknown;
+
+  constructor(
+    stage: WorkbookTransportSaveFailureStage,
+    code: WorkbookTransportSaveErrorCode,
+    commitState: WorkbookTransportCommitState,
+    message: string,
+    causeValue?: unknown,
+  ) {
+    super(message);
+    this.name = 'WorkbookTransportSaveError';
+    this.stage = stage;
+    this.code = code;
+    this.commitState = commitState;
+    this.causeValue = causeValue;
+  }
 }
 
 /**
@@ -35,6 +104,7 @@ export interface WorkbookSaveReceipt {
  * be defensively owned by the implementation.
  */
 export interface WorkbookTransport {
+  readonly capabilities: Readonly<WorkbookTransportCapabilities>;
   loadWorkbook(): Promise<Uint8Array>;
   saveWorkbook(
     bytes: Uint8Array,
