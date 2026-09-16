@@ -34,6 +34,7 @@ For the active persistence status/validation/recovery UX work, use:
 
 - `docs/PHASE_5_5C_PERSISTENCE_STATUS_VALIDATION_RECOVERY_UX_PLAN.md`
 - `docs/PHASE_5_5C1_PERSISTENCE_SESSION_STATUS_WORKBOOK_IDENTITY.md`
+- `docs/PHASE_5_5C2_VALIDATION_DETAIL_RECOVERY_GUIDANCE_UX.md`
 
 Historical phase completion records remain authoritative for their individual contracts and CI evidence.
 
@@ -49,11 +50,11 @@ Historical phase completion records remain authoritative for their individual co
 
 ## Current Repository Baseline
 
-Current green implementation baseline after Phase 5.5C1:
+Current green implementation baseline after Phase 5.5C2:
 
 ```text
-develop  0a3a68c78a93824da1c01644cfa24723fbfaf8e5
-CI       35132771870 — SUCCESS
+develop  0603ef10575f5f08c27170cb174bf23b8c675b21
+CI       35134221363 — SUCCESS
 ```
 
 ## Overall Phase Status
@@ -158,8 +159,8 @@ Live tracker:
         5.5B3 — Browser Export Regression & 5.5B Completion Gate        COMPLETE
     5.5C — Persistence Status / Validation / Recovery UX              IN PROGRESS
         5.5C1 — Persistence Session Status & Workbook Identity        COMPLETE
-        5.5C2 — Validation Detail & Recovery Guidance UX              NEXT / NOT STARTED
-        5.5C3 — Persistence UX Regression & Phase 5.5 Completion Gate NOT STARTED
+        5.5C2 — Validation Detail & Recovery Guidance UX              COMPLETE
+        5.5C3 — Persistence UX Regression & Phase 5.5 Completion Gate NEXT / NOT STARTED
 
 5.6 — Integration & Completion Gate                       NOT STARTED
     5.6A — Integrated Excel Round-Trip Workflow           NOT STARTED
@@ -195,7 +196,7 @@ Established:
 
 Established:
 
-- complete snapshot of all nine authoritative repositories;
+- complete snapshot of all nine authoritative source repositories;
 - persistence-only whole-collection replacement;
 - validate-before-write hydration;
 - complete previous-state snapshot before apply;
@@ -440,8 +441,8 @@ Dedicated plan:
 
 ```text
 5.5C1 — Persistence Session Status & Workbook Identity           COMPLETE
-5.5C2 — Validation Detail & Recovery Guidance UX                 NEXT / NOT STARTED
-5.5C3 — Persistence UX Regression & Phase 5.5 Completion Gate    NOT STARTED
+5.5C2 — Validation Detail & Recovery Guidance UX                 COMPLETE
+5.5C3 — Persistence UX Regression & Phase 5.5 Completion Gate    NEXT / NOT STARTED
 ```
 
 The split keeps browser-session status, rejection/recovery presentation, and completion proof separate.
@@ -495,13 +496,45 @@ Production build PASS
 
 The initial red feature CI was isolated to a new test-harness mock whose inferred signature did not match the real import command. The production implementation was not implicated; the corrected exact head passed all gates.
 
-#### Phase 5.5C2 — Validation Detail & Recovery Guidance UX — NEXT / NOT STARTED
+#### Phase 5.5C2 — Validation Detail & Recovery Guidance UX — COMPLETE
 
-C2 will preserve raw importer issues as the authoritative technical evidence and derive actionable guidance from the existing recovery diagnostics model. It will cover unsupported versions, corrupt/unreadable workbooks, resource limits, workbook structure/values, invalid business data, and browser-truthful backup/restore guidance.
+Completion record:
 
-A recovery recommendation such as `restore-known-good-backup` means selecting/importing a known-good workbook copy the user already possesses in browser mode. It must not imply that the browser created or manages a Phase 5.4B pre-save transport backup.
+`docs/PHASE_5_5C2_VALIDATION_DETAIL_RECOVERY_GUIDANCE_UX.md`
 
-#### Phase 5.5C3 — Persistence UX Regression & Phase 5.5 Completion Gate — NOT STARTED
+Delivered:
+
+- complete raw `BusinessDatasetWorkbookImportIssue[]` evidence remains visible after expected import rejection;
+- deterministic recovery guidance is derived through the existing `summarizeWorkbookImportRecovery(...)` boundary;
+- available issue stage, code, message, sheet, Excel row/row index, column, path, version context, and resource usage are shown;
+- recovery category, issue count, non-zero stage counts, and recommended action rendering;
+- explicit guidance for future/incompatible versions, corrupt/unreadable workbooks, resource limits, structure/value errors, and invalid business data;
+- defensive hydration rejection remains a separate dataset-validation presentation path;
+- unexpected persistence operational errors remain separate from expected rejection recovery UI;
+- `restore-known-good-backup` is translated truthfully in browser mode as selecting/importing a workbook copy already possessed by the user;
+- no browser-managed Phase 5.4B backup, managed native path, atomic replacement, durability, or dirty/clean claim;
+- stale rejection details clear when a new workbook is selected, a new attempt begins, or a later import succeeds;
+- existing live-state preservation, success-only workspace refresh, and C1 last-successful status behavior remain green.
+
+Evidence:
+
+```text
+C2 baseline                      cb10db016d8f85321ca744675ae97b465db08387
+C2 baseline CI                   35133267611 — SUCCESS
+Feature head                     6c3aa4ea0264570bd5a9d66e813fc8cff7964473
+Feature branch CI                35133930153 — SUCCESS
+Implementation PR #206           MERGED
+PR CI                            35134074959 — SUCCESS
+Implementation merge             0603ef10575f5f08c27170cb174bf23b8c675b21
+Post-merge CI                    35134221363 — SUCCESS
+127 test files / 1423 tests
+10 focused C2 tests
+Typecheck PASS
+Production build PASS
+149 modules transformed
+```
+
+#### Phase 5.5C3 — Persistence UX Regression & Phase 5.5 Completion Gate — NEXT / NOT STARTED
 
 C3 will prove import/export/status/recovery behavior through the real stack, keep Phase 5.4/5.5A/5.5B regression green, close parent Phase 5.5, then advance exactly to **5.6A — Integrated Excel Round-Trip Workflow — NEXT / NOT STARTED**.
 
@@ -539,6 +572,6 @@ Planned areas include dashboard/operational summaries, inventory valuation and l
 
 # Current Active Task
 
-**5.5C2 — Validation Detail & Recovery Guidance UX — NEXT / NOT STARTED**
+**5.5C3 — Persistence UX Regression & Phase 5.5 Completion Gate — NEXT / NOT STARTED**
 
-Do not begin 5.5C2 until the 5.5C1 docs-only closeout is merged into `develop`, the exact resulting `develop` CI is green, and the user separately says to proceed.
+Do not begin 5.5C3 until the 5.5C2 docs-only closeout is merged into `develop`, the exact resulting `develop` CI is green, and the user separately says to proceed.
