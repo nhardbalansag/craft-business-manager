@@ -1,10 +1,21 @@
 import type { CompleteSourceSnapshotService } from './CompleteSourceSnapshotService';
-import { PersistenceLifecycleOperationalError } from './PersistenceLifecycle';
+import {
+  PersistenceLifecycleOperationalError,
+  type PersistenceLifecycleRejected,
+} from './PersistenceLifecycle';
+import {
+  DatasetHydrationError,
+  type ValidatedAtomicDatasetHydrationService,
+} from './ValidatedAtomicDatasetHydrationService';
 import {
   exportBusinessDatasetToXlsx,
   type WorkbookExportMetadata,
 } from '../../storage/businessDatasetWorkbookExport';
-import type { WorkbookCodec } from '../../storage/workbookCodec';
+import {
+  importBusinessDatasetFromXlsx,
+  type ImportedWorkbookMetadata,
+} from '../../storage/businessDatasetWorkbookImport';
+import type { WorkbookBinaryInput, WorkbookCodec } from '../../storage/workbookCodec';
 import {
   cloneWorkbookBytes,
   type WorkbookSaveOptions,
@@ -32,7 +43,17 @@ export interface PersistenceWorkbookSaved {
   readonly receipt: WorkbookSaveReceipt;
 }
 
+export interface PersistenceWorkbookHydrated {
+  readonly status: 'hydrated';
+  readonly metadata: ImportedWorkbookMetadata;
+}
+
+export type PersistenceWorkbookApplyResult =
+  | PersistenceWorkbookHydrated
+  | PersistenceLifecycleRejected;
+
 type SnapshotSource = Pick<CompleteSourceSnapshotService, 'snapshot'>;
+type HydrationTarget = Pick<ValidatedAtomicDatasetHydrationService, 'hydrate'>;
 
 interface PreparedWorkbookExport {
   readonly bytes: Uint8Array;
@@ -43,12 +64,50 @@ function systemClock(): Date {
   return new Date();
 }
 
+function hydrationOperationalError(error: unknown): PersistenceLifecycleOperationalError {
+  if (error instanceof DatasetHydrationError) {
+    if (error.code === 'SNAPSHOT_FAILED') {
+      return new PersistenceLifecycleOperationalError(
+        'hydrate',
+        'HYDRATION_SNAPSHOT_FAILED',
+        'Workbook import succeeded but the live dataset could not be snapshotted before hydration.',
+        error,
+      );
+    }
+
+    if (error.code === 'APPLY_FAILED_RESTORED') {
+      return new PersistenceLifecycleOperationalError(
+        'hydrate',
+        'HYDRATION_APPLY_FAILED_RESTORED',
+        'Workbook hydration failed and the previous live dataset was restored.',
+        error,
+      );
+    }
+
+    return new PersistenceLifecycleOperationalError(
+      'hydrate',
+      'HYDRATION_ROLLBACK_FAILED',
+      'Workbook hydration failed and rollback of the previous live dataset also failed.',
+      error,
+    );
+  }
+
+  return new PersistenceLifecycleOperationalError(
+    'hydrate',
+    'HYDRATION_FAILED',
+    'Workbook hydration failed unexpectedly.',
+    error,
+  );
+}
+
 /**
  * Application-level persistence lifecycle coordinator.
  *
- * Phase 5.3C2 implements only the non-destructive half of the lifecycle:
- * complete source snapshot -> canonical XLSX export -> optional byte transport save.
- * Import/hydration is intentionally added in 5.3C3.
+ * This is the single Phase 5.3C orchestration boundary for:
+ * - complete live source snapshot -> canonical XLSX export -> optional byte transport save; and
+ * - workbook bytes / transport load -> strict current-version import -> validated atomic hydration.
+ *
+ * It never owns repository lists, workbook sheet mappings, or hydration replacement mechanics.
  */
 export class PersistenceCoordinator {
   private readonly clock: PersistenceClock;
@@ -56,6 +115,7 @@ export class PersistenceCoordinator {
 
   constructor(
     private readonly snapshotService: SnapshotSource,
+    private readonly hydrationService: HydrationTarget,
     private readonly codec: WorkbookCodec,
     options: PersistenceCoordinatorOptions = {},
   ) {
@@ -99,6 +159,73 @@ export class PersistenceCoordinator {
       metadata: { ...prepared.metadata },
       receipt,
     };
+  }
+
+  /**
+   * Strictly import caller-provided workbook bytes and atomically apply the reconstructed dataset.
+   * Expected invalid-workbook diagnostics are returned as a rejection and never reach hydration.
+   */
+  async importAndApplyWorkbook(
+    bytes: WorkbookBinaryInput,
+  ): Promise<PersistenceWorkbookApplyResult> {
+    let imported;
+    try {
+      imported = importBusinessDatasetFromXlsx(cloneWorkbookBytes(bytes), this.codec);
+    } catch (error) {
+      throw new PersistenceLifecycleOperationalError(
+        'import',
+        'IMPORT_FAILED',
+        'Workbook import failed unexpectedly.',
+        error,
+      );
+    }
+
+    if (!imported.ok) {
+      return {
+        status: 'rejected',
+        stage: 'import',
+        issues: imported.issues,
+      };
+    }
+
+    let hydration;
+    try {
+      hydration = await this.hydrationService.hydrate(imported.dataset);
+    } catch (error) {
+      throw hydrationOperationalError(error);
+    }
+
+    if (hydration.status === 'rejected') {
+      return {
+        status: 'rejected',
+        stage: 'hydrate',
+        issues: hydration.issues,
+      };
+    }
+
+    return {
+      status: 'hydrated',
+      metadata: { ...imported.metadata },
+    };
+  }
+
+  /** Load workbook bytes through a transport and execute the exact same import/apply path. */
+  async loadCurrentWorkbook(
+    transport: WorkbookTransport,
+  ): Promise<PersistenceWorkbookApplyResult> {
+    let bytes: Uint8Array;
+    try {
+      bytes = await transport.loadWorkbook();
+    } catch (error) {
+      throw new PersistenceLifecycleOperationalError(
+        'transport-load',
+        'TRANSPORT_LOAD_FAILED',
+        'Workbook transport load failed.',
+        error,
+      );
+    }
+
+    return this.importAndApplyWorkbook(cloneWorkbookBytes(bytes));
   }
 
   private async prepareCurrentWorkbookExport(): Promise<PreparedWorkbookExport> {

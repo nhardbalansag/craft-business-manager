@@ -14,6 +14,8 @@ export type PersistenceLifecycleOperationalErrorCode =
   | 'EXPORT_FAILED'
   | 'TRANSPORT_SAVE_FAILED'
   | 'TRANSPORT_LOAD_FAILED'
+  | 'IMPORT_FAILED'
+  | 'HYDRATION_FAILED'
   | 'HYDRATION_SNAPSHOT_FAILED'
   | 'HYDRATION_APPLY_FAILED_RESTORED'
   | 'HYDRATION_ROLLBACK_FAILED';
@@ -21,8 +23,9 @@ export type PersistenceLifecycleOperationalErrorCode =
 /**
  * Controlled unexpected/operational failure raised by the persistence coordinator.
  *
- * The original failure is retained as `causeValue`; C3 will keep DatasetHydrationError intact
- * here so apply/rollback context is never flattened away.
+ * Expected invalid-workbook and validation rejections are returned as structured rejection
+ * results instead. Original operational causes are retained here, including DatasetHydrationError,
+ * so apply/rollback context is never flattened away.
  */
 export class PersistenceLifecycleOperationalError extends Error {
   readonly stage: PersistenceLifecycleStage;
