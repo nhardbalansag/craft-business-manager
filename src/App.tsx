@@ -8,22 +8,44 @@ import {
   WorkbookExportPanel,
   type WorkbookExportCommandPort,
 } from './ui/persistence/WorkbookExportPanel';
-import { WorkbookImportPanel } from './ui/persistence/WorkbookImportPanel';
+import {
+  WorkbookImportPanel,
+  type WorkbookImportHydratedEvent,
+} from './ui/persistence/WorkbookImportPanel';
+import { WorkbookPersistenceStatusPanel } from './ui/persistence/WorkbookPersistenceStatusPanel';
+import {
+  createWorkbookPersistenceSessionStatus,
+  recordSuccessfulWorkbookExport,
+  recordSuccessfulWorkbookImport,
+} from './ui/persistence/workbookPersistenceSession';
 import { PricingPage } from './ui/pricing/PricingPage';
 import { ProductsPage } from './ui/products/ProductsPage';
 import { ProductionPage } from './ui/production/ProductionPage';
 import { YieldPage } from './ui/yield/YieldPage';
 
 type AppSection = 'materials' | 'calibration' | 'products' | 'yield' | 'production' | 'pricing';
+export type PersistenceUiClock = () => Date;
 
 export interface AppProps {
   readonly workbookImportCommand?: BrowserWorkbookImportCommand;
   readonly workbookExportCommand?: WorkbookExportCommandPort;
+  readonly persistenceUiClock?: PersistenceUiClock;
 }
 
-export default function App({ workbookImportCommand, workbookExportCommand }: AppProps = {}) {
+function systemPersistenceUiClock(): Date {
+  return new Date();
+}
+
+export default function App({
+  workbookImportCommand,
+  workbookExportCommand,
+  persistenceUiClock,
+}: AppProps = {}) {
   const [section, setSection] = useState<AppSection>('materials');
   const [workspaceRevision, setWorkspaceRevision] = useState(0);
+  const [persistenceStatus, setPersistenceStatus] = useState(() =>
+    createWorkbookPersistenceSessionStatus(),
+  );
   const [defaultWorkbookImportCommand] = useState(
     () => new BrowserWorkbookImportCommand(persistenceCoordinator),
   );
@@ -32,6 +54,19 @@ export default function App({ workbookImportCommand, workbookExportCommand }: Ap
   );
   const importCommand = workbookImportCommand ?? defaultWorkbookImportCommand;
   const exportCommand = workbookExportCommand ?? defaultWorkbookExportCommand;
+  const uiClock = persistenceUiClock ?? systemPersistenceUiClock;
+
+  function handleWorkbookHydrated(event: WorkbookImportHydratedEvent) {
+    const observedAt = uiClock();
+    setPersistenceStatus((current) =>
+      recordSuccessfulWorkbookImport(current, {
+        selection: event.selection,
+        result: event.result,
+        observedAt,
+      }),
+    );
+    setWorkspaceRevision((current) => current + 1);
+  }
 
   return (
     <main className="app-shell">
@@ -53,11 +88,20 @@ export default function App({ workbookImportCommand, workbookExportCommand }: Ap
         </nav>
       </header>
 
+      <WorkbookPersistenceStatusPanel status={persistenceStatus} />
       <WorkbookImportPanel
         command={importCommand}
-        onHydrated={() => setWorkspaceRevision((current) => current + 1)}
+        onHydrated={handleWorkbookHydrated}
       />
-      <WorkbookExportPanel command={exportCommand} />
+      <WorkbookExportPanel
+        command={exportCommand}
+        onDownloaded={(result) => {
+          const observedAt = uiClock();
+          setPersistenceStatus((current) =>
+            recordSuccessfulWorkbookExport(current, { result, observedAt }),
+          );
+        }}
+      />
 
       <div className="workspace-revision-boundary" data-workspace-revision={workspaceRevision} key={workspaceRevision}>
         {section === 'materials' && <MaterialsPage />}
