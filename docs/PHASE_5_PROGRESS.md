@@ -6,11 +6,11 @@ Master plan:
 
 `docs/PHASE_5_EXCEL_PERSISTENCE_PLAN.md`
 
-Current authoritative implementation baseline after Phase 5.5B1:
+Current authoritative implementation baseline after Phase 5.5B2:
 
 ```text
-develop  d4d1b3a19b2e7e1c55058e40a3f3e103787097c7
-CI       35078559069 — SUCCESS
+develop  156ba5619857ea470f845818d6d22a39cfa85d75
+CI       35126194178 — SUCCESS
 ```
 
 ## Live task map
@@ -43,8 +43,8 @@ CI       35078559069 — SUCCESS
         5.5A3 — Browser Import Regression & 5.5A Completion Gate  COMPLETE
     5.5B — Export / Save & Backup Workflow                IN PROGRESS
         5.5B1 — Browser Workbook Export & Download Command Boundary      COMPLETE
-        5.5B2 — React Export / Save-Copy Workflow & Backup Truthfulness NEXT / NOT STARTED
-        5.5B3 — Browser Export Regression & 5.5B Completion Gate        NOT STARTED
+        5.5B2 — React Export / Save-Copy Workflow & Backup Truthfulness COMPLETE
+        5.5B3 — Browser Export Regression & 5.5B Completion Gate        NEXT / NOT STARTED
     5.5C — Persistence Status / Validation / Recovery UX  NOT STARTED
 
 5.6 — Integration & Completion Gate                       NOT STARTED
@@ -127,8 +127,8 @@ Decomposition:
 
 ```text
 5.5B1 — Browser Workbook Export & Download Command Boundary      COMPLETE
-5.5B2 — React Export / Save-Copy Workflow & Backup Truthfulness NEXT / NOT STARTED
-5.5B3 — Browser Export Regression & 5.5B Completion Gate        NOT STARTED
+5.5B2 — React Export / Save-Copy Workflow & Backup Truthfulness COMPLETE
+5.5B3 — Browser Export Regression & 5.5B Completion Gate        NEXT / NOT STARTED
 ```
 
 ### 5.5B1 — COMPLETE
@@ -174,26 +174,68 @@ Production build PASS
 
 The initial feature failure was isolated to the test fixture: it incorrectly placed workbook identity/version fields in `WorkbookExportMetadata`. Production code was unchanged; the fixture was corrected to the actual metadata contract.
 
-### 5.5B2 — NEXT / NOT STARTED
+### 5.5B2 — COMPLETE
 
-5.5B2 will expose the completed 5.5B1 command through the React application shell.
+Completion record:
+
+`docs/PHASE_5_5B2_REACT_EXPORT_SAVE_COPY_WORKFLOW.md`
+
+5.5B2 established:
+
+- `WorkbookExportPanel` as the React browser export/save-copy surface;
+- default `BrowserWorkbookExportCommand(persistenceCoordinator)` wiring in the app shell;
+- explicit **Download workbook** action with no implicit export during render;
+- `Preparing download…` pending state;
+- duplicate-submit protection using both disabled UI state and an in-flight ref guard;
+- copy-oriented success feedback that includes the generated filename;
+- controlled export/browser-download failure feedback and retry support;
+- export does not advance `workspaceRevision` or remount the repository-backed workspace;
+- active navigation remains stable across export;
+- existing 5.5A import/replace workflow remains functional beside export;
+- user-facing language explicitly states browser export creates a new `.xlsx` copy;
+- browser mode does not claim overwrite, native path, Phase 5.4B pre-save backup, atomic replacement, or durable filesystem persistence.
+
+Native Save / Save As and managed filesystem backups remain Phase 6.
+
+Implementation evidence:
+
+```text
+Baseline develop          b6df113ec56aee3797487faedd286b097310ca80
+Baseline CI               35122229988 — SUCCESS
+Feature head              dd452d7df246a3b89f019b85c0d9fe1820df6f0e
+Feature CI                35125924365 — SUCCESS
+Implementation PR #199    MERGED
+PR CI                     35126070074 — SUCCESS
+Implementation merge      156ba5619857ea470f845818d6d22a39cfa85d75
+Post-merge CI             35126194178 — SUCCESS
+121 test files / 1395 tests
+6 focused WorkbookExportPanel tests
+2 focused app-shell B2 tests
+Typecheck PASS
+Production build PASS
+143 modules transformed
+```
+
+### 5.5B3 — NEXT / NOT STARTED
+
+5.5B3 will prove and close the complete browser export workflow against the real Phase 5 persistence stack.
 
 Required scope remains:
 
-- explicit **Download workbook / Export workbook** action;
-- pending/downloading state;
-- duplicate-submit prevention;
-- basic success/failure feedback;
-- no import-style workspace refresh because export does not mutate source state;
-- stable active navigation;
-- truthful wording that browser export creates a copy;
-- no claim that the imported/current workbook was overwritten;
-- no claim of native path, atomic replacement, durable filesystem save, or Phase 5.4B pre-save backup;
-- existing browser import workflow remains functional beside export.
+- export representative live authoritative source data through the user-facing React workflow;
+- capture the actual downloaded XLSX bytes through the browser boundary;
+- decode/import those real XLSX bytes through the production codec/import stack;
+- prove exported source data is equivalent to the authoritative source snapshot;
+- prove export never mutates live repositories;
+- prove repeated exports use fresh source data rather than stale bytes;
+- prove filename/MIME/object-URL lifecycle and retry/failure behavior end to end;
+- prove browser mode never manufactures backup receipts, atomic replacement, native paths, overwrite claims, or durability guarantees;
+- keep 5.4B transport safe-save tests and 5.5A browser import regression green;
+- close parent 5.5B only after full regression/typecheck/build succeeds.
 
 Rich recovery/history UX remains 5.5C. Native Save/Save As, managed filesystem paths, real pre-save backups, atomic filesystem replacement, locks, `fsync`, and crash consistency remain Phase 6.
 
-Do not begin 5.5B2 until the 5.5B1 docs-only closeout is merged, the exact resulting `develop` CI is green, and the user separately says to proceed.
+Do not begin 5.5B3 until the 5.5B2 docs-only closeout is merged, the exact resulting `develop` CI is green, and the user separately says to proceed.
 
 ## Completion evidence index
 
@@ -244,6 +286,23 @@ Post-merge CI           35078559069 — SUCCESS
 138 modules transformed
 ```
 
+### Phase 5.5B2 — COMPLETE
+
+```text
+Baseline develop          b6df113ec56aee3797487faedd286b097310ca80
+Baseline CI               35122229988 — SUCCESS
+Feature head              dd452d7df246a3b89f019b85c0d9fe1820df6f0e
+Feature CI                35125924365 — SUCCESS
+Implementation PR #199    MERGED
+PR CI                     35126070074 — SUCCESS
+Implementation merge      156ba5619857ea470f845818d6d22a39cfa85d75
+Post-merge CI             35126194178 — SUCCESS
+121 test files / 1395 tests
+6 focused B2 panel tests
+2 focused B2 app-shell tests
+143 modules transformed
+```
+
 ## Current persistence boundary
 
 ```text
@@ -259,14 +318,14 @@ Backup / atomic-write safety          COMPLETE — 5.4B
 Corruption / resource / recovery      COMPLETE — 5.4C
 Browser import/open workflow          COMPLETE — 5.5A
 Browser export command boundary       COMPLETE — 5.5B1
-React browser export/save-copy UX     NEXT — 5.5B2
-Browser export completion regression  NOT STARTED — 5.5B3
+React browser export/save-copy UX     COMPLETE — 5.5B2
+Browser export completion regression  NEXT — 5.5B3
 Recovery/status UX                    NOT STARTED — 5.5C
 Native filesystem                     Phase 6
 ```
 
 ## Current active task
 
-**5.5B2 — React Export / Save-Copy Workflow & Backup Truthfulness — NEXT / NOT STARTED**
+**5.5B3 — Browser Export Regression & 5.5B Completion Gate — NEXT / NOT STARTED**
 
-Do not begin 5.5B2 until the 5.5B1 closeout is merged into `develop`, the exact resulting `develop` CI is green, and the user separately says to proceed.
+Do not begin 5.5B3 until the 5.5B2 closeout is merged into `develop`, the exact resulting `develop` CI is green, and the user separately says to proceed.
