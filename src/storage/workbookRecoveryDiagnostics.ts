@@ -86,30 +86,30 @@ const UNEXPECTED_OPERATIONAL_CODES = new Set<string>([
   'RECONSTRUCTION_FAILED',
 ]);
 
-const ACTIONS_BY_CATEGORY: Readonly<
-  Record<WorkbookRecoveryCategory, readonly WorkbookRecoveryActionCode[]>
-> = Object.freeze({
-  'resource-limit': Object.freeze(['reduce-workbook-size', 'select-another-file']),
+const ACTIONS_BY_CATEGORY = Object.freeze({
+  'resource-limit': Object.freeze(['reduce-workbook-size', 'select-another-file'] as const),
   'unreadable-or-corrupt-workbook': Object.freeze([
     'select-another-file',
     'restore-known-good-backup',
-  ]),
+  ] as const),
   'unsupported-or-incompatible-version': Object.freeze([
     'open-with-compatible-or-newer-app',
     'select-another-file',
-  ]),
+  ] as const),
   'workbook-structure': Object.freeze([
     'repair-workbook-structure',
     'restore-known-good-backup',
     'select-another-file',
-  ]),
+  ] as const),
   'invalid-workbook-values': Object.freeze([
     'correct-source-data',
     'restore-known-good-backup',
-  ]),
-  'invalid-business-data': Object.freeze(['correct-source-data']),
-  'unexpected-import-failure': Object.freeze(['retry-or-report-unexpected-error']),
-});
+  ] as const),
+  'invalid-business-data': Object.freeze(['correct-source-data'] as const),
+  'unexpected-import-failure': Object.freeze(['retry-or-report-unexpected-error'] as const),
+} satisfies Readonly<
+  Record<WorkbookRecoveryCategory, readonly WorkbookRecoveryActionCode[]>
+>);
 
 function emptyStageCounts(): Record<BusinessDatasetWorkbookImportIssueStage, number> {
   return {
