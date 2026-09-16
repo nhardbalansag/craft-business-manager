@@ -46,6 +46,13 @@ const exported: BrowserWorkbookExportResult = {
   metadata: { exportedAt: '2026-09-17T02:00:00.000Z' },
 };
 
+type ImportAndApplyMock = ReturnType<
+  typeof vi.fn<(bytes: Uint8Array) => Promise<PersistenceWorkbookApplyResult>>
+>;
+type ExportAndDownloadMock = ReturnType<
+  typeof vi.fn<WorkbookExportCommandPort['exportAndDownload']>
+>;
+
 let container: HTMLDivElement;
 let root: Root;
 
@@ -122,8 +129,12 @@ function sequenceClock(...instants: string[]): PersistenceUiClock & ReturnType<t
 }
 
 async function mount(
-  importAndApplyWorkbook = vi.fn(async () => hydrated),
-  exportAndDownload = vi.fn(async () => exported),
+  importAndApplyWorkbook: ImportAndApplyMock = vi.fn<
+    (bytes: Uint8Array) => Promise<PersistenceWorkbookApplyResult>
+  >(async () => hydrated),
+  exportAndDownload: ExportAndDownloadMock = vi.fn<
+    WorkbookExportCommandPort['exportAndDownload']
+  >(async () => exported),
   persistenceUiClock: PersistenceUiClock = () => new Date('2026-09-17T01:00:00.000Z'),
 ) {
   const importCommand = new BrowserWorkbookImportCommand({ importAndApplyWorkbook });
@@ -160,7 +171,11 @@ describe('App Phase 5.5C1 persistence session status', () => {
 
   it('records successful import identity and metadata while refreshing the workspace exactly once', async () => {
     const clock = sequenceClock('2026-09-17T01:30:00.000Z');
-    await mount(vi.fn(async () => hydrated), vi.fn(async () => exported), clock);
+    await mount(
+      vi.fn<(bytes: Uint8Array) => Promise<PersistenceWorkbookApplyResult>>(async () => hydrated),
+      vi.fn<WorkbookExportCommandPort['exportAndDownload']>(async () => exported),
+      clock,
+    );
     vi.spyOn(window, 'confirm').mockReturnValue(true);
 
     await click('Products');
@@ -185,7 +200,11 @@ describe('App Phase 5.5C1 persistence session status', () => {
       .mockResolvedValueOnce(rejected)
       .mockRejectedValueOnce(operationalFailure);
     const clock = sequenceClock('2026-09-17T01:30:00.000Z');
-    await mount(importAndApplyWorkbook, vi.fn(async () => exported), clock);
+    await mount(
+      importAndApplyWorkbook,
+      vi.fn<WorkbookExportCommandPort['exportAndDownload']>(async () => exported),
+      clock,
+    );
     vi.spyOn(window, 'confirm').mockReturnValue(true);
 
     await choose(workbookFile('known-good.xlsx'));
@@ -211,7 +230,11 @@ describe('App Phase 5.5C1 persistence session status', () => {
       '2026-09-17T01:30:00.000Z',
       '2026-09-17T02:05:00.000Z',
     );
-    await mount(vi.fn(async () => hydrated), vi.fn(async () => exported), clock);
+    await mount(
+      vi.fn<(bytes: Uint8Array) => Promise<PersistenceWorkbookApplyResult>>(async () => hydrated),
+      vi.fn<WorkbookExportCommandPort['exportAndDownload']>(async () => exported),
+      clock,
+    );
     vi.spyOn(window, 'confirm').mockReturnValue(true);
 
     await choose(workbookFile('active-import.xlsx'));
@@ -234,7 +257,11 @@ describe('App Phase 5.5C1 persistence session status', () => {
       .mockResolvedValueOnce(exported)
       .mockRejectedValueOnce(new Error('synthetic download failure'));
     const clock = sequenceClock('2026-09-17T02:05:00.000Z');
-    await mount(vi.fn(async () => hydrated), exportAndDownload, clock);
+    await mount(
+      vi.fn<(bytes: Uint8Array) => Promise<PersistenceWorkbookApplyResult>>(async () => hydrated),
+      exportAndDownload,
+      clock,
+    );
 
     await click('Download workbook');
     expect(statusCard('Last downloaded workbook copy').textContent).toContain(exported.fileName);
