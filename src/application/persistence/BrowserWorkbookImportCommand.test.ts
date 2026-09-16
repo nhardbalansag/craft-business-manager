@@ -31,7 +31,7 @@ const rejectedResult: PersistenceWorkbookApplyResult = {
 function createFile(
   name: string,
   bytes: Uint8Array,
-  arrayBufferImpl: () => Promise<ArrayBuffer> = async () => bytes.buffer,
+  arrayBufferImpl: () => Promise<ArrayBuffer> = async () => bytes.buffer as ArrayBuffer,
 ): BrowserWorkbookFileInput & { arrayBuffer: ReturnType<typeof vi.fn> } {
   return {
     name,
