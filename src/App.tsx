@@ -1,8 +1,13 @@
 import { useState } from 'react';
+import { BrowserWorkbookExportCommand } from './application/persistence/BrowserWorkbookExportCommand';
 import { BrowserWorkbookImportCommand } from './application/persistence/BrowserWorkbookImportCommand';
 import { persistenceCoordinator } from './application/session';
 import { CalibrationPage } from './ui/calibration/CalibrationPage';
 import { MaterialsPage } from './ui/materials/MaterialsPage';
+import {
+  WorkbookExportPanel,
+  type WorkbookExportCommandPort,
+} from './ui/persistence/WorkbookExportPanel';
 import { WorkbookImportPanel } from './ui/persistence/WorkbookImportPanel';
 import { PricingPage } from './ui/pricing/PricingPage';
 import { ProductsPage } from './ui/products/ProductsPage';
@@ -13,15 +18,20 @@ type AppSection = 'materials' | 'calibration' | 'products' | 'yield' | 'producti
 
 export interface AppProps {
   readonly workbookImportCommand?: BrowserWorkbookImportCommand;
+  readonly workbookExportCommand?: WorkbookExportCommandPort;
 }
 
-export default function App({ workbookImportCommand }: AppProps = {}) {
+export default function App({ workbookImportCommand, workbookExportCommand }: AppProps = {}) {
   const [section, setSection] = useState<AppSection>('materials');
   const [workspaceRevision, setWorkspaceRevision] = useState(0);
   const [defaultWorkbookImportCommand] = useState(
     () => new BrowserWorkbookImportCommand(persistenceCoordinator),
   );
+  const [defaultWorkbookExportCommand] = useState(
+    () => new BrowserWorkbookExportCommand(persistenceCoordinator),
+  );
   const importCommand = workbookImportCommand ?? defaultWorkbookImportCommand;
+  const exportCommand = workbookExportCommand ?? defaultWorkbookExportCommand;
 
   return (
     <main className="app-shell">
@@ -47,6 +57,7 @@ export default function App({ workbookImportCommand }: AppProps = {}) {
         command={importCommand}
         onHydrated={() => setWorkspaceRevision((current) => current + 1)}
       />
+      <WorkbookExportPanel command={exportCommand} />
 
       <div className="workspace-revision-boundary" data-workspace-revision={workspaceRevision} key={workspaceRevision}>
         {section === 'materials' && <MaterialsPage />}
