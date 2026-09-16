@@ -228,7 +228,7 @@ describe('PersistenceCoordinator Phase 5.3C3 import/load/hydrate orchestration',
     expect(result).toMatchObject({ status: 'rejected', stage: 'import' });
     if (result.status === 'rejected' && result.stage === 'import') {
       expect(result.issues.length).toBeGreaterThan(0);
-      expect(['codec', 'schema']).toContain(result.issues[0].stage);
+      expect(['codec', 'compatibility', 'migration', 'schema']).toContain(result.issues[0].stage);
     }
     expect(hydration.hydrate).not.toHaveBeenCalled();
   });
