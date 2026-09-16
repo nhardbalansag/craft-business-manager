@@ -148,7 +148,7 @@ function buildMaterialRows(
       normalizedOnHandQuantity: onHand,
       shortageQuantity: shortage,
       capacityPieces: capacity?.capacityPieces ?? null,
-      status: onHand === null ? 'unresolved' : shortage > 0 ? 'shortage' : 'covered',
+      status: shortage === null ? 'unresolved' : shortage > 0 ? 'shortage' : 'covered',
     };
   });
 }
