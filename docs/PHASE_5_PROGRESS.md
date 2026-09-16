@@ -1,27 +1,44 @@
 # Phase 5 — Excel Persistence Progress
 
-Status: **IN PROGRESS**
+Status: **COMPLETE**
 
 Master plan:
 
 `docs/PHASE_5_EXCEL_PERSISTENCE_PLAN.md`
 
-Phase 5.6A plan:
+Final completion record:
 
-`docs/PHASE_5_6A_INTEGRATED_EXCEL_ROUND_TRIP_WORKFLOW_PLAN.md`
+`docs/PHASE_5_6B_REGRESSION_BUILD_PHASE_5_COMPLETION.md`
 
-This is the concise authoritative live Phase 5 tracker. Dedicated completion records and Git history retain detailed evidence.
+Phase 5.6A plan / completion:
 
-## Current authoritative green implementation baseline
+- `docs/PHASE_5_6A_INTEGRATED_EXCEL_ROUND_TRIP_WORKFLOW_PLAN.md`
+- `docs/PHASE_5_6A_INTEGRATED_EXCEL_ROUND_TRIP_WORKFLOW.md`
 
-After Phase 5.6A3 implementation:
+This is the concise authoritative Phase 5 status tracker. Detailed implementation evidence remains in dedicated completion records and Git history.
+
+## Final pre-closeout green baseline
 
 ```text
-develop  a34fab08b75c591d7eb15d2b6c63fc3bee8970f2
-CI       35142923525 — SUCCESS
+develop  42f612e147b6fefc39068c2f978ccd03c97df9b5
+CI       35143413096 — SUCCESS
 ```
 
-## Live task map
+That exact gate passed:
+
+```text
+131 test files
+1,439 tests
+TypeScript typecheck PASS
+Production build PASS
+149 modules transformed
+```
+
+The final documentation-only 5.6B pull request must itself pass the same full CI workflow before guarded merge. The exact resulting `develop` merge SHA and final CI are the authoritative Git-history closeout evidence.
+
+---
+
+## Final Phase 5 task map
 
 ```text
 5.1 — Persisted Dataset & Workbook Contract Foundation   COMPLETE
@@ -52,154 +69,72 @@ CI       35142923525 — SUCCESS
         5.5C2 — Validation Detail & Recovery Guidance UX              COMPLETE
         5.5C3 — Persistence UX Regression & Phase 5.5 Completion Gate COMPLETE
 
-5.6 — Integration & Completion Gate                       IN PROGRESS
+5.6 — Integration & Completion Gate                       COMPLETE
     5.6A — Integrated Excel Round-Trip Workflow           COMPLETE
         5.6A1 — Source Round-Trip Fidelity & Deterministic Workbook Semantics COMPLETE
         5.6A2 — Phase 1–4 Derived Service Equivalence                         COMPLETE
         5.6A3 — Rejection / Safe-Save Integration & 5.6A Completion Gate      COMPLETE
-    5.6B — Regression / Build / Phase 5 Completion        NEXT / NOT STARTED
+    5.6B — Regression / Build / Phase 5 Completion        COMPLETE
 ```
 
-## Locked Phase 5 architecture
+---
+
+## Completed Phase 5 architecture
 
 ### Authoritative source and workbook
 
 - `.xlsx` is the authoritative Phase 5 workbook format.
-- `BusinessDataset` covers all nine authoritative source repositories.
-- Derived costing, yield-learning, capacity, pricing, and production results are recalculated and are not persisted as source truth.
-- Dataset schema version and workbook format version are separate axes.
+- `BusinessDataset` represents all nine authoritative source repositories:
+  - materials;
+  - material calibrations;
+  - mix presets;
+  - products;
+  - yield samples;
+  - fixed recipe items;
+  - product components;
+  - product stocks;
+  - product financial profiles.
 - Workbook v1 uses 13 normalized canonical sheets.
+- Dataset schema version and workbook format version are independent axes.
 - Missing evidence remains distinct from explicit zero/null/false.
-- Formula cells are not authoritative source values.
+- Formula cells are not accepted as authoritative source values.
 - SheetJS remains behind the library-neutral `WorkbookCodec` boundary.
+- Derived costing/yield/capacity/pricing/production outputs are recalculated, not persisted as source truth.
 
 ### Snapshot / hydration / persistence
 
-- `CompleteSourceSnapshotService` is the complete source-snapshot boundary.
+- `CompleteSourceSnapshotService` owns complete source snapshots.
 - `ValidatedAtomicDatasetHydrationService` validates before replacement and owns rollback behavior.
 - `PersistenceCoordinator` owns application-level export/import/save/load orchestration.
 - React does not enumerate repositories or construct workbook sheets directly.
-- Stable singleton repository/service identity is preserved across hydration.
+- Stable singleton repository/service identity survives hydration.
 
 ### Compatibility / safe save / recovery
 
-- Future unsupported workbook or dataset versions fail closed.
-- Raw importer issues remain authoritative technical evidence.
-- Recovery summaries remain derived/advisory.
-- `WorkbookTransport` reports backup/replacement guarantees truthfully.
-- Browser download remains copy-oriented and does not claim native overwrite, managed paths, atomic filesystem replacement, `fsync`, locking, or durable native backup behavior.
-- Native filesystem behavior remains Phase 6.
+- Unsupported future workbook/dataset versions fail closed.
+- Migration compatibility is explicit and versioned.
+- `WorkbookTransport` reports backup/staged-replacement/replacement guarantees truthfully.
+- Invalid/corrupt/resource-limited workbooks return structured diagnostics without partial live-state mutation.
+- Raw importer issues remain authoritative technical evidence; recovery summaries remain derived/advisory.
+- Browser download remains copy-oriented and does not claim native overwrite or native durability semantics.
+
+### Browser persistence UI
+
+Phase 5.5 completed:
+
+- browser `.xlsx` selection/import;
+- explicit destructive replacement confirmation;
+- successful workspace refresh from hydrated singleton repositories;
+- browser workbook export/download-copy;
+- deterministic filename guidance and XLSX MIME handling;
+- persistence session identity/status;
+- validation detail and deterministic recovery guidance;
+- retry/failure regression coverage;
+- truthful separation from native filesystem behavior.
 
 ---
 
-## Phase 5.1 — Persisted Dataset & Workbook Contract Foundation — COMPLETE
-
-Established the complete versioned source dataset, normalized workbook contract, and pre-hydration dataset/reference validation boundary for all nine authoritative collections.
-
----
-
-## Phase 5.2 — XLSX Workbook Codec — COMPLETE
-
-Established deterministic dataset-to-workbook export, strict workbook-to-dataset import, SheetJS byte encoding/decoding, normalized child sheets, formula safety, and structured diagnostics.
-
----
-
-## Phase 5.3 — Snapshot, Hydration & Persistence Coordination — COMPLETE
-
-Established complete source snapshots, atomic validated hydration/rollback, stable repository identity, and the single application persistence coordinator.
-
----
-
-## Phase 5.4 — Version Compatibility, Backup & Recovery Safety — COMPLETE
-
-Final Phase 5.4 evidence:
-
-```text
-develop  b8584d8681e95676c209c2e5a9dde0ee6278b71a
-CI       35055715946 — SUCCESS
-```
-
-Established compatibility preflight/migration, future-version rejection, safe-save transport capability contracts, staged/atomic in-memory reference behavior, resource limits, corruption diagnostics, deterministic recovery guidance, and rejection state preservation.
-
----
-
-## Phase 5.5 — Excel Persistence UI — COMPLETE
-
-Parent completion record:
-
-`docs/PHASE_5_5_EXCEL_PERSISTENCE_UI.md`
-
-Final parent evidence:
-
-```text
-Closeout PR #209   MERGED
-Final 5.5 develop  3cc9ae0e419a4e0075b04180849b23b7087bc98f
-Final 5.5 CI       35137244664 — SUCCESS
-```
-
-Browser import/open, export/download-copy, session status, validation/recovery guidance, failure/retry behavior, and truthful browser-vs-native wording are complete.
-
----
-
-## Phase 5.6 — Integration & Completion Gate — IN PROGRESS
-
-### 5.6A — Integrated Excel Round-Trip Workflow — COMPLETE
-
-Plan:
-
-`docs/PHASE_5_6A_INTEGRATED_EXCEL_ROUND_TRIP_WORKFLOW_PLAN.md`
-
-Parent completion record:
-
-`docs/PHASE_5_6A_INTEGRATED_EXCEL_ROUND_TRIP_WORKFLOW.md`
-
-Child completion records:
-
-- `docs/PHASE_5_6A1_SOURCE_ROUND_TRIP_FIDELITY_DETERMINISTIC_WORKBOOK_SEMANTICS.md`
-- `docs/PHASE_5_6A2_PHASE_1_4_DERIVED_SERVICE_EQUIVALENCE.md`
-- `docs/PHASE_5_6A3_REJECTION_SAFE_SAVE_INTEGRATION_COMPLETION_GATE.md`
-
-#### A1 — COMPLETE
-
-Scenarios A, E, I prove complete source fidelity, missing-vs-zero/null preservation, stable repository identity, and deterministic canonical workbook semantics.
-
-```text
-Implementation PR #211          MERGED
-Implementation merge            4f01b4b706bb82fad260d407d7b4c4173a230b40
-Post-implementation CI          35139932051 — SUCCESS
-3 focused A1 integration tests
-```
-
-#### A2 — COMPLETE
-
-Scenarios B, C, D, F prove calibration/costing, yield/recipe, component/ProductStock, and Phase 4 pricing/production/capacity behavior remains equivalent after real XLSX round-trip and hydration.
-
-```text
-Implementation PR #213          MERGED
-Implementation merge            3555a8e02dc4fafe5c3a32e6ecccd3ab7f88eab5
-Post-implementation CI          35141650499 — SUCCESS
-4 focused A2 integration tests
-```
-
-#### A3 — COMPLETE
-
-Scenarios G, H, J prove invalid/future workbook rejection preserves live state and safe-save backup/stage/commit faults remain truthful and recoverable under the existing transport contract.
-
-```text
-Feature head                    9a07191adf72b8c6d52d6c9c615862222023f2e1
-Feature CI                      35142621280 — SUCCESS
-Implementation PR #215          MERGED
-Implementation PR CI            35142799049 — SUCCESS
-Implementation merge            a34fab08b75c591d7eb15d2b6c63fc3bee8970f2
-Post-implementation CI          35142923525 — SUCCESS
-131 test files / 1439 tests
-5 focused A3 integration tests
-Typecheck PASS
-Production build PASS
-149 modules transformed
-```
-
-### Full A–J scenario matrix
+## Phase 5.6A A–J integration matrix — COMPLETE
 
 ```text
 A — complete source round-trip                          GREEN — A1
@@ -214,53 +149,61 @@ I — deterministic workbook schema/row semantics        GREEN — A1
 J — backup/replace failure integration                 GREEN — A3
 ```
 
-Parent `5.6A` is therefore COMPLETE.
+Completion records:
 
-### 5.6B — Regression / Build / Phase 5 Completion — NEXT / NOT STARTED
-
-Final gate required by the Phase 5 master plan:
-
-- all Phase 1–5 tests green;
-- all Phase 1–4 integration suites green;
-- dedicated Phase 5 A–J round-trip scenarios green;
-- browser persistence smoke/regression coverage green;
-- TypeScript typecheck green;
-- production build green;
-- documentation reconciled;
-- exact merged `develop` CI green.
-
-Only after this gate succeeds may Phase 5 be marked COMPLETE and Phase 6 advance to:
-
-```text
-NEXT FOR SCOPE REVIEW / NOT STARTED
-```
+- `docs/PHASE_5_6A1_SOURCE_ROUND_TRIP_FIDELITY_DETERMINISTIC_WORKBOOK_SEMANTICS.md`
+- `docs/PHASE_5_6A2_PHASE_1_4_DERIVED_SERVICE_EQUIVALENCE.md`
+- `docs/PHASE_5_6A3_REJECTION_SAFE_SAVE_INTEGRATION_COMPLETION_GATE.md`
+- `docs/PHASE_5_6A_INTEGRATED_EXCEL_ROUND_TRIP_WORKFLOW.md`
 
 ---
 
-## Current persistence boundary
+## Phase 5.6B final gate — COMPLETE
+
+The final repository-wide gate verifies:
+
+- all Phase 1–5 tests green;
+- all Phase 1–4 integration workflows green;
+- dedicated A1/A2/A3 persistence integration suites green;
+- browser persistence smoke/regression coverage green;
+- TypeScript typecheck green;
+- production build green;
+- Phase 5 documentation reconciled;
+- final documentation closeout merged only after its own full PR CI is green;
+- exact post-merge `develop` CI required as final Git-history evidence.
+
+No runtime feature work was required for 5.6B.
+
+---
+
+## Phase 5 final result
 
 ```text
-BusinessDataset source contract          COMPLETE
-Workbook schema contract                 COMPLETE
-Dataset integrity validator              COMPLETE
-XLSX library / codec                     COMPLETE
-Dataset <-> XLSX round-trip              COMPLETE
-Snapshot / hydration                     COMPLETE — 5.3
-Persistence coordinator lifecycle        COMPLETE — 5.3C
-Schema compatibility / migration         COMPLETE — 5.4A
-Backup / atomic-write safety             COMPLETE — 5.4B
-Corruption / resource / recovery         COMPLETE — 5.4C
-Browser persistence UI                   COMPLETE — 5.5
-Source round-trip integration            COMPLETE — 5.6A1
-Derived service equivalence              COMPLETE — 5.6A2
-Rejection/safe-save + A completion gate  COMPLETE — 5.6A3
-Integrated round-trip parent             COMPLETE — 5.6A
-Phase 5 final completion gate            NEXT — 5.6B
-Native filesystem                        Phase 6 — NOT STARTED
+Phase 5 — Excel Persistence — COMPLETE
 ```
 
-## Current active task
+Phase 5 delivers safe browser-compatible Excel persistence over the completed Phase 1–4 business model while preserving storage-independent domain/application architecture.
 
-**5.6B — Regression / Build / Phase 5 Completion — NEXT / NOT STARTED**
+Native filesystem behavior remains outside Phase 5.
 
-The user explicitly authorized continuing through 5.6B in the current session.
+---
+
+## Next phase
+
+```text
+Phase 6 — Tauri Desktop Integration — NEXT FOR SCOPE REVIEW / NOT STARTED
+```
+
+Phase 6 owns, after a separate scope review/planning step:
+
+- Tauri desktop integration;
+- native Open / Save / Save As dialogs;
+- managed native workbook paths;
+- real filesystem backup locations;
+- OS-level replacement/atomicity guarantees where supported;
+- locking;
+- `fsync` / durability behavior;
+- crash consistency;
+- desktop packaging/distribution.
+
+Do not infer Phase 6 implementation from Phase 5 completion.
