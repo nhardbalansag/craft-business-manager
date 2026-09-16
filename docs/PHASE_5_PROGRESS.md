@@ -40,8 +40,8 @@ Master plan:
         5.4B2 — Backup + Staged-Commit Reference          COMPLETE
         5.4B3 — Failure Recovery / Completion Gate        COMPLETE
     5.4C — Corruption, Limits & Recovery Diagnostics      IN PROGRESS
-        5.4C1 — Resource Limit Policy & Guard Boundaries   NEXT / NOT STARTED
-        5.4C2 — Corruption / Recovery Diagnostic Classification       NOT STARTED
+        5.4C1 — Resource Limit Policy & Guard Boundaries   COMPLETE
+        5.4C2 — Corruption / Recovery Diagnostic Classification       NEXT / NOT STARTED
         5.4C3 — Recovery Safety Regression & Phase 5.4 Completion Gate NOT STARTED
 
 5.5 — Excel Persistence UI                                NOT STARTED
@@ -66,48 +66,43 @@ Master plan:
 - Missing evidence remains distinct from explicit zero/null/false.
 - Formula cells are not authoritative source values; formula-looking text remains literal.
 - SheetJS CE 0.20.3 remains hidden behind the library-neutral `WorkbookCodec`.
-- Complete reconstructed candidates validate before any live repository mutation.
+- Complete reconstructed candidates validate before live repository mutation.
 
-### Snapshot / hydration / coordinator
+### Snapshot / hydration / persistence lifecycle
 
 - 5.3A owns complete deterministic snapshots over all nine source repositories.
-- 5.3B owns validation-before-write, whole-dataset replacement, rollback, and preserved repository/service identity.
-- 5.3C owns one application-level persistence lifecycle over workbook bytes; it does not create a second dataset-level persistence path.
-- Optional source-field absence is source evidence and may not be synthesized as an own property with `undefined`.
-- Rollback failure remains a distinct severe diagnostic and may never be reported as successful hydration.
+- 5.3B owns validation-before-write, whole-dataset replacement, rollback, and stable repository/service identity.
+- 5.3C owns the single application-level persistence lifecycle over workbook bytes.
+- Expected import rejection never reaches hydration.
+- Optional source-field absence is evidence and may not be synthesized as an own property with `undefined`.
+- Hydration rollback remains distinct from save-side transport recovery.
 
 ### Compatibility / migration
 
-- Workbook-format and dataset-schema versions are separate exact axes.
-- Public versions remain v1/v1; no fake predecessor is created merely to demonstrate migration.
-- Missing `_Meta` is rejected; metadata-free legacy auto-detection is unsupported.
-- Version preflight runs before strict current-schema validation for compatibility routing.
-- Migration steps operate on neutral workbook documents only and cannot touch repositories, hydration, React, transport, or native filesystem APIs.
-- Migration paths are explicit, deterministic, no-downgrade, and cycle-safe.
-- Future workbook/dataset versions fail closed.
-- Exact current workbooks still pass through strict current workbook schema, metadata, reconstruction, and dataset-integrity checks.
-- Synthetic migration fixtures prove mechanics only and do not become supported formats.
-- The production migration registry remains empty until a real historical predecessor exists.
+- Workbook-format and dataset-schema versions remain separate exact axes.
+- Public versions remain v1/v1; no fake predecessor is created solely to demonstrate migration.
+- Missing `_Meta` is rejected; metadata-free legacy guessing is unsupported.
+- Version preflight runs before strict current-schema validation.
+- Migration steps operate on neutral workbook documents only.
+- Future versions fail closed.
+- Exact current workbooks remain subject to strict current workbook schema, metadata, reconstruction, and dataset validation.
+- Production migration registry remains empty until a real historical predecessor exists.
 - `PersistenceCoordinator` remains unaware of migration mechanics.
-- Compatibility/migration rejection remains an import rejection and never reaches hydration.
 
 ### Backup / safe-save transport
 
 - `WorkbookTransport` remains byte-only.
 - Backup policies are `none`, `if-supported`, and `required`.
-- Required backup cannot proceed when unsupported or when backup creation fails.
-- Backup evidence is the exact pre-save primary workbook.
-- No-existing-primary is not a backup failure and creates no fake backup.
-- Replacement bytes are defensively owned and staged separately before commit in the safe reference transport.
-- Pre-commit failure preserves the previous primary workbook.
-- Atomic replacement is an explicit transport guarantee, never an assumption inferred by coordinator/UI.
-- Browser/direct transports may truthfully remain non-atomic.
-- `InMemoryWorkbookTransport` remains direct/non-atomic with backup unsupported.
-- `SafeInMemoryWorkbookTransport` remains backup-supported, staged, and logically atomic in memory only.
-- Native durability, rename atomicity, `fsync`, locking, and crash consistency remain Phase 6.
-- Post-commit cleanup failure reports committed state and does not pretend rollback occurred.
-- `PersistenceCoordinator` forwards save options/receipts and wraps failures as `TRANSPORT_SAVE_FAILED`; it does not implement storage rollback.
-- Hydration rollback remains owned by 5.3B.
+- Required backup cannot proceed when unsupported or when creation fails.
+- Backup evidence represents exact pre-save primary bytes.
+- Replacement bytes are defensively owned and staged separately by the safe reference transport.
+- Pre-commit failures preserve the previous primary workbook.
+- Atomic replacement is an explicit transport guarantee and is never inferred by coordinator/UI.
+- `InMemoryWorkbookTransport` remains direct/non-atomic.
+- `SafeInMemoryWorkbookTransport` proves logical in-memory backup/stage/commit/cleanup only.
+- Native durability, locking, rename atomicity, `fsync`, and crash consistency remain Phase 6.
+- Post-commit cleanup failure reports committed state and is not represented as rollback.
+- `PersistenceCoordinator` forwards save options/receipts and does not implement storage rollback.
 
 ### Corruption / resource limits / recovery — 5.4C
 
@@ -118,31 +113,56 @@ Plan:
 Locked decomposition:
 
 ```text
-5.4C1 — Resource Limit Policy & Guard Boundaries
-5.4C2 — Corruption / Recovery Diagnostic Classification
-5.4C3 — Recovery Safety Regression & Phase 5.4 Completion Gate
+5.4C1 — Resource Limit Policy & Guard Boundaries                  COMPLETE
+5.4C2 — Corruption / Recovery Diagnostic Classification          NEXT / NOT STARTED
+5.4C3 — Recovery Safety Regression & Phase 5.4 Completion Gate   NOT STARTED
 ```
 
-Locked decisions:
+C1 completion record:
 
-- Existing schema/compatibility/reconstruction/dataset validators remain authoritative; 5.4C does not duplicate them.
-- Resource limits are a separate safety contract, not business validation.
-- Workbook byte limits must be checked before codec decode.
-- SheetJS should reject extreme declared worksheet ranges before large neutral row/cell expansion where feasible.
-- Neutral-document limits are checked again after decode so alternate codecs cannot bypass the application policy.
-- Silent row truncation is forbidden for authoritative import.
-- Resource-limit failures are expected structured import rejections.
-- Corrupt/unreadable XLSX remains distinguishable from resource-limit, version, schema, reconstruction, and dataset failures.
-- Recovery classification summarizes raw diagnostics but never replaces or mutates them.
-- Recovery actions are machine-readable guidance only; no UI or filesystem action occurs in 5.4C.
-- Backup-restore guidance is advisory only; backup selection/loading remains 5.5/Phase 6 work.
-- Expected import rejection must not reach hydration or mutate live source state.
-- 5.4C3 closes parent 5.4 only after full regression/typecheck/build gates are green.
-- Native filesystem/dialog work remains Phase 6; user-facing recovery UX remains 5.5C.
+`docs/PHASE_5_4C1_RESOURCE_LIMIT_POLICY_GUARD_BOUNDARIES.md`
+
+Locked C1 resource policy:
+
+```text
+maxWorkbookBytes       20 MiB
+maxWorksheetCount      32
+maxColumnsPerSheet     64
+maxRowsPerSheet        50,000 data rows
+maxTotalRows           150,000 data rows
+maxTotalCells          2,000,000 cell slots including header rows
+```
+
+C1 guard order:
+
+```text
+XLSX bytes
+  -> pre-decode byte-size guard
+  -> WorkbookCodec.decode
+       -> SheetJS worksheet-count / declared-range guard
+       -> neutral document expansion
+  -> post-decode neutral-document resource guard
+  -> compatibility / migration
+  -> strict schema / reconstruction / dataset validation
+  -> hydration
+```
+
+C1 decisions:
+
+- Resource limits are a safety contract, not business validation.
+- Byte limits run before codec decode.
+- SheetJS checks worksheet count and declared ranges before neutral row/cell expansion.
+- Decoded neutral documents are checked again so alternate codecs cannot bypass policy.
+- Silent truncation is forbidden.
+- Limit failures are structured `resource-limit` import rejections with actual/max/sheet context.
+- Resource-limit rejection never reaches hydration.
+- C1 does not claim complete ZIP-bomb/malware sandboxing.
+- C2 owns stable recovery classification/guidance; C3 owns integrated recovery/state-preservation regression.
+- Recovery UI remains 5.5C; native filesystem concerns remain Phase 6.
 
 ## Completion evidence index
 
-Detailed historical evidence remains in the dedicated phase records. This tracker keeps the authoritative progression concise.
+Detailed history remains in dedicated phase records; this tracker keeps authoritative gates concise.
 
 ### Phase 5.1 — COMPLETE
 
@@ -158,75 +178,69 @@ Detailed historical evidence remains in the dedicated phase records. This tracke
 ### Phase 5.2 — COMPLETE
 
 ```text
-5.2A implementation PR #140   MERGED
-5.2A final CI                 35003583148 — SUCCESS
-5.2B implementation PR #143   MERGED
-5.2B final CI                 35008520820 — SUCCESS
-5.2C implementation PR #146   MERGED
-5.2C final CI                 35012885175 — SUCCESS
+5.2A PR #140 — MERGED — final CI 35003583148
+5.2B PR #143 — MERGED — final CI 35008520820
+5.2C PR #146 — MERGED — final CI 35012885175
 ```
 
 ### Phase 5.3 — COMPLETE
 
-Records:
-
-- `docs/PHASE_5_3A_COMPLETE_SOURCE_SNAPSHOT_SERVICE.md`
-- `docs/PHASE_5_3B_VALIDATED_ATOMIC_DATASET_HYDRATION.md`
-- `docs/PHASE_5_3C_PERSISTENCE_COORDINATOR_LOAD_SAVE_LIFECYCLE.md`
-
 ```text
-Closeout PR #164   MERGED
-Final develop      0624863f59929d645acd5f6539ab311afdfcb5bd
-Final CI           35039111549 — SUCCESS
+Parent closeout PR #164 — MERGED
+Final develop  0624863f59929d645acd5f6539ab311afdfcb5bd
+Final CI       35039111549 — SUCCESS
 96 test files / 1168 tests at 5.3C gate
 ```
 
 ### Phase 5.4A — COMPLETE
 
-Plan: `docs/PHASE_5_4A_SCHEMA_MIGRATION_COMPATIBILITY_PLAN.md`
-
-Parent record: `docs/PHASE_5_4A_SCHEMA_MIGRATION_COMPATIBILITY.md`
-
 ```text
-Planning PR #165   MERGED
-A1 PR #166         MERGED — post-merge CI 35041385616
-A2 PR #168         MERGED — post-merge CI 35042566109
-A3 PR #170         MERGED — post-merge CI 35047100605
+Planning PR #165 — MERGED
+A1 PR #166 — MERGED — post-merge CI 35041385616
+A2 PR #168 — MERGED — post-merge CI 35042566109
+A3 PR #170 — MERGED — post-merge CI 35047100605
 102 test files / 1214 tests at A3 gate
 ```
 
 ### Phase 5.4B — COMPLETE
 
-Plan: `docs/PHASE_5_4B_BACKUP_ATOMIC_WRITE_TRANSPORT_PLAN.md`
-
-Parent record: `docs/PHASE_5_4B_BACKUP_ATOMIC_WRITE_TRANSPORT.md`
-
 ```text
-Planning PR #172       MERGED
-B1 PR #173             MERGED — post-merge CI 35049144901
-B2 PR #175             MERGED — post-merge CI 35050167491
-B3 PR #177             MERGED — post-merge CI 35051019882
-Parent closeout PR #178 MERGED
-Final develop          3cce1f03eda8e9266c40bee3dc8218e3c04bb786
-Final CI               35051330092 — SUCCESS
+Planning PR #172 — MERGED
+B1 PR #173 — MERGED — post-merge CI 35049144901
+B2 PR #175 — MERGED — post-merge CI 35050167491
+B3 PR #177 — MERGED — post-merge CI 35051019882
+Parent closeout PR #178 — MERGED
+Final develop  3cce1f03eda8e9266c40bee3dc8218e3c04bb786
+Final CI       35051330092 — SUCCESS
 105 test files / 1245 tests at B3 gate
 132 modules transformed
 ```
 
-### Phase 5.4C — PLANNING ESTABLISHED
+### Phase 5.4C — IN PROGRESS
 
-Planning baseline:
+Planning:
 
 ```text
-develop  3cce1f03eda8e9266c40bee3dc8218e3c04bb786
-CI       35051330092 — SUCCESS
+Planning baseline      3cce1f03eda8e9266c40bee3dc8218e3c04bb786
+Planning baseline CI   35051330092 — SUCCESS
+Planning PR #179       MERGED
+Planning merge         a973792ef1c9fca7dbd7681b7aa6dff8ee068a1c
+Planning merge CI      35052042769 — SUCCESS
 ```
 
-Dedicated plan:
+#### 5.4C1 — COMPLETE
 
-`docs/PHASE_5_4C_CORRUPTION_LIMITS_RECOVERY_DIAGNOSTICS_PLAN.md`
-
-Implementation has **not** started.
+```text
+Feature head           3978afe587ae268b4f03df1b5e1303b292f13c34
+Branch CI              35052920663 — SUCCESS
+Implementation PR #180 MERGED
+PR CI                  35052995585 — SUCCESS
+Implementation merge   a5e17553a0680bd4982ce22369360df9ef6b5e79
+Post-merge CI          35053072059 — SUCCESS
+109 test files / 1266 tests
+21 focused C1 tests
+133 modules transformed
+```
 
 ## Current persistence boundary
 
@@ -234,21 +248,20 @@ Implementation has **not** started.
 BusinessDataset source contract       COMPLETE
 Workbook schema contract              COMPLETE
 Dataset integrity validator           COMPLETE
-XLSX library / byte codec             COMPLETE
-Dataset -> XLSX export                COMPLETE
-XLSX -> dataset reconstruction        COMPLETE
-Repository snapshot/hydration         COMPLETE — 5.3
+XLSX library / codec                   COMPLETE
+Dataset <-> XLSX round-trip            COMPLETE
+Snapshot / hydration                   COMPLETE — 5.3
 Persistence coordinator lifecycle     COMPLETE — 5.3C
-Schema compatibility/migration        COMPLETE — 5.4A
-Backup/atomic-write safety             COMPLETE — 5.4B
-Resource-limit guards                  NEXT / NOT STARTED — 5.4C1
-Recovery diagnostic classification    NOT STARTED — 5.4C2
-Recovery safety completion gate        NOT STARTED — 5.4C3
-Native filesystem                      Phase 6
+Schema compatibility / migration      COMPLETE — 5.4A
+Backup / atomic-write safety          COMPLETE — 5.4B
+Resource-limit guards                 COMPLETE — 5.4C1
+Recovery diagnostic classification   NEXT / NOT STARTED — 5.4C2
+Recovery safety completion gate       NOT STARTED — 5.4C3
+Native filesystem                     Phase 6
 ```
 
 ## Current active task
 
-**5.4C1 — Resource Limit Policy & Guard Boundaries — NEXT / NOT STARTED**
+**5.4C2 — Corruption / Recovery Diagnostic Classification — NEXT / NOT STARTED**
 
-Do not begin 5.4C1 until the Phase 5.4C planning PR is merged, the exact resulting `develop` CI is green, and the user separately says to proceed.
+Do not begin 5.4C2 until the 5.4C1 closeout PR is merged, the exact resulting `develop` CI is green, and the user separately says to proceed.
