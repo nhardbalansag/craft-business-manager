@@ -32,6 +32,7 @@ const rejected: PersistenceWorkbookApplyResult = {
   stage: 'import',
   issues: [
     {
+      stage: 'schema',
       code: 'MISSING_SHEET',
       message: 'Required sheet Materials is missing.',
       path: 'Materials',
