@@ -9,7 +9,10 @@ import {
 import { InMemoryWorkbookTransport } from '../../storage/InMemoryWorkbookTransport';
 import { SheetJsWorkbookCodec } from '../../storage/sheetJsWorkbookCodec';
 import { WorkbookCodecError, type WorkbookCodec } from '../../storage/workbookCodec';
-import type { WorkbookTransport } from '../../storage/WorkbookTransport';
+import {
+  createWorkbookTransportCapabilities,
+  type WorkbookTransport,
+} from '../../storage/WorkbookTransport';
 import { PersistenceLifecycleOperationalError } from './PersistenceLifecycle';
 import { PersistenceCoordinator } from './PersistenceCoordinator';
 import { DatasetHydrationError } from './ValidatedAtomicDatasetHydrationService';
@@ -43,6 +46,12 @@ function validWorkbookBytes(
     codec,
   );
 }
+
+const directTransportCapabilities = createWorkbookTransportCapabilities({
+  backup: 'unsupported',
+  stagedReplacement: false,
+  replacement: 'direct-non-atomic',
+});
 
 describe('PersistenceCoordinator export/save orchestration', () => {
   it('exports the current complete snapshot with deterministic injected metadata', async () => {
@@ -106,6 +115,7 @@ describe('PersistenceCoordinator export/save orchestration', () => {
     expect(result.receipt).toEqual({
       reference: 'memory://workbook',
       backup: { status: 'unsupported' },
+      replacement: { guarantee: 'direct-non-atomic' },
     });
     expect(snapshots.snapshot).toHaveBeenCalledTimes(1);
   });
@@ -171,6 +181,7 @@ describe('PersistenceCoordinator export/save orchestration', () => {
     const before = structuredClone(dataset);
     const failure = new Error('transport unavailable');
     const transport: WorkbookTransport = {
+      capabilities: directTransportCapabilities,
       loadWorkbook: vi.fn(async () => new Uint8Array([1])),
       saveWorkbook: vi.fn(async () => { throw failure; }),
     };
@@ -237,8 +248,12 @@ describe('PersistenceCoordinator Phase 5.3C3 import/load/hydrate orchestration',
     const hydration = acceptingHydration();
     const failure = new Error('cannot read workbook');
     const transport: WorkbookTransport = {
+      capabilities: directTransportCapabilities,
       loadWorkbook: vi.fn(async () => { throw failure; }),
-      saveWorkbook: vi.fn(async () => ({ backup: { status: 'not-requested' as const } })),
+      saveWorkbook: vi.fn(async () => ({
+        backup: { status: 'not-requested' as const },
+        replacement: { guarantee: 'direct-non-atomic' as const },
+      })),
     };
     const coordinator = new PersistenceCoordinator(
       snapshotSource(createEmptyBusinessDataset()),
