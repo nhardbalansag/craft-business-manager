@@ -6,6 +6,15 @@ Master plan:
 
 `docs/PHASE_5_EXCEL_PERSISTENCE_PLAN.md`
 
+Current `develop` baseline used for 5.5A planning:
+
+```text
+develop  728b9b99b1da5192fd894f04c64d7ab3d1447d07
+CI       35058157911 — SUCCESS
+```
+
+The current baseline also includes later Production and Products UX improvements. Those changes did not alter the Phase 5 persistence contracts.
+
 ## Live task map
 
 ```text
@@ -44,8 +53,11 @@ Master plan:
         5.4C2 — Corruption / Recovery Diagnostic Classification          COMPLETE
         5.4C3 — Recovery Safety Regression & Phase 5.4 Completion Gate   COMPLETE
 
-5.5 — Excel Persistence UI                                NOT STARTED
-    5.5A — Import / Open Workbook Workflow                NEXT / NOT STARTED
+5.5 — Excel Persistence UI                                IN PROGRESS
+    5.5A — Import / Open Workbook Workflow                IN PROGRESS
+        5.5A1 — Browser File Selection & Import Command Boundary  NEXT / NOT STARTED
+        5.5A2 — React Open/Replace Workflow & Workspace Refresh   NOT STARTED
+        5.5A3 — Browser Import Regression & 5.5A Completion Gate  NOT STARTED
     5.5B — Export / Save & Backup Workflow                NOT STARTED
     5.5C — Persistence Status / Validation / Recovery UX  NOT STARTED
 
@@ -65,7 +77,7 @@ Master plan:
 - Workbook v1 has 13 normalized canonical sheets.
 - Missing evidence remains distinct from explicit zero/null/false.
 - Formula cells are not authoritative source values; formula-looking text remains literal.
-- SheetJS CE 0.20.3 remains hidden behind the library-neutral `WorkbookCodec`.
+- SheetJS remains hidden behind the library-neutral `WorkbookCodec`.
 - Complete reconstructed candidates validate before live repository mutation.
 
 ### Snapshot / hydration / persistence lifecycle
@@ -102,135 +114,59 @@ Master plan:
 - Native durability, locking, rename atomicity, `fsync`, and crash consistency remain Phase 6.
 - Post-commit cleanup failure reports committed state and is not represented as rollback.
 
-### Corruption / resource limits / recovery — 5.4C
+### Corruption / resource limits / recovery
+
+- import is guarded before decode, during SheetJS range expansion, and after neutral-document reconstruction;
+- resource limits, corruption, incompatible versions, workbook structure, invalid workbook values, invalid business data, and unexpected failures remain distinct diagnostic classes;
+- raw importer issues remain authoritative and recovery summaries are derived/advisory;
+- expected import rejection does not call hydration and leaves the prior authoritative source snapshot unchanged;
+- user-facing rich recovery UX remains 5.5C.
+
+### Browser import / open workflow — 5.5A
 
 Plan:
 
-`docs/PHASE_5_4C_CORRUPTION_LIMITS_RECOVERY_DIAGNOSTICS_PLAN.md`
-
-Completion records:
-
-- `docs/PHASE_5_4C1_RESOURCE_LIMIT_POLICY_GUARD_BOUNDARIES.md`
-- `docs/PHASE_5_4C2_RECOVERY_DIAGNOSTIC_CLASSIFICATION.md`
-- `docs/PHASE_5_4C3_RECOVERY_SAFETY_COMPLETION_GATE.md`
-- `docs/PHASE_5_4_VERSION_COMPATIBILITY_BACKUP_RECOVERY_SAFETY.md`
+`docs/PHASE_5_5A_IMPORT_OPEN_WORKBOOK_WORKFLOW_PLAN.md`
 
 Locked decomposition:
 
 ```text
-5.4C1 — Resource Limit Policy & Guard Boundaries                  COMPLETE
-5.4C2 — Corruption / Recovery Diagnostic Classification          COMPLETE
-5.4C3 — Recovery Safety Regression & Phase 5.4 Completion Gate   COMPLETE
+5.5A1 — Browser File Selection & Import Command Boundary  NEXT / NOT STARTED
+5.5A2 — React Open/Replace Workflow & Workspace Refresh   NOT STARTED
+5.5A3 — Browser Import Regression & 5.5A Completion Gate  NOT STARTED
 ```
 
-C1 resource policy:
+Locked decisions:
 
-```text
-maxWorkbookBytes       20 MiB
-maxWorksheetCount      32
-maxColumnsPerSheet     64
-maxRowsPerSheet        50,000 data rows
-maxTotalRows           150,000 data rows
-maxTotalCells          2,000,000 cell slots including header rows
-```
-
-C1 guard order:
-
-```text
-XLSX bytes
-  -> pre-decode byte-size guard
-  -> WorkbookCodec.decode
-       -> SheetJS worksheet-count / declared-range guard
-       -> neutral document expansion
-  -> post-decode neutral-document resource guard
-  -> compatibility / migration
-  -> strict schema / reconstruction / dataset validation
-  -> hydration
-```
-
-C2 stable recovery categories:
-
-```text
-resource-limit
-unreadable-or-corrupt-workbook
-unsupported-or-incompatible-version
-workbook-structure
-invalid-workbook-values
-invalid-business-data
-unexpected-import-failure
-```
-
-C2 machine-readable action codes:
-
-```text
-select-another-file
-restore-known-good-backup
-reduce-workbook-size
-open-with-compatible-or-newer-app
-repair-workbook-structure
-correct-source-data
-retry-or-report-unexpected-error
-```
-
-C2 classification precedence:
-
-```text
-resource-limit
--> unreadable / corrupt codec failure
--> unsupported / incompatible version
--> workbook structure
--> invalid workbook values
--> invalid business data
--> unexpected import failure
-```
-
-C3 completion guarantees:
-
-- representative real truncated XLSX input fails safely at the codec/import boundary;
-- random non-XLSX input fails in a controlled structural path rather than mutating live state;
-- malformed sheet/header/value/token/formula cases remain structured rejections;
-- orphan child rows, invalid references, and component cycles remain deterministic;
-- future versions do not masquerade as corruption;
-- resource-limit failures remain distinct from invalid business data;
-- raw importer issues remain intact while recovery summaries are derived;
-- backup guidance remains advisory only;
-- expected import rejection does not call hydration;
-- the complete prior authoritative source snapshot remains exactly unchanged after every expected rejection class;
-- current v1/v1 workbook import remains successful.
-
-### Phase 5.4 parent completion
-
-`docs/PHASE_5_4_VERSION_COMPATIBILITY_BACKUP_RECOVERY_SAFETY.md`
-
-Phase 5.4 is complete with all three safety workstreams green:
-
-```text
-5.4A — compatibility / migration     COMPLETE
-5.4B — backup / safe-save transport  COMPLETE
-5.4C — corruption / limits / recovery COMPLETE
-```
-
-User-facing open/save/recovery controls remain Phase 5.5. Native filesystem durability and OS integration remain Phase 6.
+- selecting a file is non-destructive;
+- browser `File`/`ArrayBuffer` acquisition remains outside workbook/domain rules;
+- selected bytes are defensively owned;
+- `.xlsx` filename filtering is UX only and never replaces content validation;
+- destructive import requires an explicit apply/confirmation step;
+- actual import/application delegates to `PersistenceCoordinator.importAndApplyWorkbook(...)`;
+- React does not construct workbook sheets or enumerate repositories;
+- successful hydrate must trigger a deliberate workspace refresh/remount so already-mounted local UI state cannot remain stale;
+- the shared singleton repository/service graph remains intact after import;
+- rejected/failed import does not advance the successful workspace revision;
+- basic controlled feedback belongs to 5.5A, while rich diagnostics/recovery presentation belongs to 5.5C;
+- browser export/save belongs to 5.5B;
+- native dialogs, paths, filesystem I/O, and durable replacement remain Phase 6.
 
 ## Completion evidence index
 
-Detailed history remains in dedicated phase records.
+Detailed phase history remains in the dedicated completion records.
 
 ### Phase 5.1 — COMPLETE
 
-```text
-5.1A final develop  8a1fdc2bbc5a24c20689c933b9964903d380e37c — CI 34986791114
-5.1B final develop  656add851d6eeb6841f2f6e11816bbd52f5028c1 — CI 34994087842
-5.1C final develop  7efef34fac309f9d9745631a54bc8a8ba404415f — CI 34998382050
-```
+- persisted source contract covers all nine authoritative repositories;
+- canonical workbook v1 contract established;
+- dataset integrity/reference/graph validation established.
 
 ### Phase 5.2 — COMPLETE
 
-```text
-5.2A PR #140 — final CI 35003583148
-5.2B PR #143 — final CI 35008520820
-5.2C PR #146 — final CI 35012885175
-```
+- SheetJS codec boundary established;
+- deterministic dataset-to-XLSX export established;
+- strict XLSX-to-dataset import established.
 
 ### Phase 5.3 — COMPLETE
 
@@ -238,112 +174,47 @@ Detailed history remains in dedicated phase records.
 Parent closeout PR #164 — MERGED
 Final develop  0624863f59929d645acd5f6539ab311afdfcb5bd
 Final CI       35039111549 — SUCCESS
-96 test files / 1168 tests at 5.3C gate
 ```
 
 ### Phase 5.4A — COMPLETE
 
 ```text
-Planning PR #165 — MERGED
 A1 PR #166 — post-merge CI 35041385616
 A2 PR #168 — post-merge CI 35042566109
 A3 PR #170 — post-merge CI 35047100605
-102 test files / 1214 tests at A3 gate
 ```
 
 ### Phase 5.4B — COMPLETE
 
 ```text
-Planning PR #172 — MERGED
 B1 PR #173 — post-merge CI 35049144901
 B2 PR #175 — post-merge CI 35050167491
 B3 PR #177 — post-merge CI 35051019882
 Parent closeout PR #178 — MERGED
-Final develop  3cce1f03eda8e9266c40bee3dc8218e3c04bb786
 Final CI       35051330092 — SUCCESS
-105 test files / 1245 tests at B3 gate
 ```
 
-### Phase 5.4C — COMPLETE
-
-Planning:
+### Phase 5.4C / Parent 5.4 — COMPLETE
 
 ```text
-Planning PR #179       MERGED
-Planning merge         a973792ef1c9fca7dbd7681b7aa6dff8ee068a1c
-Planning merge CI      35052042769 — SUCCESS
+C1 PR #180 — post-merge CI 35053072059
+C2 PR #182 — post-merge CI 35054369314
+C3 PR #184 — post-merge CI 35055416159
+Parent 5.4 closeout PR #185 — MERGED
+Final Phase 5.4 develop  b8584d8681e95676c209c2e5a9dde0ee6278b71a
+Final Phase 5.4 CI       35055715946 — SUCCESS
+111 test files / 1302 tests at the 5.4 implementation safety gate
 ```
 
-#### 5.4C1 — COMPLETE
+### Post-5.4 UI work already merged
+
+These later changes are part of the current planning baseline and did not change persistence contracts:
 
 ```text
-Feature head           3978afe587ae268b4f03df1b5e1303b292f13c34
-Branch CI              35052920663 — SUCCESS
-Implementation PR #180 MERGED
-PR CI                  35052995585 — SUCCESS
-Implementation merge   a5e17553a0680bd4982ce22369360df9ef6b5e79
-Post-merge CI          35053072059 — SUCCESS
-Closeout PR #181       MERGED
-Final C1 develop       26265df41731053358a779bb53f1f44609fb8601
-Final C1 CI            35053316688 — SUCCESS
-109 test files / 1266 tests
-21 focused C1 tests
-```
-
-#### 5.4C2 — COMPLETE
-
-```text
-Baseline develop       26265df41731053358a779bb53f1f44609fb8601
-Baseline CI            35053316688 — SUCCESS
-Corrected feature head 12907c2f28e1ee653b2b24f8940b2cbf39c2e62c
-Branch CI              35054203155 — SUCCESS
-Implementation PR #182 MERGED
-PR CI                  35054298802 — SUCCESS
-Implementation merge   cff570f7a2f483cae1e2a41bf40b74bfe230f238
-Post-merge CI          35054369314 — SUCCESS
-Closeout PR #183       MERGED
-Final C2 develop       a22c6df34ec16fd853e6278e44fd6cf760521f44
-Final C2 CI            35054630120 — SUCCESS
-110 test files / 1288 tests
-22 focused C2 tests
-```
-
-The initial C2 branch gate `35054131375` failed only at typecheck because frozen action arrays widened to `readonly string[]`; the literal action-code typing was corrected before PR merge.
-
-#### 5.4C3 — COMPLETE
-
-```text
-Baseline develop       a22c6df34ec16fd853e6278e44fd6cf760521f44
-Baseline CI            35054630120 — SUCCESS
-Initial feature head   4835b96ed38b9d620469888818df12d255dd9695
-Initial branch CI      35055136901 — FAILURE (test expectation typo only)
-Corrected feature head e388b6c3d0252d5475f0fb961d6be9d82721574d
-Branch CI              35055251724 — SUCCESS
-Implementation PR #184 MERGED
-PR CI                  35055338528 — SUCCESS
-Implementation merge   8af74f1be40f1d60a4f41235162f19e1a7541a14
-Post-merge CI          35055416159 — SUCCESS
-111 test files / 1302 tests
-14 focused C3 completion tests
-133 modules transformed
-```
-
-The initial C3 branch gate failed one new assertion because the test expected `WORKSHEET_COUNT_LIMIT_EXCEEDED`; the established C1 issue code is `WORKSHEET_COUNT_EXCEEDED`. No production defect was found.
-
-### Phase 5.4 — COMPLETE
-
-Phase 5.4 completion record:
-
-`docs/PHASE_5_4_VERSION_COMPATIBILITY_BACKUP_RECOVERY_SAFETY.md`
-
-Implementation safety gate before docs closeout:
-
-```text
-Develop                8af74f1be40f1d60a4f41235162f19e1a7541a14
-CI                     35055416159 — SUCCESS
-111 test files / 1302 tests
-Typecheck              PASS
-Production build       PASS
+PR #186 — Production planning UI / estimate reliability — MERGED
+PR #187 — Products catalog / workshop UX              — MERGED
+Current develop  728b9b99b1da5192fd894f04c64d7ab3d1447d07
+Current CI       35058157911 — SUCCESS
 ```
 
 ## Current persistence boundary
@@ -358,16 +229,16 @@ Snapshot / hydration                   COMPLETE — 5.3
 Persistence coordinator lifecycle     COMPLETE — 5.3C
 Schema compatibility / migration      COMPLETE — 5.4A
 Backup / atomic-write safety          COMPLETE — 5.4B
-Resource-limit guards                 COMPLETE — 5.4C1
-Recovery diagnostic classification   COMPLETE — 5.4C2
-Recovery safety completion gate       COMPLETE — 5.4C3
-Version/backup/recovery safety        COMPLETE — 5.4
-Excel persistence UI                  NEXT — 5.5A
+Corruption / resource / recovery      COMPLETE — 5.4C
+Browser import/open planning          ESTABLISHED — 5.5A
+Browser file/import command boundary  NEXT — 5.5A1
+Browser export/save                    NOT STARTED — 5.5B
+Recovery/status UX                     NOT STARTED — 5.5C
 Native filesystem                     Phase 6
 ```
 
 ## Current active task
 
-**5.5A — Import / Open Workbook Workflow — NEXT / NOT STARTED**
+**5.5A1 — Browser File Selection & Import Command Boundary — NEXT / NOT STARTED**
 
-Do not begin 5.5A until the Phase 5.4 docs-only closeout PR is merged, the exact resulting `develop` CI is green, and the user separately says to proceed.
+Do not begin 5.5A1 until the 5.5A planning PR is merged, the exact resulting `develop` CI is green, and the user separately says to proceed.
