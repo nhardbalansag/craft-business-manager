@@ -30,8 +30,11 @@ Master plan:
         5.3C2 — Snapshot-to-XLSX Export / Save Orchestration         COMPLETE
         5.3C3 — XLSX Load / Import / Hydrate & Completion Gate       COMPLETE
 
-5.4 — Version Compatibility, Backup & Recovery Safety     NEXT / NOT STARTED
-    5.4A — Schema Migration & Compatibility Framework     NEXT / NOT STARTED
+5.4 — Version Compatibility, Backup & Recovery Safety     IN PROGRESS
+    5.4A — Schema Migration & Compatibility Framework     PLANNING ESTABLISHED
+        5.4A1 — Version Preflight, Compatibility Matrix & Migration Registry Contract  NEXT / NOT STARTED
+        5.4A2 — Version-Aware Migration Execution & Current-Contract Handoff           NOT STARTED
+        5.4A3 — Compatibility Regression & Completion Gate                             NOT STARTED
     5.4B — Backup & Atomic-Write Transport Contract       NOT STARTED
     5.4C — Corruption, Limits & Recovery Diagnostics      NOT STARTED
 
@@ -80,6 +83,18 @@ Master plan:
 - One shared `persistenceCoordinator` is wired into the application session over the existing shared snapshot/hydration boundaries and concrete SheetJS codec.
 - Complete lifecycle regression proves save A -> mutate B -> load -> exact A restore, existing-service observation, zero-write rejection paths, rollback guarantees, source-fidelity semantics, defensive byte ownership, and exclusion of derived outputs.
 - 5.3C owns load/save lifecycle orchestration; 5.4B owns backup/atomic filesystem transport; Phase 6 owns native Tauri filesystem behavior.
+- 5.4A keeps workbook-format and dataset-schema versions as separate exact version axes.
+- Phase 5.4A does not bump the current public v1/v1 versions merely to manufacture a migration scenario.
+- v1/v1 is the first formal persisted contract unless repository evidence proves a real released predecessor.
+- Missing `_Meta` is rejected; metadata-free legacy auto-detection is not supported.
+- Version preflight must occur before strict current-schema validation for compatibility routing, but `validateWorkbookSchema(...)` remains the strict current-form validator.
+- Migration steps operate only on neutral workbook documents, are pure/storage-agnostic, and cannot touch repositories, hydration, React, transport, or native filesystem APIs.
+- Migration paths are explicit exact-version-pair registrations, deterministic, no-downgrade, and cycle-safe.
+- Any future workbook or dataset version axis fails closed.
+- Migrated output must reach the exact current version pair and then pass the existing current workbook validator plus `validateBusinessDatasetIntegrity(...)`.
+- `PersistenceCoordinator` remains unaware of migration mechanics and continues consuming the same structured importer result shape.
+- Synthetic migration fixtures may prove generic framework behavior but do not become supported public product versions.
+- The production migration registry remains empty until a real older released contract exists.
 
 ## Completed persistence foundation
 
@@ -382,6 +397,39 @@ Delivered:
 
 All C1, C2, and C3 responsibilities are complete. The complete persisted source lifecycle is now coordinated behind one application API while preserving the separate workbook codec, strict importer, snapshot, hydration, and byte-transport responsibilities.
 
+## Phase 5.4A — Schema Migration & Compatibility Framework
+
+Status: **PLANNING ESTABLISHED**
+
+Dedicated plan:
+
+`docs/PHASE_5_4A_SCHEMA_MIGRATION_COMPATIBILITY_PLAN.md`
+
+Planning baseline:
+
+```text
+develop  0624863f59929d645acd5f6539ab311afdfcb5bd
+CI       35039111549 — SUCCESS
+```
+
+Audit result:
+
+- current dataset schema is v1 and explicitly documented as the first formally specified complete persisted dataset;
+- current workbook format is v1;
+- current strict importer validates the current workbook schema before exact-version metadata rejection;
+- migration therefore requires a minimal `_Meta` preflight before current-schema validation;
+- no legitimate production predecessor has been identified, so 5.4A must not fabricate v0/v2 solely to demonstrate migration.
+
+Locked decomposition:
+
+```text
+5.4A1 — Version Preflight, Compatibility Matrix & Migration Registry Contract  NEXT / NOT STARTED
+5.4A2 — Version-Aware Migration Execution & Current-Contract Handoff           NOT STARTED
+5.4A3 — Compatibility Regression & Completion Gate                             NOT STARTED
+```
+
+The production migration registry remains empty while v1/v1 is the first public contract. Generic migration behavior will be proven using isolated synthetic registry fixtures that do not change supported public versions.
+
 ## Current persistence boundary
 
 ```text
@@ -399,13 +447,16 @@ Persistence coordinator lifecycle     COMPLETE — 5.3C
 Workbook transport/lifecycle contract COMPLETE — 5.3C1
 Export/save orchestration             COMPLETE — 5.3C2
 Load/import/hydrate orchestration     COMPLETE — 5.3C3
-Schema compatibility/migration        NEXT / NOT STARTED — 5.4A
+Schema compatibility/migration plan   ESTABLISHED — 5.4A
+Version preflight/registry contract   NEXT / NOT STARTED — 5.4A1
+Migration execution/import handoff    NOT STARTED — 5.4A2
+Compatibility completion gate         NOT STARTED — 5.4A3
 Detailed backup/atomic write          NOT STARTED — 5.4B
 Native filesystem                     Phase 6
 ```
 
 ## Current active task
 
-**5.4A — Schema Migration & Compatibility Framework — NEXT / NOT STARTED**
+**5.4A1 — Version Preflight, Compatibility Matrix & Migration Registry Contract — NEXT / NOT STARTED**
 
-Do not begin 5.4A implementation until the Phase 5.3C parent closeout PR is merged, exact final `develop` CI is green, and the user separately says to proceed.
+Do not begin 5.4A1 implementation until the 5.4A planning PR is merged, the exact resulting `develop` CI is green, and the user separately says to proceed.
