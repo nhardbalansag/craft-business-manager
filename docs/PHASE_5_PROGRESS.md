@@ -30,7 +30,7 @@ Master plan:
         5.3C2 — Snapshot-to-XLSX Export / Save Orchestration         COMPLETE
         5.3C3 — XLSX Load / Import / Hydrate & Completion Gate       COMPLETE
 
-5.4 — Version Compatibility, Backup & Recovery Safety     IN PROGRESS
+5.4 — Version Compatibility, Backup & Recovery Safety     COMPLETE
     5.4A — Schema Migration & Compatibility Framework     COMPLETE
         5.4A1 — Version Preflight / Migration Registry    COMPLETE
         5.4A2 — Migration Execution / Import Handoff      COMPLETE
@@ -39,13 +39,13 @@ Master plan:
         5.4B1 — Capability / Policy / Transaction         COMPLETE
         5.4B2 — Backup + Staged-Commit Reference          COMPLETE
         5.4B3 — Failure Recovery / Completion Gate        COMPLETE
-    5.4C — Corruption, Limits & Recovery Diagnostics      IN PROGRESS
+    5.4C — Corruption, Limits & Recovery Diagnostics      COMPLETE
         5.4C1 — Resource Limit Policy & Guard Boundaries                  COMPLETE
         5.4C2 — Corruption / Recovery Diagnostic Classification          COMPLETE
-        5.4C3 — Recovery Safety Regression & Phase 5.4 Completion Gate   NEXT / NOT STARTED
+        5.4C3 — Recovery Safety Regression & Phase 5.4 Completion Gate   COMPLETE
 
 5.5 — Excel Persistence UI                                NOT STARTED
-    5.5A — Import / Open Workbook Workflow                NOT STARTED
+    5.5A — Import / Open Workbook Workflow                NEXT / NOT STARTED
     5.5B — Export / Save & Backup Workflow                NOT STARTED
     5.5C — Persistence Status / Validation / Recovery UX  NOT STARTED
 
@@ -112,13 +112,15 @@ Completion records:
 
 - `docs/PHASE_5_4C1_RESOURCE_LIMIT_POLICY_GUARD_BOUNDARIES.md`
 - `docs/PHASE_5_4C2_RECOVERY_DIAGNOSTIC_CLASSIFICATION.md`
+- `docs/PHASE_5_4C3_RECOVERY_SAFETY_COMPLETION_GATE.md`
+- `docs/PHASE_5_4_VERSION_COMPATIBILITY_BACKUP_RECOVERY_SAFETY.md`
 
 Locked decomposition:
 
 ```text
 5.4C1 — Resource Limit Policy & Guard Boundaries                  COMPLETE
 5.4C2 — Corruption / Recovery Diagnostic Classification          COMPLETE
-5.4C3 — Recovery Safety Regression & Phase 5.4 Completion Gate   NEXT / NOT STARTED
+5.4C3 — Recovery Safety Regression & Phase 5.4 Completion Gate   COMPLETE
 ```
 
 C1 resource policy:
@@ -182,16 +184,33 @@ resource-limit
 -> unexpected import failure
 ```
 
-C2 decisions:
+C3 completion guarantees:
 
-- Recovery classification summarizes raw importer issues; raw issues remain authoritative and unchanged.
-- Summaries contain primary category, recommended actions, issue count, stage/category counts, backup guidance, and `liveStateChanged: false`.
-- Guidance is UI-agnostic and performs no backup restore, hydration, repository mutation, transport mutation, React action, or native filesystem operation.
-- Backup restore remains advisory only.
-- Resource-limit rejection remains distinct from corruption and business-data invalidity.
-- Unsupported versions remain distinct from corrupt workbooks.
-- C3 owns real-XLSX recovery regression, previous-state preservation, and parent Phase 5.4 completion.
-- User-facing recovery UX remains 5.5C; native filesystem behavior remains Phase 6.
+- representative real truncated XLSX input fails safely at the codec/import boundary;
+- random non-XLSX input fails in a controlled structural path rather than mutating live state;
+- malformed sheet/header/value/token/formula cases remain structured rejections;
+- orphan child rows, invalid references, and component cycles remain deterministic;
+- future versions do not masquerade as corruption;
+- resource-limit failures remain distinct from invalid business data;
+- raw importer issues remain intact while recovery summaries are derived;
+- backup guidance remains advisory only;
+- expected import rejection does not call hydration;
+- the complete prior authoritative source snapshot remains exactly unchanged after every expected rejection class;
+- current v1/v1 workbook import remains successful.
+
+### Phase 5.4 parent completion
+
+`docs/PHASE_5_4_VERSION_COMPATIBILITY_BACKUP_RECOVERY_SAFETY.md`
+
+Phase 5.4 is complete with all three safety workstreams green:
+
+```text
+5.4A — compatibility / migration     COMPLETE
+5.4B — backup / safe-save transport  COMPLETE
+5.4C — corruption / limits / recovery COMPLETE
+```
+
+User-facing open/save/recovery controls remain Phase 5.5. Native filesystem durability and OS integration remain Phase 6.
 
 ## Completion evidence index
 
@@ -245,7 +264,7 @@ Final CI       35051330092 — SUCCESS
 105 test files / 1245 tests at B3 gate
 ```
 
-### Phase 5.4C — IN PROGRESS
+### Phase 5.4C — COMPLETE
 
 Planning:
 
@@ -282,12 +301,50 @@ Implementation PR #182 MERGED
 PR CI                  35054298802 — SUCCESS
 Implementation merge   cff570f7a2f483cae1e2a41bf40b74bfe230f238
 Post-merge CI          35054369314 — SUCCESS
+Closeout PR #183       MERGED
+Final C2 develop       a22c6df34ec16fd853e6278e44fd6cf760521f44
+Final C2 CI            35054630120 — SUCCESS
 110 test files / 1288 tests
 22 focused C2 tests
-133 modules transformed
 ```
 
 The initial C2 branch gate `35054131375` failed only at typecheck because frozen action arrays widened to `readonly string[]`; the literal action-code typing was corrected before PR merge.
+
+#### 5.4C3 — COMPLETE
+
+```text
+Baseline develop       a22c6df34ec16fd853e6278e44fd6cf760521f44
+Baseline CI            35054630120 — SUCCESS
+Initial feature head   4835b96ed38b9d620469888818df12d255dd9695
+Initial branch CI      35055136901 — FAILURE (test expectation typo only)
+Corrected feature head e388b6c3d0252d5475f0fb961d6be9d82721574d
+Branch CI              35055251724 — SUCCESS
+Implementation PR #184 MERGED
+PR CI                  35055338528 — SUCCESS
+Implementation merge   8af74f1be40f1d60a4f41235162f19e1a7541a14
+Post-merge CI          35055416159 — SUCCESS
+111 test files / 1302 tests
+14 focused C3 completion tests
+133 modules transformed
+```
+
+The initial C3 branch gate failed one new assertion because the test expected `WORKSHEET_COUNT_LIMIT_EXCEEDED`; the established C1 issue code is `WORKSHEET_COUNT_EXCEEDED`. No production defect was found.
+
+### Phase 5.4 — COMPLETE
+
+Phase 5.4 completion record:
+
+`docs/PHASE_5_4_VERSION_COMPATIBILITY_BACKUP_RECOVERY_SAFETY.md`
+
+Implementation safety gate before docs closeout:
+
+```text
+Develop                8af74f1be40f1d60a4f41235162f19e1a7541a14
+CI                     35055416159 — SUCCESS
+111 test files / 1302 tests
+Typecheck              PASS
+Production build       PASS
+```
 
 ## Current persistence boundary
 
@@ -303,12 +360,14 @@ Schema compatibility / migration      COMPLETE — 5.4A
 Backup / atomic-write safety          COMPLETE — 5.4B
 Resource-limit guards                 COMPLETE — 5.4C1
 Recovery diagnostic classification   COMPLETE — 5.4C2
-Recovery safety completion gate       NEXT / NOT STARTED — 5.4C3
+Recovery safety completion gate       COMPLETE — 5.4C3
+Version/backup/recovery safety        COMPLETE — 5.4
+Excel persistence UI                  NEXT — 5.5A
 Native filesystem                     Phase 6
 ```
 
 ## Current active task
 
-**5.4C3 — Recovery Safety Regression & Phase 5.4 Completion Gate — NEXT / NOT STARTED**
+**5.5A — Import / Open Workbook Workflow — NEXT / NOT STARTED**
 
-Do not begin 5.4C3 until the 5.4C2 closeout PR is merged, the exact resulting `develop` CI is green, and the user separately says to proceed.
+Do not begin 5.5A until the Phase 5.4 docs-only closeout PR is merged, the exact resulting `develop` CI is green, and the user separately says to proceed.
