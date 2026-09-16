@@ -10,15 +10,15 @@ Phase 5.6A plan:
 
 `docs/PHASE_5_6A_INTEGRATED_EXCEL_ROUND_TRIP_WORKFLOW_PLAN.md`
 
-This file is the concise authoritative live Phase 5 tracker. Detailed historical implementation evidence remains in each dedicated phase-completion record and in Git history.
+This is the concise authoritative live Phase 5 tracker. Dedicated completion records and Git history retain detailed evidence.
 
 ## Current authoritative green implementation baseline
 
-After Phase 5.6A2 implementation:
+After Phase 5.6A3 implementation:
 
 ```text
-develop  3555a8e02dc4fafe5c3a32e6ecccd3ab7f88eab5
-CI       35141650499 — SUCCESS
+develop  a34fab08b75c591d7eb15d2b6c63fc3bee8970f2
+CI       35142923525 — SUCCESS
 ```
 
 ## Live task map
@@ -53,11 +53,11 @@ CI       35141650499 — SUCCESS
         5.5C3 — Persistence UX Regression & Phase 5.5 Completion Gate COMPLETE
 
 5.6 — Integration & Completion Gate                       IN PROGRESS
-    5.6A — Integrated Excel Round-Trip Workflow           IN PROGRESS
+    5.6A — Integrated Excel Round-Trip Workflow           COMPLETE
         5.6A1 — Source Round-Trip Fidelity & Deterministic Workbook Semantics COMPLETE
         5.6A2 — Phase 1–4 Derived Service Equivalence                         COMPLETE
-        5.6A3 — Rejection / Safe-Save Integration & 5.6A Completion Gate      NEXT / NOT STARTED
-    5.6B — Regression / Build / Phase 5 Completion        NOT STARTED
+        5.6A3 — Rejection / Safe-Save Integration & 5.6A Completion Gate      COMPLETE
+    5.6B — Regression / Build / Phase 5 Completion        NEXT / NOT STARTED
 ```
 
 ## Locked Phase 5 architecture
@@ -69,7 +69,7 @@ CI       35141650499 — SUCCESS
 - Derived costing, yield-learning, capacity, pricing, and production results are recalculated and are not persisted as source truth.
 - Dataset schema version and workbook format version are separate axes.
 - Workbook v1 uses 13 normalized canonical sheets.
-- Missing source evidence stays distinct from explicit zero/null/false.
+- Missing evidence remains distinct from explicit zero/null/false.
 - Formula cells are not authoritative source values.
 - SheetJS remains behind the library-neutral `WorkbookCodec` boundary.
 
@@ -77,7 +77,7 @@ CI       35141650499 — SUCCESS
 
 - `CompleteSourceSnapshotService` is the complete source-snapshot boundary.
 - `ValidatedAtomicDatasetHydrationService` validates before replacement and owns rollback behavior.
-- `PersistenceCoordinator` owns the application-level export/import/save/load lifecycle.
+- `PersistenceCoordinator` owns application-level export/import/save/load orchestration.
 - React does not enumerate repositories or construct workbook sheets directly.
 - Stable singleton repository/service identity is preserved across hydration.
 
@@ -94,27 +94,13 @@ CI       35141650499 — SUCCESS
 
 ## Phase 5.1 — Persisted Dataset & Workbook Contract Foundation — COMPLETE
 
-Established the complete versioned source dataset, normalized workbook contract, and pre-hydration dataset/reference validation boundary.
-
-Key source collections:
-
-```text
-materials
-materialCalibrations
-mixPresets
-products
-yieldSamples
-recipeItems
-productComponents
-productStocks
-productFinancialProfiles
-```
+Established the complete versioned source dataset, normalized workbook contract, and pre-hydration dataset/reference validation boundary for all nine authoritative collections.
 
 ---
 
 ## Phase 5.2 — XLSX Workbook Codec — COMPLETE
 
-Established deterministic dataset-to-workbook export, strict workbook-to-dataset import, SheetJS byte encoding/decoding, formula safety, normalized child sheets, and structured diagnostics.
+Established deterministic dataset-to-workbook export, strict workbook-to-dataset import, SheetJS byte encoding/decoding, normalized child sheets, formula safety, and structured diagnostics.
 
 ---
 
@@ -133,7 +119,7 @@ develop  b8584d8681e95676c209c2e5a9dde0ee6278b71a
 CI       35055715946 — SUCCESS
 ```
 
-Established compatibility/version preflight, migration framework, future-version rejection, safe-save/backup transport contracts, staged/atomic in-memory reference behavior, resource limits, corruption diagnostics, deterministic recovery guidance, and rejection state preservation.
+Established compatibility preflight/migration, future-version rejection, safe-save transport capability contracts, staged/atomic in-memory reference behavior, resource limits, corruption diagnostics, deterministic recovery guidance, and rejection state preservation.
 
 ---
 
@@ -146,129 +132,108 @@ Parent completion record:
 Final parent evidence:
 
 ```text
-Closeout PR #209               MERGED
-Final 5.5 develop              3cc9ae0e419a4e0075b04180849b23b7087bc98f
-Final 5.5 CI                   35137244664 — SUCCESS
+Closeout PR #209   MERGED
+Final 5.5 develop  3cc9ae0e419a4e0075b04180849b23b7087bc98f
+Final 5.5 CI       35137244664 — SUCCESS
 ```
 
-Detailed 5.5A/B/C implementation evidence remains in the dedicated completion records.
+Browser import/open, export/download-copy, session status, validation/recovery guidance, failure/retry behavior, and truthful browser-vs-native wording are complete.
 
 ---
 
 ## Phase 5.6 — Integration & Completion Gate — IN PROGRESS
 
-### 5.6A — Integrated Excel Round-Trip Workflow — IN PROGRESS
+### 5.6A — Integrated Excel Round-Trip Workflow — COMPLETE
 
 Plan:
 
 `docs/PHASE_5_6A_INTEGRATED_EXCEL_ROUND_TRIP_WORKFLOW_PLAN.md`
 
-Planning evidence:
+Parent completion record:
 
-```text
-Planning PR #210               MERGED
-Planning head                  04f9f9fe6065e17999eb4d0588898535be42e0fc
-Planning PR CI                 35138324273 — SUCCESS
-Planning merge                 c70eaebbb2af62a28868985ff4cf0dfacfc64d8d
-Post-plan CI                   35138470416 — SUCCESS
-```
+`docs/PHASE_5_6A_INTEGRATED_EXCEL_ROUND_TRIP_WORKFLOW.md`
 
-Locked decomposition:
+Child completion records:
 
-```text
-5.6A1 — Source Round-Trip Fidelity & Deterministic Workbook Semantics COMPLETE
-5.6A2 — Phase 1–4 Derived Service Equivalence                         COMPLETE
-5.6A3 — Rejection / Safe-Save Integration & 5.6A Completion Gate      NEXT / NOT STARTED
-```
+- `docs/PHASE_5_6A1_SOURCE_ROUND_TRIP_FIDELITY_DETERMINISTIC_WORKBOOK_SEMANTICS.md`
+- `docs/PHASE_5_6A2_PHASE_1_4_DERIVED_SERVICE_EQUIVALENCE.md`
+- `docs/PHASE_5_6A3_REJECTION_SAFE_SAVE_INTEGRATION_COMPLETION_GATE.md`
 
-Scenario ownership:
+#### A1 — COMPLETE
 
-```text
-A1 -> A, E, I
-A2 -> B, C, D, F
-A3 -> G, H, J + aggregate 5.6A completion proof
-```
-
-### 5.6A1 — Source Round-Trip Fidelity & Deterministic Workbook Semantics — COMPLETE
-
-Completion record:
-
-`docs/PHASE_5_6A1_SOURCE_ROUND_TRIP_FIDELITY_DETERMINISTIC_WORKBOOK_SEMANTICS.md`
-
-A1 proves through the real singleton application graph and real XLSX bytes:
-
-- **Scenario A:** all nine authoritative source collections survive export -> clear -> import/hydrate with exact source-semantic equality and stable repository identity;
-- **Scenario E:** missing Product financial profile remains missing, while explicit zero labor/overhead remains a configured profile and `pricingPolicy: null` remains null;
-- **Scenario I:** equivalent source state produces the same canonical workbook sheet/column/row semantics regardless of top-level repository insertion order, excluding only designed-to-vary `_Meta.exportedAt` metadata.
-
-Implementation evidence:
+Scenarios A, E, I prove complete source fidelity, missing-vs-zero/null preservation, stable repository identity, and deterministic canonical workbook semantics.
 
 ```text
 Implementation PR #211          MERGED
 Implementation merge            4f01b4b706bb82fad260d407d7b4c4173a230b40
-Post-implementation develop CI  35139932051 — SUCCESS
-129 test files / 1430 tests
+Post-implementation CI          35139932051 — SUCCESS
 3 focused A1 integration tests
-Typecheck PASS
-Production build PASS
-149 modules transformed
 ```
 
-### 5.6A2 — Phase 1–4 Derived Service Equivalence — COMPLETE
+#### A2 — COMPLETE
 
-Completion record:
-
-`docs/PHASE_5_6A2_PHASE_1_4_DERIVED_SERVICE_EQUIVALENCE.md`
-
-A2 proves through the production singleton service graph and real XLSX bytes:
-
-- **Scenario B:** calibration-dependent `cup -> g` conversion, latest calibration selection, package/base-unit costing, and recipe normalization remain equivalent;
-- **Scenario C:** yield-derived plus fixed-recipe requirements and material-cost previews remain equivalent;
-- **Scenario D:** Material-backed/Product-backed component relationships, explicit ProductStock availability, recursive component cost, and fully loaded parent cost remain equivalent;
-- **Scenario F:** fully loaded unit cost, pricing quote, physical planned-batch cost, expected financials, capacity trace, bottleneck meaning, and planned-batch feasibility remain equivalent.
-
-Representative Scenario F meaning remains stable after hydrate:
+Scenarios B, C, D, F prove calibration/costing, yield/recipe, component/ProductStock, and Phase 4 pricing/production/capacity behavior remains equivalent after real XLSX round-trip and hydration.
 
 ```text
-current assembly capacity  5
-limiting source            product-child ProductStock
-requested batch            6
-feasibility                over-current-capacity
-overage                    1
-```
-
-Implementation evidence:
-
-```text
-A2 baseline                     f1d403bc6b8fe5196d8837ed790a3959aae01466
-A2 baseline CI                  35140571447 — SUCCESS
-Feature head                    1dfef553a4741de760321ebd936a90cc43dec1e1
-Feature branch CI               35141355473 — SUCCESS
 Implementation PR #213          MERGED
-Implementation PR CI            35141515815 — SUCCESS
 Implementation merge            3555a8e02dc4fafe5c3a32e6ecccd3ab7f88eab5
-Post-implementation develop CI  35141650499 — SUCCESS
-130 test files / 1434 tests
+Post-implementation CI          35141650499 — SUCCESS
 4 focused A2 integration tests
+```
+
+#### A3 — COMPLETE
+
+Scenarios G, H, J prove invalid/future workbook rejection preserves live state and safe-save backup/stage/commit faults remain truthful and recoverable under the existing transport contract.
+
+```text
+Feature head                    9a07191adf72b8c6d52d6c9c615862222023f2e1
+Feature CI                      35142621280 — SUCCESS
+Implementation PR #215          MERGED
+Implementation PR CI            35142799049 — SUCCESS
+Implementation merge            a34fab08b75c591d7eb15d2b6c63fc3bee8970f2
+Post-implementation CI          35142923525 — SUCCESS
+131 test files / 1439 tests
+5 focused A3 integration tests
 Typecheck PASS
 Production build PASS
 149 modules transformed
 ```
 
-A2 implementation was tests-only: exactly one added integration-test file, 455 additions, and no production runtime/domain/schema/coordinator/transport/UI/native-filesystem changes.
+### Full A–J scenario matrix
 
-### 5.6A3 — Rejection / Safe-Save Integration & 5.6A Completion Gate — NEXT / NOT STARTED
+```text
+A — complete source round-trip                          GREEN — A1
+B — calibration-dependent material equivalence         GREEN — A2
+C — yield + recipe Product equivalence                 GREEN — A2
+D — nested components + ProductStock equivalence       GREEN — A2
+E — financial profile missing vs explicit zero         GREEN — A1
+F — Phase 4 pricing/production equivalence             GREEN — A2
+G — invalid workbook preserves state                   GREEN — A3
+H — unsupported future version                         GREEN — A3
+I — deterministic workbook schema/row semantics        GREEN — A1
+J — backup/replace failure integration                 GREEN — A3
+```
 
-A3 owns:
+Parent `5.6A` is therefore COMPLETE.
 
-- Scenario G — invalid workbook preserves state;
-- Scenario H — future/unsupported version rejection;
-- Scenario J — backup/staged/replace failure integration;
-- aggregate A–J parent 5.6A completion proof.
+### 5.6B — Regression / Build / Phase 5 Completion — NEXT / NOT STARTED
 
-### 5.6B — Regression / Build / Phase 5 Completion — NOT STARTED
+Final gate required by the Phase 5 master plan:
 
-Phase 5 may be marked COMPLETE only after 5.6A is fully closed and the separate 5.6B final gate succeeds.
+- all Phase 1–5 tests green;
+- all Phase 1–4 integration suites green;
+- dedicated Phase 5 A–J round-trip scenarios green;
+- browser persistence smoke/regression coverage green;
+- TypeScript typecheck green;
+- production build green;
+- documentation reconciled;
+- exact merged `develop` CI green.
+
+Only after this gate succeeds may Phase 5 be marked COMPLETE and Phase 6 advance to:
+
+```text
+NEXT FOR SCOPE REVIEW / NOT STARTED
+```
 
 ---
 
@@ -288,13 +253,14 @@ Corruption / resource / recovery         COMPLETE — 5.4C
 Browser persistence UI                   COMPLETE — 5.5
 Source round-trip integration            COMPLETE — 5.6A1
 Derived service equivalence              COMPLETE — 5.6A2
-Rejection/safe-save + A completion gate  NEXT — 5.6A3
-Phase 5 final completion gate            NOT STARTED — 5.6B
-Native filesystem                        Phase 6
+Rejection/safe-save + A completion gate  COMPLETE — 5.6A3
+Integrated round-trip parent             COMPLETE — 5.6A
+Phase 5 final completion gate            NEXT — 5.6B
+Native filesystem                        Phase 6 — NOT STARTED
 ```
 
 ## Current active task
 
-**5.6A3 — Rejection / Safe-Save Integration & 5.6A Completion Gate — NEXT / NOT STARTED**
+**5.6B — Regression / Build / Phase 5 Completion — NEXT / NOT STARTED**
 
-Do not begin 5.6A3 until the Phase 5.6A2 docs-only closeout is merged into `develop`, the exact resulting `develop` CI is green, and the user separately says to proceed.
+The user explicitly authorized continuing through 5.6B in the current session.
