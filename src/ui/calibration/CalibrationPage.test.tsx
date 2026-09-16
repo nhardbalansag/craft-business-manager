@@ -105,6 +105,7 @@ async function submit() {
 
 describe('Calibration workspace UI/UX', () => {
   it('shows a real loading state instead of a false no-materials message', async () => {
+    await seedMaterial();
     let release!: (value: Material[]) => void;
     vi.spyOn(session.materialService, 'listMaterials').mockImplementationOnce(
       () => new Promise((resolve) => { release = resolve; }),
