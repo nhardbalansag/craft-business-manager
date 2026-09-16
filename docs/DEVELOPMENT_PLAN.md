@@ -36,11 +36,11 @@ Historical phase completion records remain authoritative for their individual co
 
 ## Current Repository Baseline
 
-Current green implementation baseline after Phase 5.5A1:
+Current green implementation baseline after Phase 5.5A2:
 
 ```text
-develop  13e51998a55789a1fafe3da233344928c889b4a0
-CI       35061438644 — SUCCESS
+develop  e4be2a7b3f9f4289b00177a5f96bd61da113420d
+CI       35062713682 — SUCCESS
 ```
 
 ## Overall Phase Status
@@ -139,8 +139,8 @@ Live tracker:
 5.5 — Excel Persistence UI                                IN PROGRESS
     5.5A — Import / Open Workbook Workflow                IN PROGRESS
         5.5A1 — Browser File Selection & Import Command Boundary  COMPLETE
-        5.5A2 — React Open/Replace Workflow & Workspace Refresh   NEXT / NOT STARTED
-        5.5A3 — Browser Import Regression & 5.5A Completion Gate  NOT STARTED
+        5.5A2 — React Open/Replace Workflow & Workspace Refresh   COMPLETE
+        5.5A3 — Browser Import Regression & 5.5A Completion Gate  NEXT / NOT STARTED
     5.5B — Export / Save & Backup Workflow                NOT STARTED
     5.5C — Persistence Status / Validation / Recovery UX  NOT STARTED
 
@@ -234,37 +234,42 @@ Delivered:
 - controlled file-read/extension/no-pending errors;
 - explicit apply command;
 - delegation to `PersistenceCoordinator.importAndApplyWorkbook(...)` only;
-- unchanged coordinator rejection/error semantics;
-- focused ownership and invocation tests.
+- unchanged coordinator rejection/error semantics.
+
+### 5.5A2 — React Open/Replace Workflow & Workspace Refresh — COMPLETE
+
+Completion record:
+
+`docs/PHASE_5_5A2_REACT_OPEN_REPLACE_WORKSPACE_REFRESH.md`
+
+Delivered:
+
+- application-level **Open / Import workbook** UI;
+- browser `.xlsx` chooser and selected file summary;
+- cancel/change-file flow before import;
+- explicit destructive replacement confirmation;
+- reading/importing and duplicate-submit protection;
+- basic controlled success/rejection/operational feedback;
+- success-only `workspaceRevision` remount boundary;
+- visible workspace refetch from the existing singleton repositories/services after successful hydration;
+- stable active navigation across the remount;
+- no false refresh on rejection/failure.
 
 Implementation evidence:
 
 ```text
-Implementation PR #189  MERGED
-Implementation merge    13e51998a55789a1fafe3da233344928c889b4a0
-Post-merge CI           35061438644 — SUCCESS
-114 test files / 1339 tests
-12 focused A1 tests
+Implementation PR #191  MERGED
+Implementation merge    e4be2a7b3f9f4289b00177a5f96bd61da113420d
+Post-merge CI           35062713682 — SUCCESS
+116 test files / 1351 tests
+12 focused A2 UI/integration tests
 ```
 
-### 5.5A2 — React Open/Replace Workflow & Workspace Refresh — NEXT / NOT STARTED
+### 5.5A3 — Browser Import Regression & 5.5A Completion Gate — NEXT / NOT STARTED
 
-A2 will expose A1 through the React application and own:
+A3 will prove the browser import workflow end to end against representative real valid and rejected workbook cases, preserve previous authoritative state on rejection/failure, verify successful visible refresh, run full architectural regressions, and close parent 5.5A.
 
-- **Open / Import workbook** browser UI;
-- selected file summary;
-- explicit destructive replacement confirmation;
-- pending/importing and duplicate-submit protection;
-- success/rejection/operational feedback at the basic 5.5A level;
-- an application-shell workspace revision/remount/refetch boundary after successful hydration only;
-- preservation of the shared singleton repository/service graph;
-- stable active navigation where practical.
-
-A2 must not duplicate workbook parsing, validation or hydration in React.
-
-### 5.5A3 — Browser Import Regression & 5.5A Completion Gate — NOT STARTED
-
-A3 will prove the user workflow end to end against real valid/rejected workbook cases and close parent 5.5A.
+Do not begin A3 until the A2 closeout is merged, exact resulting `develop` CI is green, and the user separately says to proceed.
 
 ### Phase 5.5B — Export / Save & Backup Workflow — NOT STARTED
 
@@ -308,6 +313,6 @@ Planned areas include dashboard/operational summaries, inventory valuation and l
 
 # Current Active Task
 
-**5.5A2 — React Open/Replace Workflow & Workspace Refresh — NEXT / NOT STARTED**
+**5.5A3 — Browser Import Regression & 5.5A Completion Gate — NEXT / NOT STARTED**
 
-Do not begin 5.5A2 until the 5.5A1 docs-only closeout is merged, the exact resulting `develop` CI is green, and the user separately says to proceed.
+Do not begin 5.5A3 until the 5.5A2 docs-only closeout is merged, the exact resulting `develop` CI is green, and the user separately says to proceed.
