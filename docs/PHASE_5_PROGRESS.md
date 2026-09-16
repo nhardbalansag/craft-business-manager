@@ -35,7 +35,10 @@ Master plan:
         5.4A1 — Version Preflight, Compatibility Matrix & Migration Registry Contract  COMPLETE
         5.4A2 — Version-Aware Migration Execution & Current-Contract Handoff           COMPLETE
         5.4A3 — Compatibility Regression & Completion Gate                             COMPLETE
-    5.4B — Backup & Atomic-Write Transport Contract       NEXT / NOT STARTED
+    5.4B — Backup & Atomic-Write Transport Contract       IN PROGRESS
+        5.4B1 — Safe-Save Capability, Policy & Transaction Contract                    NEXT / NOT STARTED
+        5.4B2 — Backup + Staged-Commit In-Memory Reference Transport                   NOT STARTED
+        5.4B3 — Failure Recovery, Coordinator Regression & Completion Gate             NOT STARTED
     5.4C — Corruption, Limits & Recovery Diagnostics      NOT STARTED
 
 5.5 — Excel Persistence UI                                NOT STARTED
@@ -80,7 +83,16 @@ Master plan:
 - The production migration registry remains empty until a real older released contract exists.
 - `PersistenceCoordinator` remains unaware of migration mechanics and consumes the same structured importer result shape.
 - Compatibility/migration rejection remains an import rejection and must never reach hydration.
-- 5.4B owns detailed backup creation, staged write, atomic replace/commit, cleanup, and recovery transport semantics.
+- 5.4B owns detailed backup creation, staged write, atomic replace/commit, cleanup, and transport-level recovery semantics.
+- `WorkbookTransport` remains byte-only; 5.4B must not introduce dataset, workbook-schema, repository, hydration, React, or native filesystem knowledge into it.
+- Backup policies are distinct: `none`, `if-supported`, and `required`; required backup cannot proceed to replacement when unsupported or when backup creation fails.
+- Backup bytes represent the exact pre-save primary workbook; no-existing-primary is not a backup failure and must not create fake backup bytes.
+- Replacement bytes are staged separately and defensively owned before commit in the safe-save reference transport.
+- Failures before commit preserve the previous primary workbook.
+- Atomic replacement is an explicit transport capability/guarantee, never an assumption inferred by the coordinator or UI.
+- Browser/download-style transports may report non-atomic behavior and must never imply native atomic replacement.
+- The in-memory reference transport proves logical safe-save ordering only; native durability, `fsync`, rename, locking, and crash-consistency guarantees remain Phase 6.
+- A post-commit cleanup problem is distinct from a pre-commit failure and may not be represented as though commit definitely did not occur.
 - Native Tauri filesystem/dialog behavior remains Phase 6.
 
 ## Completion evidence index
@@ -239,6 +251,33 @@ A3 proved current v1/v1 preservation, fail-closed future/invalid metadata behavi
 
 Phase 5.4A closes with public v1/v1 unchanged and no production migration registrations until a real historical predecessor exists.
 
+## Phase 5.4B — Backup & Atomic-Write Transport Contract
+
+Status: **PLANNING ESTABLISHED — IMPLEMENTATION NOT STARTED**
+
+Plan:
+
+`docs/PHASE_5_4B_BACKUP_ATOMIC_WRITE_TRANSPORT_PLAN.md`
+
+Planning baseline:
+
+```text
+develop                    e35b6f04c65dbedcd0ffe7ebbe836a22e1f59065
+CI                         35047386809 — SUCCESS
+```
+
+Locked decomposition:
+
+```text
+5.4B1 — Safe-Save Capability, Policy & Transaction Contract                    NEXT / NOT STARTED
+5.4B2 — Backup + Staged-Commit In-Memory Reference Transport                   NOT STARTED
+5.4B3 — Failure Recovery, Coordinator Regression & Completion Gate             NOT STARTED
+```
+
+5.4B is split because capability/policy contracts, the staged backup/commit reference implementation, and failure/recovery regression are materially separate concerns. The planning contract keeps all native filesystem operations in Phase 6 and requires browser/non-atomic transports to report their guarantees truthfully.
+
+Do not begin B1 until this planning branch/PR is merged, the exact resulting `develop` CI is green, and the user separately says to proceed.
+
 ## Current persistence boundary
 
 ```text
@@ -260,13 +299,16 @@ Schema compatibility/migration        COMPLETE — 5.4A
 Version preflight/registry contract   COMPLETE — 5.4A1
 Migration execution/import handoff    COMPLETE — 5.4A2
 Compatibility completion gate         COMPLETE — 5.4A3
-Detailed backup/atomic write          NEXT / NOT STARTED — 5.4B
+Backup/atomic-write planning          ESTABLISHED — 5.4B
+Safe-save transport contract          NEXT / NOT STARTED — 5.4B1
+Reference safe-save transport         NOT STARTED — 5.4B2
+Safe-save recovery completion gate    NOT STARTED — 5.4B3
 Recovery/corruption limits            NOT STARTED — 5.4C
 Native filesystem                     Phase 6
 ```
 
 ## Current active task
 
-**5.4B — Backup & Atomic-Write Transport Contract — NEXT / NOT STARTED**
+**5.4B1 — Safe-Save Capability, Policy & Transaction Contract — NEXT / NOT STARTED**
 
-Do not begin 5.4B until the Phase 5.4A closeout PR is merged, the exact resulting `develop` CI is green, and the user separately says to proceed.
+Do not begin 5.4B1 implementation until the Phase 5.4B planning PR is merged, the exact resulting `develop` CI is green, and the user separately says to proceed.
