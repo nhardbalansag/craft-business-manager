@@ -18,6 +18,8 @@ interface ProductPricingQuotePanelProps {
   quote: ProductPricingQuoteResult | null;
   loading: boolean;
   error: string | null;
+  hasUnsavedChanges?: boolean;
+  onRefresh?: () => void;
 }
 
 function roleLabel(role: string): string {
@@ -146,6 +148,8 @@ export function ProductPricingQuotePanel({
   quote,
   loading,
   error,
+  hasUnsavedChanges = false,
+  onRefresh,
 }: ProductPricingQuotePanelProps) {
   const cost = quote?.fullyLoadedUnitCost ?? null;
   const direct = cost?.directMaterialCost ?? null;
@@ -174,20 +178,45 @@ export function ProductPricingQuotePanel({
       ? 'No direct material requirements for this component-only Product.'
       : undefined;
 
+  const issueCount = quote
+    ? quote.issues.length + (cost?.issues.length ?? 0) + (direct?.issues.length ?? 0)
+    : 0;
+
   return (
     <section className="pricing-quote-section" aria-label="Unit economics pricing calculator">
       <div className="pricing-quote-heading">
         <div>
           <p className="panel-kicker">UNIT ECONOMICS</p>
-          <h2>Pricing calculator</h2>
+          <h2>Saved pricing result</h2>
           <p>
             Read-only fully loaded cost and selling-price evidence from the authoritative Phase 4 pricing quote service.
           </p>
         </div>
-        <span className={`pricing-readiness-pill ${quote ? `status-${quote.status}` : ''}`}>{readiness}</span>
+        <div className="pricing-quote-heading-actions">
+          <span className={`pricing-readiness-pill ${quote ? `status-${quote.status}` : ''}`}>{readiness}</span>
+          {onRefresh && (
+            <button className="button button-secondary pricing-refresh-button" type="button" onClick={onRefresh} disabled={loading}>
+              {error ? 'Retry quote' : loading ? 'Refreshing…' : 'Refresh saved quote'}
+            </button>
+          )}
+        </div>
       </div>
 
+      {hasUnsavedChanges && (
+        <div className="pricing-unsaved-note" role="status">
+          <strong>Unsaved financial changes are not included below.</strong>
+          <span>Save the financial profile first to refresh the authoritative unit-economics result.</span>
+        </div>
+      )}
+
       {error && <div className="feedback feedback-error pricing-quote-feedback" role="status">{error}</div>}
+
+      <div className="pricing-hero-metrics" aria-label="Pricing result summary">
+        <div><span>Total unit cost</span><strong>{formatPhp(quote?.totalFullyLoadedUnitCost ?? null)}</strong><small>Fully loaded cost per sellable unit</small></div>
+        <div><span>Selling price</span><strong>{formatPhp(quote?.sellingPrice ?? null)}</strong><small>{pricingPolicyLabel(quote?.pricingPolicy ?? null)}</small></div>
+        <div><span>Profit / unit</span><strong>{formatPhp(quote?.profitPerUnit ?? null)}</strong><small>After fully loaded unit cost</small></div>
+        <div><span>Effective margin</span><strong>{formatPercent(quote?.effectiveMargin ?? null)}</strong><small>{issueCount} readiness issue{issueCount === 1 ? '' : 's'}</small></div>
+      </div>
 
       <div className="pricing-quote-grid">
         <article className="panel pricing-quote-panel">
@@ -235,41 +264,47 @@ export function ProductPricingQuotePanel({
         </article>
       </div>
 
-      <div className="pricing-detail-grid">
-        <article className="panel pricing-detail-panel">
-          <div className="panel-heading">
-            <div><p className="panel-kicker">PURCHASED COMPONENTS</p><h3>Material-backed component cost</h3></div>
-            <span className="material-count"><strong>{purchasedComponents.length}</strong><span>lines</span></span>
-          </div>
-          {purchasedComponents.length === 0 ? (
-            <p className="pricing-detail-empty">No root Material-backed component cost lines are available for this quote.</p>
-          ) : (
-            <div className="pricing-component-lines">
-              {purchasedComponents.map((row) => <MaterialComponentRow key={row.componentId} row={row} />)}
+      <details className="pricing-technical-details">
+        <summary>
+          <span><strong>Cost trace details</strong><small>Purchased and handmade component evidence</small></span>
+          <span>{purchasedComponents.length + handmadeComponents.length} root line{purchasedComponents.length + handmadeComponents.length === 1 ? '' : 's'}</span>
+        </summary>
+        <div className="pricing-detail-grid">
+          <article className="panel pricing-detail-panel">
+            <div className="panel-heading">
+              <div><p className="panel-kicker">PURCHASED COMPONENTS</p><h3>Material-backed component cost</h3></div>
+              <span className="material-count"><strong>{purchasedComponents.length}</strong><span>lines</span></span>
             </div>
-          )}
-        </article>
+            {purchasedComponents.length === 0 ? (
+              <p className="pricing-detail-empty">No root Material-backed component cost lines are available for this quote.</p>
+            ) : (
+              <div className="pricing-component-lines">
+                {purchasedComponents.map((row) => <MaterialComponentRow key={row.componentId} row={row} />)}
+              </div>
+            )}
+          </article>
 
-        <article className="panel pricing-detail-panel">
-          <div className="panel-heading">
-            <div><p className="panel-kicker">HANDMADE PRODUCT COMPONENTS</p><h3>Nested fully loaded cost paths</h3></div>
-            <span className="material-count"><strong>{handmadeComponents.length}</strong><span>root lines</span></span>
-          </div>
-          {handmadeComponents.length === 0 ? (
-            <p className="pricing-detail-empty">No root handmade Product-component cost paths are available for this quote.</p>
-          ) : (
-            <div className="pricing-component-trace-list">
-              {handmadeComponents.map((node) => (
-                <ProductComponentTraceCard key={`${node.componentId}-${node.path.join('/')}`} node={node} />
-              ))}
+          <article className="panel pricing-detail-panel">
+            <div className="panel-heading">
+              <div><p className="panel-kicker">HANDMADE PRODUCT COMPONENTS</p><h3>Nested fully loaded cost paths</h3></div>
+              <span className="material-count"><strong>{handmadeComponents.length}</strong><span>root lines</span></span>
             </div>
-          )}
-        </article>
-      </div>
+            {handmadeComponents.length === 0 ? (
+              <p className="pricing-detail-empty">No root handmade Product-component cost paths are available for this quote.</p>
+            ) : (
+              <div className="pricing-component-trace-list">
+                {handmadeComponents.map((node) => (
+                  <ProductComponentTraceCard key={`${node.componentId}-${node.path.join('/')}`} node={node} />
+                ))}
+              </div>
+            )}
+          </article>
+        </div>
+      </details>
 
       <article className="panel pricing-issues-panel">
         <div className="panel-heading">
-          <div><p className="panel-kicker">READINESS & ISSUES</p><h3>Issues to resolve</h3></div>
+          <div><p className="panel-kicker">READINESS & ISSUES</p><h3>{issueCount > 0 ? 'What needs attention' : 'Pricing readiness'}</h3></div>
           {quote && <span className={`pricing-readiness-pill status-${quote.status}`}>{quoteReadinessLabel(quote.status)}</span>}
         </div>
 
@@ -281,6 +316,11 @@ export function ProductPricingQuotePanel({
                 ? 'No quote evidence is currently available.'
                 : 'Select a Product to inspect quote readiness and issues.'}
           </p>
+        ) : issueCount === 0 ? (
+          <div className="pricing-ready-message">
+            <strong>No readiness issues found.</strong>
+            <span>The saved quote has no top-level pricing, fully loaded cost, or direct-material issues.</span>
+          </div>
         ) : (
           <div className="pricing-issues-columns">
             <div>
