@@ -18,6 +18,7 @@ type ProductComponentsViewProps = {
   products: readonly Product[];
   materials: readonly Material[];
   catalogLoading: boolean;
+  initialProductId?: string;
 };
 
 type ComponentFormState = {
@@ -93,8 +94,9 @@ function PreviewBranch({ node }: { node: ProductCompositionPreviewNode }) {
   );
 }
 
-export function ProductComponentsView({ products, materials, catalogLoading }: ProductComponentsViewProps) {
-  const initialParentId = products.find((product) => product.isActive)?.id ?? products[0]?.id ?? '';
+export function ProductComponentsView({ products, materials, catalogLoading, initialProductId }: ProductComponentsViewProps) {
+  const initialParentId = products.find((product) => product.id === initialProductId)?.id ?? products.find((product) => product.isActive)?.id ?? products[0]?.id ?? '';
+  const [sourceError, setSourceError] = useState<string | null>(null);
   const [selectedParentId, setSelectedParentId] = useState(initialParentId);
   const [components, setComponents] = useState<ProductComponent[]>([]);
   const [componentsLoading, setComponentsLoading] = useState(true);
@@ -104,8 +106,11 @@ export function ProductComponentsView({ products, materials, catalogLoading }: P
 
   const reloadComponents = useCallback(async () => {
     setComponentsLoading(true);
+    setSourceError(null);
     try {
       setComponents(await productComponentService.listComponents());
+    } catch (error) {
+      setSourceError(errorMessage(error));
     } finally {
       setComponentsLoading(false);
     }
@@ -254,6 +259,8 @@ export function ProductComponentsView({ products, materials, catalogLoading }: P
     }
   }
 
+  if (sourceError) return <div className="panel product-source-error" role="alert"><h2>Could not load components</h2><p>{sourceError}</p><button type="button" className="button button-primary" onClick={() => void reloadComponents()}>Retry loading</button></div>;
+
   if (catalogLoading && products.length === 0) {
     return <div className="panel empty-state"><p>Loading product composition workspace…</p></div>;
   }
@@ -389,7 +396,7 @@ export function ProductComponentsView({ products, materials, catalogLoading }: P
             </button>
           </fieldset>
 
-          {feedback && <div className={`feedback feedback-${feedback.type}`}>{feedback.message}</div>}
+          {feedback && <div role={feedback.type === 'error' ? 'alert' : 'status'} className={`feedback feedback-${feedback.type}`}>{feedback.message}</div>}
         </form>
 
         <div className="panel material-list component-summary-panel">

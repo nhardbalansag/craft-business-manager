@@ -37,9 +37,9 @@ describe('React workspace smoke validation', () => {
   it('renders the Products, Mix Presets, Components, and Finished stock workspace without browser-side effects', () => {
     const html = renderToStaticMarkup(<ProductsPage />);
 
-    expect(html).toContain('Products, mixes, components &amp; stock');
+    expect(html).toContain('Your product workshop');
     expect(html).toContain('Add a product');
-    expect(html).toContain('Sellable products');
+    expect(html).toContain('Product catalog');
     expect(html).toContain('Mix presets');
     expect(html).toContain('Components');
     expect(html).toContain('Finished stock');

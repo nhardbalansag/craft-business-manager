@@ -1,4 +1,81 @@
 .products-workspace { padding-top: 34px; }
+.products-workspace [hidden] { display: none !important; }
+.products-workspace { display: grid; gap: 22px; }
+.products-workspace .page-heading-row { margin-bottom: 0; align-items: center; }
+.products-workspace h1 { font-size: clamp(2.2rem, 4vw, 3.65rem); line-height: 1.08; }
+.products-workspace > *, .product-catalog-layout > * { min-width: 0; }
+.products-workspace button:focus-visible, .products-workspace summary:focus-visible,
+.products-workspace .table-wrap:focus-visible { outline: 3px solid #866439; outline-offset: 3px; }
+.products-overview { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.products-overview article { display: grid; gap: 8px; padding: 20px 24px; }
+.products-overview span { color: #6b645a; font-size: .84rem; }
+.products-overview strong { font-size: 2rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.products-overview small { color: #6b645a; font-size: .76rem; }
+.products-workspace .workspace-switcher { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 0; padding: 6px; gap: 6px; }
+.products-workspace .workspace-switcher button { display: grid; gap: 4px; text-align: left; padding: 13px 18px; }
+.products-workspace .workspace-switcher small { font-size: .73rem; font-weight: 400; }
+.product-catalog-layout { display: grid; grid-template-columns: minmax(0, 1fr) 370px; gap: 22px; align-items: start; }
+.product-catalog { padding: 24px; }
+.product-catalog h2 { margin-top: 5px; }
+.product-catalog .panel-heading { align-items: center; }
+.product-catalog .button { font-size: .82rem; }
+.product-category-filters { display: flex; flex-wrap: wrap; gap: 7px; margin: 14px 0; }
+.product-category-filters button { padding: 8px 11px; border: 1px solid #ded6c9; border-radius: 999px; color: #6b645a; background: #fffdf8; font-size: .78rem; font-weight: 700; }
+.product-category-filters button[aria-pressed="true"] { background: #eee6d9; color: #543c20; border-color: #bfae94; }
+.product-catalog-toolbar { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; }
+.product-catalog-toolbar .field { min-width: 150px; flex: 1; }
+.product-catalog-toolbar select { font-size: .8rem; padding: 9px 11px; }
+.product-result-count { margin: 16px 0; font-size: .78rem; color: #6b645a; }
+.product-card-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.product-catalog-card { min-width: 0; display: flex; flex-direction: column; gap: 14px; border: 1px solid #e0d8cb; border-radius: 16px; padding: 18px; background: #fffefa; }
+.product-catalog-card.is-editing { border-color: #9b7e53; box-shadow: 0 0 0 2px #9b7e5326; }
+.product-card-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.product-category-icon { display: inline-grid; place-items: center; width: 42px; height: 42px; border-radius: 13px; background: #eee4d2; color: #725430; font-weight: 800; }
+.category-paintable-art { background: #eee4f1; color: #77538b; }
+.category-candle-pot { background: #e6ebdf; color: #596b40; }
+.product-card-category { margin: 0 0 5px; font-size: .73rem; color: #746754; }
+.product-catalog-card h3 { margin: 0; font-size: 1.14rem; letter-spacing: -.02em; overflow-wrap: anywhere; }
+.product-catalog-card .material-id { color: #7b7062; overflow-wrap: anywhere; }
+.product-card-facts { display: grid; gap: 10px; margin: 0; font-size: .8rem; }
+.product-card-facts > div { display: flex; gap: 14px; justify-content: space-between; }
+.product-card-facts dt { color: #6b645a; flex-shrink: 0; }
+.product-card-facts dd { margin: 0; text-align: right; font-weight: 600; overflow-wrap: anywhere; }
+.product-card-notes { font-size: .8rem; color: #6b645a; }
+.product-card-notes summary { cursor: pointer; padding: 5px 0; color: #775a35; }
+.product-card-notes p { margin: 6px 0 0; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
+.product-card-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin-top: auto; padding-top: 14px; border-top: 1px solid #ece5da; }
+.product-card-actions .button { padding: 9px 12px; }
+.product-card-actions .text-button { min-height: 36px; }
+.product-details-form .form-grid { grid-template-columns: minmax(0, 1fr); }
+.product-form-fields { min-width: 0; margin: 0; padding: 0; border: 0; }
+.product-editor-hint { margin: 10px 0 0; font-size: .83rem; line-height: 1.5; color: #6b645a; }
+.products-workspace .mix-line-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; }
+.products-workspace .mix-line-row > select:first-child { grid-column: 1 / -1; }
+.products-workspace .field small { color: #756b5f; }
+.products-workspace .feedback { margin: 0; }
+.products-workspace .empty-state { min-height: 240px; gap: 10px; }
+.products-workspace .composition-parent-panel, .products-workspace .component-summary-panel,
+.products-workspace .composition-preview-panel, .product-source-error { padding: 24px; }
+.product-source-error p { color: #6b645a; }
+@media (max-width: 1200px) { .product-card-grid { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 960px) {
+  .product-catalog-layout { grid-template-columns: minmax(0, 1fr); }
+  .product-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .product-details-form { position: static; }
+}
+@media (max-width: 760px) {
+  .products-workspace .page-heading-row { align-items: flex-start; }
+  .products-overview { gap: 8px; }
+  .products-overview article { padding: 14px 10px; }
+  .products-overview small { display: none; }
+  .products-overview span { font-size: .74rem; }
+  .products-workspace .workspace-switcher { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .products-workspace .workspace-switcher button { padding: 10px; }
+  .product-catalog { padding: 18px; }
+  .product-card-grid { grid-template-columns: minmax(0, 1fr); }
+  .products-workspace .mix-line-row { grid-template-columns: minmax(0, 1fr); }
+  .product-catalog .panel-heading { align-items: flex-start; flex-wrap: wrap; }
+}
 .product-layout { align-items: start; }
 .workspace-switcher {
   display: inline-flex;

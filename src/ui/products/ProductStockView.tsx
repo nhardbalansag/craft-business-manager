@@ -49,6 +49,7 @@ function stockStateLabel(row: ProductStockRow): string {
 }
 
 export function ProductStockView({ products, catalogLoading }: ProductStockViewProps) {
+  const [sourceError, setSourceError] = useState<string | null>(null);
   const [components, setComponents] = useState<ProductComponent[]>([]);
   const [stocks, setStocks] = useState<ProductStock[]>([]);
   const [loading, setLoading] = useState(true);
@@ -61,6 +62,7 @@ export function ProductStockView({ products, catalogLoading }: ProductStockViewP
 
   const reloadStockSources = useCallback(async () => {
     setLoading(true);
+    setSourceError(null);
     try {
       const [nextComponents, nextStocks] = await Promise.all([
         productComponentService.listComponents(),
@@ -68,6 +70,8 @@ export function ProductStockView({ products, catalogLoading }: ProductStockViewP
       ]);
       setComponents(nextComponents);
       setStocks(nextStocks);
+    } catch (error) {
+      setSourceError(errorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -164,6 +168,8 @@ export function ProductStockView({ products, catalogLoading }: ProductStockViewP
     }
   }
 
+  if (sourceError) return <div className="panel product-source-error" role="alert"><h2>Could not load finished stock</h2><p>{sourceError}</p><button type="button" className="button button-primary" onClick={() => void reloadStockSources()}>Retry loading</button></div>;
+
   if (catalogLoading && products.length === 0) {
     return <div className="panel empty-state"><p>Loading finished component stock workspace…</p></div>;
   }
@@ -258,7 +264,7 @@ export function ProductStockView({ products, catalogLoading }: ProductStockViewP
             {selectedRow?.stockRecordExists ? 'Save stock' : 'Set stock'}
           </button>
 
-          {feedback && <div className={`feedback feedback-${feedback.type}`}>{feedback.message}</div>}
+          {feedback && <div role={feedback.type === 'error' ? 'alert' : 'status'} className={`feedback feedback-${feedback.type}`}>{feedback.message}</div>}
         </form>
 
         <div className="panel material-list product-stock-list-panel">
