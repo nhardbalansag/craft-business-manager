@@ -18,9 +18,10 @@ For the detailed Excel persistence architecture, use:
 
 `docs/PHASE_5_EXCEL_PERSISTENCE_PLAN.md`
 
-For the import/open workflow plan, use:
+For the completed import/open workflow, use:
 
-`docs/PHASE_5_5A_IMPORT_OPEN_WORKBOOK_WORKFLOW_PLAN.md`
+- `docs/PHASE_5_5A_IMPORT_OPEN_WORKBOOK_WORKFLOW_PLAN.md`
+- `docs/PHASE_5_5A_IMPORT_OPEN_WORKBOOK_WORKFLOW.md`
 
 Historical phase completion records remain authoritative for their individual contracts and CI evidence.
 
@@ -36,11 +37,11 @@ Historical phase completion records remain authoritative for their individual co
 
 ## Current Repository Baseline
 
-Current green implementation baseline after Phase 5.5A2:
+Current green implementation baseline after Phase 5.5A3:
 
 ```text
-develop  e4be2a7b3f9f4289b00177a5f96bd61da113420d
-CI       35062713682 — SUCCESS
+develop  6ca74db286beb02ff1672511ddcecc1773ddee73
+CI       35064089137 — SUCCESS
 ```
 
 ## Overall Phase Status
@@ -112,8 +113,6 @@ The completed business foundation includes:
 - Production;
 - Pricing.
 
-Recent UI work also improved the Production planner and Products workspace without changing persistence or domain contracts.
-
 ---
 
 # Phase 5 — Excel Persistence
@@ -137,11 +136,11 @@ Live tracker:
 5.4 — Version Compatibility, Backup & Recovery Safety     COMPLETE
 
 5.5 — Excel Persistence UI                                IN PROGRESS
-    5.5A — Import / Open Workbook Workflow                IN PROGRESS
+    5.5A — Import / Open Workbook Workflow                COMPLETE
         5.5A1 — Browser File Selection & Import Command Boundary  COMPLETE
         5.5A2 — React Open/Replace Workflow & Workspace Refresh   COMPLETE
-        5.5A3 — Browser Import Regression & 5.5A Completion Gate  NEXT / NOT STARTED
-    5.5B — Export / Save & Backup Workflow                NOT STARTED
+        5.5A3 — Browser Import Regression & 5.5A Completion Gate  COMPLETE
+    5.5B — Export / Save & Backup Workflow                NEXT / NOT STARTED
     5.5C — Persistence Status / Validation / Recovery UX  NOT STARTED
 
 5.6 — Integration & Completion Gate                       NOT STARTED
@@ -212,68 +211,58 @@ CI       35055715946 — SUCCESS
 
 Phase 5.5 turns the completed persistence backend into user-facing browser-compatible workflows while keeping native paths/dialogs/filesystem behavior in Phase 6.
 
-### Phase 5.5A — Import / Open Workbook Workflow — IN PROGRESS
+### Phase 5.5A — Import / Open Workbook Workflow — COMPLETE
 
-Dedicated plan:
+Parent completion record:
 
-`docs/PHASE_5_5A_IMPORT_OPEN_WORKBOOK_WORKFLOW_PLAN.md`
+`docs/PHASE_5_5A_IMPORT_OPEN_WORKBOOK_WORKFLOW.md`
 
-### 5.5A1 — Browser File Selection & Import Command Boundary — COMPLETE
+Delivered across A1–A3:
 
-Completion record:
-
-`docs/PHASE_5_5A1_BROWSER_FILE_SELECTION_IMPORT_COMMAND.md`
-
-Delivered:
-
-- browser-compatible selected-file contract;
-- `.xlsx` filename UX guard;
-- defensive `ArrayBuffer -> Uint8Array` ownership;
-- immutable selected-file name/byte-length metadata;
-- cancellation as a non-error/no-op;
-- controlled file-read/extension/no-pending errors;
-- explicit apply command;
-- delegation to `PersistenceCoordinator.importAndApplyWorkbook(...)` only;
-- unchanged coordinator rejection/error semantics.
-
-### 5.5A2 — React Open/Replace Workflow & Workspace Refresh — COMPLETE
-
-Completion record:
-
-`docs/PHASE_5_5A2_REACT_OPEN_REPLACE_WORKSPACE_REFRESH.md`
-
-Delivered:
-
-- application-level **Open / Import workbook** UI;
-- browser `.xlsx` chooser and selected file summary;
-- cancel/change-file flow before import;
+- browser-compatible `.xlsx` file selection and owned-byte acquisition;
+- non-destructive pending selection;
+- controlled cancellation, unsupported-extension, file-read and no-pending errors;
 - explicit destructive replacement confirmation;
+- delegation through `PersistenceCoordinator.importAndApplyWorkbook(...)` only;
+- basic success/rejection/operational feedback;
 - reading/importing and duplicate-submit protection;
-- basic controlled success/rejection/operational feedback;
-- success-only `workspaceRevision` remount boundary;
-- visible workspace refetch from the existing singleton repositories/services after successful hydration;
-- stable active navigation across the remount;
-- no false refresh on rejection/failure.
+- success-only workspace revision/remount;
+- visible workspace refresh from the same singleton repositories/services;
+- active-navigation preservation across successful refresh;
+- real current v1/v1 XLSX end-to-end regression;
+- representative corrupt, future-version, invalid-schema, invalid-business-reference and actual 20 MiB resource-limit rejection regression;
+- exact previous-state preservation on rejected imports;
+- successful retry after a prior rejected import;
+- full Phase 1–5 regression, typecheck and production build gate.
 
-Implementation evidence:
+Final A3 implementation evidence before parent closeout:
 
 ```text
-Implementation PR #191  MERGED
-Implementation merge    e4be2a7b3f9f4289b00177a5f96bd61da113420d
-Post-merge CI           35062713682 — SUCCESS
-116 test files / 1351 tests
-12 focused A2 UI/integration tests
+Implementation PR #193  MERGED
+Implementation merge    6ca74db286beb02ff1672511ddcecc1773ddee73
+Post-merge CI           35064089137 — SUCCESS
+117 test files / 1359 tests
+8 new A3 real browser-import regression tests
+138 modules transformed
 ```
 
-### 5.5A3 — Browser Import Regression & 5.5A Completion Gate — NEXT / NOT STARTED
+Phase 5.5A did not introduce browser export/save, rich recovery UX, or native filesystem behavior.
 
-A3 will prove the browser import workflow end to end against representative real valid and rejected workbook cases, preserve previous authoritative state on rejection/failure, verify successful visible refresh, run full architectural regressions, and close parent 5.5A.
+### Phase 5.5B — Export / Save & Backup Workflow — NEXT / NOT STARTED
 
-Do not begin A3 until the A2 closeout is merged, exact resulting `develop` CI is green, and the user separately says to proceed.
+5.5B will expose the existing workbook export/save capabilities through a browser-compatible workflow while preserving the byte-oriented persistence architecture and the Phase 5.4 safe-save/backup semantics.
 
-### Phase 5.5B — Export / Save & Backup Workflow — NOT STARTED
+Expected concerns include:
 
-Planned browser-compatible workbook export/download using the existing persistence coordinator, with deterministic filename guidance and explicit backup behavior where meaningful.
+- explicit export/save action;
+- browser-compatible workbook download;
+- deterministic filename guidance;
+- save/export pending and failure states;
+- truthful browser backup capability semantics where meaningful;
+- reuse of `PersistenceCoordinator.exportCurrentWorkbook()` / save boundaries rather than rebuilding sheets in React;
+- no Tauri/native paths or filesystem durability claims.
+
+Before implementation, reassess whether 5.5B should be split into smaller child tasks and document that plan if needed.
 
 ### Phase 5.5C — Persistence Status / Validation / Recovery UX — NOT STARTED
 
@@ -313,6 +302,6 @@ Planned areas include dashboard/operational summaries, inventory valuation and l
 
 # Current Active Task
 
-**5.5A3 — Browser Import Regression & 5.5A Completion Gate — NEXT / NOT STARTED**
+**5.5B — Export / Save & Backup Workflow — NEXT / NOT STARTED**
 
-Do not begin 5.5A3 until the 5.5A2 docs-only closeout is merged, the exact resulting `develop` CI is green, and the user separately says to proceed.
+Do not begin 5.5B until the Phase 5.5A docs-only closeout is merged, the exact resulting `develop` CI is green, and the user separately says to proceed.
