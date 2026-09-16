@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { CURRENT_BUSINESS_DATASET_SCHEMA_VERSION } from '../domain/businessDataset';
 import {
   CURRENT_WORKBOOK_VERSION_KEY,
   PRODUCTION_WORKBOOK_MIGRATION_STEPS,
@@ -15,18 +16,14 @@ import {
   CURRENT_WORKBOOK_FORMAT_VERSION,
   type WorkbookNeutralDocument,
 } from './workbookSchema';
-import { CURRENT_BUSINESS_DATASET_SCHEMA_VERSION } from '../domain/businessDataset';
 
-function version(
-  workbookFormatVersion: number,
-  datasetSchemaVersion: number,
-): WorkbookVersionKey {
+function version(workbookFormatVersion: number, datasetSchemaVersion: number): WorkbookVersionKey {
   return { workbookFormatVersion, datasetSchemaVersion };
 }
 
 function createMinimalDocument(
-  workbookFormatVersion = CURRENT_WORKBOOK_FORMAT_VERSION,
-  datasetSchemaVersion = CURRENT_BUSINESS_DATASET_SCHEMA_VERSION,
+  workbookFormatVersion: number = CURRENT_WORKBOOK_FORMAT_VERSION,
+  datasetSchemaVersion: number = CURRENT_BUSINESS_DATASET_SCHEMA_VERSION,
   formatId: unknown = CRAFT_BUSINESS_WORKBOOK_FORMAT_ID,
 ): WorkbookNeutralDocument {
   return {
@@ -34,22 +31,13 @@ function createMinimalDocument(
       {
         name: '_Meta',
         columns: ['formatId', 'workbookFormatVersion', 'datasetSchemaVersion'],
-        rows: [
-          {
-            formatId,
-            workbookFormatVersion,
-            datasetSchemaVersion,
-          },
-        ],
+        rows: [{ formatId, workbookFormatVersion, datasetSchemaVersion }],
       },
     ],
   };
 }
 
-function step(
-  from: WorkbookVersionKey,
-  to: WorkbookVersionKey,
-): WorkbookMigrationStep {
+function step(from: WorkbookVersionKey, to: WorkbookVersionKey): WorkbookMigrationStep {
   return {
     from,
     to,
@@ -70,9 +58,7 @@ function errorCode(action: () => unknown): string | undefined {
 
 describe('Phase 5.4A1 workbook compatibility foundation', () => {
   it('preflights current version metadata without requiring current business sheets', () => {
-    const result = preflightWorkbookVersion(createMinimalDocument());
-
-    expect(result).toEqual({
+    expect(preflightWorkbookVersion(createMinimalDocument())).toEqual({
       ok: true,
       metadata: {
         formatId: CRAFT_BUSINESS_WORKBOOK_FORMAT_ID,
@@ -83,11 +69,9 @@ describe('Phase 5.4A1 workbook compatibility foundation', () => {
   });
 
   it('rejects a missing _Meta sheet without heuristic legacy detection', () => {
-    const result = preflightWorkbookVersion({
-      sheets: [{ name: 'Materials', rows: [], columns: [] }],
-    });
-
-    expect(result).toEqual({
+    expect(
+      preflightWorkbookVersion({ sheets: [{ name: 'Materials', rows: [], columns: [] }] }),
+    ).toEqual({
       ok: false,
       issues: [expect.objectContaining({ code: 'MISSING_META_SHEET' })],
     });
@@ -95,38 +79,30 @@ describe('Phase 5.4A1 workbook compatibility foundation', () => {
 
   it('rejects duplicate _Meta sheets deterministically', () => {
     const meta = createMinimalDocument().sheets[0];
-    const result = preflightWorkbookVersion({ sheets: [meta, meta] });
-
-    expect(result).toEqual({
+    expect(preflightWorkbookVersion({ sheets: [meta, meta] })).toEqual({
       ok: false,
       issues: [expect.objectContaining({ code: 'DUPLICATE_META_SHEET', input: 2 })],
     });
   });
 
   it('requires exactly one authoritative metadata row', () => {
-    const result = preflightWorkbookVersion({
-      sheets: [{ name: '_Meta', columns: [], rows: [] }],
-    });
-
-    expect(result).toEqual({
+    expect(
+      preflightWorkbookVersion({ sheets: [{ name: '_Meta', columns: [], rows: [] }] }),
+    ).toEqual({
       ok: false,
       issues: [expect.objectContaining({ code: 'INVALID_META_ROW_COUNT', input: 0 })],
     });
   });
 
   it('rejects the wrong format identity before migration classification', () => {
-    const result = preflightWorkbookVersion(createMinimalDocument(1, 1, 'other-app'));
-
-    expect(result).toEqual({
+    expect(preflightWorkbookVersion(createMinimalDocument(1, 1, 'other-app'))).toEqual({
       ok: false,
       issues: [expect.objectContaining({ code: 'INVALID_FORMAT_ID', input: 'other-app' })],
     });
   });
 
   it('reports invalid version shapes in stable workbook-then-dataset order', () => {
-    const result = preflightWorkbookVersion(createMinimalDocument(0, 1.5));
-
-    expect(result).toEqual({
+    expect(preflightWorkbookVersion(createMinimalDocument(0, 1.5))).toEqual({
       ok: false,
       issues: [
         expect.objectContaining({ code: 'INVALID_WORKBOOK_FORMAT_VERSION', input: 0 }),
@@ -137,11 +113,7 @@ describe('Phase 5.4A1 workbook compatibility foundation', () => {
 
   it('classifies the public v1/v1 contract as current with an empty production registry', () => {
     expect(PRODUCTION_WORKBOOK_MIGRATION_STEPS).toEqual([]);
-    expect(CURRENT_WORKBOOK_VERSION_KEY).toEqual({
-      workbookFormatVersion: 1,
-      datasetSchemaVersion: 1,
-    });
-
+    expect(CURRENT_WORKBOOK_VERSION_KEY).toEqual(version(1, 1));
     expect(classifyWorkbookCompatibility(createMinimalDocument())).toEqual({
       status: 'current',
       metadata: {
@@ -149,10 +121,7 @@ describe('Phase 5.4A1 workbook compatibility foundation', () => {
         workbookFormatVersion: 1,
         datasetSchemaVersion: 1,
       },
-      version: {
-        workbookFormatVersion: 1,
-        datasetSchemaVersion: 1,
-      },
+      version: version(1, 1),
     });
   });
 
@@ -167,13 +136,13 @@ describe('Phase 5.4A1 workbook compatibility foundation', () => {
 
   it('classifies an older synthetic pair without a registered path as unsupported older', () => {
     const target = version(3, 3);
-    const classification = classifyWorkbookCompatibility(
-      createMinimalDocument(1, 2),
-      new WorkbookMigrationRegistry([]),
-      target,
-    );
-
-    expect(classification).toEqual({
+    expect(
+      classifyWorkbookCompatibility(
+        createMinimalDocument(1, 2),
+        new WorkbookMigrationRegistry([]),
+        target,
+      ),
+    ).toEqual({
       status: 'unsupported-older',
       metadata: {
         formatId: CRAFT_BUSINESS_WORKBOOK_FORMAT_ID,
@@ -186,10 +155,10 @@ describe('Phase 5.4A1 workbook compatibility foundation', () => {
   });
 
   it('classifies an older synthetic pair with an exact registered path as migratable', () => {
-    const first = step(version(1, 1), version(2, 1));
-    const second = step(version(2, 1), version(2, 2));
-    const registry = new WorkbookMigrationRegistry([first, second]);
-
+    const registry = new WorkbookMigrationRegistry([
+      step(version(1, 1), version(2, 1)),
+      step(version(2, 1), version(2, 2)),
+    ]);
     const classification = classifyWorkbookCompatibility(
       createMinimalDocument(1, 1),
       registry,
@@ -218,10 +187,7 @@ describe('Phase 5.4A1 workbook compatibility foundation', () => {
   });
 
   it('returns null when an exact migration path is unavailable', () => {
-    const registry = new WorkbookMigrationRegistry([
-      step(version(1, 1), version(2, 1)),
-    ]);
-
+    const registry = new WorkbookMigrationRegistry([step(version(1, 1), version(2, 1))]);
     expect(registry.resolvePath(version(1, 1), version(2, 2))).toBeNull();
     expect(registry.resolvePath(version(2, 1), version(1, 1))).toBeNull();
   });
@@ -240,9 +206,7 @@ describe('Phase 5.4A1 workbook compatibility foundation', () => {
 
   it('rejects migration self-loops', () => {
     expect(
-      errorCode(
-        () => new WorkbookMigrationRegistry([step(version(1, 1), version(1, 1))]),
-      ),
+      errorCode(() => new WorkbookMigrationRegistry([step(version(1, 1), version(1, 1))])),
     ).toBe('SELF_LOOP');
   });
 
@@ -260,15 +224,10 @@ describe('Phase 5.4A1 workbook compatibility foundation', () => {
 
   it('rejects non-cyclic steps that downgrade either version axis', () => {
     expect(
-      errorCode(
-        () => new WorkbookMigrationRegistry([step(version(2, 2), version(1, 2))]),
-      ),
+      errorCode(() => new WorkbookMigrationRegistry([step(version(2, 2), version(1, 2))])),
     ).toBe('DOWNGRADE_NOT_ALLOWED');
-
     expect(
-      errorCode(
-        () => new WorkbookMigrationRegistry([step(version(2, 2), version(2, 1))]),
-      ),
+      errorCode(() => new WorkbookMigrationRegistry([step(version(2, 2), version(2, 1))])),
     ).toBe('DOWNGRADE_NOT_ALLOWED');
   });
 
