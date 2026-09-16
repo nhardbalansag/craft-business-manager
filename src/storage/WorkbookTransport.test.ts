@@ -3,7 +3,12 @@ import {
   InMemoryWorkbookTransport,
   InMemoryWorkbookTransportError,
 } from './InMemoryWorkbookTransport';
-import { cloneWorkbookBytes } from './WorkbookTransport';
+import {
+  cloneWorkbookBytes,
+  createWorkbookTransportCapabilities,
+  WorkbookTransportSaveError,
+  type WorkbookBackupReceipt,
+} from './WorkbookTransport';
 
 describe('WorkbookTransport', () => {
   it('defensively clones Uint8Array input', () => {
@@ -22,6 +27,32 @@ describe('WorkbookTransport', () => {
     source[1] = 99;
 
     expect(Array.from(cloned)).toEqual([4, 5, 6]);
+  });
+
+  it('creates explicit immutable capability values', () => {
+    const capabilities = createWorkbookTransportCapabilities({
+      backup: 'supported',
+      stagedReplacement: true,
+      replacement: 'atomic',
+    });
+
+    expect(capabilities).toEqual({
+      backup: 'supported',
+      stagedReplacement: true,
+      replacement: 'atomic',
+    });
+    expect(Object.isFrozen(capabilities)).toBe(true);
+  });
+
+  it('reports the simple in-memory transport truthfully as non-atomic and without backup/staging support', () => {
+    const transport = new InMemoryWorkbookTransport();
+
+    expect(transport.capabilities).toEqual({
+      backup: 'unsupported',
+      stagedReplacement: false,
+      replacement: 'direct-non-atomic',
+    });
+    expect(Object.isFrozen(transport.capabilities)).toBe(true);
   });
 
   it('owns saved bytes independently from the caller', async () => {
@@ -43,7 +74,7 @@ describe('WorkbookTransport', () => {
     expect(Array.from(await transport.loadWorkbook())).toEqual([7, 8, 9]);
   });
 
-  it('reports backup as not requested by default', async () => {
+  it('reports no backup and the actual direct/non-atomic replacement guarantee by default', async () => {
     const transport = new InMemoryWorkbookTransport();
 
     const receipt = await transport.saveWorkbook(new Uint8Array([1]));
@@ -51,10 +82,11 @@ describe('WorkbookTransport', () => {
     expect(receipt).toEqual({
       reference: 'memory://workbook',
       backup: { status: 'not-requested' },
+      replacement: { guarantee: 'direct-non-atomic' },
     });
   });
 
-  it('reports an optional backup request as unsupported without implementing backup behavior', async () => {
+  it('allows unsupported optional backup while preserving an explicit unsupported receipt', async () => {
     const transport = new InMemoryWorkbookTransport(new Uint8Array([1, 2]));
 
     const receipt = await transport.saveWorkbook(new Uint8Array([3, 4]), {
@@ -64,8 +96,55 @@ describe('WorkbookTransport', () => {
     expect(receipt).toEqual({
       reference: 'memory://workbook',
       backup: { status: 'unsupported' },
+      replacement: { guarantee: 'direct-non-atomic' },
     });
     expect(Array.from(await transport.loadWorkbook())).toEqual([3, 4]);
+  });
+
+  it('rejects unsupported required backup before replacing existing bytes', async () => {
+    const transport = new InMemoryWorkbookTransport(new Uint8Array([1, 2]));
+
+    await expect(
+      transport.saveWorkbook(new Uint8Array([3, 4]), { backup: 'required' }),
+    ).rejects.toMatchObject({
+      name: 'WorkbookTransportSaveError',
+      stage: 'capability',
+      code: 'REQUIRED_BACKUP_UNSUPPORTED',
+      commitState: 'not-committed',
+    } satisfies Partial<WorkbookTransportSaveError>);
+
+    expect(Array.from(await transport.loadWorkbook())).toEqual([1, 2]);
+  });
+
+  it('represents requested backup with no previous primary as distinct from backup failure', () => {
+    const receipt: WorkbookBackupReceipt = {
+      status: 'not-needed',
+      reason: 'no-existing-workbook',
+    };
+
+    expect(receipt).toEqual({
+      status: 'not-needed',
+      reason: 'no-existing-workbook',
+    });
+  });
+
+  it('retains safe-save stage, code, commit state, and original cause', () => {
+    const cause = new Error('temporary cleanup failed');
+    const error = new WorkbookTransportSaveError(
+      'cleanup',
+      'CLEANUP_FAILED',
+      'committed',
+      'Replacement committed but staging cleanup failed.',
+      cause,
+    );
+
+    expect(error).toMatchObject({
+      name: 'WorkbookTransportSaveError',
+      stage: 'cleanup',
+      code: 'CLEANUP_FAILED',
+      commitState: 'committed',
+      causeValue: cause,
+    });
   });
 
   it('fails deterministically when no workbook is available to load', async () => {
