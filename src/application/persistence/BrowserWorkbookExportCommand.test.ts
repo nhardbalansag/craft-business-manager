@@ -15,9 +15,6 @@ function createExported(bytes = new Uint8Array([10, 20, 30, 40])): PersistenceWo
     status: 'exported',
     bytes,
     metadata: {
-      formatId: 'craft-business-manager',
-      workbookFormatVersion: 1,
-      datasetSchemaVersion: 1,
       exportedAt: '2026-09-16T09:08:20.000Z',
     },
   };
@@ -123,8 +120,8 @@ describe('BrowserWorkbookExportCommand explicit download boundary', () => {
     expect(harness.createObjectUrl).toHaveBeenCalledWith(harness.blob);
     expect(harness.revokeObjectUrl).toHaveBeenCalledTimes(1);
     expect(harness.revokeObjectUrl).toHaveBeenCalledWith('blob:workbook-export');
-    expect(harness.dispatchDownload.mock.invocationCallOrder[0]).toBeLessThan(
-      harness.revokeObjectUrl.mock.invocationCallOrder[0],
+    expect(harness.dispatchDownload.mock.invocationCallOrder[0]!).toBeLessThan(
+      harness.revokeObjectUrl.mock.invocationCallOrder[0]!,
     );
   });
 
