@@ -30,8 +30,9 @@ describe('React workspace smoke validation', () => {
     const html = renderToStaticMarkup(<CalibrationPage />);
 
     expect(html).toContain('Calibration');
-    expect(html).toContain('Session-only calibration history');
-    expect(html).toContain('Add a weight-based material first');
+    expect(html).toContain('Included in workbook exports');
+    expect(html).toContain('Choose the material');
+    expect(html).toContain('Loading calibration workspace');
   });
 
   it('renders the Products, Mix Presets, Components, and Finished stock workspace without browser-side effects', () => {
