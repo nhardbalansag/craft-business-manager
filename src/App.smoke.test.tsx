@@ -101,14 +101,15 @@ describe('React workspace smoke validation', () => {
     expect(html).toContain('Missing stock is unresolved; explicit 0 pc is known zero.');
   });
 
-  it('renders the Phase 2 Yield recording and history workspace without browser-side effects', () => {
+  it('renders the Phase 2 Yield workspace loading guidance without requiring browser-side effects', () => {
     const html = renderToStaticMarkup(<YieldPage />);
 
     expect(html).toContain('Yield &amp; history');
-    expect(html).toContain('Record a yield sample');
-    expect(html).toContain('Materials actually consumed');
-    expect(html).toContain('EFFECTIVE LEARNING');
-    expect(html).toContain('Recorded batches');
+    expect(html).toContain('Included in workbook exports');
+    expect(html).toContain('Choose the product');
+    expect(html).toContain('Record the real batch');
+    expect(html).toContain('Review effective learning');
+    expect(html).toContain('Loading yield workspace');
   });
 
   it('renders production loading without publishing a ready estimate before effects run', () => {
