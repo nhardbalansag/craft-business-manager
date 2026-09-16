@@ -20,6 +20,7 @@ import {
   type PricingMethodSelection,
   type ProductFinancialProfileFormState,
 } from './productFinancialProfileForm';
+import { formatPhp, pricingPolicyLabel } from './productPricingQuoteView';
 import './pricing.css';
 
 type ActiveFilter = 'active' | 'archived' | 'all';
@@ -54,6 +55,26 @@ function upsertProfileList(
   );
 }
 
+function parseDraftAmount(value: string): number | null {
+  if (!value.trim()) return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+}
+
+function isPricingValueReady(form: ProductFinancialProfileFormState): boolean {
+  if (form.pricingMethod === 'unconfigured') return true;
+  const value = parseDraftAmount(form.pricingValue);
+  if (value === null) return false;
+  return form.pricingMethod !== 'margin-percent' || value < 100;
+}
+
+function pricingMethodSummary(form: ProductFinancialProfileFormState): string {
+  if (form.pricingMethod === 'unconfigured') return 'Selling-price policy not configured';
+  if (!form.pricingValue.trim()) return 'Pricing value still required';
+  if (form.pricingMethod === 'profit-amount') return `Fixed profit · PHP ${form.pricingValue}`;
+  return `${form.pricingMethod === 'markup-percent' ? 'Markup' : 'Target margin'} · ${form.pricingValue}%`;
+}
+
 export function PricingPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [profiles, setProfiles] = useState<ProductFinancialProfile[]>([]);
@@ -64,6 +85,7 @@ export function PricingPage() {
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<ActiveFilter>('active');
   const [loading, setLoading] = useState(true);
+  const [workspaceError, setWorkspaceError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<Feedback>(null);
   const [quote, setQuote] = useState<ProductPricingQuoteResult | null>(null);
@@ -95,6 +117,7 @@ export function PricingPage() {
 
   const loadWorkspace = useCallback(async () => {
     setLoading(true);
+    setWorkspaceError(null);
     setFeedback(null);
     try {
       const [nextProducts, nextProfiles] = await Promise.all([
@@ -115,7 +138,11 @@ export function PricingPage() {
       setSelectedProductId(initialProduct?.id ?? null);
       setForm(productFinancialProfileToForm(initialProfile));
     } catch (error) {
-      setFeedback({ type: 'error', message: errorMessage(error) });
+      setWorkspaceError(errorMessage(error));
+      setProducts([]);
+      setProfiles([]);
+      setSelectedProductId(null);
+      setForm(createEmptyProductFinancialProfileForm());
     } finally {
       setLoading(false);
     }
@@ -165,6 +192,26 @@ export function PricingPage() {
     ? profileByProductId.get(comparable(selectedProduct.id)) ?? null
     : null;
 
+  const savedForm = useMemo(
+    () => productFinancialProfileToForm(selectedProfile),
+    [selectedProfile],
+  );
+
+  const formDirty = selectedProduct !== null && JSON.stringify(form) !== JSON.stringify(savedForm);
+  const laborDraft = parseDraftAmount(form.laborCostPerUnit);
+  const overheadDraft = parseDraftAmount(form.overheadCostPerUnit);
+  const draftReady =
+    selectedProduct !== null &&
+    laborDraft !== null &&
+    overheadDraft !== null &&
+    isPricingValueReady(form);
+  const operatingAddition =
+    laborDraft !== null && overheadDraft !== null ? laborDraft + overheadDraft : null;
+
+  const activeCount = products.filter((product) => product.isActive).length;
+  const configuredCount = products.filter((product) => profileByProductId.has(comparable(product.id))).length;
+  const unconfiguredCount = Math.max(products.length - configuredCount, 0);
+
   function selectProduct(product: Product) {
     quoteRequestVersion.current += 1;
     setQuote(null);
@@ -188,9 +235,14 @@ export function PricingPage() {
     setFeedback(null);
   }
 
+  function resetDraft() {
+    setForm(savedForm);
+    setFeedback(null);
+  }
+
   async function submitProfile(event: FormEvent) {
     event.preventDefault();
-    if (!selectedProduct) return;
+    if (!selectedProduct || !draftReady) return;
 
     setSaving(true);
     setFeedback(null);
@@ -226,19 +278,40 @@ export function PricingPage() {
       <div className="page-heading-row">
         <div>
           <p className="eyebrow">PHASE 4 · PRICING</p>
-          <h1>Financial profiles</h1>
+          <h1>Pricing & unit economics</h1>
           <p className="page-lead">
-            Configure Product financial source values, then inspect the authoritative fully loaded unit cost and pricing result for the same Product.
+            Set the financial inputs you control, then review the saved fully loaded unit cost, selling price, profit, markup, and margin for each Product.
           </p>
         </div>
-        <div className="session-badge"><span className="status-dot" />Session workspace</div>
+        <div className="session-badge"><span className="status-dot" />Included in workbook exports</div>
       </div>
 
       <div className="pricing-source-note">
         <strong>Source + derived view.</strong>
         <span>
-          The financial profile is editable source data. Unit cost, selling price, profit, markup, and margin below are read-only results from Phase 4 application services.
+          Labor, overhead, pricing policy, and notes are editable source data. The unit-economics result is read-only and always comes from the saved authoritative Product state.
         </span>
+      </div>
+
+      <section className="pricing-workflow" aria-label="Pricing workflow">
+        <div className={selectedProduct ? 'complete' : 'current'}>
+          <span>1</span>
+          <div><strong>Choose the product</strong><small>Find the Product you want to price.</small></div>
+        </div>
+        <div className={selectedProduct ? 'current' : ''}>
+          <span>2</span>
+          <div><strong>Set financial inputs</strong><small>Enter labor, overhead, and an optional selling-price policy.</small></div>
+        </div>
+        <div className={selectedProduct && !formDirty ? 'current' : ''}>
+          <span>3</span>
+          <div><strong>Review saved unit economics</strong><small>Inspect cost, selling price, profit, and readiness issues.</small></div>
+        </div>
+      </section>
+
+      <div className="pricing-overview" aria-label="Pricing catalog summary">
+        <div><span>Products</span><strong>{products.length}</strong><small>{activeCount} active</small></div>
+        <div><span>Profiles saved</span><strong>{configuredCount}</strong><small>Authoritative financial inputs</small></div>
+        <div><span>Need setup</span><strong>{unconfiguredCount}</strong><small>No financial profile yet</small></div>
       </div>
 
       <div className="pricing-layout">
@@ -256,6 +329,7 @@ export function PricingPage() {
               <span>Search Products</span>
               <input
                 type="search"
+                aria-label="Search pricing products"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Name or Product ID"
@@ -264,6 +338,7 @@ export function PricingPage() {
             <label className="field">
               <span>Status</span>
               <select
+                aria-label="Filter pricing products by status"
                 value={statusFilter}
                 onChange={(event) => setStatusFilter(event.target.value as ActiveFilter)}
               >
@@ -277,8 +352,17 @@ export function PricingPage() {
           {loading ? (
             <div className="empty-state compact-pricing-empty">
               <div className="empty-icon">₱</div>
-              <h3>Loading Products…</h3>
+              <h3>Loading pricing workspace</h3>
               <p>Reading Product identities and current financial profile source records.</p>
+            </div>
+          ) : workspaceError ? (
+            <div className="empty-state compact-pricing-empty" role="alert">
+              <div className="empty-icon">!</div>
+              <h3>Pricing workspace unavailable</h3>
+              <p>{workspaceError}</p>
+              <button className="button button-secondary" type="button" onClick={() => void loadWorkspace()}>
+                Retry loading
+              </button>
             </div>
           ) : products.length === 0 ? (
             <div className="empty-state compact-pricing-empty">
@@ -303,6 +387,7 @@ export function PricingPage() {
                     type="button"
                     className={`pricing-product-card ${selected ? 'selected' : ''}`}
                     aria-pressed={selected}
+                    aria-label={`Price ${product.name}`}
                     onClick={() => selectProduct(product)}
                   >
                     <span className="pricing-product-main">
@@ -316,7 +401,7 @@ export function PricingPage() {
                       <small>{PRODUCT_CATEGORY_RULES[product.category].label}</small>
                     </span>
                     <span className={`pricing-profile-pill ${profile ? 'configured' : 'missing'}`}>
-                      {profile ? 'Configured' : 'Not configured'}
+                      {profile ? 'Profile saved' : 'Needs setup'}
                     </span>
                   </button>
                 );
@@ -325,111 +410,142 @@ export function PricingPage() {
           )}
         </section>
 
-        <form className="panel pricing-editor-panel" onSubmit={submitProfile}>
-          <div className="panel-heading">
+        <form className="panel pricing-editor-panel" aria-label="Pricing financial profile" onSubmit={submitProfile}>
+          <div className="panel-heading pricing-editor-heading">
             <div>
               <p className="panel-kicker">FINANCIAL SOURCE</p>
               <h2>{selectedProduct ? selectedProduct.name : 'Select a Product'}</h2>
             </div>
-            {selectedProduct && (
-              <span className={`status-pill ${selectedProduct.isActive ? 'status-active' : ''}`}>
-                {selectedProduct.isActive ? 'Active' : 'Archived'}
-              </span>
-            )}
+            <div className="pricing-editor-badges">
+              {formDirty && <span className="pricing-draft-pill">Unsaved changes</span>}
+              {selectedProduct && (
+                <span className={`status-pill ${selectedProduct.isActive ? 'status-active' : ''}`}>
+                  {selectedProduct.isActive ? 'Active' : 'Archived'}
+                </span>
+              )}
+            </div>
           </div>
+
+          {selectedProduct && (
+            <div className="pricing-product-context" aria-label="Selected pricing product context">
+              <div><span>Category</span><strong>{PRODUCT_CATEGORY_RULES[selectedProduct.category].label}</strong></div>
+              <div><span>Safety waste</span><strong>{(selectedProduct.safetyWasteRate * 100).toLocaleString('en-PH', { maximumFractionDigits: 4 })}%</strong></div>
+              <div><span>Saved profile</span><strong>{selectedProfile ? 'Yes' : 'No'}</strong></div>
+              <div><span>Saved policy</span><strong>{pricingPolicyLabel(selectedProfile?.pricingPolicy ?? null)}</strong></div>
+            </div>
+          )}
 
           <div className={`pricing-profile-state ${selectedProfile ? 'configured' : 'missing'}`}>
             <strong>
               {!selectedProduct
                 ? 'No Product selected'
                 : selectedProfile
-                  ? 'Configured source profile'
-                  : 'Not configured'}
+                  ? 'Saved financial profile loaded'
+                  : 'Financial profile not configured'}
             </strong>
             <span>
               {!selectedProduct
                 ? 'Select a Product from the catalog before entering or saving financial source values.'
                 : selectedProfile
-                  ? 'These values are authoritative source inputs. Saving updates the same Product-keyed profile and refreshes unit economics.'
-                  : 'No source profile exists yet. Enter labor and overhead explicitly; use 0 only when zero cost is intentional.'}
+                  ? 'Edit the draft below, then save to refresh the authoritative unit-economics quote.'
+                  : 'Enter labor and overhead explicitly. Use 0 only when a cost is intentionally zero.'}
             </span>
           </div>
 
-          <div className="form-grid pricing-form-grid">
+          <div className="pricing-form-section">
+            <div className="pricing-form-section-heading">
+              <span>1</span><div><strong>Per-unit operating costs</strong><small>Add the costs not already coming from materials and components.</small></div>
+            </div>
+            <div className="form-grid pricing-form-grid">
+              <label className="field">
+                <span>Labor cost per unit (PHP)</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="any"
+                  inputMode="decimal"
+                  disabled={editorDisabled}
+                  value={form.laborCostPerUnit}
+                  onChange={(event) => {
+                    setForm({ ...form, laborCostPerUnit: event.target.value });
+                    setFeedback(null);
+                  }}
+                  placeholder="0.00"
+                />
+                <small>Explicit PHP labor cost required to finish one sellable unit.</small>
+              </label>
+
+              <label className="field">
+                <span>Overhead cost per unit (PHP)</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="any"
+                  inputMode="decimal"
+                  disabled={editorDisabled}
+                  value={form.overheadCostPerUnit}
+                  onChange={(event) => {
+                    setForm({ ...form, overheadCostPerUnit: event.target.value });
+                    setFeedback(null);
+                  }}
+                  placeholder="0.00"
+                />
+                <small>Explicit PHP overhead assigned to one sellable unit.</small>
+              </label>
+            </div>
+          </div>
+
+          <div className="pricing-form-section">
+            <div className="pricing-form-section-heading">
+              <span>2</span><div><strong>Selling-price policy</strong><small>Choose how selling price should be derived after total unit cost is known.</small></div>
+            </div>
+            <div className="form-grid pricing-form-grid">
+              <label className="field field-wide">
+                <span>Pricing method</span>
+                <select
+                  disabled={editorDisabled}
+                  value={form.pricingMethod}
+                  onChange={(event) => updatePricingMethod(event.target.value as PricingMethodSelection)}
+                >
+                  <option value="unconfigured">Not configured</option>
+                  <option value="profit-amount">Fixed profit amount</option>
+                  <option value="markup-percent">Markup percentage</option>
+                  <option value="margin-percent">Target margin percentage</option>
+                </select>
+                <small>Pricing may remain unconfigured while labor and overhead are still saved as known source values.</small>
+              </label>
+
+              <label className="field field-wide">
+                <span>{pricingValueLabel(form.pricingMethod)}</span>
+                <input
+                  type="number"
+                  min="0"
+                  max={pricingInputMax}
+                  step="any"
+                  inputMode="decimal"
+                  disabled={editorDisabled || !pricingConfigured}
+                  value={pricingConfigured ? form.pricingValue : ''}
+                  onChange={(event) => {
+                    setForm({ ...form, pricingValue: event.target.value });
+                    setFeedback(null);
+                  }}
+                  placeholder={form.pricingMethod === 'profit-amount' ? '25.00' : '25'}
+                />
+                <small>{pricingValueHelp(form.pricingMethod)}</small>
+              </label>
+            </div>
+
+            <div className="pricing-method-guide" aria-label="Pricing method guide">
+              <div><strong>Fixed profit</strong><span>Add a fixed PHP amount to unit cost.</span></div>
+              <div><strong>Markup</strong><span>Profit as a percentage of total unit cost.</span></div>
+              <div><strong>Target margin</strong><span>Profit as a percentage of the final selling price.</span></div>
+            </div>
+          </div>
+
+          <details className="pricing-notes-details">
+            <summary>Notes & assumptions <span>Optional</span></summary>
             <label className="field">
-              <span>Labor cost per unit (PHP)</span>
-              <input
-                type="number"
-                min="0"
-                step="any"
-                inputMode="decimal"
-                disabled={editorDisabled}
-                value={form.laborCostPerUnit}
-                onChange={(event) => {
-                  setForm({ ...form, laborCostPerUnit: event.target.value });
-                  setFeedback(null);
-                }}
-                placeholder="0.00"
-              />
-              <small>Explicit PHP cost for labor required to finish one sellable unit.</small>
-            </label>
-
-            <label className="field">
-              <span>Overhead cost per unit (PHP)</span>
-              <input
-                type="number"
-                min="0"
-                step="any"
-                inputMode="decimal"
-                disabled={editorDisabled}
-                value={form.overheadCostPerUnit}
-                onChange={(event) => {
-                  setForm({ ...form, overheadCostPerUnit: event.target.value });
-                  setFeedback(null);
-                }}
-                placeholder="0.00"
-              />
-              <small>Explicit PHP overhead assigned to one sellable unit.</small>
-            </label>
-
-            <label className="field field-wide">
-              <span>Pricing method</span>
-              <select
-                disabled={editorDisabled}
-                value={form.pricingMethod}
-                onChange={(event) => updatePricingMethod(event.target.value as PricingMethodSelection)}
-              >
-                <option value="unconfigured">Not configured</option>
-                <option value="profit-amount">Fixed profit amount</option>
-                <option value="markup-percent">Markup percentage</option>
-                <option value="margin-percent">Target margin percentage</option>
-              </select>
-              <small>
-                Pricing may remain unconfigured while labor and overhead are still saved as known source values.
-              </small>
-            </label>
-
-            <label className="field field-wide">
-              <span>{pricingValueLabel(form.pricingMethod)}</span>
-              <input
-                type="number"
-                min="0"
-                max={pricingInputMax}
-                step="any"
-                inputMode="decimal"
-                disabled={editorDisabled || !pricingConfigured}
-                value={pricingConfigured ? form.pricingValue : ''}
-                onChange={(event) => {
-                  setForm({ ...form, pricingValue: event.target.value });
-                  setFeedback(null);
-                }}
-                placeholder={form.pricingMethod === 'profit-amount' ? '25.00' : '25'}
-              />
-              <small>{pricingValueHelp(form.pricingMethod)}</small>
-            </label>
-
-            <label className="field field-wide">
-              <span>Notes (optional)</span>
+              <span>Notes</span>
               <textarea
                 disabled={editorDisabled}
                 value={form.notes}
@@ -440,6 +556,22 @@ export function PricingPage() {
                 placeholder="Pricing assumptions, packaging notes, or review context"
               />
             </label>
+          </details>
+
+          <div className="pricing-draft-preview" aria-label="Draft financial input preview">
+            <div className="pricing-draft-preview-heading">
+              <div><span>DRAFT INPUT PREVIEW</span><strong>What will be saved</strong></div>
+              <span className={`pricing-save-state ${draftReady ? 'ready' : ''}`}>
+                {draftReady ? 'Ready to save' : 'Complete required inputs'}
+              </span>
+            </div>
+            <div className="pricing-draft-metrics">
+              <div><span>Labor</span><strong>{formatPhp(laborDraft)}</strong></div>
+              <div><span>Overhead</span><strong>{formatPhp(overheadDraft)}</strong></div>
+              <div><span>Labor + overhead</span><strong>{formatPhp(operatingAddition)}</strong></div>
+              <div><span>Pricing policy</span><strong>{pricingMethodSummary(form)}</strong></div>
+            </div>
+            <p>This preview covers editable financial inputs only. Materials, components, total unit cost, selling price, and profit remain authoritative saved quote results below.</p>
           </div>
 
           <div className="pricing-unit-guide" aria-label="Financial input units">
@@ -447,9 +579,14 @@ export function PricingPage() {
             <div><strong>%</strong><span>Markup and target-margin inputs are human percentages; the application stores canonical decimal rates.</span></div>
           </div>
 
-          <button className="button button-primary button-full" type="submit" disabled={editorDisabled}>
-            {saving ? 'Saving financial profile…' : 'Save financial profile'}
-          </button>
+          <div className="pricing-editor-actions">
+            <button className="button button-secondary" type="button" disabled={!formDirty || saving} onClick={resetDraft}>
+              Reset changes
+            </button>
+            <button className="button button-primary" type="submit" disabled={editorDisabled || !draftReady}>
+              {saving ? 'Saving financial profile…' : selectedProfile ? 'Save changes' : 'Save financial profile'}
+            </button>
+          </div>
 
           {feedback && (
             <div className={`feedback ${feedback.type === 'error' ? 'feedback-error' : 'feedback-success'}`} role="status">
@@ -464,6 +601,8 @@ export function PricingPage() {
         quote={quote}
         loading={quoteLoading}
         error={quoteError}
+        hasUnsavedChanges={formDirty}
+        onRefresh={selectedProduct ? () => void loadQuote(selectedProduct.id) : undefined}
       />
     </section>
   );
