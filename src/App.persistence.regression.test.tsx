@@ -221,8 +221,8 @@ async function expectRejectedThroughBrowser(
   await click('Apply import');
 
   expect(revision()).toBe('0');
-  expect(container.querySelector('[role="status"]')).toBeNull();
-  expect(container.querySelector('[role="alert"]')?.textContent).toContain('Import rejected');
+  expect(container.querySelector('.workbook-import-panel [role="status"]')).toBeNull();
+  expect(container.querySelector('.workbook-import-panel [role="alert"]')?.textContent).toContain('Import rejected');
   expect(container.textContent).toContain('Previous live material');
   expect(command.getPendingSelection()?.name).toBe(name);
   expect(await session.completeSourceSnapshotService.snapshot()).toEqual(before);
@@ -293,7 +293,7 @@ describe('Phase 5.5A3 real browser import regression gate', () => {
     await click('Apply import');
 
     expect(revision()).toBe('0');
-    expect(container.querySelector('[role="alert"]')?.textContent).toContain('Import rejected');
+    expect(container.querySelector('.workbook-import-panel [role="alert"]')?.textContent).toContain('Import rejected');
     expect(container.textContent).toContain('Previous live material');
     expect(command.getPendingSelection()?.name).toBe('oversized.xlsx');
     expect(await session.completeSourceSnapshotService.snapshot()).toEqual(before);
@@ -333,7 +333,7 @@ describe('Phase 5.5A3 real browser import regression gate', () => {
     await click('Apply import');
 
     expect(revision()).toBe('0');
-    expect(container.querySelector('[role="alert"]')?.textContent).toContain('Import rejected');
+    expect(container.querySelector('.workbook-import-panel [role="alert"]')?.textContent).toContain('Import rejected');
     expect(await session.completeSourceSnapshotService.snapshot()).toEqual(before);
 
     await choose(workbookFile('valid-second.xlsx', realWorkbookBytes(incoming)));
