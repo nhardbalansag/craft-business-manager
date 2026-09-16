@@ -20,6 +20,12 @@ import {
   type WorkbookBinaryInput,
   type WorkbookCodec,
 } from './workbookCodec';
+import type { WorkbookVersionKey } from './workbookCompatibility';
+import {
+  prepareWorkbookForCurrentImport,
+  type WorkbookCompatibilityStatus,
+  type WorkbookCurrentImportPreparationIssue,
+} from './workbookImportCompatibility';
 import {
   CANONICAL_WORKBOOK_SHEET_NAMES,
   CRAFT_BUSINESS_WORKBOOK_FORMAT_ID,
@@ -41,6 +47,8 @@ export interface ImportedWorkbookMetadata {
 
 export type BusinessDatasetWorkbookImportIssueStage =
   | 'codec'
+  | 'compatibility'
+  | 'migration'
   | 'schema'
   | 'metadata'
   | 'reconstruction'
@@ -56,6 +64,11 @@ export interface BusinessDatasetWorkbookImportIssue {
   column?: string;
   path?: string;
   input?: unknown;
+  compatibilityStatus?: WorkbookCompatibilityStatus;
+  sourceVersion?: WorkbookVersionKey;
+  targetVersion?: WorkbookVersionKey;
+  stepIndex?: number;
+  causeValue?: unknown;
 }
 
 export type BusinessDatasetWorkbookImportResult =
@@ -77,10 +90,12 @@ type ChildEntry = {
 
 const STAGE_ORDER: Readonly<Record<BusinessDatasetWorkbookImportIssueStage, number>> = {
   codec: 0,
-  schema: 1,
-  metadata: 2,
-  reconstruction: 3,
-  dataset: 4,
+  compatibility: 1,
+  migration: 2,
+  schema: 3,
+  metadata: 4,
+  reconstruction: 5,
+  dataset: 6,
 };
 
 const SHEET_ORDER = new Map<string, number>(
@@ -125,6 +140,33 @@ function failure(
   issues: readonly BusinessDatasetWorkbookImportIssue[],
 ): BusinessDatasetWorkbookImportResult {
   return { ok: false, issues: sortIssues(issues) };
+}
+
+function preparationIssues(
+  issues: readonly WorkbookCurrentImportPreparationIssue[],
+): BusinessDatasetWorkbookImportIssue[] {
+  return issues.map((issue) => {
+    const hasMetaLocation =
+      issue.stage === 'preflight' &&
+      issue.code !== 'INVALID_DOCUMENT' &&
+      issue.code !== 'MISSING_META_SHEET';
+
+    return {
+      stage: issue.stage === 'migration' ? 'migration' : 'compatibility',
+      code: issue.code,
+      message: issue.message,
+      sheetName: hasMetaLocation ? '_Meta' : undefined,
+      rowIndex: hasMetaLocation ? 0 : undefined,
+      excelRow: hasMetaLocation ? 2 : undefined,
+      path: issue.stepIndex === undefined ? undefined : `migration[${issue.stepIndex}]`,
+      input: issue.input,
+      compatibilityStatus: issue.compatibilityStatus,
+      sourceVersion: issue.sourceVersion,
+      targetVersion: issue.targetVersion,
+      stepIndex: issue.stepIndex,
+      causeValue: issue.causeValue,
+    };
+  });
 }
 
 function sheet(document: WorkbookNeutralDocument, name: string): WorkbookNeutralSheet {
@@ -662,5 +704,8 @@ export function importBusinessDatasetFromXlsx(
     return failure([{ stage: 'codec', code, message }]);
   }
 
-  return reconstructBusinessDatasetFromWorkbook(document);
+  const prepared = prepareWorkbookForCurrentImport(document);
+  if (!prepared.ok) return failure(preparationIssues(prepared.issues));
+
+  return reconstructBusinessDatasetFromWorkbook(prepared.document);
 }
