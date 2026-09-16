@@ -186,9 +186,10 @@ describe('Yield workspace UI/UX', () => {
 
     const search = history()!.querySelector<HTMLInputElement>('[aria-label="Search yield history"]')!;
     await fill(search, 'older batch');
-    expect(history()!.querySelectorAll('article')).toHaveLength(1);
-    expect(history()!.textContent).toContain('YS-OLD');
-    expect(history()!.textContent).not.toContain('YS-NEW');
+    const visibleArticles = history()!.querySelectorAll('article');
+    expect(visibleArticles).toHaveLength(1);
+    expect(visibleArticles[0].textContent).toContain('YS-OLD');
+    expect(visibleArticles[0].textContent).not.toContain('YS-NEW');
 
     await fill(search, '');
     const sort = history()!.querySelector<HTMLSelectElement>('[aria-label="Sort yield history"]')!;
