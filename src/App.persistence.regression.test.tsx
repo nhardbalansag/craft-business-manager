@@ -204,7 +204,11 @@ async function expectRejectedThroughBrowser(
   expect(directResult.status).toBe('rejected');
   if (directResult.status === 'rejected') {
     expect(directResult.stage).toBe('import');
-    expect(directResult.issues.some((issue) => issue.stage === expectedIssueStage)).toBe(true);
+    expect(
+      directResult.issues.some(
+        (issue) => 'stage' in issue && issue.stage === expectedIssueStage,
+      ),
+    ).toBe(true);
   }
   expect(await session.completeSourceSnapshotService.snapshot()).toEqual(before);
 
