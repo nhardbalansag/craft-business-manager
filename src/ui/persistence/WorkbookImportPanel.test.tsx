@@ -31,14 +31,14 @@ const rejectedResult: PersistenceWorkbookApplyResult = {
 
 let container: HTMLDivElement;
 let root: Root;
-let onHydrated: ReturnType<typeof vi.fn>;
+const onHydrated = vi.fn(() => {});
 
 beforeEach(() => {
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
   container = document.createElement('div');
   document.body.append(container);
   root = createRoot(container);
-  onHydrated = vi.fn();
+  onHydrated.mockClear();
 });
 
 afterEach(async () => {
