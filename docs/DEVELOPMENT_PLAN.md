@@ -33,6 +33,7 @@ For the completed export/save-copy workflow, use:
 For the active persistence status/validation/recovery UX work, use:
 
 - `docs/PHASE_5_5C_PERSISTENCE_STATUS_VALIDATION_RECOVERY_UX_PLAN.md`
+- `docs/PHASE_5_5C1_PERSISTENCE_SESSION_STATUS_WORKBOOK_IDENTITY.md`
 
 Historical phase completion records remain authoritative for their individual contracts and CI evidence.
 
@@ -48,11 +49,11 @@ Historical phase completion records remain authoritative for their individual co
 
 ## Current Repository Baseline
 
-Current green baseline after the Phase 5.5B parent closeout:
+Current green implementation baseline after Phase 5.5C1:
 
 ```text
-develop  a1c175176ce4df9fe1c3ae8ec91afd5151dd1e59
-CI       35129979872 — SUCCESS
+develop  0a3a68c78a93824da1c01644cfa24723fbfaf8e5
+CI       35132771870 — SUCCESS
 ```
 
 ## Overall Phase Status
@@ -155,9 +156,9 @@ Live tracker:
         5.5B1 — Browser Workbook Export & Download Command Boundary      COMPLETE
         5.5B2 — React Export / Save-Copy Workflow & Backup Truthfulness COMPLETE
         5.5B3 — Browser Export Regression & 5.5B Completion Gate        COMPLETE
-    5.5C — Persistence Status / Validation / Recovery UX           IN PROGRESS
-        5.5C1 — Persistence Session Status & Workbook Identity     NEXT / NOT STARTED
-        5.5C2 — Validation Detail & Recovery Guidance UX           NOT STARTED
+    5.5C — Persistence Status / Validation / Recovery UX              IN PROGRESS
+        5.5C1 — Persistence Session Status & Workbook Identity        COMPLETE
+        5.5C2 — Validation Detail & Recovery Guidance UX              NEXT / NOT STARTED
         5.5C3 — Persistence UX Regression & Phase 5.5 Completion Gate NOT STARTED
 
 5.6 — Integration & Completion Gate                       NOT STARTED
@@ -438,33 +439,67 @@ Dedicated plan:
 5.5C is split into:
 
 ```text
-5.5C1 — Persistence Session Status & Workbook Identity           NEXT / NOT STARTED
-5.5C2 — Validation Detail & Recovery Guidance UX                 NOT STARTED
+5.5C1 — Persistence Session Status & Workbook Identity           COMPLETE
+5.5C2 — Validation Detail & Recovery Guidance UX                 NEXT / NOT STARTED
 5.5C3 — Persistence UX Regression & Phase 5.5 Completion Gate    NOT STARTED
 ```
 
 The split keeps browser-session status, rejection/recovery presentation, and completion proof separate.
 
-#### Phase 5.5C1 — Persistence Session Status & Workbook Identity — NEXT / NOT STARTED
+#### Phase 5.5C1 — Persistence Session Status & Workbook Identity — COMPLETE
 
-C1 will add truthful browser-session status using the existing workbook/dataset version constants and successful import/export results.
+Completion record:
 
-Planned status includes:
+`docs/PHASE_5_5C1_PERSISTENCE_SESSION_STATUS_WORKBOOK_IDENTITY.md`
 
-- current supported workbook format ID/version;
-- current dataset schema version;
-- browser-known imported workbook filename/size and import metadata after successful hydration;
-- last successful export/download filename/size and export metadata;
-- session-observed import/download timestamps distinct from workbook `exportedAt` metadata;
-- no update of last-success status after rejection/failure.
+Delivered:
 
-The imported filename is an identity label only, never a managed native path. Export remains a new downloaded copy and does not replace that imported identity.
+- immutable browser-session persistence status using the existing workbook/dataset version constants;
+- visible current format ID, workbook version, and dataset schema version;
+- truthful empty state before any successful operation in the current app session;
+- browser-known successful imported filename/size and import metadata;
+- session-observed import timestamp distinct from workbook `exportedAt`;
+- last successful downloaded-copy filename/size and export metadata;
+- session-observed download-dispatch timestamp distinct from workbook `exportedAt`;
+- success-only evidence callbacks from the existing import/export panels;
+- rejected/failed imports preserve prior successful import status;
+- failed exports preserve prior successful export status;
+- exported-copy identity remains separate from imported-workbook identity;
+- successful import retains its existing one-revision refresh behavior;
+- export status updates do not remount live workspace state or change active navigation;
+- browser filenames are identity labels only, not managed native paths;
+- no dirty/clean synchronization state is claimed without a complete mutation-tracking contract.
 
-**Dirty/clean state is deliberately not introduced in C1.** The current architecture has no complete mutation-tracking boundary across all business edits, so a clean/dirty indicator would not be trustworthy.
+Evidence:
 
-#### Phase 5.5C2 — Validation Detail & Recovery Guidance UX — NOT STARTED
+```text
+Planning PR #203                 MERGED
+Planning head                    82e7a168443688b28262d1c666adae94a902ef68
+Planning PR CI                   35131606179 — SUCCESS
+C1 baseline                      f37529c3886ad52bc53347b1b275c8142b15d093
+C1 baseline CI                   35131746177 — SUCCESS
+Initial feature head             5ac1220d3f535aa9476d30e482f333f65a2c3a9d
+Initial feature CI               35132299736 — FAILURE (test-harness typing only)
+Corrected feature head           8ec0ec92c122ed72084a4274a5a26e300f72c586
+Corrected branch CI              35132491552 — SUCCESS
+Implementation PR #204           MERGED
+PR CI                            35132643889 — SUCCESS
+Implementation merge             0a3a68c78a93824da1c01644cfa24723fbfaf8e5
+Post-merge CI                    35132771870 — SUCCESS
+125 test files / 1413 tests
+12 focused C1 tests
+Typecheck PASS
+Production build PASS
+146 modules transformed
+```
+
+The initial red feature CI was isolated to a new test-harness mock whose inferred signature did not match the real import command. The production implementation was not implicated; the corrected exact head passed all gates.
+
+#### Phase 5.5C2 — Validation Detail & Recovery Guidance UX — NEXT / NOT STARTED
 
 C2 will preserve raw importer issues as the authoritative technical evidence and derive actionable guidance from the existing recovery diagnostics model. It will cover unsupported versions, corrupt/unreadable workbooks, resource limits, workbook structure/values, invalid business data, and browser-truthful backup/restore guidance.
+
+A recovery recommendation such as `restore-known-good-backup` means selecting/importing a known-good workbook copy the user already possesses in browser mode. It must not imply that the browser created or manages a Phase 5.4B pre-save transport backup.
 
 #### Phase 5.5C3 — Persistence UX Regression & Phase 5.5 Completion Gate — NOT STARTED
 
@@ -504,6 +539,6 @@ Planned areas include dashboard/operational summaries, inventory valuation and l
 
 # Current Active Task
 
-**5.5C1 — Persistence Session Status & Workbook Identity — NEXT / NOT STARTED**
+**5.5C2 — Validation Detail & Recovery Guidance UX — NEXT / NOT STARTED**
 
-Do not begin 5.5C1 until the 5.5C planning change is merged into `develop`, the exact resulting `develop` CI is green, and the current session has been instructed to proceed.
+Do not begin 5.5C2 until the 5.5C1 docs-only closeout is merged into `develop`, the exact resulting `develop` CI is green, and the user separately says to proceed.
