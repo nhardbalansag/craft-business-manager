@@ -4,11 +4,15 @@ import {
   BrowserWorkbookImportWorkflowError,
   type PendingBrowserWorkbookSelection,
 } from '../../application/persistence/BrowserWorkbookImportCommand';
-import { PersistenceLifecycleOperationalError } from '../../application/persistence/PersistenceLifecycle';
+import {
+  PersistenceLifecycleOperationalError,
+  type PersistenceLifecycleRejected,
+} from '../../application/persistence/PersistenceLifecycle';
 import type {
   PersistenceWorkbookApplyResult,
   PersistenceWorkbookHydrated,
 } from '../../application/persistence/PersistenceCoordinator';
+import { WorkbookImportRejectionDetails } from './WorkbookImportRejectionDetails';
 import './workbookImport.css';
 
 interface WorkbookImportFeedback {
@@ -55,12 +59,11 @@ function confirmationMessage(selection: PendingBrowserWorkbookSelection): string
 }
 
 /**
- * Phase 5.5A2 browser UI over the A1 import command.
+ * Browser UI over the application import command.
  *
- * This component never parses XLSX, enumerates repositories, or hydrates data directly. A selected
- * workbook remains pending until the user explicitly confirms Apply import. Only a successful
- * hydrated result notifies the application shell to refresh the visible repository-backed workspace
- * and update browser-session persistence status.
+ * Selection remains non-destructive until explicit confirmation. Successful hydration refreshes the
+ * repository-backed workspace and session status. Expected rejection is kept separate from
+ * operational failure and now exposes its raw validation evidence plus derived C2 recovery guidance.
  */
 export function WorkbookImportPanel({ command, onHydrated }: WorkbookImportPanelProps) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -70,6 +73,7 @@ export function WorkbookImportPanel({ command, onHydrated }: WorkbookImportPanel
   const [reading, setReading] = useState(false);
   const [importing, setImporting] = useState(false);
   const [feedback, setFeedback] = useState<WorkbookImportFeedback | null>(null);
+  const [rejection, setRejection] = useState<PersistenceLifecycleRejected | null>(null);
   const busy = reading || importing;
 
   function openFileChooser() {
@@ -81,6 +85,7 @@ export function WorkbookImportPanel({ command, onHydrated }: WorkbookImportPanel
     const file = input.files?.[0] ?? null;
     setReading(true);
     setFeedback(null);
+    setRejection(null);
 
     try {
       const result = await command.selectFile(file);
@@ -99,6 +104,7 @@ export function WorkbookImportPanel({ command, onHydrated }: WorkbookImportPanel
     command.clearSelection();
     setSelection(null);
     setFeedback(null);
+    setRejection(null);
   }
 
   async function applyImport() {
@@ -107,6 +113,7 @@ export function WorkbookImportPanel({ command, onHydrated }: WorkbookImportPanel
 
     setImporting(true);
     setFeedback(null);
+    setRejection(null);
 
     try {
       const result = await command.applyPendingSelection();
@@ -125,6 +132,7 @@ export function WorkbookImportPanel({ command, onHydrated }: WorkbookImportPanel
         return;
       }
 
+      setRejection(result);
       setFeedback({ kind: 'error', message: rejectionMessage(result) });
     } catch (error) {
       setFeedback({ kind: 'error', message: workflowErrorMessage(error) });
@@ -194,6 +202,8 @@ export function WorkbookImportPanel({ command, onHydrated }: WorkbookImportPanel
           {feedback.message}
         </p>
       )}
+
+      {rejection !== null && <WorkbookImportRejectionDetails result={rejection} />}
     </section>
   );
 }
