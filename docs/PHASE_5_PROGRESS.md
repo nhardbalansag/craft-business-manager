@@ -14,11 +14,11 @@ This file is the concise authoritative live Phase 5 tracker. Detailed historical
 
 ## Current authoritative green implementation baseline
 
-After Phase 5.6A1 implementation:
+After Phase 5.6A2 implementation:
 
 ```text
-develop  4f01b4b706bb82fad260d407d7b4c4173a230b40
-CI       35139932051 — SUCCESS
+develop  3555a8e02dc4fafe5c3a32e6ecccd3ab7f88eab5
+CI       35141650499 — SUCCESS
 ```
 
 ## Live task map
@@ -55,8 +55,8 @@ CI       35139932051 — SUCCESS
 5.6 — Integration & Completion Gate                       IN PROGRESS
     5.6A — Integrated Excel Round-Trip Workflow           IN PROGRESS
         5.6A1 — Source Round-Trip Fidelity & Deterministic Workbook Semantics COMPLETE
-        5.6A2 — Phase 1–4 Derived Service Equivalence                         NEXT / NOT STARTED
-        5.6A3 — Rejection / Safe-Save Integration & 5.6A Completion Gate      NOT STARTED
+        5.6A2 — Phase 1–4 Derived Service Equivalence                         COMPLETE
+        5.6A3 — Rejection / Safe-Save Integration & 5.6A Completion Gate      NEXT / NOT STARTED
     5.6B — Regression / Build / Phase 5 Completion        NOT STARTED
 ```
 
@@ -133,16 +133,7 @@ develop  b8584d8681e95676c209c2e5a9dde0ee6278b71a
 CI       35055715946 — SUCCESS
 ```
 
-Established:
-
-- compatibility/version preflight;
-- explicit migration framework;
-- future-version rejection;
-- safe-save/backup transport capability contracts;
-- staged/atomic in-memory reference transport behavior;
-- resource limits and corruption diagnostics;
-- deterministic recovery categories/actions;
-- expected rejection preserving prior live source state.
+Established compatibility/version preflight, migration framework, future-version rejection, safe-save/backup transport contracts, staged/atomic in-memory reference behavior, resource limits, corruption diagnostics, deterministic recovery guidance, and rejection state preservation.
 
 ---
 
@@ -152,64 +143,15 @@ Parent completion record:
 
 `docs/PHASE_5_5_EXCEL_PERSISTENCE_UI.md`
 
-### 5.5A — Import / Open Workbook Workflow — COMPLETE
-
-Parent completion record:
-
-`docs/PHASE_5_5A_IMPORT_OPEN_WORKBOOK_WORKFLOW.md`
-
-Final evidence:
-
-```text
-develop  088d0b7d6d5bd6114e3887293dca757140e4eaa5
-CI       35064547341 — SUCCESS
-```
-
-### 5.5B — Export / Save & Backup Workflow — COMPLETE
-
-Plan / completion records:
-
-- `docs/PHASE_5_5B_EXPORT_SAVE_BACKUP_WORKFLOW_PLAN.md`
-- `docs/PHASE_5_5B1_BROWSER_WORKBOOK_EXPORT_DOWNLOAD_COMMAND.md`
-- `docs/PHASE_5_5B2_REACT_EXPORT_SAVE_COPY_WORKFLOW.md`
-- `docs/PHASE_5_5B_EXPORT_SAVE_BACKUP_WORKFLOW.md`
-
-Final evidence:
-
-```text
-develop  a1c175176ce4df9fe1c3ae8ec91afd5151dd1e59
-CI       35129979872 — SUCCESS
-```
-
-### 5.5C — Persistence Status / Validation / Recovery UX — COMPLETE
-
-Plan / completion records:
-
-- `docs/PHASE_5_5C_PERSISTENCE_STATUS_VALIDATION_RECOVERY_UX_PLAN.md`
-- `docs/PHASE_5_5C1_PERSISTENCE_SESSION_STATUS_WORKBOOK_IDENTITY.md`
-- `docs/PHASE_5_5C2_VALIDATION_DETAIL_RECOVERY_GUIDANCE_UX.md`
-- `docs/PHASE_5_5C3_PERSISTENCE_UX_REGRESSION_PHASE_5_5_COMPLETION_GATE.md`
-
-C3 implementation evidence:
-
-```text
-Implementation PR #208         MERGED
-Implementation merge           1059adaaa0492a2308036271f1a0fa898739ee00
-Post-merge CI                  35136380402 — SUCCESS
-128 test files / 1427 tests
-4 focused C3 completion tests
-Typecheck PASS
-Production build PASS
-149 modules transformed
-```
-
-Final parent 5.5 closeout:
+Final parent evidence:
 
 ```text
 Closeout PR #209               MERGED
 Final 5.5 develop              3cc9ae0e419a4e0075b04180849b23b7087bc98f
 Final 5.5 CI                   35137244664 — SUCCESS
 ```
+
+Detailed 5.5A/B/C implementation evidence remains in the dedicated completion records.
 
 ---
 
@@ -235,8 +177,8 @@ Locked decomposition:
 
 ```text
 5.6A1 — Source Round-Trip Fidelity & Deterministic Workbook Semantics COMPLETE
-5.6A2 — Phase 1–4 Derived Service Equivalence                         NEXT / NOT STARTED
-5.6A3 — Rejection / Safe-Save Integration & 5.6A Completion Gate      NOT STARTED
+5.6A2 — Phase 1–4 Derived Service Equivalence                         COMPLETE
+5.6A3 — Rejection / Safe-Save Integration & 5.6A Completion Gate      NEXT / NOT STARTED
 ```
 
 Scenario ownership:
@@ -262,12 +204,7 @@ A1 proves through the real singleton application graph and real XLSX bytes:
 Implementation evidence:
 
 ```text
-A1 baseline                     c70eaebbb2af62a28868985ff4cf0dfacfc64d8d
-A1 baseline CI                  35138470416 — SUCCESS
-Feature head                    784d0eb41ca25346b46e69bcac740903c14e4f02
-Feature branch CI               35139602664 — SUCCESS
 Implementation PR #211          MERGED
-Implementation PR CI            35139807458 — SUCCESS
 Implementation merge            4f01b4b706bb82fad260d407d7b4c4173a230b40
 Post-implementation develop CI  35139932051 — SUCCESS
 129 test files / 1430 tests
@@ -277,20 +214,50 @@ Production build PASS
 149 modules transformed
 ```
 
-A1 implementation was tests-only: exactly one added test file, 384 additions, and no production runtime/domain/schema/coordinator/transport/UI/native-filesystem changes.
+### 5.6A2 — Phase 1–4 Derived Service Equivalence — COMPLETE
 
-### 5.6A2 — Phase 1–4 Derived Service Equivalence — NEXT / NOT STARTED
+Completion record:
 
-A2 owns:
+`docs/PHASE_5_6A2_PHASE_1_4_DERIVED_SERVICE_EQUIVALENCE.md`
 
-- Scenario B — calibration-dependent material behavior;
-- Scenario C — yield + recipe Product behavior;
-- Scenario D — nested components + ProductStock behavior;
-- Scenario F — Phase 4 pricing/production equivalence.
+A2 proves through the production singleton service graph and real XLSX bytes:
 
-A2 must compare derived service results before export and after import/hydration using the same stable application service graph. It must not persist derived results as source truth.
+- **Scenario B:** calibration-dependent `cup -> g` conversion, latest calibration selection, package/base-unit costing, and recipe normalization remain equivalent;
+- **Scenario C:** yield-derived plus fixed-recipe requirements and material-cost previews remain equivalent;
+- **Scenario D:** Material-backed/Product-backed component relationships, explicit ProductStock availability, recursive component cost, and fully loaded parent cost remain equivalent;
+- **Scenario F:** fully loaded unit cost, pricing quote, physical planned-batch cost, expected financials, capacity trace, bottleneck meaning, and planned-batch feasibility remain equivalent.
 
-### 5.6A3 — Rejection / Safe-Save Integration & 5.6A Completion Gate — NOT STARTED
+Representative Scenario F meaning remains stable after hydrate:
+
+```text
+current assembly capacity  5
+limiting source            product-child ProductStock
+requested batch            6
+feasibility                over-current-capacity
+overage                    1
+```
+
+Implementation evidence:
+
+```text
+A2 baseline                     f1d403bc6b8fe5196d8837ed790a3959aae01466
+A2 baseline CI                  35140571447 — SUCCESS
+Feature head                    1dfef553a4741de760321ebd936a90cc43dec1e1
+Feature branch CI               35141355473 — SUCCESS
+Implementation PR #213          MERGED
+Implementation PR CI            35141515815 — SUCCESS
+Implementation merge            3555a8e02dc4fafe5c3a32e6ecccd3ab7f88eab5
+Post-implementation develop CI  35141650499 — SUCCESS
+130 test files / 1434 tests
+4 focused A2 integration tests
+Typecheck PASS
+Production build PASS
+149 modules transformed
+```
+
+A2 implementation was tests-only: exactly one added integration-test file, 455 additions, and no production runtime/domain/schema/coordinator/transport/UI/native-filesystem changes.
+
+### 5.6A3 — Rejection / Safe-Save Integration & 5.6A Completion Gate — NEXT / NOT STARTED
 
 A3 owns:
 
@@ -320,14 +287,14 @@ Backup / atomic-write safety             COMPLETE — 5.4B
 Corruption / resource / recovery         COMPLETE — 5.4C
 Browser persistence UI                   COMPLETE — 5.5
 Source round-trip integration            COMPLETE — 5.6A1
-Derived service equivalence              NEXT — 5.6A2
-Rejection/safe-save + A completion gate  NOT STARTED — 5.6A3
+Derived service equivalence              COMPLETE — 5.6A2
+Rejection/safe-save + A completion gate  NEXT — 5.6A3
 Phase 5 final completion gate            NOT STARTED — 5.6B
 Native filesystem                        Phase 6
 ```
 
 ## Current active task
 
-**5.6A2 — Phase 1–4 Derived Service Equivalence — NEXT / NOT STARTED**
+**5.6A3 — Rejection / Safe-Save Integration & 5.6A Completion Gate — NEXT / NOT STARTED**
 
-Do not begin 5.6A2 until the Phase 5.6A1 docs-only closeout is merged into `develop`, the exact resulting `develop` CI is green, and the user separately says to proceed.
+Do not begin 5.6A3 until the Phase 5.6A2 docs-only closeout is merged into `develop`, the exact resulting `develop` CI is green, and the user separately says to proceed.
