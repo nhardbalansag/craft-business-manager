@@ -36,8 +36,8 @@ Master plan:
         5.4A2 — Version-Aware Migration Execution & Current-Contract Handoff           COMPLETE
         5.4A3 — Compatibility Regression & Completion Gate                             COMPLETE
     5.4B — Backup & Atomic-Write Transport Contract       IN PROGRESS
-        5.4B1 — Safe-Save Capability, Policy & Transaction Contract                    NEXT / NOT STARTED
-        5.4B2 — Backup + Staged-Commit In-Memory Reference Transport                   NOT STARTED
+        5.4B1 — Safe-Save Capability, Policy & Transaction Contract                    COMPLETE
+        5.4B2 — Backup + Staged-Commit In-Memory Reference Transport                   NEXT / NOT STARTED
         5.4B3 — Failure Recovery, Coordinator Regression & Completion Gate             NOT STARTED
     5.4C — Corruption, Limits & Recovery Diagnostics      NOT STARTED
 
@@ -94,6 +94,10 @@ Master plan:
 - The in-memory reference transport proves logical safe-save ordering only; native durability, `fsync`, rename, locking, and crash-consistency guarantees remain Phase 6.
 - A post-commit cleanup problem is distinct from a pre-commit failure and may not be represented as though commit definitely did not occur.
 - Native Tauri filesystem/dialog behavior remains Phase 6.
+- 5.4B1 makes backup support, staged replacement, and atomic-vs-direct replacement explicit immutable transport capabilities.
+- 5.4B1 save receipts report the replacement guarantee actually delivered and distinguish `not-needed / no-existing-workbook` from backup failure.
+- `WorkbookTransportSaveError` preserves safe-save stage, stable code, commit state, and original cause; B2/B3 must build on this vocabulary rather than invent a parallel failure path.
+- The simple `InMemoryWorkbookTransport` intentionally remains `backup: unsupported`, `stagedReplacement: false`, `direct-non-atomic`; B2 owns the actual backup/staging reference implementation.
 
 ## Completion evidence index
 
@@ -253,30 +257,55 @@ Phase 5.4A closes with public v1/v1 unchanged and no production migration regist
 
 ## Phase 5.4B — Backup & Atomic-Write Transport Contract
 
-Status: **PLANNING ESTABLISHED — IMPLEMENTATION NOT STARTED**
+Status: **IN PROGRESS**
 
 Plan:
 
 `docs/PHASE_5_4B_BACKUP_ATOMIC_WRITE_TRANSPORT_PLAN.md`
 
-Planning baseline:
+Planning evidence:
 
 ```text
-develop                    e35b6f04c65dbedcd0ffe7ebbe836a22e1f59065
-CI                         35047386809 — SUCCESS
+Planning baseline          e35b6f04c65dbedcd0ffe7ebbe836a22e1f59065
+Planning baseline CI       35047386809 — SUCCESS
+Planning PR #172           MERGED
+Planning merge             55c06e9309f48345635bd5f5a543762a3ca8ce84
+Planning post-merge CI     35048445692 — SUCCESS
 ```
 
 Locked decomposition:
 
 ```text
-5.4B1 — Safe-Save Capability, Policy & Transaction Contract                    NEXT / NOT STARTED
-5.4B2 — Backup + Staged-Commit In-Memory Reference Transport                   NOT STARTED
+5.4B1 — Safe-Save Capability, Policy & Transaction Contract                    COMPLETE
+5.4B2 — Backup + Staged-Commit In-Memory Reference Transport                   NEXT / NOT STARTED
 5.4B3 — Failure Recovery, Coordinator Regression & Completion Gate             NOT STARTED
 ```
 
-5.4B is split because capability/policy contracts, the staged backup/commit reference implementation, and failure/recovery regression are materially separate concerns. The planning contract keeps all native filesystem operations in Phase 6 and requires browser/non-atomic transports to report their guarantees truthfully.
+### 5.4B1 — COMPLETE
 
-Do not begin B1 until this planning branch/PR is merged, the exact resulting `develop` CI is green, and the user separately says to proceed.
+Completion record:
+
+`docs/PHASE_5_4B1_SAFE_SAVE_CAPABILITY_TRANSACTION_CONTRACT.md`
+
+```text
+Authoritative baseline     55c06e9309f48345635bd5f5a543762a3ca8ce84
+Baseline CI                35048445692 — SUCCESS
+Corrected feature head     bd3f01235f8d9786e003ad77285e652b792c583d
+Initial PR CI              35048938545 — FAILURE (test fixture type mismatch only)
+Corrected PR CI            35049014369 — SUCCESS
+Implementation PR #173     MERGED
+Implementation merge       2ec2a75c43bef03690f0de7014d4171ba7a36ea0
+Post-merge develop CI      35049144901 — SUCCESS
+102 test files / 1219 tests
+13 focused WorkbookTransport tests
+TypeScript typecheck passed
+Production Vite build passed
+132 modules transformed
+```
+
+B1 established explicit immutable transport capabilities, `none` / `if-supported` / `required` backup policy, truthful atomic-vs-direct replacement receipts, distinct no-existing-workbook backup outcome, and transport save errors carrying failure stage, commit state, stable code, and original cause. The existing simple in-memory transport remains intentionally direct/non-atomic and does not implement B2 backup/staging behavior.
+
+Do not begin B2 until this B1 closeout PR is merged, the exact resulting `develop` CI is green, and the user separately says to proceed.
 
 ## Current persistence boundary
 
@@ -300,8 +329,8 @@ Version preflight/registry contract   COMPLETE — 5.4A1
 Migration execution/import handoff    COMPLETE — 5.4A2
 Compatibility completion gate         COMPLETE — 5.4A3
 Backup/atomic-write planning          ESTABLISHED — 5.4B
-Safe-save transport contract          NEXT / NOT STARTED — 5.4B1
-Reference safe-save transport         NOT STARTED — 5.4B2
+Safe-save transport contract          COMPLETE — 5.4B1
+Reference safe-save transport         NEXT / NOT STARTED — 5.4B2
 Safe-save recovery completion gate    NOT STARTED — 5.4B3
 Recovery/corruption limits            NOT STARTED — 5.4C
 Native filesystem                     Phase 6
@@ -309,6 +338,6 @@ Native filesystem                     Phase 6
 
 ## Current active task
 
-**5.4B1 — Safe-Save Capability, Policy & Transaction Contract — NEXT / NOT STARTED**
+**5.4B2 — Backup + Staged-Commit In-Memory Reference Transport — NEXT / NOT STARTED**
 
-Do not begin 5.4B1 implementation until the Phase 5.4B planning PR is merged, the exact resulting `develop` CI is green, and the user separately says to proceed.
+Do not begin 5.4B2 implementation until the Phase 5.4B1 closeout PR is merged, the exact resulting `develop` CI is green, and the user separately says to proceed.
