@@ -2,20 +2,50 @@
 
 ## Objective
 
-Build a desktop-first tool for material costing, real-production yield learning, inventory-based production estimates, multi-vessel / multi-component craft products, selling-price / profit planning, and safe local persistence.
+Build a desktop-first business tool for material costing, real-production yield learning, inventory-based production estimates, multi-vessel / multi-component craft products, selling-price and profit planning, and safe local persistence.
 
-The domain and application layers remain storage-agnostic so Excel persistence can later move to SQLite without rewriting business rules.
+The domain and application layers remain storage-agnostic so Excel persistence can later move to SQLite or another durable store without rewriting business rules.
 
-## Delivery principles
+## Documentation Authority
+
+This document is the high-level roadmap.
+
+For the exact live Phase 5 task and completion evidence, use:
+
+`docs/PHASE_5_PROGRESS.md`
+
+For the detailed Excel persistence architecture, use:
+
+`docs/PHASE_5_EXCEL_PERSISTENCE_PLAN.md`
+
+For the current import/open workflow plan, use:
+
+`docs/PHASE_5_5A_IMPORT_OPEN_WORKBOOK_WORKFLOW_PLAN.md`
+
+Historical phase completion records remain authoritative for their individual contracts and CI evidence.
+
+## Delivery Principles
 
 - preserve user-entered/source evidence and derive normalized values;
 - use canonical internal units (`g`, `mL`, `pc`);
 - keep React behind application services rather than duplicating business rules in UI code;
 - keep derived costing/yield/capacity/pricing outputs out of authoritative persistence;
 - keep workbook codec, dataset validation, repository hydration, and filesystem transport separate;
+- keep browser persistence workflows separate from Phase 6 native filesystem behavior;
 - advance tasks only after feature CI, PR CI, guarded merge, and exact post-merge `develop` CI succeed.
 
-## Phase status
+## Current Repository Baseline
+
+Baseline used for Phase 5.5A planning:
+
+```text
+develop  728b9b99b1da5192fd894f04c64d7ab3d1447d07
+CI       35058157911 — SUCCESS
+```
+
+This baseline includes the completed Phase 5.4 persistence-safety foundation plus later Production and Products UI/UX improvements.
+
+## Overall Phase Status
 
 ```text
 Phase 0 — Repository & Architecture Foundation                  COMPLETE
@@ -28,207 +58,258 @@ Phase 6 — Tauri Desktop Integration                             PLANNED
 Phase 7 — Reporting & Operational Polish                        PLANNED
 ```
 
-## Phase 1–4 completion summary
+---
+
+# Completed Business Foundation — Phases 0–4
 
 The completed business foundation includes:
 
-- canonical unit conversion and material-specific calibration;
-- Material purchase costing, inventory and supplier/source metadata;
-- Product categories, MixPresets, real-production YieldSamples and fixed recipes;
-- safety waste, material-cost preview and inventory capacity;
-- Material/Product-backed components, vessels and nested Product graphs;
-- ProductStock, recursive component cost and component-aware capacity;
-- Product financial profiles, fully loaded cost and pricing policies;
-- planned-batch cost, revenue, profit, margin and capacity warnings;
-- React Materials, Products, Yield, Production and Pricing workflows.
+## Materials / measurement
 
-## Phase 5 — Excel Persistence
+- canonical unit conversion;
+- material-specific calibration;
+- package/purchase costing;
+- inventory quantity and valuation semantics;
+- supplier/source metadata;
+- missing-vs-zero evidence rules.
+
+## Products / recipes / yield
+
+- product categories;
+- mix presets and ratio lines;
+- fixed recipes;
+- real-production immutable yield samples;
+- learned per-piece material requirements;
+- safety waste;
+- material-cost preview;
+- inventory-based production capacity.
+
+## Components / vessels / nested products
+
+- Material-backed components;
+- Product-backed components;
+- vessel/component composition;
+- ProductStock;
+- cycle-safe nested Product graphs;
+- recursive component cost;
+- component-aware capacity and limiter tracing.
+
+## Costing / pricing / production planning
+
+- waste-adjusted direct material cost;
+- fully loaded product cost;
+- labor and overhead profiles;
+- selling-price policies;
+- profit, markup, and margin metrics;
+- physical planned-batch cost;
+- expected revenue/profit;
+- capacity feasibility and bottleneck warnings.
+
+## React business workspaces
+
+- Materials;
+- Calibration;
+- Products / Mix Presets / Components / Finished Stock;
+- Yield;
+- Production;
+- Pricing.
+
+Recent post-Phase-5.4 UI work also improved the Production planner and Products workspace without changing persistence or domain contracts.
+
+---
+
+# Phase 5 — Excel Persistence
 
 Status: **IN PROGRESS**
 
-Master plan: `docs/PHASE_5_EXCEL_PERSISTENCE_PLAN.md`  
-Live tracker: `docs/PHASE_5_PROGRESS.md`
+Master plan:
+
+`docs/PHASE_5_EXCEL_PERSISTENCE_PLAN.md`
+
+Live tracker:
+
+`docs/PHASE_5_PROGRESS.md`
+
+## Phase 5 task map
 
 ```text
-5.1 Persisted Dataset & Workbook Contract Foundation    COMPLETE
-    5.1A Source Inventory & Dataset Completeness         COMPLETE
-    5.1B Workbook Schema / Sheet / Column Contracts      COMPLETE
-    5.1C Dataset Validation & Reference Integrity        COMPLETE
+5.1 — Persisted Dataset & Workbook Contract Foundation   COMPLETE
+    5.1A — Source Inventory & Dataset Completeness        COMPLETE
+    5.1B — Workbook Schema / Sheet / Column Contracts     COMPLETE
+    5.1C — Dataset Validation & Reference Integrity       COMPLETE
 
-5.2 XLSX Workbook Codec                                  COMPLETE
-    5.2A XLSX Library Evaluation & Codec Boundary        COMPLETE
-    5.2B Deterministic Dataset-to-XLSX Export            COMPLETE
-    5.2C Strict XLSX-to-Dataset Import & Diagnostics     COMPLETE
+5.2 — XLSX Workbook Codec                                 COMPLETE
+    5.2A — XLSX Library Evaluation & Codec Boundary       COMPLETE
+    5.2B — Deterministic Dataset-to-XLSX Export           COMPLETE
+    5.2C — Strict XLSX-to-Dataset Import & Diagnostics    COMPLETE
 
-5.3 Snapshot, Hydration & Persistence Coordination       IN PROGRESS
-    5.3A Complete Source Snapshot Service                COMPLETE
-    5.3B Validated Atomic Dataset Hydration              IN PROGRESS
-        5.3B1 Hydration Replacement Port & Bulk Replace  COMPLETE
-        5.3B2 Validated Atomic Hydration + Rollback      NEXT / NOT STARTED
-        5.3B3 Session/Fault Injection/Completion Gate    NOT STARTED
-    5.3C Persistence Coordinator / Load-Save Lifecycle   NOT STARTED
+5.3 — Snapshot, Hydration & Persistence Coordination      COMPLETE
+    5.3A — Complete Source Snapshot Service               COMPLETE
+    5.3B — Validated Atomic Dataset Hydration             COMPLETE
+    5.3C — Persistence Coordinator / Load-Save Lifecycle  COMPLETE
 
-5.4 Version Compatibility, Backup & Recovery Safety      NOT STARTED
-5.5 Excel Persistence UI                                 NOT STARTED
-5.6 Integration & Completion Gate                        NOT STARTED
+5.4 — Version Compatibility, Backup & Recovery Safety     COMPLETE
+    5.4A — Schema Migration & Compatibility Framework     COMPLETE
+    5.4B — Backup & Atomic-Write Transport Contract       COMPLETE
+    5.4C — Corruption, Limits & Recovery Diagnostics      COMPLETE
+
+5.5 — Excel Persistence UI                                IN PROGRESS
+    5.5A — Import / Open Workbook Workflow                IN PROGRESS
+        5.5A1 — Browser File Selection & Import Command Boundary  NEXT / NOT STARTED
+        5.5A2 — React Open/Replace Workflow & Workspace Refresh   NOT STARTED
+        5.5A3 — Browser Import Regression & 5.5A Completion Gate  NOT STARTED
+    5.5B — Export / Save & Backup Workflow                NOT STARTED
+    5.5C — Persistence Status / Validation / Recovery UX  NOT STARTED
+
+5.6 — Integration & Completion Gate                       NOT STARTED
+    5.6A — Integrated Excel Round-Trip Workflow           NOT STARTED
+    5.6B — Regression / Build / Phase 5 Completion        NOT STARTED
 ```
 
-### Phase 5.1 — Persisted contract foundation
-
-**COMPLETE**
+## Phase 5.1 — Persisted contract foundation — COMPLETE
 
 Established:
 
-- versioned `BusinessDataset` covering all nine authoritative source collections;
+- versioned `BusinessDataset` covering all nine authoritative source repositories;
+- Material calibration evidence included as authoritative persistence data;
 - 13-sheet normalized workbook v1 contract;
 - exact source representation and deterministic ordering rules;
 - formula-cell rejection and literal-text semantics;
 - complete pre-hydration duplicate/reference/graph validation;
 - missing-vs-zero/null semantics and no silent repair.
 
-Final closeout:
-
-```text
-develop  7efef34fac309f9d9745631a54bc8a8ba404415f
-CI       34998382050 — SUCCESS
-84 test files / 1048 tests
-```
-
-### Phase 5.2 — Bidirectional XLSX codec/mapping
-
-**COMPLETE**
+## Phase 5.2 — Bidirectional XLSX codec — COMPLETE
 
 Established:
 
-- SheetJS CE 0.20.3 behind library-neutral `WorkbookCodec`;
+- SheetJS behind a library-neutral `WorkbookCodec`;
 - in-memory `Uint8Array` XLSX encode/decode;
 - deterministic `BusinessDataset -> workbook -> XLSX` export;
 - strict `XLSX -> workbook -> BusinessDataset` import;
-- all 13 canonical sheets and normalized child reconstruction;
-- structured diagnostics and current-version fail-closed behavior;
-- real-XLSX source-semantic round trip;
-- no repository mutation in the import layer.
+- normalized child-sheet reconstruction;
+- structured diagnostics;
+- real XLSX source-semantic round trip;
+- no repository mutation in the codec/import layer.
 
-Latest Phase 5.2 implementation gate:
+## Phase 5.3 — Snapshot, hydration and persistence coordination — COMPLETE
 
-```text
-5.2C PR #146             MERGED
-5.2C merge               3cd2bb280ef463b2267cafbbd28b9b9aba1fb656
-5.2C post-merge CI       35012385953 — SUCCESS
-87 test files / 1091 tests
-```
+Established:
 
-### Phase 5.3A — Complete Source Snapshot Service
+- complete snapshot of all nine authoritative repositories;
+- persistence-only whole-collection replacement;
+- validate-before-write hydration;
+- complete previous-state snapshot before apply;
+- rollback after apply failure;
+- distinct rollback-failure outcome;
+- stable repository/service object identity;
+- one `PersistenceCoordinator` for export/save and import/load/hydrate workflows.
 
-**COMPLETE**
-
-Provides one application-level, read-only snapshot of all nine authoritative repositories with centralized dataset schema version, deterministic top-level collection ordering, deep defensive ownership, missing/zero/null fidelity, and all-or-nothing failure behavior.
-
-```text
-Planning PR #148         MERGED
-Implementation PR #149   MERGED
-Implementation merge     2d475f0eded6acafeb03830cba768b3d84cb078d
-Post-merge CI            35019082343 — SUCCESS
-```
-
-### Phase 5.3B — Validated Atomic Dataset Hydration
-
-Parent plan:
-
-`docs/PHASE_5_3B_VALIDATED_ATOMIC_DATASET_HYDRATION_PLAN.md`
-
-5.3B is formally split into:
-
-```text
-5.3B1 — Hydration Replacement Port & Repository Bulk Replace
-5.3B2 — Validated Atomic Hydration + Rollback
-5.3B3 — Session/Fault Injection/Completion Gate
-```
-
-Locked architecture:
-
-- candidate dataset is complete replacement state, not a patch;
-- validate the complete dataset before writes;
-- snapshot current live source state before apply;
-- replace all nine repositories through persistence-only bulk replacement;
-- preserve repository object identity;
-- do not replay normal business CRUD services during hydration;
-- automatically rollback to the complete pre-hydration snapshot if apply fails;
-- distinguish safe restored apply failure from rollback failure;
-- never report rollback failure as successful hydration.
-
-#### 5.3B1 — COMPLETE
+## Phase 5.4 — Version, backup and recovery safety — COMPLETE
 
 Completion record:
 
-`docs/PHASE_5_3B1_HYDRATION_REPLACEMENT_PORT_BULK_REPLACE.md`
+`docs/PHASE_5_4_VERSION_COMPATIBILITY_BACKUP_RECOVERY_SAFETY.md`
 
-Delivered `CollectionReplacementPort<T>` and staged whole-collection `replaceAll(...)` across all nine in-memory source repositories.
+Established:
 
-```text
-Feature head               74e70a22b2a8b24cd1cb49f44f37502a1555b53b
-Feature CI                 35021376680 — SUCCESS
-Implementation PR #152     MERGED
-PR CI                      35021553326 — SUCCESS
-Implementation merge       6abd24123c3593582fdc4767bd486b319fc2ce2c
-Post-merge CI              35021692593 — SUCCESS
-89 test files / 1105 tests
-9 focused B1 tests
-```
+- workbook/dataset version preflight;
+- explicit migration registry and migration execution boundary;
+- future-version fail-closed behavior;
+- byte-level backup/safe-save transport capability contract;
+- logical in-memory staged/atomic replacement reference transport;
+- resource limits before/during/after workbook decode;
+- corruption and malformed workbook diagnostics;
+- stable recovery categories/action codes;
+- proof that expected import rejection leaves live source state unchanged.
 
-B1 guarantees staged cloned next-state Maps, stale-row removal, empty clearing, nested source isolation, repository identity preservation, and pre-swap failure safety.
-
-#### 5.3B2 — NEXT / NOT STARTED
-
-B2 must implement the application-level atomic hydration transaction:
+Phase 5.4 final closeout:
 
 ```text
-candidate
-  -> validateBusinessDatasetIntegrity(...)
-  -> clone hydration-owned candidate
-  -> CompleteSourceSnapshotService snapshot
-  -> replace all nine source collections
-  -> success
-
-apply failure
-  -> restore all nine collections from snapshot
-  -> controlled restored failure
-
-rollback failure
-  -> distinct severe rollback-failure result
+develop  b8584d8681e95676c209c2e5a9dde0ee6278b71a
+CI       35055715946 — SUCCESS
 ```
 
-Do not begin B2 until the B1 docs-only closeout is merged and exact final `develop` CI is green, followed by a separate user instruction.
+## Phase 5.5 — Excel Persistence UI — IN PROGRESS
 
-### Current persistence boundary
+Phase 5.5 turns the completed persistence backend into user-facing browser-compatible workflows while keeping native paths/dialogs/filesystem behavior in Phase 6.
+
+### Phase 5.5A — Import / Open Workbook Workflow — IN PROGRESS
+
+Dedicated plan:
+
+`docs/PHASE_5_5A_IMPORT_OPEN_WORKBOOK_WORKFLOW_PLAN.md`
+
+5.5A is split into:
 
 ```text
-BusinessDataset contract             COMPLETE
-Workbook schema contract             COMPLETE
-Dataset semantic validation          COMPLETE
-XLSX codec / bidirectional mapping   COMPLETE
-Complete source snapshot             COMPLETE — 5.3A
-Repository bulk replacement          COMPLETE — 5.3B1
-Atomic hydration + rollback          NEXT / NOT STARTED — 5.3B2
-Hydration session completion gate    NOT STARTED — 5.3B3
-Persistence coordinator/load-save    NOT STARTED — 5.3C
-ExcelStorage load/save               placeholder
-Backup/atomic transport              Phase 5.4B
-Native filesystem                    Phase 6
+5.5A1 — Browser File Selection & Import Command Boundary
+5.5A2 — React Open/Replace Workflow & Workspace Refresh
+5.5A3 — Browser Import Regression & 5.5A Completion Gate
 ```
 
-## Phase 6 — Tauri Desktop Integration
+Key architecture decisions:
+
+- file selection alone is non-destructive;
+- browser file bytes are defensively owned before use;
+- `.xlsx` filename filtering is UX guidance, not content trust;
+- destructive replacement requires deliberate confirmation/apply;
+- workbook validation/hydration remains inside `PersistenceCoordinator`;
+- successful hydration must explicitly refresh/remount the visible repository-backed workspace so stale local React state cannot remain visible;
+- singleton repositories/services remain intact;
+- rich diagnostic/recovery UX remains 5.5C;
+- export/save remains 5.5B;
+- native dialogs/filesystem remain Phase 6.
+
+### Phase 5.5B — Export / Save & Backup Workflow — NOT STARTED
+
+Planned browser-compatible workbook export/download using the existing persistence coordinator, with deterministic filename guidance and explicit backup behavior where meaningful.
+
+### Phase 5.5C — Persistence Status / Validation / Recovery UX — NOT STARTED
+
+Planned richer persistence status, validation details, unsupported-version guidance, recovery/backup guidance, and any adopted dirty/unsaved-state experience.
+
+## Phase 5.6 — Integration & Completion Gate — NOT STARTED
+
+5.6 will prove full application-service equivalence across Excel export/import/hydration and close Phase 5 only after all Phase 1–5 tests, browser persistence smoke coverage, typecheck, build, documentation, and exact merged `develop` CI are green.
+
+---
+
+# Phase 6 — Tauri Desktop Integration
 
 Status: **PLANNED**
 
-Planned native dialogs, application-data directory, backup paths, safe file replacement, and desktop packaging.
+Phase 6 will provide the native implementation around the Phase 5 contracts:
 
-## Phase 7 — Reporting & Operational Polish
+- Open/Save dialogs;
+- native file paths;
+- application-data directory;
+- durable backup paths;
+- safe native replacement;
+- filesystem locking/durability decisions;
+- desktop packaging.
+
+The Phase 5 workbook, validation, migration, hydration, and business rules must not be rewritten for Tauri.
+
+---
+
+# Phase 7 — Reporting & Operational Polish
 
 Status: **PLANNED**
 
-Planned dashboard, inventory valuation, profitability, material requirements, low-stock indicators, production history, and report export.
+Planned areas include:
 
-## Current active task
+- dashboard/operational summaries;
+- inventory valuation and low-stock indicators;
+- profitability reporting;
+- material requirements;
+- production history/reporting;
+- report export;
+- final usability/accessibility/performance polish.
 
-**Phase 5.3B2 — Validated Atomic Hydration + Rollback — NEXT / NOT STARTED**
+---
+
+# Current Active Task
+
+**5.5A1 — Browser File Selection & Import Command Boundary — NEXT / NOT STARTED**
+
+Do not begin 5.5A1 until the 5.5A planning PR is merged, the exact resulting `develop` CI is green, and the user separately says to proceed.
