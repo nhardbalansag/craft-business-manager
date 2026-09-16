@@ -1,6 +1,8 @@
 import type { WorkbookBinaryInput } from './workbookCodec';
 import {
   cloneWorkbookBytes,
+  createWorkbookTransportCapabilities,
+  WorkbookTransportSaveError,
   type WorkbookSaveOptions,
   type WorkbookSaveReceipt,
   type WorkbookTransport,
@@ -21,10 +23,16 @@ export class InMemoryWorkbookTransportError extends Error {
 /**
  * Minimal byte transport used by persistence integration tests and non-native composition.
  *
- * It deliberately reports backup requests as unsupported. Backup creation and replacement
- * semantics belong to Phase 5.4B.
+ * This simple transport intentionally remains a direct/non-atomic replacement transport in B1.
+ * Backup creation, staging, and logical atomic commit are introduced by the B2 reference transport.
  */
 export class InMemoryWorkbookTransport implements WorkbookTransport {
+  readonly capabilities = createWorkbookTransportCapabilities({
+    backup: 'unsupported',
+    stagedReplacement: false,
+    replacement: 'direct-non-atomic',
+  });
+
   private bytes?: Uint8Array;
 
   constructor(initialBytes?: WorkbookBinaryInput) {
@@ -46,6 +54,15 @@ export class InMemoryWorkbookTransport implements WorkbookTransport {
     bytes: Uint8Array,
     options: WorkbookSaveOptions = {},
   ): Promise<WorkbookSaveReceipt> {
+    if (options.backup === 'required') {
+      throw new WorkbookTransportSaveError(
+        'capability',
+        'REQUIRED_BACKUP_UNSUPPORTED',
+        'not-committed',
+        'This workbook transport does not support the required backup policy.',
+      );
+    }
+
     this.bytes = new Uint8Array(bytes);
 
     return {
@@ -54,6 +71,7 @@ export class InMemoryWorkbookTransport implements WorkbookTransport {
         options.backup === 'if-supported'
           ? { status: 'unsupported' }
           : { status: 'not-requested' },
+      replacement: { guarantee: this.capabilities.replacement },
     };
   }
 }

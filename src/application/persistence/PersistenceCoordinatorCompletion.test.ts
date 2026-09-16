@@ -6,7 +6,10 @@ import { exportBusinessDatasetToXlsx } from '../../storage/businessDatasetWorkbo
 import { InMemoryWorkbookTransport } from '../../storage/InMemoryWorkbookTransport';
 import { SheetJsWorkbookCodec } from '../../storage/sheetJsWorkbookCodec';
 import { CANONICAL_WORKBOOK_SHEET_NAMES } from '../../storage/workbookSchema';
-import type { WorkbookTransport } from '../../storage/WorkbookTransport';
+import {
+  createWorkbookTransportCapabilities,
+  type WorkbookTransport,
+} from '../../storage/WorkbookTransport';
 import { InMemoryCalibrationRepository } from '../calibrations/InMemoryCalibrationRepository';
 import { InMemoryMaterialRepository } from '../materials/InMemoryMaterialRepository';
 import { InMemoryMixPresetRepository } from '../mixPresets/InMemoryMixPresetRepository';
@@ -126,6 +129,12 @@ async function expectHydrated(result: Awaited<ReturnType<ValidatedAtomicDatasetH
   expect(result).toEqual({ status: 'hydrated' });
 }
 
+const directTransportCapabilities = createWorkbookTransportCapabilities({
+  backup: 'unsupported',
+  stagedReplacement: false,
+  replacement: 'direct-non-atomic',
+});
+
 describe('Phase 5.3C3 complete persistence lifecycle', () => {
   it('round-trips source state A through save, live mutation to B, load, and exact restored snapshot A', async () => {
     const harness = createHarness();
@@ -178,10 +187,14 @@ describe('Phase 5.3C3 complete persistence lifecycle', () => {
     const before = await harness.snapshot.snapshot();
     const transportFailure = new Error('synthetic load failure');
     const transport: WorkbookTransport = {
+      capabilities: directTransportCapabilities,
       loadWorkbook: async () => {
         throw transportFailure;
       },
-      saveWorkbook: async () => ({ backup: { status: 'not-requested' } }),
+      saveWorkbook: async () => ({
+        backup: { status: 'not-requested' },
+        replacement: { guarantee: 'direct-non-atomic' },
+      }),
     };
 
     await expect(harness.coordinator.loadCurrentWorkbook(transport)).rejects.toMatchObject({
