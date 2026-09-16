@@ -1,31 +1,158 @@
+.yield-workspace {
+  --yield-soft: #f7f2e9;
+  --yield-soft-strong: #efe6d7;
+  --yield-border: #e2d8ca;
+  --yield-ink: #29251f;
+  --yield-muted: #81776c;
+}
+
+.yield-page-heading {
+  align-items: flex-start;
+}
+
+.yield-guide {
+  margin-bottom: 20px;
+  padding: 16px 18px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  list-style: none;
+  counter-reset: none;
+}
+
+.yield-guide li {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  padding: 12px;
+  border-radius: 14px;
+  background: #faf7f1;
+}
+
+.yield-guide strong,
+.yield-guide small {
+  display: block;
+}
+
+.yield-guide strong {
+  color: var(--yield-ink);
+  font-size: .88rem;
+}
+
+.yield-guide small {
+  margin-top: 3px;
+  color: var(--yield-muted);
+  line-height: 1.45;
+}
+
+.yield-step-number,
+.yield-section-number {
+  width: 27px;
+  height: 27px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #2f493b;
+  color: white;
+  font-size: .75rem;
+  font-weight: 800;
+  flex: 0 0 auto;
+}
+
+.yield-state-panel {
+  min-height: 190px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 16px;
+  align-items: center;
+  padding: 30px;
+}
+
+.yield-state-panel h2 {
+  margin: 0 0 5px;
+  color: var(--yield-ink);
+}
+
+.yield-state-panel p {
+  margin: 0;
+  color: var(--yield-muted);
+  line-height: 1.55;
+}
+
+.yield-state-panel .button {
+  margin-top: 14px;
+}
+
+.yield-state-icon {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: var(--yield-soft);
+  color: #6c6257;
+  font-size: 1.35rem;
+  font-weight: 800;
+}
+
+.yield-state-error .yield-state-icon {
+  background: #f5e7e0;
+  color: #8d4d3a;
+}
+
 .yield-product-bar {
   margin-bottom: 20px;
   padding: 18px 20px;
   display: grid;
-  grid-template-columns: minmax(260px, 420px) minmax(0, 1fr);
-  gap: 20px;
+  grid-template-columns: minmax(240px, 340px) minmax(0, 1fr);
+  gap: 22px;
   align-items: end;
 }
 
 .yield-product-context {
   min-width: 0;
   display: grid;
-  gap: 4px;
-  padding: 9px 0 8px;
+  grid-template-columns: repeat(4, minmax(110px, 1fr));
+  gap: 8px;
+}
+
+.yield-product-context > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #faf7f1;
 }
 
 .yield-product-context strong {
-  color: #29251f;
-  font-size: 1rem;
+  overflow: hidden;
+  color: var(--yield-ink);
+  font-size: .92rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.yield-product-context span {
-  color: #80776c;
-  font-size: .82rem;
+.yield-product-context small {
+  overflow: hidden;
+  color: var(--yield-muted);
+  font-size: .73rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.yield-context-label {
+  color: #8b8175;
+  font-size: .66rem;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
 }
 
 .yield-layout {
-  grid-template-columns: minmax(350px, 470px) minmax(0, 1fr);
+  grid-template-columns: minmax(380px, 500px) minmax(0, 1fr);
 }
 
 .yield-form {
@@ -33,10 +160,102 @@
   overflow-y: auto;
 }
 
+.yield-form-heading {
+  align-items: flex-start;
+}
+
+.yield-draft-status {
+  background: #eee8df;
+  color: #71685d;
+}
+
+.yield-draft-preview {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0 0 8px;
+}
+
+.yield-draft-preview > div {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border-radius: 13px;
+  background: var(--yield-soft);
+}
+
+.yield-draft-preview span {
+  color: var(--yield-muted);
+  font-size: .67rem;
+  font-weight: 780;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.yield-draft-preview strong {
+  color: var(--yield-ink);
+  font-size: 1rem;
+}
+
+.yield-draft-help {
+  margin: 0 0 18px;
+  color: var(--yield-muted);
+  font-size: .79rem;
+  line-height: 1.5;
+}
+
+.yield-form-section {
+  display: grid;
+  gap: 14px;
+  padding: 17px 0;
+  border-top: 1px solid #e8e0d5;
+}
+
+.yield-section-heading {
+  min-width: 0;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.yield-section-heading > div {
+  min-width: 0;
+  flex: 1;
+}
+
+.yield-section-heading h3,
+.yield-section-heading p {
+  margin: 0;
+}
+
+.yield-section-heading h3 {
+  color: var(--yield-ink);
+  font-size: .94rem;
+}
+
+.yield-section-heading p {
+  margin-top: 3px;
+  color: var(--yield-muted);
+  font-size: .77rem;
+  line-height: 1.45;
+}
+
+.yield-line-count {
+  flex: 0 0 auto;
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: #f3eee6;
+  color: #766d62;
+  font-size: .69rem;
+  font-weight: 760;
+}
+
 .yield-history-stack {
   min-width: 0;
   display: grid;
   gap: 20px;
+  align-content: start;
 }
 
 .yield-inputs {
@@ -46,9 +265,59 @@
 
 .yield-input-row {
   display: grid;
-  grid-template-columns: minmax(135px, 1.6fr) minmax(86px, .7fr) minmax(86px, .7fr) auto;
+  grid-template-columns: 28px minmax(135px, 1.6fr) minmax(84px, .7fr) minmax(80px, .65fr) auto;
   gap: 8px;
   align-items: center;
+  padding: 8px;
+  border: 1px solid #e7ded2;
+  border-radius: 13px;
+  background: #fcfaf6;
+}
+
+.yield-line-index {
+  width: 25px;
+  height: 25px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: #efe9df;
+  color: #786e62;
+  font-size: .72rem;
+  font-weight: 800;
+}
+
+.yield-outcome-grid {
+  margin-top: 0;
+}
+
+.yield-notes-details {
+  margin-top: 4px;
+  padding: 12px 14px;
+  border: 1px solid #e4dbcf;
+  border-radius: 13px;
+  background: #fbf8f3;
+}
+
+.yield-notes-details summary {
+  cursor: pointer;
+  color: #5f574f;
+  font-size: .8rem;
+  font-weight: 760;
+}
+
+.yield-notes-details[open] summary {
+  margin-bottom: 12px;
+}
+
+.yield-form-actions {
+  display: grid;
+  grid-template-columns: minmax(0, .7fr) minmax(0, 1.3fr);
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.yield-form-actions .button {
+  width: 100%;
 }
 
 .effective-yield-card {
@@ -56,17 +325,32 @@
 }
 
 .yield-notice {
-  margin: -4px 0 18px;
+  margin: -4px 0 14px;
   color: #746c61;
   line-height: 1.55;
   font-size: .88rem;
 }
 
+.yield-effective-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-bottom: 14px;
+}
+
+.yield-effective-meta span {
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: #f3eee6;
+  color: #766d62;
+  font-size: .71rem;
+}
+
 .yield-metrics {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
-  margin-bottom: 16px;
+  margin-bottom: 18px;
 }
 
 .yield-metrics > div {
@@ -79,7 +363,7 @@
 
 .yield-metrics span {
   color: #82786c;
-  font-size: .72rem;
+  font-size: .68rem;
   font-weight: 760;
   text-transform: uppercase;
   letter-spacing: .06em;
@@ -87,7 +371,25 @@
 
 .yield-metrics strong {
   color: #28241f;
-  font-size: 1.12rem;
+  font-size: 1.08rem;
+}
+
+.learned-requirements-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+  margin-bottom: 8px;
+}
+
+.learned-requirements-heading strong {
+  color: #4f4942;
+  font-size: .82rem;
+}
+
+.learned-requirements-heading span {
+  color: #92887c;
+  font-size: .72rem;
 }
 
 .learned-requirements {
@@ -124,8 +426,50 @@
   overflow: hidden;
 }
 
+.yield-history-heading-row {
+  margin-bottom: 0;
+}
+
+.yield-history-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(140px, 180px);
+  gap: 10px;
+  padding: 14px 20px;
+  border-top: 1px solid #e2dbd0;
+  background: #fbf8f3;
+}
+
+.yield-history-toolbar .field {
+  gap: 5px;
+}
+
+.yield-history-toolbar .field > span {
+  font-size: .69rem;
+}
+
 .yield-history-list {
   border-top: 1px solid #e2dbd0;
+}
+
+.yield-history-error {
+  display: grid;
+  gap: 6px;
+  padding: 20px;
+  border-top: 1px solid #e2dbd0;
+}
+
+.yield-history-error strong {
+  color: #7a4638;
+}
+
+.yield-history-error span {
+  color: var(--yield-muted);
+  font-size: .82rem;
+}
+
+.yield-history-error .button {
+  width: max-content;
+  margin-top: 4px;
 }
 
 .yield-history-item {
@@ -211,18 +555,73 @@
   margin-top: 10px;
 }
 
+.yield-history-footer {
+  gap: 12px;
+}
+
+@media (max-width: 1180px) {
+  .yield-product-bar {
+    grid-template-columns: minmax(220px, 300px) minmax(0, 1fr);
+  }
+
+  .yield-product-context {
+    grid-template-columns: repeat(2, minmax(120px, 1fr));
+  }
+
+  .yield-draft-preview,
+  .yield-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 1040px) {
   .yield-layout { grid-template-columns: 1fr; }
   .yield-form { max-height: none; }
 }
 
 @media (max-width: 760px) {
+  .yield-guide { grid-template-columns: 1fr; }
   .yield-product-bar { grid-template-columns: 1fr; align-items: stretch; }
-  .yield-input-row { grid-template-columns: 1fr 1fr; }
-  .yield-input-row select:first-child { grid-column: 1 / -1; }
-  .yield-input-row .text-button { justify-self: start; }
-  .yield-metrics { grid-template-columns: 1fr; }
+  .yield-product-context { grid-template-columns: 1fr 1fr; }
+  .yield-input-row { grid-template-columns: 28px 1fr 1fr; }
+  .yield-input-row select:first-of-type { grid-column: 2 / -1; }
+  .yield-input-row .text-button { grid-column: 2 / -1; justify-self: start; }
+  .yield-history-toolbar { grid-template-columns: 1fr; }
   .learned-requirements > div { grid-template-columns: 1fr; }
   .learned-requirements small { text-align: left; }
+  .learned-requirements-heading { display: grid; }
   .yield-history-heading { align-items: flex-start; }
+}
+
+@media (max-width: 520px) {
+  .yield-product-context,
+  .yield-draft-preview,
+  .yield-metrics,
+  .yield-form-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .yield-section-heading {
+    flex-wrap: wrap;
+  }
+
+  .yield-line-count {
+    margin-left: 37px;
+  }
+
+  .yield-input-row {
+    grid-template-columns: 28px minmax(0, 1fr);
+  }
+
+  .yield-input-row select:first-of-type,
+  .yield-input-row input,
+  .yield-input-row select:not(:first-of-type),
+  .yield-input-row .text-button {
+    grid-column: 2;
+  }
+
+  .yield-state-panel {
+    grid-template-columns: 1fr;
+    padding: 22px;
+  }
 }
