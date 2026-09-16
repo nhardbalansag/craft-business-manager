@@ -1,3 +1,4 @@
+import { SheetJsWorkbookCodec } from '../storage/sheetJsWorkbookCodec';
 import { CalibrationService } from './calibrations/CalibrationService';
 import { InMemoryCalibrationRepository } from './calibrations/InMemoryCalibrationRepository';
 import { InMemoryMaterialRepository } from './materials/InMemoryMaterialRepository';
@@ -5,6 +6,7 @@ import { MaterialService } from './materials/MaterialService';
 import { InMemoryMixPresetRepository } from './mixPresets/InMemoryMixPresetRepository';
 import { MixPresetService } from './mixPresets/MixPresetService';
 import { CompleteSourceSnapshotService } from './persistence/CompleteSourceSnapshotService';
+import { PersistenceCoordinator } from './persistence/PersistenceCoordinator';
 import { ValidatedAtomicDatasetHydrationService } from './persistence/ValidatedAtomicDatasetHydrationService';
 import { FullyLoadedProductUnitCostService } from './productCosts/FullyLoadedProductUnitCostService';
 import { RecursiveFullyLoadedProductComponentCostService } from './productCosts/RecursiveFullyLoadedProductComponentCostService';
@@ -78,6 +80,13 @@ export const validatedAtomicDatasetHydrationService =
     },
     completeSourceSnapshotService,
   );
+
+const persistenceWorkbookCodec = new SheetJsWorkbookCodec();
+export const persistenceCoordinator = new PersistenceCoordinator(
+  completeSourceSnapshotService,
+  validatedAtomicDatasetHydrationService,
+  persistenceWorkbookCodec,
+);
 
 export const materialCalibrationEvidenceProvider = async (materialId: string) => {
   const records = await calibrationRepository.list();
