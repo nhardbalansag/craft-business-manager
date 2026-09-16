@@ -31,9 +31,9 @@ Master plan:
         5.3C3 — XLSX Load / Import / Hydrate & Completion Gate       COMPLETE
 
 5.4 — Version Compatibility, Backup & Recovery Safety     IN PROGRESS
-    5.4A — Schema Migration & Compatibility Framework     PLANNING ESTABLISHED
-        5.4A1 — Version Preflight, Compatibility Matrix & Migration Registry Contract  NEXT / NOT STARTED
-        5.4A2 — Version-Aware Migration Execution & Current-Contract Handoff           NOT STARTED
+    5.4A — Schema Migration & Compatibility Framework     IN PROGRESS
+        5.4A1 — Version Preflight, Compatibility Matrix & Migration Registry Contract  COMPLETE
+        5.4A2 — Version-Aware Migration Execution & Current-Contract Handoff           NEXT / NOT STARTED
         5.4A3 — Compatibility Regression & Completion Gate                             NOT STARTED
     5.4B — Backup & Atomic-Write Transport Contract       NOT STARTED
     5.4C — Corruption, Limits & Recovery Diagnostics      NOT STARTED
@@ -57,46 +57,31 @@ Master plan:
 - Workbook v1 has 13 normalized canonical sheets.
 - Missing evidence stays distinct from explicit zero/null/false.
 - Formula cells are not authoritative source values; formula-looking text stays literal.
-- SheetJS CE 0.20.3 is hidden behind the library-neutral `WorkbookCodec`.
-- Import/export mapping is bidirectional, current-version-only, and fail-closed.
+- SheetJS CE 0.20.3 remains hidden behind the library-neutral `WorkbookCodec`.
 - Complete reconstructed candidates validate before any live repository mutation.
-- 5.3A snapshots all nine source repositories through one application-level read boundary.
-- 5.3B treats a candidate `BusinessDataset` as complete replacement state, never a patch/merge.
-- 5.3B validates with `validateBusinessDatasetIntegrity(...)` before writes and uses the 5.3A snapshot as rollback evidence.
-- 5.3B uses persistence-only whole-collection replacement instead of replaying ordinary business CRUD workflows.
-- 5.3B1 established `CollectionReplacementPort<T>` across all nine in-memory repositories with staged cloned `Map` replacement, stale-row removal, empty clearing, preserved repository identity, and pre-swap failure safety.
-- 5.3B2 coordinates all nine replacements through `ValidatedAtomicDatasetHydrationService`, restores the complete pre-hydration snapshot when apply fails, and distinguishes snapshot, restored-apply, and rollback-failure diagnostics.
-- 5.3B3 wires one shared hydration boundary into the application session and proves the parent atomicity contract with controlled failures at all nine replacement boundaries.
-- Optional source-field absence is source evidence: clone/hydration boundaries may not synthesize an own property merely with `undefined` when the source field was absent.
+- 5.3A owns complete deterministic snapshots over all nine source repositories.
+- 5.3B owns validation-before-write, whole-dataset replacement, rollback, and preserved repository/service identity.
+- 5.3C owns one application-level persistence lifecycle over workbook bytes; it does not create a second dataset-level persistence path.
+- Optional source-field absence is source evidence and may not be synthesized as an own property with `undefined`.
 - Rollback failure remains a distinct severe diagnostic and may never be reported as successful hydration.
-- 5.3C is formally split into C1 lifecycle/transport contract, C2 export/save orchestration, and C3 load/import/hydrate completion.
-- 5.3C transport is workbook-byte oriented; it must not expose a second dataset-level `load(): BusinessDataset` / `save(dataset)` persistence path.
-- 5.3C1 removed the obsolete `StoragePort` / placeholder `ExcelStorage` scaffold and established `WorkbookTransport` over defensive workbook-byte ownership.
-- 5.3C1 defines only neutral backup request/receipt semantics; detailed backup creation, staged writes, atomic replacement, cleanup, and recovery remain 5.4B.
-- 5.3C1 defines stable lifecycle stages/codes and preserves structured import rejection plus distinct severe rollback-failure context.
-- 5.3C2 establishes one application-level `PersistenceCoordinator` for the non-destructive snapshot -> XLSX export -> optional transport-save lifecycle.
-- 5.3C2 obtains `exportedAt` through an injectable clock, keeps `applicationVersion` optional, preserves lower-level export/codec causes, and maps snapshot/export/transport-save operational stages without mutating live state.
-- 5.3C2 forwards only neutral backup intent/receipt and does not claim detailed backup or atomic-write semantics.
-- 5.3C3 routes both caller-provided and transport-loaded workbook bytes through the same strict 5.2C import boundary and the same 5.3B validated atomic hydration service.
-- Expected invalid workbooks remain structured import rejections and never call hydration.
-- Hydration snapshot failure, restored apply failure, and rollback failure map to distinct coordinator codes while retaining the original `DatasetHydrationError` context.
-- One shared `persistenceCoordinator` is wired into the application session over the existing shared snapshot/hydration boundaries and concrete SheetJS codec.
-- Complete lifecycle regression proves save A -> mutate B -> load -> exact A restore, existing-service observation, zero-write rejection paths, rollback guarantees, source-fidelity semantics, defensive byte ownership, and exclusion of derived outputs.
-- 5.3C owns load/save lifecycle orchestration; 5.4B owns backup/atomic filesystem transport; Phase 6 owns native Tauri filesystem behavior.
 - 5.4A keeps workbook-format and dataset-schema versions as separate exact version axes.
 - Phase 5.4A does not bump the current public v1/v1 versions merely to manufacture a migration scenario.
 - v1/v1 is the first formal persisted contract unless repository evidence proves a real released predecessor.
 - Missing `_Meta` is rejected; metadata-free legacy auto-detection is not supported.
-- Version preflight must occur before strict current-schema validation for compatibility routing, but `validateWorkbookSchema(...)` remains the strict current-form validator.
-- Migration steps operate only on neutral workbook documents, are pure/storage-agnostic, and cannot touch repositories, hydration, React, transport, or native filesystem APIs.
+- Version preflight occurs before strict current-schema validation for compatibility routing, while `validateWorkbookSchema(...)` remains the strict current-form validator.
+- Migration steps operate only on neutral workbook documents and cannot touch repositories, hydration, React, transport, or native filesystem APIs.
 - Migration paths are explicit exact-version-pair registrations, deterministic, no-downgrade, and cycle-safe.
 - Any future workbook or dataset version axis fails closed.
-- Migrated output must reach the exact current version pair and then pass the existing current workbook validator plus `validateBusinessDatasetIntegrity(...)`.
-- `PersistenceCoordinator` remains unaware of migration mechanics and continues consuming the same structured importer result shape.
-- Synthetic migration fixtures may prove generic framework behavior but do not become supported public product versions.
+- Migrated output must reach the exact current version pair and then pass existing current workbook and dataset validation.
+- `PersistenceCoordinator` remains unaware of migration mechanics and consumes the same structured importer result shape.
+- Synthetic migration fixtures prove framework behavior only and do not become supported public product versions.
 - The production migration registry remains empty until a real older released contract exists.
+- 5.4B owns detailed backup creation, staged write, atomic replace/commit, cleanup, and recovery transport semantics.
+- Native Tauri filesystem/dialog behavior remains Phase 6.
 
-## Completed persistence foundation
+## Completion evidence index
+
+Detailed evidence remains in the dedicated phase records. This tracker keeps the live progression and latest authoritative gates concise.
 
 ### Phase 5.1 — COMPLETE
 
@@ -117,260 +102,87 @@ Master plan:
 5.2B implementation PR #143   MERGED
 5.2B final CI                 35008520820 — SUCCESS
 5.2C implementation PR #146   MERGED
-5.2C implementation merge     3cd2bb280ef463b2267cafbbd28b9b9aba1fb656
-5.2C post-merge CI            35012385953 — SUCCESS
-87 test files / 1091 tests after 5.2C
+5.2C final CI                 35012885175 — SUCCESS
 ```
 
-5.2 provides complete fail-closed bidirectional mapping:
+### Phase 5.3 — COMPLETE
+
+Key records:
+
+- `docs/PHASE_5_3A_COMPLETE_SOURCE_SNAPSHOT_SERVICE.md`
+- `docs/PHASE_5_3B_VALIDATED_ATOMIC_DATASET_HYDRATION.md`
+- `docs/PHASE_5_3C_PERSISTENCE_COORDINATOR_LOAD_SAVE_LIFECYCLE.md`
+
+Final Phase 5.3 closeout:
 
 ```text
-BusinessDataset -> canonical workbook -> XLSX bytes   COMPLETE
-XLSX bytes -> canonical workbook -> BusinessDataset   COMPLETE
+Closeout PR #164           MERGED
+Final develop              0624863f59929d645acd5f6539ab311afdfcb5bd
+Final CI                   35039111549 — SUCCESS
+96 test files / 1168 tests at 5.3C implementation gate
+130 modules transformed
 ```
 
-### Phase 5.3A — COMPLETE
-
-Plan: `docs/PHASE_5_3A_COMPLETE_SOURCE_SNAPSHOT_SERVICE_PLAN.md`  
-Completion: `docs/PHASE_5_3A_COMPLETE_SOURCE_SNAPSHOT_SERVICE.md`
+Phase 5.3 established:
 
 ```text
-Planning PR #148             MERGED
-Planning CI                  35018499386 — SUCCESS
-Implementation PR #149       MERGED
-Implementation merge         2d475f0eded6acafeb03830cba768b3d84cb078d
-Post-merge CI                35019082343 — SUCCESS
-5 focused snapshot tests
+live repositories
+<-> CompleteSourceSnapshotService
+<-> BusinessDataset
+<-> canonical workbook import/export
+<-> WorkbookCodec / XLSX bytes
+<-> WorkbookTransport
 ```
 
-Delivered complete deterministic deep-cloned snapshots over all nine repositories with current dataset schema version and all-or-nothing read behavior.
+with strict validation, atomic hydration/rollback, one shared `PersistenceCoordinator`, and source-fidelity guarantees.
 
-## Phase 5.3B — Validated Atomic Dataset Hydration — COMPLETE
+## Phase 5.4A — Schema Migration & Compatibility Framework
 
-Parent plan:
+Status: **IN PROGRESS**
 
-`docs/PHASE_5_3B_VALIDATED_ATOMIC_DATASET_HYDRATION_PLAN.md`
+Plan:
 
-Parent completion record:
+`docs/PHASE_5_4A_SCHEMA_MIGRATION_COMPATIBILITY_PLAN.md`
 
-`docs/PHASE_5_3B_VALIDATED_ATOMIC_DATASET_HYDRATION.md`
-
-Planning closeout baseline before B1:
+Planning evidence:
 
 ```text
-develop  3552385ed84deab2500b69cf9e8fbd1538bde1a0
-CI       35020396594 — SUCCESS
-```
-
-### 5.3B1 — Hydration Replacement Port & Repository Bulk Replace
-
-Status: **COMPLETE**
-
-Completion record:
-
-`docs/PHASE_5_3B1_HYDRATION_REPLACEMENT_PORT_BULK_REPLACE.md`
-
-```text
-Feature head               74e70a22b2a8b24cd1cb49f44f37502a1555b53b
-Feature CI                 35021376680 — SUCCESS
-Implementation PR #152     MERGED
-PR CI                      35021553326 — SUCCESS
-Implementation merge       6abd24123c3593582fdc4767bd486b319fc2ce2c
-Post-merge develop CI      35021692593 — SUCCESS
-89 test files / 1105 tests
-9 focused 5.3B1 replacement tests
-TypeScript typecheck passed
-Production Vite build passed
-119 modules transformed
-```
-
-Delivered generic persistence-only whole-collection replacement over all nine source repositories with staged cloned state, stale-row removal, empty clearing, defensive ownership, repository identity preservation, and pre-swap failure safety.
-
-### 5.3B2 — Validated Atomic Hydration + Rollback
-
-Status: **COMPLETE**
-
-Completion record:
-
-`docs/PHASE_5_3B2_VALIDATED_ATOMIC_HYDRATION_ROLLBACK.md`
-
-```text
-Feature head               55604886406403055a06badeb7d8f5e74e155da2
-Implementation PR #154     MERGED
-PR CI                      35033331003 — SUCCESS
-Implementation merge       73f1bf3b28c5632a53d8958a7517d19e0eedb195
-Post-merge develop CI      35033404012 — SUCCESS
-90 test files / 1110 tests
-5 focused 5.3B2 hydration tests
-TypeScript typecheck passed
-Production Vite build passed
-119 modules transformed
-```
-
-Delivered validation-before-write, hydration-owned cloning, pre-hydration rollback snapshotting, deterministic nine-repository replacement, automatic rollback, and controlled `SNAPSHOT_FAILED`, `APPLY_FAILED_RESTORED`, and `ROLLBACK_FAILED` diagnostics.
-
-### 5.3B3 — Session Integration, Fault Injection & Completion Gate
-
-Status: **COMPLETE**
-
-```text
-Authoritative baseline     7ff9d51b0965add105e1c58943a2852f61d11145
-Baseline CI                35033683723 — SUCCESS
-Initial feature head       b7e207f714172e690d787b3f46f3902be6817cd9
-Initial CI                 35034071494 — FAILURE
-Corrected feature head     929f09049d9e24857ee2389688e8a64d9e24a70c
-Implementation PR #156     MERGED
-PR CI                      35034176226 — SUCCESS
-Implementation merge       50d0ae082095e4c3f397bee5a8b8d276ace93a26
-Post-merge develop CI      35034304286 — SUCCESS
-91 test files / 1128 tests
-18 focused 5.3B3 completion tests
-TypeScript typecheck passed
-Production Vite build passed
-121 modules transformed
-```
-
-Delivered:
-
-- one shared `validatedAtomicDatasetHydrationService` in the application session;
-- exhaustive forward failure injection at all nine replacement boundaries;
-- exact previous-state restoration proof after every tested apply failure;
-- zero-write proof for invalid candidates and pre-write snapshot failure;
-- distinct rollback-failure context proof;
-- complete replacement, stale-row removal, and empty-dataset clearing proof;
-- missing versus explicit zero/null source-fidelity proof;
-- defensive ownership proof;
-- preservation of truly absent optional Material source metadata;
-- already-wired service observation after hydration without rebuilding repositories/services;
-- UI boundary verification showing editing views continue through application services rather than persistence replacement ports.
-
-The initial B3 CI failure identified a real fidelity defect in `cloneMaterial(...)`: absent `source` metadata became an own property with value `undefined`. The clone boundary was corrected; the assertion was retained and the corrected head passed the complete suite.
-
-### Phase 5.3B parent closeout
-
-```text
-Closeout PR                #157 — MERGED
-Final develop              8e6935d4abcebd3c31e8c1237fc71995130793fa
-Final CI                   35034624914 — SUCCESS
-```
-
-## Phase 5.3C — Persistence Coordinator / Load-Save Lifecycle — COMPLETE
-
-Dedicated plan:
-
-`docs/PHASE_5_3C_PERSISTENCE_COORDINATOR_LOAD_SAVE_LIFECYCLE_PLAN.md`
-
-Parent completion record:
-
-`docs/PHASE_5_3C_PERSISTENCE_COORDINATOR_LOAD_SAVE_LIFECYCLE.md`
-
-Planning baseline:
-
-```text
-develop  8e6935d4abcebd3c31e8c1237fc71995130793fa
-CI       35034624914 — SUCCESS
-Planning PR #158            MERGED
-Planning merge              a9eae16a2439fc8fbb458b4e370d858674ac087d
-Planning post-merge CI      35035328007 — SUCCESS
+Planning baseline          0624863f59929d645acd5f6539ab311afdfcb5bd
+Planning baseline CI       35039111549 — SUCCESS
+Planning PR #165           MERGED
+Planning merge             f773a2cd928a87c74e62a547b3043c04dcaef577
+Planning post-merge CI     35040392356 — SUCCESS
 ```
 
 Locked decomposition:
 
 ```text
-5.3C1 — Persistence Lifecycle & Workbook Transport Contract  COMPLETE
-5.3C2 — Snapshot-to-XLSX Export / Save Orchestration         COMPLETE
-5.3C3 — XLSX Load / Import / Hydrate & Completion Gate       COMPLETE
+5.4A1 — Version Preflight, Compatibility Matrix & Migration Registry Contract  COMPLETE
+5.4A2 — Version-Aware Migration Execution & Current-Contract Handoff           NEXT / NOT STARTED
+5.4A3 — Compatibility Regression & Completion Gate                             NOT STARTED
 ```
 
-### 5.3C1 — Persistence Lifecycle & Workbook Transport Contract
+### 5.4A1 — Version Preflight, Compatibility Matrix & Migration Registry Contract
 
 Status: **COMPLETE**
 
 Completion record:
 
-`docs/PHASE_5_3C1_PERSISTENCE_LIFECYCLE_WORKBOOK_TRANSPORT.md`
+`docs/PHASE_5_4A1_VERSION_PREFLIGHT_MIGRATION_REGISTRY.md`
 
 ```text
-Authoritative baseline     a9eae16a2439fc8fbb458b4e370d858674ac087d
-Baseline CI                35035328007 — SUCCESS
-Feature head               b3bbb9b2a524289f73940ab951cbd96d61d9bc6c
-Implementation PR #159     MERGED
-PR CI                      35036181681 — SUCCESS
-Implementation merge       5f37670d0b1865ceb691980c6c6f6864771ca07c
-Post-merge develop CI      35036255261 — SUCCESS
-93 test files / 1140 tests
-12 focused 5.3C1 tests
-TypeScript typecheck passed
-Production Vite build passed
-121 modules transformed
-```
-
-Delivered:
-
-- byte-only `WorkbookTransport` contract;
-- defensive workbook-byte ownership helper;
-- neutral backup request/receipt vocabulary without implementing Phase 5.4B semantics;
-- reusable `InMemoryWorkbookTransport` for later coordinator integration tests;
-- stable persistence lifecycle stages and operational codes;
-- structured workbook-import and hydration rejection result vocabulary;
-- distinct severe hydration rollback-failure code;
-- removal of obsolete dataset-level `StoragePort` and placeholder `ExcelStorage`;
-- regression proof that the removed scaffold had no active compile-time consumers.
-
-### 5.3C2 — Snapshot-to-XLSX Export / Save Orchestration
-
-Status: **COMPLETE**
-
-Completion record:
-
-`docs/PHASE_5_3C2_SNAPSHOT_XLSX_EXPORT_SAVE_ORCHESTRATION.md`
-
-```text
-Authoritative baseline     1deddb42ff0b451fe0d5cbdbf1563e43767f31f0
-Baseline CI                35036482810 — SUCCESS
-Feature head               9781330de883d21537969e4649be8d6c37eb5dad
-Implementation PR #161     MERGED
-PR CI                      35036820512 — SUCCESS
-Implementation merge       78f0444029905db801a53427e8c9b3bb3d119d69
-Post-merge develop CI      35036895766 — SUCCESS
-94 test files / 1147 tests
-7 focused 5.3C2 coordinator tests
-TypeScript typecheck passed
-Production Vite build passed
-121 modules transformed
-```
-
-Delivered:
-
-- one application-level `PersistenceCoordinator` for current source export/save;
-- complete 5.3A snapshot reuse rather than direct repository enumeration;
-- deterministic injectable export clock and optional application-version metadata;
-- direct `exportCurrentWorkbook()` returning caller-owned XLSX bytes and metadata;
-- transport-backed `saveCurrentWorkbook()` using the C1 byte transport;
-- forwarding of neutral backup intent and receipt without implementing backup internals;
-- distinct snapshot, export/encode, and transport-save failure stages/codes;
-- retained lower-level exporter/codec/transport causes;
-- regression proof that failed export/save does not mutate source state.
-
-### 5.3C3 — XLSX Load / Import / Hydrate & Completion Gate
-
-Status: **COMPLETE**
-
-```text
-Authoritative baseline     beb97dbac0325425a21cdfaaaf4cb7cca45b0666
-Baseline CI                35037111736 — SUCCESS
-Initial feature head       c9a196cbdd75d8ea8ee4036c348374c33f1e51d3
-Initial CI                 35038280781 — FAILURE (test fixture typecheck)
-Intermediate head          4c5efd4cd156fe14c7d7a3c1adc3b8fbec5bd1b6
-Intermediate CI            35038384023 — FAILURE (over-specific rejection-stage assertion)
-Corrected feature head     486f7bf6032a56bc8d98a99f9e182dc907801109
-Corrected branch CI        35038527004 — SUCCESS
-Implementation PR #163     MERGED
-Implementation merge       3c14b209737f69b32cb746c667affac518d306f2
-Post-merge develop CI      35038755032 — SUCCESS
-96 test files / 1168 tests
-10 full lifecycle completion tests
-2 shared-session persistence coordinator tests
+Authoritative baseline     f773a2cd928a87c74e62a547b3043c04dcaef577
+Baseline CI                35040392356 — SUCCESS
+Initial feature head       105f733730f66e6a89ca3a08e25b3a0513afe879
+Initial CI                 35041137241 — FAILURE (test helper literal type only)
+Corrected feature head     104beacd503b33b57e0180c0c642017c6ddb07a8
+Corrected branch CI        35041223493 — SUCCESS
+Implementation PR #166     MERGED
+PR CI                      35041313805 — SUCCESS
+Implementation merge       142a3b4a38b915c7e3258e490ba2b32d96490bb5
+Post-merge develop CI      35041385616 — SUCCESS
+97 test files / 1186 tests
+18 focused 5.4A1 tests
 TypeScript typecheck passed
 Production Vite build passed
 130 modules transformed
@@ -378,57 +190,20 @@ Production Vite build passed
 
 Delivered:
 
-- direct bytes `importAndApplyWorkbook(...)` through the strict existing importer;
-- transport-backed `loadCurrentWorkbook(...)` through the same import/apply path;
-- structured invalid-workbook rejection before hydration;
-- valid candidate application only through `ValidatedAtomicDatasetHydrationService`;
-- distinct hydration snapshot/restored-apply/rollback-failure coordinator diagnostics retaining original hydration error context;
-- one shared `persistenceCoordinator` in the application session;
-- end-to-end save A -> mutate B -> load -> exact A restoration proof;
-- zero-write invalid-workbook and transport-load failure proof;
-- real apply-failure rollback and severe rollback-failure proof;
-- valid empty-workbook clearing across all nine source repositories;
-- missing-vs-zero/null and true optional-source-absence fidelity proof;
-- caller workbook buffer ownership proof;
-- source-only workbook proof excluding derived calculations;
-- existing shared services observe restored state without reconstruction.
+- minimal `_Meta` identity/version preflight independent of current business-sheet validation;
+- exact independent workbook-format and dataset-schema version-pair vocabulary;
+- deterministic `invalid`, `current`, `migratable`, `unsupported-older`, and `unsupported-future` classification;
+- pure `WorkbookMigrationStep` contract over neutral workbook documents;
+- deterministic `WorkbookMigrationRegistry` path resolution;
+- duplicate/ambiguous source rejection;
+- self-loop and cycle rejection;
+- no-downgrade semantics;
+- defensive registered version-key ownership;
+- deep defensive neutral-workbook cloning;
+- empty production migration registry while v1/v1 remains the first public contract;
+- no changes to current importer, hydration, coordinator, or public version constants.
 
-### Phase 5.3C / Phase 5.3 completion gate
-
-All C1, C2, and C3 responsibilities are complete. The complete persisted source lifecycle is now coordinated behind one application API while preserving the separate workbook codec, strict importer, snapshot, hydration, and byte-transport responsibilities.
-
-## Phase 5.4A — Schema Migration & Compatibility Framework
-
-Status: **PLANNING ESTABLISHED**
-
-Dedicated plan:
-
-`docs/PHASE_5_4A_SCHEMA_MIGRATION_COMPATIBILITY_PLAN.md`
-
-Planning baseline:
-
-```text
-develop  0624863f59929d645acd5f6539ab311afdfcb5bd
-CI       35039111549 — SUCCESS
-```
-
-Audit result:
-
-- current dataset schema is v1 and explicitly documented as the first formally specified complete persisted dataset;
-- current workbook format is v1;
-- current strict importer validates the current workbook schema before exact-version metadata rejection;
-- migration therefore requires a minimal `_Meta` preflight before current-schema validation;
-- no legitimate production predecessor has been identified, so 5.4A must not fabricate v0/v2 solely to demonstrate migration.
-
-Locked decomposition:
-
-```text
-5.4A1 — Version Preflight, Compatibility Matrix & Migration Registry Contract  NEXT / NOT STARTED
-5.4A2 — Version-Aware Migration Execution & Current-Contract Handoff           NOT STARTED
-5.4A3 — Compatibility Regression & Completion Gate                             NOT STARTED
-```
-
-The production migration registry remains empty while v1/v1 is the first public contract. Generic migration behavior will be proven using isolated synthetic registry fixtures that do not change supported public versions.
+The initial feature CI failure occurred before tests/build and was limited to TypeScript inference in a synthetic test helper. Explicitly widening those helper parameters to `number` resolved it without changing runtime behavior.
 
 ## Current persistence boundary
 
@@ -448,8 +223,8 @@ Workbook transport/lifecycle contract COMPLETE — 5.3C1
 Export/save orchestration             COMPLETE — 5.3C2
 Load/import/hydrate orchestration     COMPLETE — 5.3C3
 Schema compatibility/migration plan   ESTABLISHED — 5.4A
-Version preflight/registry contract   NEXT / NOT STARTED — 5.4A1
-Migration execution/import handoff    NOT STARTED — 5.4A2
+Version preflight/registry contract   COMPLETE — 5.4A1
+Migration execution/import handoff    NEXT / NOT STARTED — 5.4A2
 Compatibility completion gate         NOT STARTED — 5.4A3
 Detailed backup/atomic write          NOT STARTED — 5.4B
 Native filesystem                     Phase 6
@@ -457,6 +232,6 @@ Native filesystem                     Phase 6
 
 ## Current active task
 
-**5.4A1 — Version Preflight, Compatibility Matrix & Migration Registry Contract — NEXT / NOT STARTED**
+**5.4A2 — Version-Aware Migration Execution & Current-Contract Handoff — NEXT / NOT STARTED**
 
-Do not begin 5.4A1 implementation until the 5.4A planning PR is merged, the exact resulting `develop` CI is green, and the user separately says to proceed.
+Do not begin 5.4A2 implementation until the 5.4A1 closeout PR is merged, the exact resulting `develop` CI is green, and the user separately says to proceed.
