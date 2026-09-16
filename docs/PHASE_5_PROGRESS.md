@@ -6,11 +6,11 @@ Master plan:
 
 `docs/PHASE_5_EXCEL_PERSISTENCE_PLAN.md`
 
-Current authoritative green implementation baseline after Phase 5.5C2:
+Current authoritative green implementation baseline after Phase 5.5C3:
 
 ```text
-develop  0603ef10575f5f08c27170cb174bf23b8c675b21
-CI       35134221363 — SUCCESS
+develop  1059adaaa0492a2308036271f1a0fa898739ee00
+CI       35136380402 — SUCCESS
 ```
 
 ## Live task map
@@ -36,7 +36,7 @@ CI       35134221363 — SUCCESS
     5.4B — Backup & Atomic-Write Transport Contract       COMPLETE
     5.4C — Corruption, Limits & Recovery Diagnostics      COMPLETE
 
-5.5 — Excel Persistence UI                                IN PROGRESS
+5.5 — Excel Persistence UI                                COMPLETE
     5.5A — Import / Open Workbook Workflow                COMPLETE
         5.5A1 — Browser File Selection & Import Command Boundary  COMPLETE
         5.5A2 — React Open/Replace Workflow & Workspace Refresh   COMPLETE
@@ -45,13 +45,13 @@ CI       35134221363 — SUCCESS
         5.5B1 — Browser Workbook Export & Download Command Boundary      COMPLETE
         5.5B2 — React Export / Save-Copy Workflow & Backup Truthfulness COMPLETE
         5.5B3 — Browser Export Regression & 5.5B Completion Gate        COMPLETE
-    5.5C — Persistence Status / Validation / Recovery UX              IN PROGRESS
+    5.5C — Persistence Status / Validation / Recovery UX              COMPLETE
         5.5C1 — Persistence Session Status & Workbook Identity        COMPLETE
         5.5C2 — Validation Detail & Recovery Guidance UX              COMPLETE
-        5.5C3 — Persistence UX Regression & Phase 5.5 Completion Gate NEXT / NOT STARTED
+        5.5C3 — Persistence UX Regression & Phase 5.5 Completion Gate COMPLETE
 
-5.6 — Integration & Completion Gate                       NOT STARTED
-    5.6A — Integrated Excel Round-Trip Workflow           NOT STARTED
+5.6 — Integration & Completion Gate                       IN PROGRESS
+    5.6A — Integrated Excel Round-Trip Workflow           NEXT / NOT STARTED
     5.6B — Regression / Build / Phase 5 Completion        NOT STARTED
 ```
 
@@ -258,7 +258,7 @@ Final 5.5B CI                35129979872 — SUCCESS
 
 Therefore `5.5B — Export / Save & Backup Workflow` is **COMPLETE**.
 
-## Phase 5.5C — Persistence Status / Validation / Recovery UX — IN PROGRESS
+## Phase 5.5C — Persistence Status / Validation / Recovery UX — COMPLETE
 
 Dedicated plan:
 
@@ -269,7 +269,7 @@ Decomposition:
 ```text
 5.5C1 — Persistence Session Status & Workbook Identity           COMPLETE
 5.5C2 — Validation Detail & Recovery Guidance UX                 COMPLETE
-5.5C3 — Persistence UX Regression & Phase 5.5 Completion Gate    NEXT / NOT STARTED
+5.5C3 — Persistence UX Regression & Phase 5.5 Completion Gate    COMPLETE
 ```
 
 ### Locked 5.5C decisions
@@ -367,9 +367,75 @@ Production build PASS
 149 modules transformed
 ```
 
-### 5.5C3 — Persistence UX Regression & Phase 5.5 Completion Gate — NEXT / NOT STARTED
+### 5.5C3 — Persistence UX Regression & Phase 5.5 Completion Gate — COMPLETE
 
-C3 will prove the complete browser persistence UI across import, export, status, validation, and recovery, then close parent Phase 5.5 and advance exactly to `5.6A — Integrated Excel Round-Trip Workflow — NEXT / NOT STARTED`.
+Completion record:
+
+`docs/PHASE_5_5C3_PERSISTENCE_UX_REGRESSION_PHASE_5_5_COMPLETION_GATE.md`
+
+C3 added a tests-only real-stack completion gate and proved:
+
+- real current XLSX import updates authoritative source state and session status with exactly one workspace refresh;
+- active navigation remains stable;
+- real current XLSX export creates valid bytes that re-import through the production stack and equal the authoritative source state;
+- export does not replace imported identity, mutate live repositories, or remount the workspace;
+- corrupt, future-version, structure/schema, invalid-business-data, and resource-limit rejections expose deterministic recovery guidance plus raw issue evidence;
+- every expected rejection preserves prior live state and last-successful imported status;
+- a later valid retry clears stale recovery detail and updates state/status only on success;
+- unexpected import operational failure remains separate from expected recovery presentation;
+- browser export dispatch failure does not manufacture successful status and retry succeeds;
+- browser path/backup/save wording remains truthful.
+
+Evidence:
+
+```text
+C3 baseline                      db9981f349925b2531883e9c3401dffc805d760c
+C3 baseline CI                   35134915794 — SUCCESS
+Initial feature head             fbe7cbc2e13f4f946e4e2c8612effecc3126b9d7
+Initial feature CI               35135604118 — FAILURE (new regression assertions only)
+Corrected test head              9d21b449639ea9ee6b1463c1a643fb592fb4927a
+Corrected test CI                35135823407 — SUCCESS
+Final feature head               998dd77790c8df969c73b27074ef2ec84fc4b206
+Final feature CI                 35136093558 — SUCCESS
+Implementation PR #208           MERGED
+PR CI                            35136248704 — SUCCESS
+Implementation merge             1059adaaa0492a2308036271f1a0fa898739ee00
+Post-merge CI                    35136380402 — SUCCESS
+128 test files / 1427 tests
+4 focused C3 completion tests
+Typecheck PASS
+Production build PASS
+149 modules transformed
+```
+
+The initial red C3 run was limited to assertion wording/scope in the newly added regression harness. Production behavior was not implicated and no red code was merged. A temporary connector sentinel file was also created accidentally and deleted before PR creation; the final effective feature diff was exactly one test file.
+
+## Parent Phase 5.5 completion result
+
+Parent completion record:
+
+`docs/PHASE_5_5_EXCEL_PERSISTENCE_UI.md`
+
+The complete Phase 5.5 browser persistence experience now satisfies every locked completion condition:
+
+- deliberate current `.xlsx` import;
+- atomic valid hydration and visible workspace refresh;
+- invalid/rejected import state preservation;
+- deliberate canonical `.xlsx` download;
+- export without source mutation/remount;
+- truthful session import/export identity and supported versions;
+- raw validation details;
+- deterministic recovery guidance;
+- browser-truthful copy/backup semantics;
+- no false native path/atomicity/durability/dirty-state claim;
+- full Phase 1–5.5 regression green;
+- typecheck and production build green.
+
+Therefore:
+
+```text
+5.5 — Excel Persistence UI — COMPLETE
+```
 
 ## Current persistence boundary
 
@@ -391,12 +457,14 @@ Browser export completion regression  COMPLETE — 5.5B3
 Export / Save & Backup parent         COMPLETE — 5.5B
 Persistence session status            COMPLETE — 5.5C1
 Validation/recovery UX                COMPLETE — 5.5C2
-Persistence UX completion regression  NEXT — 5.5C3
+Persistence UX completion regression  COMPLETE — 5.5C3
+Excel Persistence UI parent           COMPLETE — 5.5
+Integrated Excel round-trip           NEXT — 5.6A
 Native filesystem                     Phase 6
 ```
 
 ## Current active task
 
-**5.5C3 — Persistence UX Regression & Phase 5.5 Completion Gate — NEXT / NOT STARTED**
+**5.6A — Integrated Excel Round-Trip Workflow — NEXT / NOT STARTED**
 
-Do not begin 5.5C3 until the 5.5C2 docs-only closeout is merged into `develop`, the exact resulting `develop` CI is green, and the user separately says to proceed.
+Do not begin 5.6A until this Phase 5.5 docs-only closeout is merged into `develop`, the exact resulting `develop` CI is green, and the user separately says to proceed.
