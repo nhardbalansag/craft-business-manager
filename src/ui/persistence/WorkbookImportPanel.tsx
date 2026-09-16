@@ -5,7 +5,10 @@ import {
   type PendingBrowserWorkbookSelection,
 } from '../../application/persistence/BrowserWorkbookImportCommand';
 import { PersistenceLifecycleOperationalError } from '../../application/persistence/PersistenceLifecycle';
-import type { PersistenceWorkbookApplyResult } from '../../application/persistence/PersistenceCoordinator';
+import type {
+  PersistenceWorkbookApplyResult,
+  PersistenceWorkbookHydrated,
+} from '../../application/persistence/PersistenceCoordinator';
 import './workbookImport.css';
 
 interface WorkbookImportFeedback {
@@ -13,9 +16,14 @@ interface WorkbookImportFeedback {
   readonly message: string;
 }
 
+export interface WorkbookImportHydratedEvent {
+  readonly selection: PendingBrowserWorkbookSelection;
+  readonly result: PersistenceWorkbookHydrated;
+}
+
 export interface WorkbookImportPanelProps {
   readonly command: BrowserWorkbookImportCommand;
-  readonly onHydrated: () => void;
+  readonly onHydrated: (event: WorkbookImportHydratedEvent) => void;
 }
 
 function formatBytes(byteLength: number): string {
@@ -51,7 +59,8 @@ function confirmationMessage(selection: PendingBrowserWorkbookSelection): string
  *
  * This component never parses XLSX, enumerates repositories, or hydrates data directly. A selected
  * workbook remains pending until the user explicitly confirms Apply import. Only a successful
- * hydrated result notifies the application shell to refresh the visible repository-backed workspace.
+ * hydrated result notifies the application shell to refresh the visible repository-backed workspace
+ * and update browser-session persistence status.
  */
 export function WorkbookImportPanel({ command, onHydrated }: WorkbookImportPanelProps) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -102,13 +111,17 @@ export function WorkbookImportPanel({ command, onHydrated }: WorkbookImportPanel
     try {
       const result = await command.applyPendingSelection();
       if (result.status === 'hydrated') {
+        const hydratedEvent: WorkbookImportHydratedEvent = Object.freeze({
+          selection: Object.freeze({ ...selection }),
+          result,
+        });
         command.clearSelection();
         setSelection(null);
         setFeedback({
           kind: 'success',
           message: `Imported ${selection.name}. The visible workspace was refreshed from the imported data.`,
         });
-        onHydrated();
+        onHydrated(hydratedEvent);
         return;
       }
 

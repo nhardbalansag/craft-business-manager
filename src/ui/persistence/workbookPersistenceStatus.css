@@ -1,0 +1,81 @@
+.workbook-persistence-status {
+  width: min(1460px, calc(100% - 40px));
+  margin: 20px auto 0;
+  padding: 18px 20px;
+  border: 1px solid #d9d2c6;
+  border-radius: 20px;
+  background: #fffdf8;
+  box-shadow: 0 10px 24px rgba(55, 45, 32, .04);
+}
+
+.workbook-persistence-status-copy h2 {
+  margin: 4px 0 6px;
+  font-size: 1.2rem;
+  letter-spacing: -.02em;
+}
+
+.workbook-persistence-status-copy p:last-child {
+  margin: 0;
+  color: #6f685e;
+  font-size: .85rem;
+  line-height: 1.5;
+}
+
+.workbook-persistence-status-grid {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.workbook-persistence-status-card {
+  min-width: 0;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  border: 1px solid #e5ded2;
+  border-radius: 14px;
+  background: #ffffff;
+}
+
+.workbook-persistence-status-card strong {
+  overflow-wrap: anywhere;
+  color: #312c25;
+  font-size: .92rem;
+}
+
+.workbook-persistence-status-card span,
+.workbook-persistence-status-card p {
+  margin: 0;
+  color: #6f685e;
+  font-size: .8rem;
+  line-height: 1.45;
+}
+
+.workbook-persistence-status-card .workbook-persistence-status-label {
+  color: #8a7d6b;
+  font-size: .7rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.workbook-persistence-status-note {
+  margin: 12px 0 0;
+  color: #6f685e;
+  font-size: .78rem;
+  line-height: 1.45;
+}
+
+@media (max-width: 980px) {
+  .workbook-persistence-status-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .workbook-persistence-status {
+    width: min(100% - 24px, 1460px);
+  }
+}

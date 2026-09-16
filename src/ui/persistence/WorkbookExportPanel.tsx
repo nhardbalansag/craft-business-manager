@@ -17,6 +17,7 @@ export interface WorkbookExportCommandPort {
 
 export interface WorkbookExportPanelProps {
   readonly command: WorkbookExportCommandPort;
+  readonly onDownloaded?: (result: BrowserWorkbookExportResult) => void;
 }
 
 function workflowErrorMessage(error: unknown): string {
@@ -35,9 +36,10 @@ function workflowErrorMessage(error: unknown): string {
  *
  * This component deliberately treats browser export as creation of a new downloaded copy. It does
  * not construct workbook bytes, mutate repositories, advance the import workspace revision, invoke
- * WorkbookTransport, or imply native overwrite/backup/atomic-replacement semantics.
+ * WorkbookTransport, or imply native overwrite/backup/atomic-replacement semantics. C1 may observe
+ * a successfully dispatched result for session status, but failed exports emit no success evidence.
  */
-export function WorkbookExportPanel({ command }: WorkbookExportPanelProps) {
+export function WorkbookExportPanel({ command, onDownloaded }: WorkbookExportPanelProps) {
   const exportInFlightRef = useRef(false);
   const [exporting, setExporting] = useState(false);
   const [feedback, setFeedback] = useState<WorkbookExportFeedback | null>(null);
@@ -55,6 +57,7 @@ export function WorkbookExportPanel({ command }: WorkbookExportPanelProps) {
         kind: 'success',
         message: `Downloaded ${result.fileName} as a new workbook copy. The current workspace was not replaced or refreshed.`,
       });
+      onDownloaded?.(result);
     } catch (error) {
       setFeedback({ kind: 'error', message: workflowErrorMessage(error) });
     } finally {
