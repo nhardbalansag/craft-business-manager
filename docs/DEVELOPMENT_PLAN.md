@@ -30,6 +30,10 @@ For the completed export/save-copy workflow, use:
 - `docs/PHASE_5_5B2_REACT_EXPORT_SAVE_COPY_WORKFLOW.md`
 - `docs/PHASE_5_5B_EXPORT_SAVE_BACKUP_WORKFLOW.md`
 
+For the active persistence status/validation/recovery UX work, use:
+
+- `docs/PHASE_5_5C_PERSISTENCE_STATUS_VALIDATION_RECOVERY_UX_PLAN.md`
+
 Historical phase completion records remain authoritative for their individual contracts and CI evidence.
 
 ## Delivery Principles
@@ -44,11 +48,11 @@ Historical phase completion records remain authoritative for their individual co
 
 ## Current Repository Baseline
 
-Current green implementation baseline after Phase 5.5B3:
+Current green baseline after the Phase 5.5B parent closeout:
 
 ```text
-develop  68a34802d4768438cd67fe0cdab42b95145ecbe1
-CI       35129363820 — SUCCESS
+develop  a1c175176ce4df9fe1c3ae8ec91afd5151dd1e59
+CI       35129979872 — SUCCESS
 ```
 
 ## Overall Phase Status
@@ -151,7 +155,10 @@ Live tracker:
         5.5B1 — Browser Workbook Export & Download Command Boundary      COMPLETE
         5.5B2 — React Export / Save-Copy Workflow & Backup Truthfulness COMPLETE
         5.5B3 — Browser Export Regression & 5.5B Completion Gate        COMPLETE
-    5.5C — Persistence Status / Validation / Recovery UX  NEXT / NOT STARTED
+    5.5C — Persistence Status / Validation / Recovery UX           IN PROGRESS
+        5.5C1 — Persistence Session Status & Workbook Identity     NEXT / NOT STARTED
+        5.5C2 — Validation Detail & Recovery Guidance UX           NOT STARTED
+        5.5C3 — Persistence UX Regression & Phase 5.5 Completion Gate NOT STARTED
 
 5.6 — Integration & Completion Gate                       NOT STARTED
     5.6A — Integrated Excel Round-Trip Workflow           NOT STARTED
@@ -406,6 +413,14 @@ The complete browser workflow satisfies all locked 5.5B completion gates:
 - unchanged `WorkbookTransport` safe-save contract for later native use;
 - full regression, typecheck, and production build green.
 
+Parent closeout evidence:
+
+```text
+Parent closeout PR #202      MERGED
+Final 5.5B develop           a1c175176ce4df9fe1c3ae8ec91afd5151dd1e59
+Final 5.5B CI                35129979872 — SUCCESS
+```
+
 Therefore:
 
 ```text
@@ -414,19 +429,46 @@ Therefore:
 
 Browser export means **download/save a new copy**. Native Save / Save As, managed paths, real pre-save filesystem backups, atomic filesystem replacement, locking, `fsync`, and crash consistency remain Phase 6.
 
-### Phase 5.5C — Persistence Status / Validation / Recovery UX — NEXT / NOT STARTED
+### Phase 5.5C — Persistence Status / Validation / Recovery UX — IN PROGRESS
 
-5.5C owns the richer browser persistence experience that was deliberately excluded from A/B:
+Dedicated plan:
 
-- richer persistence status presentation;
-- validation/rejection detail presentation;
-- unsupported-version guidance;
-- corruption/resource-limit recovery guidance;
-- backup/restore guidance consistent with browser capability limits;
-- active workbook/history concepts if adopted;
-- dirty/unsaved-state experience if adopted and justified by the current architecture.
+`docs/PHASE_5_5C_PERSISTENCE_STATUS_VALIDATION_RECOVERY_UX_PLAN.md`
 
-Do not begin 5.5C until the 5.5B parent closeout is merged, the exact resulting `develop` CI is green, and the user separately instructs to proceed.
+5.5C is split into:
+
+```text
+5.5C1 — Persistence Session Status & Workbook Identity           NEXT / NOT STARTED
+5.5C2 — Validation Detail & Recovery Guidance UX                 NOT STARTED
+5.5C3 — Persistence UX Regression & Phase 5.5 Completion Gate    NOT STARTED
+```
+
+The split keeps browser-session status, rejection/recovery presentation, and completion proof separate.
+
+#### Phase 5.5C1 — Persistence Session Status & Workbook Identity — NEXT / NOT STARTED
+
+C1 will add truthful browser-session status using the existing workbook/dataset version constants and successful import/export results.
+
+Planned status includes:
+
+- current supported workbook format ID/version;
+- current dataset schema version;
+- browser-known imported workbook filename/size and import metadata after successful hydration;
+- last successful export/download filename/size and export metadata;
+- session-observed import/download timestamps distinct from workbook `exportedAt` metadata;
+- no update of last-success status after rejection/failure.
+
+The imported filename is an identity label only, never a managed native path. Export remains a new downloaded copy and does not replace that imported identity.
+
+**Dirty/clean state is deliberately not introduced in C1.** The current architecture has no complete mutation-tracking boundary across all business edits, so a clean/dirty indicator would not be trustworthy.
+
+#### Phase 5.5C2 — Validation Detail & Recovery Guidance UX — NOT STARTED
+
+C2 will preserve raw importer issues as the authoritative technical evidence and derive actionable guidance from the existing recovery diagnostics model. It will cover unsupported versions, corrupt/unreadable workbooks, resource limits, workbook structure/values, invalid business data, and browser-truthful backup/restore guidance.
+
+#### Phase 5.5C3 — Persistence UX Regression & Phase 5.5 Completion Gate — NOT STARTED
+
+C3 will prove import/export/status/recovery behavior through the real stack, keep Phase 5.4/5.5A/5.5B regression green, close parent Phase 5.5, then advance exactly to **5.6A — Integrated Excel Round-Trip Workflow — NEXT / NOT STARTED**.
 
 ## Phase 5.6 — Integration & Completion Gate — NOT STARTED
 
@@ -462,6 +504,6 @@ Planned areas include dashboard/operational summaries, inventory valuation and l
 
 # Current Active Task
 
-**5.5C — Persistence Status / Validation / Recovery UX — NEXT / NOT STARTED**
+**5.5C1 — Persistence Session Status & Workbook Identity — NEXT / NOT STARTED**
 
-Do not begin 5.5C until the 5.5B parent closeout is merged into `develop`, the exact resulting `develop` CI is green, and the user separately says to proceed.
+Do not begin 5.5C1 until the 5.5C planning change is merged into `develop`, the exact resulting `develop` CI is green, and the current session has been instructed to proceed.

@@ -6,11 +6,11 @@ Master plan:
 
 `docs/PHASE_5_EXCEL_PERSISTENCE_PLAN.md`
 
-Current authoritative implementation baseline after Phase 5.5B3:
+Current authoritative green baseline after the Phase 5.5B parent closeout:
 
 ```text
-develop  68a34802d4768438cd67fe0cdab42b95145ecbe1
-CI       35129363820 — SUCCESS
+develop  a1c175176ce4df9fe1c3ae8ec91afd5151dd1e59
+CI       35129979872 — SUCCESS
 ```
 
 ## Live task map
@@ -45,7 +45,10 @@ CI       35129363820 — SUCCESS
         5.5B1 — Browser Workbook Export & Download Command Boundary      COMPLETE
         5.5B2 — React Export / Save-Copy Workflow & Backup Truthfulness COMPLETE
         5.5B3 — Browser Export Regression & 5.5B Completion Gate        COMPLETE
-    5.5C — Persistence Status / Validation / Recovery UX  NEXT / NOT STARTED
+    5.5C — Persistence Status / Validation / Recovery UX           IN PROGRESS
+        5.5C1 — Persistence Session Status & Workbook Identity     NEXT / NOT STARTED
+        5.5C2 — Validation Detail & Recovery Guidance UX           NOT STARTED
+        5.5C3 — Persistence UX Regression & Phase 5.5 Completion Gate NOT STARTED
 
 5.6 — Integration & Completion Gate                       NOT STARTED
     5.6A — Integrated Excel Round-Trip Workflow           NOT STARTED
@@ -241,26 +244,46 @@ Production build PASS
 143 modules transformed
 ```
 
-The B3 implementation added exactly one regression test file and made no runtime/domain/schema/native-filesystem changes.
-
 ### Parent 5.5B completion result
 
-The complete browser workflow now satisfies all locked gates:
+The complete browser export workflow satisfies all locked gates: explicit current workbook download, coordinator-owned canonical XLSX export, deterministic filename/MIME, safe object-URL cleanup, duplicate-submit protection, no source mutation/remount, and truthful copy-only semantics with no manufactured native backup/path/atomicity/durability claim.
 
-- explicit current workbook download;
-- coordinator-owned canonical export;
-- real valid XLSX bytes;
-- deterministic filename and MIME;
-- safe object-URL cleanup;
-- duplicate-submit protection;
-- distinct success/operational-failure states;
-- no mutation or import-style workspace refresh;
-- truthful downloaded-copy wording;
-- no manufactured Phase 5.4B backup, atomic replacement, path, overwrite, or durability guarantee;
-- unchanged transport safe-save contract for later native use;
-- all regression/typecheck/build gates green.
+Parent closeout:
+
+```text
+Parent closeout PR #202      MERGED
+Final 5.5B develop           a1c175176ce4df9fe1c3ae8ec91afd5151dd1e59
+Final 5.5B CI                35129979872 — SUCCESS
+```
 
 Therefore `5.5B — Export / Save & Backup Workflow` is **COMPLETE**.
+
+## Phase 5.5C — Persistence Status / Validation / Recovery UX — IN PROGRESS
+
+Dedicated plan:
+
+`docs/PHASE_5_5C_PERSISTENCE_STATUS_VALIDATION_RECOVERY_UX_PLAN.md`
+
+Decomposition:
+
+```text
+5.5C1 — Persistence Session Status & Workbook Identity           NEXT / NOT STARTED
+5.5C2 — Validation Detail & Recovery Guidance UX                 NOT STARTED
+5.5C3 — Persistence UX Regression & Phase 5.5 Completion Gate    NOT STARTED
+```
+
+### Locked 5.5C decisions
+
+- persistence status is browser-session UI state, not authoritative workbook/business data;
+- current workbook-format and dataset-schema versions come from existing constants, not duplicated UI numbers;
+- active imported workbook identity is the browser-selected filename/metadata when known, never a managed native path;
+- last successful import/export timestamps are session-observed operation timestamps and remain distinct from workbook `exportedAt` metadata;
+- rejected/failed operations must not overwrite last-successful status;
+- C2 must preserve raw importer issues as authoritative technical evidence and derive recovery guidance through the existing recovery summary boundary;
+- browser backup/restore guidance means selecting a known-good workbook copy the user possesses; it must not claim a Phase 5.4B transport backup was created;
+- dirty/clean state is deliberately not introduced because there is no complete mutation-tracking contract across all business edits.
+
+Rich validation/recovery details belong to C2; C1 is status/identity only. C3 closes the full browser persistence UX and Phase 5.5.
 
 ## Current persistence boundary
 
@@ -280,14 +303,14 @@ Browser export command boundary       COMPLETE — 5.5B1
 React browser export/save-copy UX     COMPLETE — 5.5B2
 Browser export completion regression  COMPLETE — 5.5B3
 Export / Save & Backup parent         COMPLETE — 5.5B
-Recovery/status UX                    NEXT — 5.5C
+Persistence session status            NEXT — 5.5C1
+Validation/recovery UX                NOT STARTED — 5.5C2
+Persistence UX completion regression  NOT STARTED — 5.5C3
 Native filesystem                     Phase 6
 ```
 
-Rich recovery/history UX remains 5.5C. Native Save/Save As, managed filesystem paths, real pre-save backups, atomic filesystem replacement, locks, `fsync`, and crash consistency remain Phase 6.
-
 ## Current active task
 
-**5.5C — Persistence Status / Validation / Recovery UX — NEXT / NOT STARTED**
+**5.5C1 — Persistence Session Status & Workbook Identity — NEXT / NOT STARTED**
 
-Do not begin 5.5C until the 5.5B parent closeout is merged into `develop`, the exact resulting `develop` CI is green, and the user separately says to proceed.
+Do not begin 5.5C1 until the 5.5C planning change is merged into `develop`, the exact resulting `develop` CI is green, and the user has instructed the session to proceed.
