@@ -92,7 +92,9 @@ describe('parsePublishedGoogleSheetUrl', () => {
 describe('PublicGoogleSheetsImportCommand', () => {
   it('fetches the normalized published XLSX snapshot but does not hydrate until explicitly applied', async () => {
     const fetchPublishedSheet = vi.fn<PublicGoogleSheetsFetch>(async () => response([7, 8, 9]));
-    const importAndApplyWorkbook = vi.fn(async () => hydrated);
+    const importAndApplyWorkbook = vi.fn<
+      (bytes: Uint8Array) => Promise<PersistenceWorkbookApplyResult>
+    >(async () => hydrated);
     const command = new PublicGoogleSheetsImportCommand(
       { importAndApplyWorkbook },
       fetchPublishedSheet,
