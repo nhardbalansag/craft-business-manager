@@ -802,40 +802,40 @@ export function ProductsPage() {
                   )}
                 </div>
               ) : (
-                <table className="materials-table products-table mix-table">
-                  <thead>
-                    <tr>
-                      <th>Preset</th>
-                      <th>Basis</th>
-                      <th>Ratio</th>
-                      <th>Compatible with</th>
-                      <th>Status</th>
-                      <th>Actions</th>
+                <table role="table" className="responsive-table materials-table products-table mix-table">
+                  <thead role="rowgroup">
+                    <tr role="row">
+                      <th role="columnheader" scope="col">Preset</th>
+                      <th role="columnheader" scope="col">Basis</th>
+                      <th role="columnheader" scope="col">Ratio</th>
+                      <th role="columnheader" scope="col">Compatible with</th>
+                      <th role="columnheader" scope="col">Status</th>
+                      <th role="columnheader" scope="col">Actions</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody role="rowgroup">
                     {visibleMixes.map((preset) => (
-                      <tr key={preset.id} className={preset.isActive ? '' : 'archived-row'}>
-                        <td>
+                      <tr role="row" key={preset.id} className={preset.isActive ? '' : 'archived-row'}>
+                        <td role="cell" data-label="Preset">
                           <strong>{preset.name}</strong>
                           <span className="material-id">{preset.id}</span>
                         </td>
-                        <td>
+                        <td role="cell" data-label="Basis">
                           <span className="group-pill">{preset.basis}</span>
                         </td>
-                        <td>
+                        <td role="cell" data-label="Ratio">
                           <span className="ratio-summary">{ratioSummary(preset, materials)}</span>
                           <small className="line-detail">
                             {preset.lines.map((line) => `${materialName(line.materialId)} · ${line.role}`).join(' · ')}
                           </small>
                         </td>
-                        <td>{preset.compatibleCategories.map(categoryLabel).join(', ')}</td>
-                        <td>
+                        <td role="cell" data-label="Compatible with">{preset.compatibleCategories.map(categoryLabel).join(', ')}</td>
+                        <td role="cell" data-label="Status">
                           <span className={`status-pill ${preset.isActive ? 'status-active' : ''}`}>
                             {preset.isActive ? 'Active' : 'Archived'}
                           </span>
                         </td>
-                        <td className="row-actions">
+                        <td role="cell" data-label="Actions" className="row-actions">
                           <button
                             type="button"
                             className="text-button"

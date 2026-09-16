@@ -212,41 +212,4 @@
   .calibration-summary-grid { margin-inline: 14px; }
   .calibration-history-toolbar { padding-inline: 14px; }
   .calibration-table-wrap { padding: 10px 12px 14px; overflow: visible; background: #faf7f1; }
-  .calibration-table { min-width: 0; display: block; }
-  .calibration-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); }
-  .calibration-table tbody { display: grid; gap: 10px; }
-  .calibration-table tr {
-    display: grid;
-    gap: 0;
-    overflow: hidden;
-    border: 1px solid #e2dbd0;
-    border-radius: 15px;
-    background: #fffdf8;
-  }
-  .calibration-table tr.effective-row { border-color: #d7c5a8; background: #fbf6ed; }
-  .calibration-table td,
-  .calibration-table td:first-child {
-    min-width: 0;
-    padding: 10px 12px;
-    display: grid;
-    grid-template-columns: minmax(74px, .55fr) minmax(0, 1.45fr);
-    gap: 10px;
-    align-items: start;
-    border-bottom: 1px solid #eee8df;
-  }
-  .calibration-table td:last-child { border-bottom: 0; }
-  .calibration-table td::before {
-    content: attr(data-label);
-    color: #8a8176;
-    font-size: .66rem;
-    font-weight: 850;
-    text-transform: uppercase;
-    letter-spacing: .06em;
-  }
-  .calibration-table td > strong,
-  .calibration-table td > .group-pill,
-  .calibration-table td > .cost-detail,
-  .calibration-table td > button { grid-column: 2; }
-  .calibration-table .row-actions { white-space: normal; }
-  .calibration-table .row-actions .text-button { justify-self: start; padding-left: 0; }
 }

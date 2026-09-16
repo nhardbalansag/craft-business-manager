@@ -176,29 +176,29 @@ export function MaterialCatalog({
         </div>
       ) : (
         <div className="table-wrap" role="region" aria-label="Scrollable material inventory" tabIndex={0}>
-          <table className="materials-table material-inventory-table">
-            <thead>
-              <tr>
-                <th scope="col">Material</th>
-                <th scope="col">On hand</th>
-                <th scope="col">Unit cost</th>
-                <th scope="col">Stock value</th>
-                <th scope="col">Supplier</th>
-                <th scope="col">Actions</th>
+          <table role="table" className="responsive-table materials-table material-inventory-table">
+            <thead role="rowgroup">
+              <tr role="row">
+                <th role="columnheader" scope="col">Material</th>
+                <th role="columnheader" scope="col">On hand</th>
+                <th role="columnheader" scope="col">Unit cost</th>
+                <th role="columnheader" scope="col">Stock value</th>
+                <th role="columnheader" scope="col">Supplier</th>
+                <th role="columnheader" scope="col">Actions</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody role="rowgroup">
               {visible.map((row) => {
                 const { material, costing, stock, valuation } = row;
                 return (
-                  <tr key={material.id}>
-                    <td>
+                  <tr role="row" key={material.id}>
+                    <td role="cell" data-label="Material">
                       <strong>{material.name}</strong>
                       <span className="material-id">{material.id}</span>
                       <span className="material-group-tag">{groupLabel(material.group)}</span>
                       {!material.isActive && <span className="material-stock-badge stock-archived">Archived</span>}
                     </td>
-                    <td>
+                    <td role="cell" data-label="On hand">
                       <strong>
                         {stock ? `${number(stock.normalizedBaseQuantity)} ${material.baseUnit}` : 'Unavailable'}
                       </strong>
@@ -213,7 +213,7 @@ export function MaterialCatalog({
                             : 'In stock'}
                       </span>
                     </td>
-                    <td>
+                    <td role="cell" data-label="Unit cost">
                       <strong>
                         {costing ? `${money(costing.costPerBaseUnit)} / ${material.baseUnit}` : 'Unavailable'}
                       </strong>
@@ -240,10 +240,10 @@ export function MaterialCatalog({
                         ))}
                       </details>
                     </td>
-                    <td>
+                    <td role="cell" data-label="Stock value">
                       <strong>{valuation ? money(valuation.inventoryValue) : 'Unavailable'}</strong>
                     </td>
-                    <td>
+                    <td role="cell" data-label="Supplier">
                       <strong>{material.source?.vendorName ?? 'Not recorded'}</strong>
                       {material.source?.source && <small className="material-fact">{material.source.source}</small>}
                       {material.source?.purchaseLink && (
@@ -270,7 +270,7 @@ export function MaterialCatalog({
                         </details>
                       )}
                     </td>
-                    <td>
+                    <td role="cell" data-label="Actions">
                       <div className="material-inventory-actions">
                         <button
                           type="button"

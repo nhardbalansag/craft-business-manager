@@ -611,25 +611,25 @@ export function ProductionPage({ onOpenProducts }: { onOpenProducts: () => void 
                     </div>
                   )
                 ) : (
-                  <table className="materials-table production-table">
-                    <thead>
-                      <tr>
-                        <th>Material</th>
+                  <table role="table" className="responsive-table materials-table production-table">
+                    <thead role="rowgroup">
+                      <tr role="row">
+                        <th role="columnheader" scope="col">Material</th>
                         {showCalculations && (
                           <>
-                            <th>Effective / piece</th>
-                            <th>Waste reserve</th>
-                            <th>Planned / piece</th>
+                            <th role="columnheader" scope="col">Effective / piece</th>
+                            <th role="columnheader" scope="col">Waste reserve</th>
+                            <th role="columnheader" scope="col">Planned / piece</th>
                           </>
                         )}
-                        <th>Batch required</th>
-                        <th>On hand</th>
-                        <th>Still needed</th>
-                        {showCalculations && <th>Direct capacity</th>}
-                        <th>Batch cost</th>
+                        <th role="columnheader" scope="col">Batch required</th>
+                        <th role="columnheader" scope="col">On hand</th>
+                        <th role="columnheader" scope="col">Still needed</th>
+                        {showCalculations && <th role="columnheader" scope="col">Direct capacity</th>}
+                        <th role="columnheader" scope="col">Batch cost</th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody role="rowgroup">
                       {plan.requirements.map((requirement) => {
                         const key = requirement.materialId.toLocaleLowerCase();
                         const material = materialById.get(key);
@@ -637,8 +637,8 @@ export function ProductionPage({ onOpenProducts }: { onOpenProducts: () => void 
                         const cost = directCostById.get(key);
                         const batchCost = cost ? cost.costPerBaseUnit * requirement.plannedBatchBaseQuantity : null;
                         return (
-                          <tr key={requirement.materialId} className={inventory?.isLimiting ? 'limiting-row' : ''}>
-                            <td>
+                          <tr role="row" key={requirement.materialId} className={inventory?.isLimiting ? 'limiting-row' : ''}>
+                            <td role="cell" data-label="Material">
                               <strong>{material?.name ?? requirement.materialId}</strong>
                               <span className="material-id">
                                 {requirement.materialId} · {requirement.source}
@@ -646,25 +646,25 @@ export function ProductionPage({ onOpenProducts }: { onOpenProducts: () => void 
                             </td>
                             {showCalculations && (
                               <>
-                                <td>
+                                <td role="cell" data-label="Effective / piece">
                                   {number(requirement.effectiveBaseQuantityPerProduct)} {requirement.baseUnit}
                                 </td>
-                                <td>
+                                <td role="cell" data-label="Waste reserve">
                                   +{number(requirement.wasteReserveBaseQuantityPerProduct)} {requirement.baseUnit}
                                 </td>
-                                <td>
+                                <td role="cell" data-label="Planned / piece">
                                   <strong>
                                     {number(requirement.plannedBaseQuantityPerProduct)} {requirement.baseUnit}
                                   </strong>
                                 </td>
                               </>
                             )}
-                            <td>
+                            <td role="cell" data-label="Batch required">
                               <strong>
                                 {number(requirement.plannedBatchBaseQuantity)} {requirement.baseUnit}
                               </strong>
                             </td>
-                            <td>
+                            <td role="cell" data-label="On hand">
                               {inventory ? (
                                 <>
                                   {number(inventory.normalizedOnHandBaseQuantity)} {inventory.baseUnit}
@@ -677,7 +677,7 @@ export function ProductionPage({ onOpenProducts }: { onOpenProducts: () => void 
                                 'Unresolved'
                               )}
                             </td>
-                            <td>
+                            <td role="cell" data-label="Still needed">
                               <StockShortfall
                                 required={requirement.plannedBatchBaseQuantity}
                                 available={inventory?.normalizedOnHandBaseQuantity}
@@ -685,7 +685,7 @@ export function ProductionPage({ onOpenProducts }: { onOpenProducts: () => void 
                               />
                             </td>
                             {showCalculations && (
-                              <td>
+                              <td role="cell" data-label="Direct capacity">
                                 {inventory ? (
                                   <>
                                     <strong>{inventory.capacityPieces}</strong>
@@ -696,7 +696,7 @@ export function ProductionPage({ onOpenProducts }: { onOpenProducts: () => void 
                                 )}
                               </td>
                             )}
-                            <td>{batchCost !== null ? peso.format(batchCost) : 'Unpriced'}</td>
+                            <td role="cell" data-label="Batch cost">{batchCost !== null ? peso.format(batchCost) : 'Unpriced'}</td>
                           </tr>
                         );
                       })}
@@ -749,28 +749,28 @@ export function ProductionPage({ onOpenProducts }: { onOpenProducts: () => void 
                     <p>This product has no assembly component requirements.</p>
                   </div>
                 ) : (
-                  <table className="materials-table production-table component-requirements-table">
-                    <thead>
-                      <tr>
-                        <th>Component</th>
-                        <th>Role</th>
-                        <th>Per parent</th>
-                        <th>Planned batch</th>
-                        <th>Available</th>
-                        <th>Still needed</th>
+                  <table role="table" className="responsive-table materials-table production-table component-requirements-table">
+                    <thead role="rowgroup">
+                      <tr role="row">
+                        <th role="columnheader" scope="col">Component</th>
+                        <th role="columnheader" scope="col">Role</th>
+                        <th role="columnheader" scope="col">Per parent</th>
+                        <th role="columnheader" scope="col">Planned batch</th>
+                        <th role="columnheader" scope="col">Available</th>
+                        <th role="columnheader" scope="col">Still needed</th>
                         {showCalculations && (
                           <>
-                            <th>Capacity</th>
-                            <th>Unit cost</th>
+                            <th role="columnheader" scope="col">Capacity</th>
+                            <th role="columnheader" scope="col">Unit cost</th>
                           </>
                         )}
-                        <th>Planned component cost</th>
-                        <th>Readiness</th>
+                        <th role="columnheader" scope="col">Planned component cost</th>
+                        <th role="columnheader" scope="col">Readiness</th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody role="rowgroup">
                       {componentRows.map((row) => (
-                        <tr
+                        <tr role="row"
                           key={row.componentId}
                           className={
                             limitingRows.some(
@@ -782,21 +782,21 @@ export function ProductionPage({ onOpenProducts }: { onOpenProducts: () => void 
                               : ''
                           }
                         >
-                          <td>
+                          <td role="cell" data-label="Component">
                             <strong>{row.sourceName}</strong>
                             <span className="material-id">{row.sourceId}</span>
                             <span className="component-kind-pill">{sourceTypeLabel(row.sourceType)}</span>
                           </td>
-                          <td>
+                          <td role="cell" data-label="Role">
                             <span className="component-role-pill">{roleLabel(row.role)}</span>
                           </td>
-                          <td>
+                          <td role="cell" data-label="Per parent">
                             <strong>{number(row.quantityPerParent)} pc</strong>
                           </td>
-                          <td>
+                          <td role="cell" data-label="Planned batch">
                             <strong>{number(row.plannedQuantity)} pc</strong>
                           </td>
-                          <td>
+                          <td role="cell" data-label="Available">
                             {row.availabilityState === 'missing' ? (
                               <strong className="component-state-missing">Stock not recorded</strong>
                             ) : row.availableQuantity !== null ? (
@@ -810,7 +810,7 @@ export function ProductionPage({ onOpenProducts }: { onOpenProducts: () => void 
                                 : statusLabel(row.availabilityStatus)}
                             </span>
                           </td>
-                          <td>
+                          <td role="cell" data-label="Still needed">
                             <StockShortfall
                               required={row.plannedQuantity}
                               available={row.availabilityStatus === 'ready' ? row.availableQuantity : null}
@@ -819,7 +819,7 @@ export function ProductionPage({ onOpenProducts }: { onOpenProducts: () => void 
                           </td>
                           {showCalculations && (
                             <>
-                              <td>
+                              <td role="cell" data-label="Capacity">
                                 {row.capacityPieces !== null ? (
                                   <>
                                     <strong>{row.capacityPieces}</strong>
@@ -832,15 +832,15 @@ export function ProductionPage({ onOpenProducts }: { onOpenProducts: () => void 
                                   </>
                                 )}
                               </td>
-                              <td>{row.unitCost !== null ? peso.format(row.unitCost) : 'Unpriced'}</td>
+                              <td role="cell" data-label="Unit cost">{row.unitCost !== null ? peso.format(row.unitCost) : 'Unpriced'}</td>
                             </>
                           )}
-                          <td>
+                          <td role="cell" data-label="Planned component cost">
                             {row.plannedCostContribution !== null
                               ? peso.format(row.plannedCostContribution)
                               : 'Unresolved'}
                           </td>
-                          <td>
+                          <td role="cell" data-label="Readiness">
                             <strong>{statusLabel(row.capacityStatus)}</strong>
                             <span className="material-id">Cost: {statusLabel(row.costStatus)}</span>
                             {row.issues.length ? <span className="component-row-issue">{row.issues[0]}</span> : null}

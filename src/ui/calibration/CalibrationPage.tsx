@@ -558,21 +558,21 @@ export function CalibrationPage() {
                 <div className="empty-state calibration-history-state" role="status"><div className="empty-icon" aria-hidden="true">↻</div><h3>Loading calibration history</h3><p>Reading the selected material’s evidence and effective conversion.</p></div>
               ) : (
                 <>
-                  <table className="materials-table calibration-table">
-                    <thead><tr><th>Sample</th><th>Measured</th><th>Derived</th><th>Recorded</th><th><span className="sr-only">Actions</span></th></tr></thead>
-                    <tbody>
+                  <table role="table" className="responsive-table materials-table calibration-table">
+                    <thead role="rowgroup"><tr role="row"><th role="columnheader" scope="col">Sample</th><th role="columnheader" scope="col">Measured</th><th role="columnheader" scope="col">Derived</th><th role="columnheader" scope="col">Recorded</th><th role="columnheader" scope="col"><span className="sr-only">Actions</span></th></tr></thead>
+                    <tbody role="rowgroup">
                       {visibleRecords.map((record) => {
                         const material = materials.find((candidate) => candidate.id.toLocaleLowerCase() === record.materialId.toLocaleLowerCase());
                         if (!material) return null;
                         const derived = deriveMaterialCupWeightCalibration(material, record);
                         const isEffective = effective?.evidence.id.toLocaleLowerCase() === record.id.toLocaleLowerCase();
                         return (
-                          <tr key={record.id} className={isEffective ? 'effective-row' : undefined}>
-                            <td data-label="Sample"><strong>{record.id}</strong>{isEffective && <span className="group-pill">Effective</span>}</td>
-                            <td data-label="Measured">{record.measuredVolume} {record.volumeUnit}<span className="cost-detail">{record.knownWeight} {record.weightUnit}</span></td>
-                            <td data-label="Derived"><strong>{formatNumber(derived.gramsPerCup)} g/cup</strong><span className="cost-detail">{formatNumber(derived.measuredCups)} cup · {formatNumber(derived.knownWeightGrams)} g</span></td>
-                            <td data-label="Recorded">{formatDate(record.recordedAt)}{record.notes && <span className="cost-detail">{record.notes}</span>}</td>
-                            <td data-label="Actions" className="row-actions"><button className="text-button danger" type="button" disabled={busy} onClick={() => void removeCalibration(record)}>Delete</button></td>
+                          <tr role="row" key={record.id} className={isEffective ? 'effective-row' : undefined}>
+                            <td role="cell" data-label="Sample"><strong>{record.id}</strong>{isEffective && <span className="group-pill">Effective</span>}</td>
+                            <td role="cell" data-label="Measured">{record.measuredVolume} {record.volumeUnit}<span className="cost-detail">{record.knownWeight} {record.weightUnit}</span></td>
+                            <td role="cell" data-label="Derived"><strong>{formatNumber(derived.gramsPerCup)} g/cup</strong><span className="cost-detail">{formatNumber(derived.measuredCups)} cup · {formatNumber(derived.knownWeightGrams)} g</span></td>
+                            <td role="cell" data-label="Recorded">{formatDate(record.recordedAt)}{record.notes && <span className="cost-detail">{record.notes}</span>}</td>
+                            <td role="cell" data-label="Actions" className="row-actions"><button className="text-button danger" type="button" disabled={busy} onClick={() => void removeCalibration(record)}>Delete</button></td>
                           </tr>
                         );
                       })}
