@@ -35,11 +35,11 @@ Master plan:
         5.4A1 — Version Preflight, Compatibility Matrix & Migration Registry Contract  COMPLETE
         5.4A2 — Version-Aware Migration Execution & Current-Contract Handoff           COMPLETE
         5.4A3 — Compatibility Regression & Completion Gate                             COMPLETE
-    5.4B — Backup & Atomic-Write Transport Contract       IN PROGRESS
+    5.4B — Backup & Atomic-Write Transport Contract       COMPLETE
         5.4B1 — Safe-Save Capability, Policy & Transaction Contract                    COMPLETE
         5.4B2 — Backup + Staged-Commit In-Memory Reference Transport                   COMPLETE
-        5.4B3 — Failure Recovery, Coordinator Regression & Completion Gate             NEXT / NOT STARTED
-    5.4C — Corruption, Limits & Recovery Diagnostics      NOT STARTED
+        5.4B3 — Failure Recovery, Coordinator Regression & Completion Gate             COMPLETE
+    5.4C — Corruption, Limits & Recovery Diagnostics      NEXT / NOT STARTED
 
 5.5 — Excel Persistence UI                                NOT STARTED
     5.5A — Import / Open Workbook Workflow                NOT STARTED
@@ -68,45 +68,46 @@ Master plan:
 - Optional source-field absence is source evidence and may not be synthesized as an own property with `undefined`.
 - Rollback failure remains a distinct severe diagnostic and may never be reported as successful hydration.
 - 5.4A keeps workbook-format and dataset-schema versions as separate exact version axes.
-- Phase 5.4A does not bump the current public v1/v1 versions merely to manufacture a migration scenario.
+- Phase 5.4A does not bump public v1/v1 merely to manufacture migration scenarios.
 - v1/v1 is the first formal persisted contract unless repository evidence proves a real released predecessor.
-- Missing `_Meta` is rejected; metadata-free legacy auto-detection is not supported.
-- Version preflight occurs before strict current-schema validation for compatibility routing, while `validateWorkbookSchema(...)` remains the strict current-form validator.
+- Missing `_Meta` is rejected; metadata-free legacy auto-detection is unsupported.
+- Version preflight occurs before strict current-schema validation for compatibility routing.
 - Migration steps operate only on neutral workbook documents and cannot touch repositories, hydration, React, transport, or native filesystem APIs.
-- Migration paths are explicit exact-version-pair registrations, deterministic, no-downgrade, and cycle-safe.
+- Migration paths are explicit exact-version registrations, deterministic, no-downgrade, and cycle-safe.
 - Any future workbook or dataset version axis fails closed.
-- 5.4A2 inserts compatibility/migration preparation after codec decode and before strict current reconstruction.
-- Exact current workbooks remain subject to the existing strict current workbook schema, metadata, reconstruction, and dataset integrity checks.
-- Every migration step receives an owned neutral-workbook clone; returned output must be structurally valid, preserve the expected format identity, and match the declared target version pair.
-- Migration execution failures preserve source/target version context, step index, and original thrown causes where applicable.
-- Synthetic migration targets/registries prove generic mechanics only; they do not become public supported formats.
+- Exact current workbooks remain subject to strict current workbook schema, metadata, reconstruction, and dataset-integrity checks.
+- Synthetic migration targets prove generic mechanics only and do not become supported production formats.
 - The production migration registry remains empty until a real older released contract exists.
 - `PersistenceCoordinator` remains unaware of migration mechanics and consumes the same structured importer result shape.
 - Compatibility/migration rejection remains an import rejection and must never reach hydration.
-- 5.4B owns detailed backup creation, staged write, atomic replace/commit, cleanup, and transport-level recovery semantics.
-- `WorkbookTransport` remains byte-only; 5.4B must not introduce dataset, workbook-schema, repository, hydration, React, or native filesystem knowledge into it.
-- Backup policies are distinct: `none`, `if-supported`, and `required`; required backup cannot proceed to replacement when unsupported or when backup creation fails.
-- Backup bytes represent the exact pre-save primary workbook; no-existing-primary is not a backup failure and must not create fake backup bytes.
-- Replacement bytes are staged separately and defensively owned before commit in the safe-save reference transport.
+- 5.4B owns detailed backup creation, staged write, logical replace/commit, cleanup, and transport-level recovery semantics.
+- `WorkbookTransport` remains byte-only and has no dataset, workbook-schema, repository, hydration, React, or native-filesystem knowledge.
+- Backup policies are distinct: `none`, `if-supported`, and `required`.
+- Required backup cannot proceed to replacement when unsupported or when backup creation fails.
+- Backup evidence represents exact pre-save primary workbook bytes.
+- No-existing-primary is not a backup failure and creates no fake backup bytes.
+- Replacement bytes are defensively owned and staged separately before commit in the safe reference transport.
 - Failures before commit preserve the previous primary workbook.
-- Atomic replacement is an explicit transport capability/guarantee, never an assumption inferred by the coordinator or UI.
-- Browser/download-style transports may report non-atomic behavior and must never imply native atomic replacement.
-- The in-memory reference transport proves logical safe-save ordering only; native durability, `fsync`, rename, locking, and crash-consistency guarantees remain Phase 6.
-- A post-commit cleanup problem is distinct from a pre-commit failure and may not be represented as though commit definitely did not occur.
+- Atomic replacement is an explicit transport guarantee, never an assumption inferred by coordinator or UI.
+- Browser/direct transports may truthfully remain non-atomic.
+- The safe in-memory transport proves logical ordering and reference-swap commit only; filesystem durability, rename atomicity, `fsync`, locking, and crash consistency remain Phase 6 concerns.
+- A post-commit cleanup problem is distinct from a pre-commit failure and may not be represented as rollback.
+- `WorkbookTransportSaveError` preserves stage, code, commit state, and original cause.
+- `InMemoryWorkbookTransport` remains `backup: unsupported`, `stagedReplacement: false`, `direct-non-atomic`.
+- `SafeInMemoryWorkbookTransport` remains `backup: supported`, `stagedReplacement: true`, `atomic` with logical in-memory semantics only.
+- Safe-save fault injection for `read-existing`, `backup`, `stage`, `commit`, and `cleanup` exists only for deterministic reference/regression testing.
+- B3 proves read/backup/stage/commit/cleanup recovery semantics without changing production runtime code.
+- Pre-commit cleanup failure retains the previous primary and reports `not-committed` while preserving nested operation + cleanup causes.
+- Post-commit cleanup failure reports `committed`; the new primary remains authoritative even if staging cleanup failed.
+- `PersistenceCoordinator` forwards safe-save options and receipts, wraps transport failure as `TRANSPORT_SAVE_FAILED`, and does not implement backup/stage/commit/rollback itself.
+- Coordinator orchestration never upgrades non-atomic transport guarantees and never re-exports to simulate storage rollback.
+- Hydration rollback remains owned by 5.3B and is not mixed with save-side transport recovery.
+- 5.4C remains the owner of workbook corruption, resource-limit, and recovery diagnostics.
 - Native Tauri filesystem/dialog behavior remains Phase 6.
-- 5.4B1 makes backup support, staged replacement, and atomic-vs-direct replacement explicit immutable transport capabilities.
-- 5.4B1 save receipts report the replacement guarantee actually delivered and distinguish `not-needed / no-existing-workbook` from backup failure.
-- `WorkbookTransportSaveError` preserves safe-save stage, stable code, commit state, and original cause; B2/B3 must build on this vocabulary rather than invent a parallel failure path.
-- The simple `InMemoryWorkbookTransport` intentionally remains `backup: unsupported`, `stagedReplacement: false`, `direct-non-atomic`.
-- 5.4B2 introduces a dedicated `SafeInMemoryWorkbookTransport`; it does not replace or upgrade the simple transport.
-- The B2 safe transport owns caller bytes before async checkpoints, backs up exact pre-save primary bytes, stages separately, commits with one logical in-memory reference swap, then cleans staging.
-- B2 backup references are deterministic under an injected clock and sequence counter; retained backup bytes remain independent from later primary changes.
-- B2 `atomic` means logical in-memory commit only and does not imply native filesystem durability, rename atomicity, `fsync`, locking, or crash consistency.
-- B2 exposes deterministic test/reference fault injection for `read-existing`, `backup`, `stage`, `commit`, and `cleanup`; B3 owns exhaustive failure/recovery regression.
 
 ## Completion evidence index
 
-Detailed evidence remains in dedicated phase records. This tracker keeps live progression and latest authoritative gates concise.
+Detailed evidence remains in dedicated phase records. This tracker preserves live progression and authoritative gates.
 
 ### Phase 5.1 — COMPLETE
 
@@ -138,8 +139,6 @@ Key records:
 - `docs/PHASE_5_3B_VALIDATED_ATOMIC_DATASET_HYDRATION.md`
 - `docs/PHASE_5_3C_PERSISTENCE_COORDINATOR_LOAD_SAVE_LIFECYCLE.md`
 
-Final closeout:
-
 ```text
 Closeout PR #164           MERGED
 Final develop              0624863f59929d645acd5f6539ab311afdfcb5bd
@@ -148,22 +147,7 @@ Final CI                   35039111549 — SUCCESS
 130 modules transformed
 ```
 
-Phase 5.3 established:
-
-```text
-live repositories
-<-> CompleteSourceSnapshotService
-<-> BusinessDataset
-<-> canonical workbook import/export
-<-> WorkbookCodec / XLSX bytes
-<-> WorkbookTransport
-```
-
-with strict validation, atomic hydration/rollback, one shared `PersistenceCoordinator`, and source-fidelity guarantees.
-
-## Phase 5.4A — Schema Migration & Compatibility Framework
-
-Status: **COMPLETE**
+### Phase 5.4A — COMPLETE
 
 Plan:
 
@@ -173,100 +157,31 @@ Parent completion record:
 
 `docs/PHASE_5_4A_SCHEMA_MIGRATION_COMPATIBILITY.md`
 
-Planning evidence:
-
 ```text
-Planning baseline          0624863f59929d645acd5f6539ab311afdfcb5bd
-Planning baseline CI       35039111549 — SUCCESS
 Planning PR #165           MERGED
 Planning merge             f773a2cd928a87c74e62a547b3043c04dcaef577
 Planning post-merge CI     35040392356 — SUCCESS
-```
-
-Completed decomposition:
-
-```text
-5.4A1 — Version Preflight, Compatibility Matrix & Migration Registry Contract  COMPLETE
-5.4A2 — Version-Aware Migration Execution & Current-Contract Handoff           COMPLETE
-5.4A3 — Compatibility Regression & Completion Gate                             COMPLETE
-```
-
-### 5.4A1 — COMPLETE
-
-Completion record:
-
-`docs/PHASE_5_4A1_VERSION_PREFLIGHT_MIGRATION_REGISTRY.md`
-
-```text
-Corrected feature head     104beacd503b33b57e0180c0c642017c6ddb07a8
-Corrected branch CI        35041223493 — SUCCESS
-Implementation PR #166     MERGED
-PR CI                      35041313805 — SUCCESS
-Implementation merge       142a3b4a38b915c7e3258e490ba2b32d96490bb5
-Post-merge develop CI      35041385616 — SUCCESS
-97 test files / 1186 tests
-18 focused 5.4A1 tests
-130 modules transformed
-```
-
-A1 established minimal metadata preflight, deterministic compatibility classification, pure migration-step and registry contracts, cycle/no-downgrade protections, defensive neutral-workbook ownership, and an intentionally empty production registry at v1/v1.
-
-### 5.4A2 — COMPLETE
-
-Completion record:
-
-`docs/PHASE_5_4A2_VERSION_AWARE_MIGRATION_EXECUTION.md`
-
-```text
-Authoritative baseline     049cc5cfe38090f87dbbe702b140915e8224b998
-Baseline CI                35041734689 — SUCCESS
-Corrected feature head     c7ed54af3b38f8f9dacee52384af39472dac5d8b
-Corrected branch CI        35042353048 — SUCCESS
-Implementation PR #168     MERGED
-PR CI                      35042498871 — SUCCESS
-Implementation merge       9dc28493b9d4b46214a11eb330416e83af236db0
-Post-merge develop CI      35042566109 — SUCCESS
-99 test files / 1203 tests
-12 focused migration-preparation tests
-5 focused importer compatibility/handoff tests
+A1 implementation PR #166  MERGED
+A1 post-merge CI           35041385616 — SUCCESS
+A2 implementation PR #168  MERGED
+A2 post-merge CI           35042566109 — SUCCESS
+A3 implementation PR #170  MERGED
+A3 post-merge CI           35047100605 — SUCCESS
+102 test files / 1214 tests at A3 gate
 132 modules transformed
 ```
 
-A2 delivered version-aware preparation/migration after codec decode, deterministic migration execution, defensive migration ownership, fail-closed migration diagnostics, and handoff to the unchanged strict current workbook/dataset contract.
+5.4A closes with public v1/v1 unchanged and no production migration registrations until a real predecessor exists.
 
-### 5.4A3 — COMPLETE
-
-Completion record:
-
-`docs/PHASE_5_4A3_COMPATIBILITY_REGRESSION_COMPLETION_GATE.md`
-
-```text
-Authoritative baseline     c2816d5c0c293ba24f74f20c31edf2c61eb0f26f
-Baseline CI                35042813430 — SUCCESS
-Feature head               ca282c8c3317482bc02d74eb5ea4acc347941ab3
-Branch CI                  35046943869 — SUCCESS
-Implementation PR #170     MERGED
-PR CI                      35047034132 — SUCCESS
-Implementation merge       75473f92766a0b66d5955dec89869eaaf5712939
-Post-merge develop CI      35047100605 — SUCCESS
-102 test files / 1214 tests
-11 focused new A3 tests
-TypeScript typecheck passed
-Production Vite build passed
-132 modules transformed
-```
-
-A3 proved current v1/v1 preservation, fail-closed future/invalid metadata behavior, synthetic migration isolation, strict current workbook/dataset validation authority, direct/transport-backed current import, and zero-hydration compatibility/migration rejection. The A3 implementation changed tests only and introduced no production/runtime code changes.
-
-Phase 5.4A closes with public v1/v1 unchanged and no production migration registrations until a real historical predecessor exists.
-
-## Phase 5.4B — Backup & Atomic-Write Transport Contract
-
-Status: **IN PROGRESS**
+### Phase 5.4B — COMPLETE
 
 Plan:
 
 `docs/PHASE_5_4B_BACKUP_ATOMIC_WRITE_TRANSPORT_PLAN.md`
+
+Parent completion record:
+
+`docs/PHASE_5_4B_BACKUP_ATOMIC_WRITE_TRANSPORT.md`
 
 Planning evidence:
 
@@ -278,63 +193,60 @@ Planning merge             55c06e9309f48345635bd5f5a543762a3ca8ce84
 Planning post-merge CI     35048445692 — SUCCESS
 ```
 
-Locked decomposition:
-
-```text
-5.4B1 — Safe-Save Capability, Policy & Transaction Contract                    COMPLETE
-5.4B2 — Backup + Staged-Commit In-Memory Reference Transport                   COMPLETE
-5.4B3 — Failure Recovery, Coordinator Regression & Completion Gate             NEXT / NOT STARTED
-```
-
-### 5.4B1 — COMPLETE
+#### 5.4B1 — COMPLETE
 
 Completion record:
 
 `docs/PHASE_5_4B1_SAFE_SAVE_CAPABILITY_TRANSACTION_CONTRACT.md`
 
 ```text
-Authoritative baseline     55c06e9309f48345635bd5f5a543762a3ca8ce84
-Baseline CI                35048445692 — SUCCESS
-Corrected feature head     bd3f01235f8d9786e003ad77285e652b792c583d
-Initial PR CI              35048938545 — FAILURE (test fixture type mismatch only)
-Corrected PR CI            35049014369 — SUCCESS
 Implementation PR #173     MERGED
 Implementation merge       2ec2a75c43bef03690f0de7014d4171ba7a36ea0
-Post-merge develop CI      35049144901 — SUCCESS
+Post-merge CI              35049144901 — SUCCESS
 102 test files / 1219 tests
-13 focused WorkbookTransport tests
-TypeScript typecheck passed
-Production Vite build passed
-132 modules transformed
+13 focused transport tests
 ```
 
-B1 established explicit immutable transport capabilities, `none` / `if-supported` / `required` backup policy, truthful atomic-vs-direct replacement receipts, distinct no-existing-workbook backup outcome, and transport save errors carrying failure stage, commit state, stable code, and original cause. The existing simple in-memory transport remains intentionally direct/non-atomic and does not implement B2 backup/staging behavior.
-
-### 5.4B2 — COMPLETE
+#### 5.4B2 — COMPLETE
 
 Completion record:
 
 `docs/PHASE_5_4B2_BACKUP_STAGED_COMMIT_IN_MEMORY_REFERENCE_TRANSPORT.md`
 
 ```text
-Authoritative baseline     bae01571e707b820d90f5ed182c938e7a152899d
-Baseline CI                35049365565 — SUCCESS
 Feature head               89b5f1bc49d00cfbe14bc26dc224381a019ff6a8
 Branch CI                  35050007808 — SUCCESS
 Implementation PR #175     MERGED
 PR CI                      35050081527 — SUCCESS
 Implementation merge       163fa33b6dab018b938f37071920e85cf5137d72
-Post-merge develop CI      35050167491 — SUCCESS
+Post-merge CI              35050167491 — SUCCESS
 103 test files / 1232 tests
 13 focused B2 tests
+```
+
+#### 5.4B3 — COMPLETE
+
+Completion record:
+
+`docs/PHASE_5_4B3_SAFE_SAVE_RECOVERY_COMPLETION_GATE.md`
+
+```text
+Authoritative baseline     d47038ffbe3182a465233bb7d9cb5eabb25d3a31
+Baseline CI                35050455351 — SUCCESS
+Feature head               61a9e4360cd53de0ee965123bdd60891714b79d7
+Branch CI                  35050876845 — SUCCESS
+Implementation PR #177     MERGED
+PR CI                      35050944517 — SUCCESS
+Implementation merge       8100baf43351db501878286127ec1c21a87dee57
+Post-merge CI              35051019882 — SUCCESS
+105 test files / 1245 tests
+13 focused B3 tests
 TypeScript typecheck passed
 Production Vite build passed
 132 modules transformed
 ```
 
-B2 added a dedicated deterministic `SafeInMemoryWorkbookTransport` that creates exact pre-save backup evidence, stages replacement bytes separately, commits through one logical in-memory primary-reference swap, cleans staging on success, returns defensive diagnostic byte views, and exposes deterministic safe-save fault injection for B3. The original simple `InMemoryWorkbookTransport` remains direct/non-atomic and unchanged.
-
-Do not begin B3 until this B2 closeout PR is merged, the exact resulting `develop` CI is green, and the user separately says to proceed.
+5.4B now has explicit capability/policy contracts, deterministic backup/staging reference behavior, complete failure-recovery semantics, and coordinator regression coverage without claiming native filesystem guarantees.
 
 ## Current persistence boundary
 
@@ -357,16 +269,16 @@ Schema compatibility/migration        COMPLETE — 5.4A
 Version preflight/registry contract   COMPLETE — 5.4A1
 Migration execution/import handoff    COMPLETE — 5.4A2
 Compatibility completion gate         COMPLETE — 5.4A3
-Backup/atomic-write planning          ESTABLISHED — 5.4B
+Backup/atomic-write planning          COMPLETE — 5.4B
 Safe-save transport contract          COMPLETE — 5.4B1
 Reference safe-save transport         COMPLETE — 5.4B2
-Safe-save recovery completion gate    NEXT / NOT STARTED — 5.4B3
-Recovery/corruption limits            NOT STARTED — 5.4C
+Safe-save recovery completion gate    COMPLETE — 5.4B3
+Recovery/corruption limits            NEXT / NOT STARTED — 5.4C
 Native filesystem                     Phase 6
 ```
 
 ## Current active task
 
-**5.4B3 — Failure Recovery, Coordinator Regression & Completion Gate — NEXT / NOT STARTED**
+**5.4C — Corruption, Limits & Recovery Diagnostics — NEXT / NOT STARTED**
 
-Do not begin 5.4B3 implementation until the Phase 5.4B2 closeout PR is merged, the exact resulting `develop` CI is green, and the user separately says to proceed.
+Do not begin 5.4C until the Phase 5.4B parent closeout PR is merged, the exact resulting `develop` CI is green, and the user separately says to proceed.
