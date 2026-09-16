@@ -18,7 +18,7 @@ For the detailed Excel persistence architecture, use:
 
 `docs/PHASE_5_EXCEL_PERSISTENCE_PLAN.md`
 
-For the current import/open workflow plan, use:
+For the import/open workflow plan, use:
 
 `docs/PHASE_5_5A_IMPORT_OPEN_WORKBOOK_WORKFLOW_PLAN.md`
 
@@ -36,14 +36,12 @@ Historical phase completion records remain authoritative for their individual co
 
 ## Current Repository Baseline
 
-Baseline used for Phase 5.5A planning:
+Current green implementation baseline after Phase 5.5A1:
 
 ```text
-develop  728b9b99b1da5192fd894f04c64d7ab3d1447d07
-CI       35058157911 — SUCCESS
+develop  13e51998a55789a1fafe3da233344928c889b4a0
+CI       35061438644 — SUCCESS
 ```
-
-This baseline includes the completed Phase 5.4 persistence-safety foundation plus later Production and Products UI/UX improvements.
 
 ## Overall Phase Status
 
@@ -114,7 +112,7 @@ The completed business foundation includes:
 - Production;
 - Pricing.
 
-Recent post-Phase-5.4 UI work also improved the Production planner and Products workspace without changing persistence or domain contracts.
+Recent UI work also improved the Production planner and Products workspace without changing persistence or domain contracts.
 
 ---
 
@@ -134,29 +132,14 @@ Live tracker:
 
 ```text
 5.1 — Persisted Dataset & Workbook Contract Foundation   COMPLETE
-    5.1A — Source Inventory & Dataset Completeness        COMPLETE
-    5.1B — Workbook Schema / Sheet / Column Contracts     COMPLETE
-    5.1C — Dataset Validation & Reference Integrity       COMPLETE
-
 5.2 — XLSX Workbook Codec                                 COMPLETE
-    5.2A — XLSX Library Evaluation & Codec Boundary       COMPLETE
-    5.2B — Deterministic Dataset-to-XLSX Export           COMPLETE
-    5.2C — Strict XLSX-to-Dataset Import & Diagnostics    COMPLETE
-
 5.3 — Snapshot, Hydration & Persistence Coordination      COMPLETE
-    5.3A — Complete Source Snapshot Service               COMPLETE
-    5.3B — Validated Atomic Dataset Hydration             COMPLETE
-    5.3C — Persistence Coordinator / Load-Save Lifecycle  COMPLETE
-
 5.4 — Version Compatibility, Backup & Recovery Safety     COMPLETE
-    5.4A — Schema Migration & Compatibility Framework     COMPLETE
-    5.4B — Backup & Atomic-Write Transport Contract       COMPLETE
-    5.4C — Corruption, Limits & Recovery Diagnostics      COMPLETE
 
 5.5 — Excel Persistence UI                                IN PROGRESS
     5.5A — Import / Open Workbook Workflow                IN PROGRESS
-        5.5A1 — Browser File Selection & Import Command Boundary  NEXT / NOT STARTED
-        5.5A2 — React Open/Replace Workflow & Workspace Refresh   NOT STARTED
+        5.5A1 — Browser File Selection & Import Command Boundary  COMPLETE
+        5.5A2 — React Open/Replace Workflow & Workspace Refresh   NEXT / NOT STARTED
         5.5A3 — Browser Import Regression & 5.5A Completion Gate  NOT STARTED
     5.5B — Export / Save & Backup Workflow                NOT STARTED
     5.5C — Persistence Status / Validation / Recovery UX  NOT STARTED
@@ -206,10 +189,6 @@ Established:
 
 ## Phase 5.4 — Version, backup and recovery safety — COMPLETE
 
-Completion record:
-
-`docs/PHASE_5_4_VERSION_COMPATIBILITY_BACKUP_RECOVERY_SAFETY.md`
-
 Established:
 
 - workbook/dataset version preflight;
@@ -222,7 +201,7 @@ Established:
 - stable recovery categories/action codes;
 - proof that expected import rejection leaves live source state unchanged.
 
-Phase 5.4 final closeout:
+Final Phase 5.4 closeout:
 
 ```text
 develop  b8584d8681e95676c209c2e5a9dde0ee6278b71a
@@ -239,26 +218,53 @@ Dedicated plan:
 
 `docs/PHASE_5_5A_IMPORT_OPEN_WORKBOOK_WORKFLOW_PLAN.md`
 
-5.5A is split into:
+### 5.5A1 — Browser File Selection & Import Command Boundary — COMPLETE
+
+Completion record:
+
+`docs/PHASE_5_5A1_BROWSER_FILE_SELECTION_IMPORT_COMMAND.md`
+
+Delivered:
+
+- browser-compatible selected-file contract;
+- `.xlsx` filename UX guard;
+- defensive `ArrayBuffer -> Uint8Array` ownership;
+- immutable selected-file name/byte-length metadata;
+- cancellation as a non-error/no-op;
+- controlled file-read/extension/no-pending errors;
+- explicit apply command;
+- delegation to `PersistenceCoordinator.importAndApplyWorkbook(...)` only;
+- unchanged coordinator rejection/error semantics;
+- focused ownership and invocation tests.
+
+Implementation evidence:
 
 ```text
-5.5A1 — Browser File Selection & Import Command Boundary
-5.5A2 — React Open/Replace Workflow & Workspace Refresh
-5.5A3 — Browser Import Regression & 5.5A Completion Gate
+Implementation PR #189  MERGED
+Implementation merge    13e51998a55789a1fafe3da233344928c889b4a0
+Post-merge CI           35061438644 — SUCCESS
+114 test files / 1339 tests
+12 focused A1 tests
 ```
 
-Key architecture decisions:
+### 5.5A2 — React Open/Replace Workflow & Workspace Refresh — NEXT / NOT STARTED
 
-- file selection alone is non-destructive;
-- browser file bytes are defensively owned before use;
-- `.xlsx` filename filtering is UX guidance, not content trust;
-- destructive replacement requires deliberate confirmation/apply;
-- workbook validation/hydration remains inside `PersistenceCoordinator`;
-- successful hydration must explicitly refresh/remount the visible repository-backed workspace so stale local React state cannot remain visible;
-- singleton repositories/services remain intact;
-- rich diagnostic/recovery UX remains 5.5C;
-- export/save remains 5.5B;
-- native dialogs/filesystem remain Phase 6.
+A2 will expose A1 through the React application and own:
+
+- **Open / Import workbook** browser UI;
+- selected file summary;
+- explicit destructive replacement confirmation;
+- pending/importing and duplicate-submit protection;
+- success/rejection/operational feedback at the basic 5.5A level;
+- an application-shell workspace revision/remount/refetch boundary after successful hydration only;
+- preservation of the shared singleton repository/service graph;
+- stable active navigation where practical.
+
+A2 must not duplicate workbook parsing, validation or hydration in React.
+
+### 5.5A3 — Browser Import Regression & 5.5A Completion Gate — NOT STARTED
+
+A3 will prove the user workflow end to end against real valid/rejected workbook cases and close parent 5.5A.
 
 ### Phase 5.5B — Export / Save & Backup Workflow — NOT STARTED
 
@@ -296,20 +302,12 @@ The Phase 5 workbook, validation, migration, hydration, and business rules must 
 
 Status: **PLANNED**
 
-Planned areas include:
-
-- dashboard/operational summaries;
-- inventory valuation and low-stock indicators;
-- profitability reporting;
-- material requirements;
-- production history/reporting;
-- report export;
-- final usability/accessibility/performance polish.
+Planned areas include dashboard/operational summaries, inventory valuation and low-stock indicators, profitability, material requirements, production history/reporting, report export, and final usability/accessibility/performance polish.
 
 ---
 
 # Current Active Task
 
-**5.5A1 — Browser File Selection & Import Command Boundary — NEXT / NOT STARTED**
+**5.5A2 — React Open/Replace Workflow & Workspace Refresh — NEXT / NOT STARTED**
 
-Do not begin 5.5A1 until the 5.5A planning PR is merged, the exact resulting `develop` CI is green, and the user separately says to proceed.
+Do not begin 5.5A2 until the 5.5A1 docs-only closeout is merged, the exact resulting `develop` CI is green, and the user separately says to proceed.
