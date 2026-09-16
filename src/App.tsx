@@ -55,6 +55,8 @@ export default function App({
   const importCommand = workbookImportCommand ?? defaultWorkbookImportCommand;
   const exportCommand = workbookExportCommand ?? defaultWorkbookExportCommand;
   const uiClock = persistenceUiClock ?? systemPersistenceUiClock;
+  const workbookIdentityLabel =
+    persistenceStatus.activeImportedWorkbook?.fileName ?? 'No workbook imported';
 
   function handleWorkbookHydrated(event: WorkbookImportHydratedEvent) {
     const observedAt = uiClock();
@@ -78,30 +80,61 @@ export default function App({
             <span>Costing & production workspace</span>
           </div>
         </div>
-        <nav className="phase-nav" aria-label="Application sections">
-          <button className={`nav-item ${section === 'materials' ? 'active' : ''}`} type="button" onClick={() => setSection('materials')}>Materials</button>
-          <button className={`nav-item ${section === 'calibration' ? 'active' : ''}`} type="button" onClick={() => setSection('calibration')}>Calibration</button>
-          <button className={`nav-item ${section === 'products' ? 'active' : ''}`} type="button" onClick={() => setSection('products')}>Products</button>
-          <button className={`nav-item ${section === 'yield' ? 'active' : ''}`} type="button" onClick={() => setSection('yield')}>Yield</button>
-          <button className={`nav-item ${section === 'production' ? 'active' : ''}`} type="button" onClick={() => setSection('production')}>Production</button>
-          <button className={`nav-item ${section === 'pricing' ? 'active' : ''}`} type="button" onClick={() => setSection('pricing')}>Pricing</button>
-        </nav>
-      </header>
 
-      <WorkbookPersistenceStatusPanel status={persistenceStatus} />
-      <WorkbookImportPanel
-        command={importCommand}
-        onHydrated={handleWorkbookHydrated}
-      />
-      <WorkbookExportPanel
-        command={exportCommand}
-        onDownloaded={(result) => {
-          const observedAt = uiClock();
-          setPersistenceStatus((current) =>
-            recordSuccessfulWorkbookExport(current, { result, observedAt }),
-          );
-        }}
-      />
+        <div className="app-header-actions">
+          <nav className="phase-nav" aria-label="Application sections">
+            <button className={`nav-item ${section === 'materials' ? 'active' : ''}`} type="button" onClick={() => setSection('materials')}>Materials</button>
+            <button className={`nav-item ${section === 'calibration' ? 'active' : ''}`} type="button" onClick={() => setSection('calibration')}>Calibration</button>
+            <button className={`nav-item ${section === 'products' ? 'active' : ''}`} type="button" onClick={() => setSection('products')}>Products</button>
+            <button className={`nav-item ${section === 'yield' ? 'active' : ''}`} type="button" onClick={() => setSection('yield')}>Yield</button>
+            <button className={`nav-item ${section === 'production' ? 'active' : ''}`} type="button" onClick={() => setSection('production')}>Production</button>
+            <button className={`nav-item ${section === 'pricing' ? 'active' : ''}`} type="button" onClick={() => setSection('pricing')}>Pricing</button>
+          </nav>
+
+          <details className="workbook-tools">
+            <summary className="workbook-tools-trigger">
+              <span className="workbook-tools-icon" aria-hidden="true">▣</span>
+              <span className="workbook-tools-trigger-copy">
+                <strong>Workbook</strong>
+                <small title={workbookIdentityLabel}>{workbookIdentityLabel}</small>
+              </span>
+              <span className="workbook-tools-chevron" aria-hidden="true">⌄</span>
+            </summary>
+
+            <div className="workbook-tools-popover">
+              <div className="workbook-tools-popover-heading">
+                <div>
+                  <p className="panel-kicker">WORKBOOK TOOLS</p>
+                  <h2>Data file & workbook copies</h2>
+                  <p>
+                    Open this panel only when you need import, session status, or workbook download tools.
+                    Your normal costing and production workspace stays unobstructed when it is closed.
+                  </p>
+                </div>
+                <span className="workbook-tools-current-file" title={workbookIdentityLabel}>
+                  <small>Current imported file</small>
+                  <strong>{workbookIdentityLabel}</strong>
+                </span>
+              </div>
+
+              <WorkbookPersistenceStatusPanel status={persistenceStatus} />
+              <WorkbookImportPanel
+                command={importCommand}
+                onHydrated={handleWorkbookHydrated}
+              />
+              <WorkbookExportPanel
+                command={exportCommand}
+                onDownloaded={(result) => {
+                  const observedAt = uiClock();
+                  setPersistenceStatus((current) =>
+                    recordSuccessfulWorkbookExport(current, { result, observedAt }),
+                  );
+                }}
+              />
+            </div>
+          </details>
+        </div>
+      </header>
 
       <div className="workspace-revision-boundary" data-workspace-revision={workspaceRevision} key={workspaceRevision}>
         {section === 'materials' && <MaterialsPage />}
