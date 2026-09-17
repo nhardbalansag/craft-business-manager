@@ -140,7 +140,7 @@ export class MoldService {
     }
   }
 
-  async assertProductCanActivate(): Promise<void> {
+  async assertProductCanActivate(_productId?: string): Promise<void> {
     return;
   }
 
