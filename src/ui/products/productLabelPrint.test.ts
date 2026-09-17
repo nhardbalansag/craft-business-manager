@@ -22,6 +22,8 @@ function view() {
     copies: 3,
     showCategory: true,
     showStatus: true,
+    showQr: true,
+    showBarcode: true,
   });
 }
 
@@ -38,16 +40,33 @@ function targetWindow(): ProductLabelPrintWindow {
 }
 
 describe('productLabelPrint', () => {
-  it('renders selected millimeter dimensions, one page per copy, and escaped product identity', () => {
+  it('renders selected millimeter dimensions, machine-readable SVGs, one page per copy, and escaped identity', () => {
     const html = renderProductLabelPrintHtml(view());
 
     expect(html).toContain('@page { size: 40mm 30mm; margin: 0; }');
-    expect(html.match(/class="label"/g)).toHaveLength(3);
+    expect(html.match(/class="label has-codes"/g)).toHaveLength(3);
     expect(html).toContain('Mini &amp; Pot &lt;Test&gt;');
     expect(html).toContain('POT-&lt;01&gt;');
     expect(html).toContain('Candle pot');
     expect(html).toContain('ARCHIVED');
+    expect(html).toContain('class="qr"');
+    expect(html).toContain('class="barcode"');
+    expect(html).toContain('<svg');
     expect(html).toContain('page-break-after: always');
+  });
+
+  it('omits machine-readable sections when both options are disabled', () => {
+    const noCodes = buildProductLabelView(product, {
+      sizeId: '50x30',
+      copies: 1,
+      showCategory: false,
+      showStatus: false,
+      showQr: false,
+      showBarcode: false,
+    });
+    const html = renderProductLabelPrintHtml(noCodes);
+    expect(html).not.toContain('class="qr"');
+    expect(html).not.toContain('class="barcode"');
   });
 
   it('writes, focuses, and prints the dedicated label document', () => {
