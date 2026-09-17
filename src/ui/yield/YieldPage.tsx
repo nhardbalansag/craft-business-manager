@@ -22,6 +22,7 @@ import {
   type InputUnit,
 } from '../../domain/units';
 import type { YieldSample } from '../../domain/yieldSamples';
+import { YieldProductSearchPicker } from './YieldProductSearchPicker';
 import './yield.css';
 import './yieldEnhancement.css';
 
@@ -544,9 +545,17 @@ export function YieldPage() {
       ) : (
         <>
           <div className="yield-product-bar panel">
-            <label className="field">
-              <span>Product</span>
+            <div className="yield-product-picker-shell">
+              <YieldProductSearchPicker
+                products={products}
+                selectedProductId={selectedProductId}
+                disabled={products.length === 0 || Boolean(busy)}
+                onSelect={(productId) => requestDraftAction({ kind: 'product', id: productId })}
+              />
               <select
+                className="sr-only yield-product-native-select"
+                aria-hidden="true"
+                tabIndex={-1}
                 value={selectedProductId}
                 disabled={products.length === 0 || Boolean(busy)}
                 onChange={(event) => requestDraftAction({ kind: 'product', id: event.target.value })}
@@ -557,7 +566,7 @@ export function YieldPage() {
                   </option>
                 ))}
               </select>
-            </label>
+            </div>
             <div className="yield-product-context">
               <div>
                 <span className="yield-context-label">Selected product</span>
