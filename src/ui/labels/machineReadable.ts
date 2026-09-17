@@ -24,9 +24,9 @@ export function buildIdentityPayload(kind: PhysicalIdentityKind, id: string): st
 export function renderIdentityQrSvg(kind: PhysicalIdentityKind, id: string): string {
   const svg = qrcode(
     {
+      bcid: 'qrcode',
       text: buildIdentityPayload(kind, id),
       scale: 2,
-      eclevel: 'M',
     },
     drawingSVG(),
   );
@@ -37,6 +37,7 @@ export function renderIdentityQrSvg(kind: PhysicalIdentityKind, id: string): str
 export function renderIdentityCode128Svg(id: string): string {
   const svg = code128(
     {
+      bcid: 'code128',
       text: normalizeId(id),
       scale: 1,
       height: 8,
