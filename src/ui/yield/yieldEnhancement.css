@@ -5,6 +5,31 @@
   margin: -4px 0 20px;
 }
 
+.yield-insights-message { grid-column: 1 / -1; }
+.yield-draft-confirm { padding: 14px; margin-bottom: 16px; border: 1px solid #ccb487; border-radius: 12px; background: #fff9ec; }
+.yield-draft-confirm p { font-size: .84rem; line-height: 1.5; }
+.yield-draft-confirm > div { display: flex; flex-wrap: wrap; gap: 8px; }
+.yield-draft-confirm:focus { outline: 3px solid #866439; outline-offset: 3px; }
+.yield-workspace .yield-input-row { grid-template-columns: 28px minmax(0, 1fr) minmax(0, .7fr); align-items: start; padding: 12px; }
+.yield-workspace .yield-input-row .yield-line-index { margin-top: 24px; }
+.yield-workspace .yield-material-field { grid-column: 2 / -1; }
+.yield-workspace .yield-quantity-field { grid-column: 2; }
+.yield-workspace .yield-unit-field { grid-column: 3; }
+.yield-workspace .yield-input-row :is(input, select) { grid-column: auto; }
+.yield-workspace .yield-input-row .text-button { grid-column: 2 / -1; justify-self: end; }
+.yield-workspace .yield-form { overflow-wrap: anywhere; }
+.yield-workspace .yield-history-panel .yield-history-toolbar { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.yield-workspace .yield-clear-history { grid-column: 1 / -1; justify-self: start; }
+
+@media (max-width: 760px) {
+  .yield-workspace .yield-history-panel .yield-history-toolbar { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 420px) {
+  .yield-workspace .yield-input-row { grid-template-columns: 24px minmax(0, 1fr); padding: 10px; }
+  .yield-workspace .yield-unit-field { grid-column: 2; }
+  .yield-draft-confirm button { width: 100%; }
+}
+
 .yield-insight-card {
   min-width: 0;
   display: grid;
