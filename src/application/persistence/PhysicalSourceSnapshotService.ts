@@ -19,6 +19,8 @@ function sortById<T>(items: readonly T[], id: (item: T) => string): T[] {
 }
 
 export class PhysicalSourceSnapshotService {
+  readonly physicalIdentification = true as const;
+
   constructor(
     private readonly baseSnapshotService: Pick<CompleteSourceSnapshotService, 'snapshot'>,
     private readonly storageLocations: StorageLocationRepository,
