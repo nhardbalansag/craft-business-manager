@@ -10,6 +10,7 @@ import {
   type RatioBasis,
 } from '../../domain/mixPresets';
 import { PRODUCT_CATEGORIES, PRODUCT_CATEGORY_RULES, type Product, type ProductCategory } from '../../domain/products';
+import { AppIcon } from '../icons/AppIcon';
 import { ProductCatalog } from './ProductCatalog';
 import { ProductComponentsView } from './ProductComponentsView';
 import { ProductStockView } from './ProductStockView';
@@ -924,7 +925,7 @@ export function ProductsPage() {
                 </div>
               ) : visibleMixes.length === 0 ? (
                 <div className="empty-state">
-                  <div className="empty-icon">∶</div>
+                  <div className="empty-icon" aria-hidden="true"><AppIcon name="calibration" size={28} /></div>
                   <h3>{mixPresets.length ? 'No matching mix presets' : 'No mix presets yet'}</h3>
                   <p>
                     {mixPresets.length
