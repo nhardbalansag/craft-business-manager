@@ -23,7 +23,7 @@ const products: Product[] = [
   product('ART-002', 'Moon Set'),
   product('CND-001', 'Vanilla Event Candle', 'candle'),
   product('CND-002', 'Rose Event Candle', 'candle'),
-  product('POT-001', 'Jewelry Pot', 'vessel'),
+  product('POT-001', 'Jewelry Pot', 'candle-pot'),
   product('ART-003', 'Dinosaur Set'),
   product('ART-004', 'Ocean Set'),
   product('ART-005', 'Space Set'),
@@ -76,8 +76,9 @@ describe('YieldProductSearchPicker', () => {
     expect(container.textContent).toContain('Vanilla Event Candle');
 
     await fill(search, 'candle');
-    expect(container.querySelectorAll('[role="option"]')).toHaveLength(2);
+    expect(container.querySelectorAll('[role="option"]')).toHaveLength(3);
     expect(container.textContent).toContain('Rose Event Candle');
+    expect(container.textContent).toContain('Jewelry Pot');
   });
 
   it('selects a result with a click and clearly identifies archived products', async () => {
@@ -111,6 +112,6 @@ describe('YieldProductSearchPicker', () => {
     await act(async () => search.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true })));
     await act(async () => search.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })));
 
-    expect(onSelect).toHaveBeenCalledWith('CND-002');
+    expect(onSelect).toHaveBeenCalledWith('CND-001');
   });
 });
