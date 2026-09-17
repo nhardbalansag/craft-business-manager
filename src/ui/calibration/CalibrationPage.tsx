@@ -16,6 +16,7 @@ import {
   type VolumeUnit,
   type WeightUnit,
 } from '../../domain/units';
+import { AppIcon } from '../icons/AppIcon';
 import './calibration.css';
 
 const VOLUME_UNITS = SUPPORTED_UNITS.filter(
@@ -330,12 +331,12 @@ export function CalibrationPage() {
 
       {loading ? (
         <div className="panel calibration-state-panel" role="status" aria-live="polite">
-          <div className="calibration-state-icon" aria-hidden="true">↔</div>
+          <div className="calibration-state-icon" aria-hidden="true"><AppIcon name="calibration" size={26} /></div>
           <div><h2>Loading calibration workspace</h2><p>Checking eligible materials and their saved measurement evidence…</p></div>
         </div>
       ) : loadError ? (
         <div className="panel calibration-state-panel calibration-state-error" role="alert">
-          <div className="calibration-state-icon" aria-hidden="true">!</div>
+          <div className="calibration-state-icon" aria-hidden="true"><AppIcon name="alert" size={25} /></div>
           <div>
             <h2>Calibration unavailable</h2>
             <p>{loadError}</p>
@@ -344,7 +345,7 @@ export function CalibrationPage() {
         </div>
       ) : materials.length === 0 ? (
         <div className="panel calibration-state-panel calibration-empty">
-          <div className="calibration-state-icon" aria-hidden="true">g</div>
+          <div className="calibration-state-icon" aria-hidden="true"><AppIcon name="scale" size={25} /></div>
           <div>
             <h2>Add a weight-based material first</h2>
             <p>Calibration becomes available after an active material with canonical base unit <strong>g</strong> exists.</p>
@@ -555,7 +556,7 @@ export function CalibrationPage() {
 
             <div className="table-wrap calibration-table-wrap">
               {historyLoading ? (
-                <div className="empty-state calibration-history-state" role="status"><div className="empty-icon" aria-hidden="true">↻</div><h3>Loading calibration history</h3><p>Reading the selected material’s evidence and effective conversion.</p></div>
+                <div className="empty-state calibration-history-state" role="status"><div className="empty-icon" aria-hidden="true"><AppIcon name="loader" size={28} className="is-spinning" /></div><h3>Loading calibration history</h3><p>Reading the selected material’s evidence and effective conversion.</p></div>
               ) : (
                 <>
                   <table role="table" className="responsive-table materials-table calibration-table">
@@ -579,10 +580,10 @@ export function CalibrationPage() {
                     </tbody>
                   </table>
                   {records.length === 0 && (
-                    <div className="empty-state"><div className="empty-icon" aria-hidden="true">↔</div><h3>No calibration samples yet</h3><p>Record a known volume and the weight of that same sample to establish this material’s grams-per-cup relationship.</p></div>
+                    <div className="empty-state"><div className="empty-icon" aria-hidden="true"><AppIcon name="calibration" size={28} /></div><h3>No calibration samples yet</h3><p>Record a known volume and the weight of that same sample to establish this material’s grams-per-cup relationship.</p></div>
                   )}
                   {records.length > 0 && visibleRecords.length === 0 && (
-                    <div className="empty-state"><div className="empty-icon" aria-hidden="true">⌕</div><h3>No matching samples</h3><p>Try a different sample ID, note, quantity or unit.</p></div>
+                    <div className="empty-state"><div className="empty-icon" aria-hidden="true"><AppIcon name="search" size={28} /></div><h3>No matching samples</h3><p>Try a different sample ID, note, quantity or unit.</p></div>
                   )}
                 </>
               )}
