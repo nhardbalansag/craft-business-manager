@@ -11,8 +11,15 @@ import { SheetJsWorkbookCodec } from './sheetJsWorkbookCodec';
 const codec = new SheetJsWorkbookCodec();
 const metadata = { exportedAt: '2026-09-17T03:00:00.000Z', applicationVersion: 'test' };
 
+function byId<T extends { id: string }>(records: readonly T[]): T[] {
+  return [...records].sort(
+    (a, b) =>
+      a.id.localeCompare(b.id, undefined, { sensitivity: 'base' }) || a.id.localeCompare(b.id),
+  );
+}
+
 describe('physical business workbook v2', () => {
-  it('round-trips products, hierarchical storage locations, and molds', () => {
+  it('round-trips products, hierarchical storage locations, and molds with canonical row ordering', () => {
     const base = createEmptyBusinessDataset();
     base.products.push({
       id: 'PRD-001',
@@ -48,8 +55,8 @@ describe('physical business workbook v2', () => {
     expect(imported.metadata.workbookFormatVersion).toBe(2);
     expect(imported.metadata.datasetSchemaVersion).toBe(2);
     expect(imported.dataset.products).toEqual(dataset.products);
-    expect(imported.dataset.storageLocations).toEqual(dataset.storageLocations);
-    expect(imported.dataset.molds).toEqual(dataset.molds);
+    expect(imported.dataset.storageLocations).toEqual(byId(dataset.storageLocations));
+    expect(imported.dataset.molds).toEqual(byId(dataset.molds));
   });
 
   it('promotes a valid v1 workbook with empty physical collections', () => {
