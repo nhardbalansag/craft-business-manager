@@ -7,11 +7,13 @@ import type { BusinessDataset } from '../../domain/types';
 import type { CalibrationRepository } from '../calibrations/CalibrationRepository';
 import type { MaterialRepository } from '../materials/MaterialRepository';
 import type { MixPresetRepository } from '../mixPresets/MixPresetRepository';
+import type { MoldRepository } from '../molds/MoldRepository';
 import type { ProductComponentRepository } from '../productComponents/ProductComponentRepository';
 import type { ProductFinancialProfileRepository } from '../productFinancialProfiles/ProductFinancialProfileRepository';
 import type { ProductRepository } from '../products/ProductRepository';
 import type { ProductStockRepository } from '../productStocks/ProductStockRepository';
 import type { FixedRecipeItemRepository } from '../recipeItems/FixedRecipeItemRepository';
+import type { StorageLocationRepository } from '../storageLocations/StorageLocationRepository';
 import type { YieldSampleRepository } from '../yieldSamples/YieldSampleRepository';
 import type { CollectionReplacementPort } from './CollectionReplacementPort';
 import type { CompleteSourceSnapshotService } from './CompleteSourceSnapshotService';
@@ -19,7 +21,6 @@ import type { CompleteSourceSnapshotService } from './CompleteSourceSnapshotServ
 type HydratableRepository<Repository, RecordType> = Repository &
   CollectionReplacementPort<RecordType>;
 
-/** Complete writable repository set used only by the persistence hydration boundary. */
 export interface CompleteSourceHydrationRepositories {
   materials: HydratableRepository<MaterialRepository, BusinessDataset['materials'][number]>;
   calibrations: HydratableRepository<
@@ -48,6 +49,11 @@ export interface CompleteSourceHydrationRepositories {
     ProductFinancialProfileRepository,
     BusinessDataset['productFinancialProfiles'][number]
   >;
+  storageLocations: HydratableRepository<
+    StorageLocationRepository,
+    BusinessDataset['storageLocations'][number]
+  >;
+  molds: HydratableRepository<MoldRepository, BusinessDataset['molds'][number]>;
 }
 
 export type DatasetHydrationResult =
@@ -62,7 +68,6 @@ export type DatasetHydrationErrorCode =
   | 'APPLY_FAILED_RESTORED'
   | 'ROLLBACK_FAILED';
 
-/** Controlled operational failure after a candidate has passed source validation. */
 export class DatasetHydrationError extends Error {
   readonly code: DatasetHydrationErrorCode;
   readonly operationCause: unknown;
@@ -82,11 +87,6 @@ export class DatasetHydrationError extends Error {
   }
 }
 
-/**
- * Validates and applies one complete BusinessDataset as a logical all-or-nothing live-state
- * replacement. Workbook parsing, persistence lifecycle serialization, UI, and filesystem concerns
- * remain outside this boundary.
- */
 export class ValidatedAtomicDatasetHydrationService {
   constructor(
     private readonly repositories: CompleteSourceHydrationRepositories,
@@ -102,8 +102,6 @@ export class ValidatedAtomicDatasetHydrationService {
       };
     }
 
-    // Validation above proves the complete current BusinessDataset contract. Clone before any
-    // asynchronous writes so caller-owned values can no longer change the hydration attempt.
     const next = cloneBusinessDataset(candidate as BusinessDataset);
 
     let previous: BusinessDataset;
@@ -141,7 +139,6 @@ export class ValidatedAtomicDatasetHydrationService {
   }
 
   private async replaceDataset(dataset: BusinessDataset): Promise<void> {
-    // Keep one explicit dependency-aware sequence for both forward apply and rollback.
     await this.repositories.materials.replaceAll(dataset.materials);
     await this.repositories.calibrations.replaceAll(dataset.materialCalibrations);
     await this.repositories.mixPresets.replaceAll(dataset.mixPresets);
@@ -151,5 +148,7 @@ export class ValidatedAtomicDatasetHydrationService {
     await this.repositories.productComponents.replaceAll(dataset.productComponents);
     await this.repositories.productStocks.replaceAll(dataset.productStocks);
     await this.repositories.productFinancialProfiles.replaceAll(dataset.productFinancialProfiles);
+    await this.repositories.storageLocations.replaceAll(dataset.storageLocations);
+    await this.repositories.molds.replaceAll(dataset.molds);
   }
 }
