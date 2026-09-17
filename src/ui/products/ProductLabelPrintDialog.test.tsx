@@ -29,6 +29,12 @@ function printWindow(): ProductLabelPrintWindow {
   };
 }
 
+function setNativeInputValue(input: HTMLInputElement, value: string) {
+  const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
+  setter?.call(input, value);
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
 beforeEach(() => {
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
   container = document.createElement('div');
@@ -63,9 +69,11 @@ describe('ProductLabelPrintDialog', () => {
     await act(async () => {
       sizeSelect.value = '60x40';
       sizeSelect.dispatchEvent(new Event('change', { bubbles: true }));
-      copiesInput.value = '3';
-      copiesInput.dispatchEvent(new Event('input', { bubbles: true }));
-      copiesInput.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    await act(async () => {
+      setNativeInputValue(copiesInput, '3');
+    });
+    await act(async () => {
       checkboxes[0]!.click();
     });
 
