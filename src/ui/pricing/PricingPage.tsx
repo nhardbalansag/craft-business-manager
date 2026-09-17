@@ -21,6 +21,7 @@ import {
   type ProductFinancialProfileFormState,
 } from './productFinancialProfileForm';
 import { formatPhp, pricingPolicyLabel } from './productPricingQuoteView';
+import { AppIcon } from '../icons/AppIcon';
 import './pricing.css';
 
 type ActiveFilter = 'active' | 'archived' | 'all';
@@ -351,13 +352,13 @@ export function PricingPage() {
 
           {loading ? (
             <div className="empty-state compact-pricing-empty">
-              <div className="empty-icon">₱</div>
+              <div className="empty-icon" aria-hidden="true"><AppIcon name="pricing" size={28} /></div>
               <h3>Loading pricing workspace</h3>
               <p>Reading Product identities and current financial profile source records.</p>
             </div>
           ) : workspaceError ? (
             <div className="empty-state compact-pricing-empty" role="alert">
-              <div className="empty-icon">!</div>
+              <div className="empty-icon" aria-hidden="true"><AppIcon name="alert" size={28} /></div>
               <h3>Pricing workspace unavailable</h3>
               <p>{workspaceError}</p>
               <button className="button button-secondary" type="button" onClick={() => void loadWorkspace()}>
@@ -366,13 +367,13 @@ export function PricingPage() {
             </div>
           ) : products.length === 0 ? (
             <div className="empty-state compact-pricing-empty">
-              <div className="empty-icon">+</div>
+              <div className="empty-icon" aria-hidden="true"><AppIcon name="plus-circle" size={28} /></div>
               <h3>Create a Product first</h3>
               <p>The Pricing workspace needs a Product identity before financial configuration or unit economics can be inspected.</p>
             </div>
           ) : visibleProducts.length === 0 ? (
             <div className="empty-state compact-pricing-empty">
-              <div className="empty-icon">⌕</div>
+              <div className="empty-icon" aria-hidden="true"><AppIcon name="search" size={28} /></div>
               <h3>No Products match this view</h3>
               <p>Change the search or status filter. Archived Products remain available under Archived or All.</p>
             </div>
