@@ -147,7 +147,7 @@ export default function App({
               aria-current={section === item.id ? 'page' : undefined}
               onClick={() => selectSection(item.id)}
             >
-              <span className="app-drawer-nav-icon" aria-hidden="true">{item.shortLabel}</span>
+              <span className="app-drawer-nav-icon" data-label={item.shortLabel} aria-hidden="true" />
               <span>{item.label}</span>
             </button>
           ))}
