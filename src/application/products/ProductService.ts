@@ -17,6 +17,10 @@ export interface ProductListFilter {
 }
 
 export type ProductUpdate = Partial<Omit<Product, 'id'>>;
+type ProductRelationshipGuard = Pick<
+  ProductComponentRelationshipGuard,
+  'assertProductCanArchive' | 'assertProductCanActivate'
+>;
 
 export type ProductApplicationErrorCode =
   | 'PRODUCT_NOT_FOUND'
@@ -70,7 +74,7 @@ export class ProductService {
   constructor(
     private readonly repository: ProductRepository,
     private readonly mixPresetRepository: MixPresetRepository,
-    private readonly componentRelationshipGuard?: ProductComponentRelationshipGuard,
+    private readonly componentRelationshipGuard?: ProductRelationshipGuard,
   ) {}
 
   async createProduct(input: Product): Promise<Product> {
