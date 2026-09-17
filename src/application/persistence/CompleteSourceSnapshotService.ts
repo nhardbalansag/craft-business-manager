@@ -6,19 +6,15 @@ import type { BusinessDataset } from '../../domain/types';
 import type { CalibrationRepository } from '../calibrations/CalibrationRepository';
 import type { MaterialRepository } from '../materials/MaterialRepository';
 import type { MixPresetRepository } from '../mixPresets/MixPresetRepository';
+import type { MoldRepository } from '../molds/MoldRepository';
 import type { ProductComponentRepository } from '../productComponents/ProductComponentRepository';
 import type { ProductFinancialProfileRepository } from '../productFinancialProfiles/ProductFinancialProfileRepository';
 import type { ProductRepository } from '../products/ProductRepository';
 import type { ProductStockRepository } from '../productStocks/ProductStockRepository';
 import type { FixedRecipeItemRepository } from '../recipeItems/FixedRecipeItemRepository';
+import type { StorageLocationRepository } from '../storageLocations/StorageLocationRepository';
 import type { YieldSampleRepository } from '../yieldSamples/YieldSampleRepository';
 
-/**
- * Complete authoritative repository set required to snapshot the persisted business source state.
- *
- * The service depends only on repository interfaces so callers do not need to know whether the
- * live source data is currently in memory, Excel-backed, SQLite-backed, or another transport.
- */
 export interface CompleteSourceSnapshotRepositories {
   materials: MaterialRepository;
   calibrations: CalibrationRepository;
@@ -29,6 +25,8 @@ export interface CompleteSourceSnapshotRepositories {
   productComponents: ProductComponentRepository;
   productStocks: ProductStockRepository;
   productFinancialProfiles: ProductFinancialProfileRepository;
+  storageLocations: StorageLocationRepository;
+  molds: MoldRepository;
 }
 
 function canonicalText(value: string): string {
@@ -44,12 +42,7 @@ function sortByIdentity<T>(items: readonly T[], identity: (item: T) => string): 
   return [...items].sort((left, right) => compareIdentity(identity(left), identity(right)));
 }
 
-/**
- * Read-only application boundary that captures all authoritative Phase 1-4 source state.
- *
- * Derived costing, yield-learning, production, capacity, and pricing outputs are intentionally
- * excluded. Any failed repository read rejects the whole operation; no partial dataset is returned.
- */
+/** Captures all authoritative source state; any failed repository read rejects the whole snapshot. */
 export class CompleteSourceSnapshotService {
   constructor(private readonly repositories: CompleteSourceSnapshotRepositories) {}
 
@@ -64,6 +57,8 @@ export class CompleteSourceSnapshotService {
       productComponents,
       productStocks,
       productFinancialProfiles,
+      storageLocations,
+      molds,
     ] = await Promise.all([
       this.repositories.materials.list(),
       this.repositories.calibrations.list(),
@@ -74,6 +69,8 @@ export class CompleteSourceSnapshotService {
       this.repositories.productComponents.list(),
       this.repositories.productStocks.list(),
       this.repositories.productFinancialProfiles.list(),
+      this.repositories.storageLocations.list(),
+      this.repositories.molds.list(),
     ]);
 
     const dataset: BusinessDataset = {
@@ -90,6 +87,8 @@ export class CompleteSourceSnapshotService {
         productFinancialProfiles,
         (profile) => profile.productId,
       ),
+      storageLocations: sortByIdentity(storageLocations, (location) => location.id),
+      molds: sortByIdentity(molds, (mold) => mold.id),
     };
 
     return cloneBusinessDataset(dataset);
