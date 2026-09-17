@@ -28,3 +28,27 @@
     animation: none;
   }
 }
+
+.empty-icon .app-icon,
+.yield-state-icon .app-icon,
+.calibration-state-icon .app-icon,
+.product-category-icon .app-icon,
+.composition-tree-connector .app-icon,
+.yield-product-search-icon .app-icon,
+.yield-product-search-clear .app-icon {
+  display: block;
+}
+
+.product-category-icon .app-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.composition-tree-connector .app-icon {
+  margin-top: 1px;
+}
+
+.button .app-icon,
+.text-button .app-icon {
+  margin-inline-end: 6px;
+}
