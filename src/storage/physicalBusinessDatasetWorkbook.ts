@@ -208,25 +208,35 @@ function optionalText(row: Readonly<Record<string, unknown>>, key: string): stri
 }
 
 function reconstructStorage(sheetValue: WorkbookNeutralSheet): StorageLocation[] {
-  return sheetValue.rows.map((row) => ({
-    id: row.id as string,
-    name: row.name as string,
-    type: row.type as StorageLocation['type'],
-    parentId: optionalText(row, 'parentId'),
-    notes: optionalText(row, 'notes'),
-    isActive: row.isActive as boolean,
-  }));
+  return sheetValue.rows.map((row) => {
+    const location: StorageLocation = {
+      id: row.id as string,
+      name: row.name as string,
+      type: row.type as StorageLocation['type'],
+      isActive: row.isActive as boolean,
+    };
+    const parentId = optionalText(row, 'parentId');
+    const notes = optionalText(row, 'notes');
+    if (parentId !== undefined) location.parentId = parentId;
+    if (notes !== undefined) location.notes = notes;
+    return location;
+  });
 }
 
 function reconstructMolds(sheetValue: WorkbookNeutralSheet): Mold[] {
-  return sheetValue.rows.map((row) => ({
-    id: row.id as string,
-    productId: row.productId as string,
-    name: row.name as string,
-    storageLocationId: optionalText(row, 'storageLocationId'),
-    notes: optionalText(row, 'notes'),
-    isActive: row.isActive as boolean,
-  }));
+  return sheetValue.rows.map((row) => {
+    const mold: Mold = {
+      id: row.id as string,
+      productId: row.productId as string,
+      name: row.name as string,
+      isActive: row.isActive as boolean,
+    };
+    const storageLocationId = optionalText(row, 'storageLocationId');
+    const notes = optionalText(row, 'notes');
+    if (storageLocationId !== undefined) mold.storageLocationId = storageLocationId;
+    if (notes !== undefined) mold.notes = notes;
+    return mold;
+  });
 }
 
 function legacyDocumentFromV2(document: WorkbookNeutralDocument): WorkbookNeutralDocument {
@@ -280,6 +290,30 @@ export function importPhysicalBusinessDatasetFromXlsx(
 
   if (formatId !== CRAFT_BUSINESS_WORKBOOK_FORMAT_ID) {
     return failure({ stage: 'compatibility', code: 'INVALID_FORMAT_ID', message: `Workbook formatId must be ${CRAFT_BUSINESS_WORKBOOK_FORMAT_ID}.`, sheetName: '_Meta' });
+  }
+
+  if (
+    typeof workbookVersion === 'number' &&
+    typeof datasetVersion === 'number' &&
+    (workbookVersion > CURRENT_PHYSICAL_WORKBOOK_FORMAT_VERSION || datasetVersion > 2)
+  ) {
+    return failure({
+      stage: 'compatibility',
+      code: 'UNSUPPORTED_FUTURE_VERSION',
+      message: `Workbook version ${workbookVersion}/${datasetVersion} is newer than supported physical workbook version ${CURRENT_PHYSICAL_WORKBOOK_FORMAT_VERSION}/2.`,
+      sheetName: '_Meta',
+      rowIndex: 0,
+      excelRow: 2,
+      compatibilityStatus: 'unsupported-future',
+      sourceVersion: {
+        workbookFormatVersion: workbookVersion,
+        datasetSchemaVersion: datasetVersion,
+      },
+      targetVersion: {
+        workbookFormatVersion: CURRENT_PHYSICAL_WORKBOOK_FORMAT_VERSION,
+        datasetSchemaVersion: 2,
+      },
+    });
   }
 
   if (workbookVersion === 1 && datasetVersion === 1) {
