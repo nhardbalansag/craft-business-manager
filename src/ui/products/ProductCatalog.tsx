@@ -83,238 +83,245 @@ export function ProductCatalog({
     setEditorIntent({ mode: 'edit', productName: product.name, productId: product.id });
   }
 
-  if (editorIntent) {
-    return (
-      <section
-        className="panel product-catalog is-editor-shell-open"
-        aria-label="Product editor navigation"
-      >
-        <div className="product-editor-navigation">
-          <button
-            type="button"
-            className="product-editor-back"
-            onClick={() => setEditorIntent(null)}
-          >
-            <span aria-hidden="true">←</span>
-            Back to product catalog
-          </button>
-          <div className="product-editor-breadcrumb" aria-label="Product editor location">
-            <span>Products</span>
-            <span aria-hidden="true">/</span>
-            <span>Product catalog</span>
-            <span aria-hidden="true">/</span>
-            <strong>{editorIntent.mode === 'new' ? 'Add product' : 'Edit product'}</strong>
-          </div>
-        </div>
-
-        <div className="product-editor-context">
-          <div>
-            <p className="panel-kicker">PRODUCT EDITOR</p>
-            <h2>{editorIntent.mode === 'new' ? 'Add a new product' : `Edit ${editorIntent.productName}`}</h2>
-            <p>
-              {editorIntent.mode === 'new'
-                ? 'Create the product here. Your collection stays separate and uncluttered.'
-                : `Update ${editorIntent.productId} in a focused editor without mixing the form into the catalog.`}
-            </p>
-          </div>
-          <span className="product-editor-mode-pill">
-            {editorIntent.mode === 'new' ? 'New product' : 'Editing'}
-          </span>
-        </div>
-
-        <div className="product-editor-draft-note">
-          <strong>Focused editing</strong>
-          <span>Your draft is preserved if you return to the catalog before saving.</span>
-        </div>
-      </section>
-    );
-  }
-
   return (
-    <section className="panel product-catalog" aria-label="Product catalog" aria-busy={loading}>
-      <div className="panel-heading">
-        <div>
-          <p className="panel-kicker">YOUR COLLECTION</p>
-          <h2>Product catalog</h2>
-          <p className="product-catalog-purpose">Browse, search, organize, and manage your collection. Product data entry opens separately.</p>
-        </div>
-        <div className="product-catalog-heading-actions">
-          <button type="button" className="button button-primary" disabled={disabled} onClick={startNewProduct}>
-            + Add product
-          </button>
-        </div>
-      </div>
-      <label className="field product-catalog-search">
-        <span className="sr-only">Search products</span>
-        <input
-          type="search"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search by name, ID, mix, or notes"
-        />
-      </label>
-      <div className="product-category-filters" role="group" aria-label="Filter by category">
-        <button type="button" aria-label="All categories" aria-pressed={category === 'all'} onClick={() => setCategory('all')}>
-          All categories <span className="product-filter-count" aria-hidden="true">{loading || loadFailed ? '-' : matchingProducts.length}</span>
-        </button>
-        {PRODUCT_CATEGORIES.map((value) => (
-          <button type="button" key={value} aria-label={PRODUCT_CATEGORY_RULES[value].label} aria-pressed={category === value} onClick={() => setCategory(value)}>
-            {PRODUCT_CATEGORY_RULES[value].label} <span className="product-filter-count" aria-hidden="true">{loading || loadFailed ? '-' : matchingProducts.filter((product) => product.category === value).length}</span>
-          </button>
-        ))}
-      </div>
-      <div className="product-catalog-toolbar">
-        <label className="field">
-          <span>Status</span>
-          <select
-            aria-label="Product status filter"
-            value={status}
-            onChange={(event) => setStatus(event.target.value as typeof status)}
-          >
-            <option value="active">Active products</option>
-            <option value="archived">Archived products</option>
-            <option value="all">All products</option>
-          </select>
-        </label>
-        <label className="field">
-          <span>Sort by</span>
-          <select value={sort} onChange={(event) => setSort(event.target.value as typeof sort)}>
-            <option value="name">Name A to Z</option>
-            <option value="category">Category, then name</option>
-          </select>
-        </label>
-        {filtered && (
-          <button type="button" className="text-button" onClick={clearFilters}>
-            Clear filters
-          </button>
-        )}
-      </div>
-      <div className="product-results-toolbar">
-        <p className="product-result-count" role="status" aria-live="polite">
-          {loadFailed
-            ? 'Catalog could not be refreshed'
-            : loading
-              ? 'Loading your collection...'
-              : `${visible.length} of ${products.length} products shown`}
-        </p>
-        <div className="product-density-control" role="group" aria-label="Catalog layout">
-          <button type="button" aria-pressed={density === 'cards'} onClick={() => setDensity('cards')}>Cards</button>
-          <button type="button" aria-pressed={density === 'compact'} onClick={() => setDensity('compact')}>Compact</button>
-        </div>
-      </div>
-      {loadFailed ? (
-        <div className="empty-state">
-          <h3>Catalog unavailable</h3>
-          <p>Use Retry loading above to reconnect to your product collection.</p>
-        </div>
-      ) : loading ? (
-        <div className="empty-state">
-          <p>Loading products...</p>
-        </div>
-      ) : products.length === 0 ? (
-        <div className="empty-state">
-          <span className="product-category-icon" aria-hidden="true">
-            01
-          </span>
-          <h3>Make room for your first creation</h3>
-          <p>Add a product, choose its category, and set the material reserve for future batches.</p>
-          <button type="button" className="button button-quiet" disabled={disabled} onClick={startNewProduct}>
-            Add your first product
-          </button>
-        </div>
-      ) : visible.length === 0 ? (
-        <div className="empty-state">
-          <h3>No matching products</h3>
-          <p>Try a different search, category, or status to find what you need.</p>
-          <button type="button" className="button button-quiet" onClick={clearFilters}>
-            Clear filters
-          </button>
-        </div>
-      ) : (
-        <div className={`product-card-grid ${density === 'compact' ? 'is-compact' : ''}`}>
-          {visible.map((product) => {
-            const mix = mixById.get(product.mixPresetId?.toLowerCase() ?? '');
-            return (
-              <article
-                key={product.id}
-                className={`product-catalog-card ${editingId === product.id ? 'is-editing' : ''}`}
-                aria-label={product.name}
-              >
-                <div className="product-card-top">
-                  <span className={`product-category-icon category-${product.category}`} aria-hidden="true">
-                    {product.category === 'candle' ? 'C' : product.category === 'candle-pot' ? 'P' : 'A'}
-                  </span>
-                  <span className={`status-pill ${product.isActive ? 'status-active' : ''}`}>
-                    {product.isActive ? 'Active' : 'Archived'}
-                  </span>
-                </div>
-                <div className="product-card-identity">
-                  <p className="product-card-category">{PRODUCT_CATEGORY_RULES[product.category].label}</p>
-                  <h3>{product.name}</h3>
-                  <span className="material-id">{product.id}</span>
-                </div>
-                <dl className="product-card-facts">
-                  <div>
-                    <dt>Mix preset</dt>
-                    <dd>
-                      {mix?.name ?? product.mixPresetId ?? 'No mix preset'}
-                      {mix && !mix.isActive ? ' (archived)' : ''}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Material reserve</dt>
-                    <dd>{(product.safetyWasteRate * 100).toLocaleString(undefined, { maximumFractionDigits: 2 })}%</dd>
-                  </div>
-                </dl>
-                {product.notes && (
-                  <details className="product-card-notes">
-                    <summary>Production notes</summary>
-                    <p>{product.notes}</p>
-                  </details>
-                )}
-                <div className="product-card-actions">
-                  <button
-                    type="button"
-                    className="button button-quiet"
-                    disabled={disabled}
-                    aria-label={`Edit ${product.name}`}
-                    onClick={() => startEditProduct(product)}
-                  >
-                    {editingId === product.id ? 'Continue editing' : 'Edit product'}
-                  </button>
-                  <button
-                    type="button"
-                    className="text-button"
-                    disabled={disabled}
-                    aria-label={`Components for ${product.name}`}
-                    onClick={() => onComponents(product)}
-                  >
-                    Components
-                  </button>
-                  <button
-                    type="button"
-                    className="text-button"
-                    disabled={disabled}
-                    aria-label={`Print label for ${product.name}`}
-                    onClick={() => setLabelProduct(product)}
-                  >
-                    Print label
-                  </button>
-                  <button
-                    type="button"
-                    className={`text-button ${product.isActive ? 'danger' : ''}`}
-                    disabled={disabled}
-                    aria-label={`${product.isActive ? 'Archive' : 'Restore'} ${product.name}`}
-                    onClick={() => onToggleActive(product)}
-                  >
-                    {product.isActive ? 'Archive' : 'Restore'}
-                  </button>
-                </div>
-              </article>
-            );
-          })}
+    <section
+      className={`panel product-catalog ${editorIntent ? 'is-editor-shell-open' : ''}`}
+      aria-label="Product catalog"
+      aria-busy={loading}
+    >
+      {editorIntent && (
+        <div className="product-editor-shell" aria-label="Product editor navigation">
+          <div className="product-editor-navigation">
+            <button
+              type="button"
+              className="product-editor-back"
+              onClick={() => setEditorIntent(null)}
+            >
+              <span aria-hidden="true">←</span>
+              Back to product catalog
+            </button>
+            <div className="product-editor-breadcrumb" aria-label="Product editor location">
+              <span>Products</span>
+              <span aria-hidden="true">/</span>
+              <span>Product catalog</span>
+              <span aria-hidden="true">/</span>
+              <strong>{editorIntent.mode === 'new' ? 'Add product' : 'Edit product'}</strong>
+            </div>
+          </div>
+
+          <div className="product-editor-context">
+            <div>
+              <p className="panel-kicker">PRODUCT EDITOR</p>
+              <h2>{editorIntent.mode === 'new' ? 'Add a new product' : `Edit ${editorIntent.productName}`}</h2>
+              <p>
+                {editorIntent.mode === 'new'
+                  ? 'Create the product here. Your collection stays separate and uncluttered.'
+                  : `Update ${editorIntent.productId} in a focused editor without mixing the form into the catalog.`}
+              </p>
+            </div>
+            <span className="product-editor-mode-pill">
+              {editorIntent.mode === 'new' ? 'New product' : 'Editing'}
+            </span>
+          </div>
+
+          <div className="product-editor-draft-note">
+            <strong>Focused editing</strong>
+            <span>Your draft is preserved if you return to the catalog before saving.</span>
+          </div>
         </div>
       )}
+
+      <div className="product-catalog-collection" hidden={Boolean(editorIntent)}>
+        <div className="panel-heading">
+          <div>
+            <p className="panel-kicker">YOUR COLLECTION</p>
+            <h2>Product catalog</h2>
+            <p className="product-catalog-purpose">Browse, search, organize, and manage your collection. Product data entry opens separately.</p>
+          </div>
+          <div className="product-catalog-heading-actions">
+            <button
+              type="button"
+              className="button button-primary"
+              disabled={disabled}
+              aria-label="+ New product"
+              onClick={startNewProduct}
+            >
+              + Add product
+            </button>
+          </div>
+        </div>
+        <label className="field product-catalog-search">
+          <span className="sr-only">Search products</span>
+          <input
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search by name, ID, mix, or notes"
+          />
+        </label>
+        <div className="product-category-filters" role="group" aria-label="Filter by category">
+          <button type="button" aria-label="All categories" aria-pressed={category === 'all'} onClick={() => setCategory('all')}>
+            All categories <span className="product-filter-count" aria-hidden="true">{loading || loadFailed ? '-' : matchingProducts.length}</span>
+          </button>
+          {PRODUCT_CATEGORIES.map((value) => (
+            <button type="button" key={value} aria-label={PRODUCT_CATEGORY_RULES[value].label} aria-pressed={category === value} onClick={() => setCategory(value)}>
+              {PRODUCT_CATEGORY_RULES[value].label} <span className="product-filter-count" aria-hidden="true">{loading || loadFailed ? '-' : matchingProducts.filter((product) => product.category === value).length}</span>
+            </button>
+          ))}
+        </div>
+        <div className="product-catalog-toolbar">
+          <label className="field">
+            <span>Status</span>
+            <select
+              aria-label="Product status filter"
+              value={status}
+              onChange={(event) => setStatus(event.target.value as typeof status)}
+            >
+              <option value="active">Active products</option>
+              <option value="archived">Archived products</option>
+              <option value="all">All products</option>
+            </select>
+          </label>
+          <label className="field">
+            <span>Sort by</span>
+            <select value={sort} onChange={(event) => setSort(event.target.value as typeof sort)}>
+              <option value="name">Name A to Z</option>
+              <option value="category">Category, then name</option>
+            </select>
+          </label>
+          {filtered && (
+            <button type="button" className="text-button" onClick={clearFilters}>
+              Clear filters
+            </button>
+          )}
+        </div>
+        <div className="product-results-toolbar">
+          <p className="product-result-count" role="status" aria-live="polite">
+            {loadFailed
+              ? 'Catalog could not be refreshed'
+              : loading
+                ? 'Loading your collection...'
+                : `${visible.length} of ${products.length} products shown`}
+          </p>
+          <div className="product-density-control" role="group" aria-label="Catalog layout">
+            <button type="button" aria-pressed={density === 'cards'} onClick={() => setDensity('cards')}>Cards</button>
+            <button type="button" aria-pressed={density === 'compact'} onClick={() => setDensity('compact')}>Compact</button>
+          </div>
+        </div>
+        {loadFailed ? (
+          <div className="empty-state">
+            <h3>Catalog unavailable</h3>
+            <p>Use Retry loading above to reconnect to your product collection.</p>
+          </div>
+        ) : loading ? (
+          <div className="empty-state">
+            <p>Loading products...</p>
+          </div>
+        ) : products.length === 0 ? (
+          <div className="empty-state">
+            <span className="product-category-icon" aria-hidden="true">
+              01
+            </span>
+            <h3>Make room for your first creation</h3>
+            <p>Add a product, choose its category, and set the material reserve for future batches.</p>
+            <button type="button" className="button button-quiet" disabled={disabled} onClick={startNewProduct}>
+              Add your first product
+            </button>
+          </div>
+        ) : visible.length === 0 ? (
+          <div className="empty-state">
+            <h3>No matching products</h3>
+            <p>Try a different search, category, or status to find what you need.</p>
+            <button type="button" className="button button-quiet" onClick={clearFilters}>
+              Clear filters
+            </button>
+          </div>
+        ) : (
+          <div className={`product-card-grid ${density === 'compact' ? 'is-compact' : ''}`}>
+            {visible.map((product) => {
+              const mix = mixById.get(product.mixPresetId?.toLowerCase() ?? '');
+              return (
+                <article
+                  key={product.id}
+                  className={`product-catalog-card ${editingId === product.id ? 'is-editing' : ''}`}
+                  aria-label={product.name}
+                >
+                  <div className="product-card-top">
+                    <span className={`product-category-icon category-${product.category}`} aria-hidden="true">
+                      {product.category === 'candle' ? 'C' : product.category === 'candle-pot' ? 'P' : 'A'}
+                    </span>
+                    <span className={`status-pill ${product.isActive ? 'status-active' : ''}`}>
+                      {product.isActive ? 'Active' : 'Archived'}
+                    </span>
+                  </div>
+                  <div className="product-card-identity">
+                    <p className="product-card-category">{PRODUCT_CATEGORY_RULES[product.category].label}</p>
+                    <h3>{product.name}</h3>
+                    <span className="material-id">{product.id}</span>
+                  </div>
+                  <dl className="product-card-facts">
+                    <div>
+                      <dt>Mix preset</dt>
+                      <dd>
+                        {mix?.name ?? product.mixPresetId ?? 'No mix preset'}
+                        {mix && !mix.isActive ? ' (archived)' : ''}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Material reserve</dt>
+                      <dd>{(product.safetyWasteRate * 100).toLocaleString(undefined, { maximumFractionDigits: 2 })}%</dd>
+                    </div>
+                  </dl>
+                  {product.notes && (
+                    <details className="product-card-notes">
+                      <summary>Production notes</summary>
+                      <p>{product.notes}</p>
+                    </details>
+                  )}
+                  <div className="product-card-actions">
+                    <button
+                      type="button"
+                      className="button button-quiet"
+                      disabled={disabled}
+                      aria-label={`Edit ${product.name}`}
+                      onClick={() => startEditProduct(product)}
+                    >
+                      {editingId === product.id ? 'Continue editing' : 'Edit product'}
+                    </button>
+                    <button
+                      type="button"
+                      className="text-button"
+                      disabled={disabled}
+                      aria-label={`Components for ${product.name}`}
+                      onClick={() => onComponents(product)}
+                    >
+                      Components
+                    </button>
+                    <button
+                      type="button"
+                      className="text-button"
+                      disabled={disabled}
+                      aria-label={`Print label for ${product.name}`}
+                      onClick={() => setLabelProduct(product)}
+                    >
+                      Print label
+                    </button>
+                    <button
+                      type="button"
+                      className={`text-button ${product.isActive ? 'danger' : ''}`}
+                      disabled={disabled}
+                      aria-label={`${product.isActive ? 'Archive' : 'Restore'} ${product.name}`}
+                      onClick={() => onToggleActive(product)}
+                    >
+                      {product.isActive ? 'Archive' : 'Restore'}
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       {labelProduct && <ProductLabelPrintDialog product={labelProduct} onClose={() => setLabelProduct(null)} />}
     </section>
