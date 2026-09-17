@@ -1,0 +1,189 @@
+.product-label-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgb(15 23 42 / 52%);
+  backdrop-filter: blur(4px);
+}
+
+.product-label-dialog {
+  width: min(920px, 100%);
+  max-height: min(760px, calc(100vh - 48px));
+  overflow: auto;
+  padding: 24px;
+  border: 1px solid var(--border, #d7dce4);
+  border-radius: 20px;
+  background: var(--surface, #fff);
+  box-shadow: 0 24px 70px rgb(15 23 42 / 24%);
+}
+
+.product-label-dialog-heading,
+.product-label-dialog-actions,
+.product-label-preview-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.product-label-dialog-heading h2,
+.product-label-dialog-heading p,
+.product-label-preview-help,
+.product-label-printer-note p {
+  margin-bottom: 0;
+}
+
+.product-label-dialog-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(300px, 1.1fr);
+  gap: 24px;
+  margin-top: 22px;
+}
+
+.product-label-controls {
+  display: grid;
+  align-content: start;
+  gap: 16px;
+}
+
+.product-label-options {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 14px;
+  border: 1px solid var(--border, #d7dce4);
+  border-radius: 14px;
+}
+
+.product-label-options legend {
+  padding: 0 6px;
+  font-weight: 700;
+}
+
+.product-label-options label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.product-label-printer-note {
+  padding: 14px;
+  border: 1px solid var(--border, #d7dce4);
+  border-radius: 14px;
+  background: var(--surface-soft, #f7f8fa);
+}
+
+.product-label-preview-panel {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid var(--border, #d7dce4);
+  border-radius: 16px;
+  background: var(--surface-soft, #f7f8fa);
+}
+
+.product-label-preview-heading {
+  margin-bottom: 14px;
+}
+
+.product-label-preview-heading span {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.product-label-preview-stage {
+  min-height: 310px;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  border-radius: 14px;
+  background: #e9edf3;
+}
+
+.product-label-preview-paper {
+  width: min(100%, 390px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 8%;
+  overflow: hidden;
+  border: 1px solid #111;
+  background: #fff;
+  color: #000;
+  box-shadow: 0 10px 24px rgb(15 23 42 / 18%);
+}
+
+.product-label-preview-brand {
+  margin-bottom: 5%;
+  overflow: hidden;
+  font-size: clamp(0.45rem, 1.3vw, 0.7rem);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.product-label-preview-name {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: clamp(1rem, 3.2vw, 1.7rem);
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.product-label-preview-id {
+  margin-top: 6%;
+  padding: 3% 4%;
+  border: 2px solid #000;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: clamp(0.8rem, 2.5vw, 1.25rem);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.product-label-preview-details {
+  margin-top: 5%;
+  font-size: clamp(0.52rem, 1.5vw, 0.76rem);
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.product-label-preview-help {
+  margin-top: 12px;
+  color: var(--text-muted, #667085);
+  font-size: 0.86rem;
+}
+
+@media (max-width: 760px) {
+  .product-label-dialog-backdrop {
+    padding: 12px;
+  }
+
+  .product-label-dialog {
+    max-height: calc(100vh - 24px);
+    padding: 18px;
+  }
+
+  .product-label-dialog-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .product-label-preview-stage {
+    min-height: 240px;
+    padding: 18px;
+  }
+
+  .product-label-dialog-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

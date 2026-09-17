@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { MixPreset } from '../../domain/mixPresets';
 import { PRODUCT_CATEGORIES, PRODUCT_CATEGORY_RULES, type Product, type ProductCategory } from '../../domain/products';
+import { ProductLabelPrintDialog } from './ProductLabelPrintDialog';
 
 interface ProductCatalogProps {
   products: readonly Product[];
@@ -31,6 +32,7 @@ export function ProductCatalog({
   const [category, setCategory] = useState<ProductCategory | 'all'>('all');
   const [status, setStatus] = useState<'active' | 'archived' | 'all'>('active');
   const [sort, setSort] = useState<'name' | 'category'>('name');
+  const [labelProduct, setLabelProduct] = useState<Product | null>(null);
   const mixById = useMemo(() => new Map(mixPresets.map((mix) => [mix.id.toLowerCase(), mix])), [mixPresets]);
   const visible = useMemo(() => {
     const search = query.trim().toLowerCase();
@@ -216,6 +218,15 @@ export function ProductCatalog({
                   </button>
                   <button
                     type="button"
+                    className="text-button"
+                    disabled={disabled}
+                    aria-label={`Print label for ${product.name}`}
+                    onClick={() => setLabelProduct(product)}
+                  >
+                    Print label
+                  </button>
+                  <button
+                    type="button"
                     className={`text-button ${product.isActive ? 'danger' : ''}`}
                     disabled={disabled}
                     aria-label={`${product.isActive ? 'Archive' : 'Restore'} ${product.name}`}
@@ -229,6 +240,8 @@ export function ProductCatalog({
           })}
         </div>
       )}
+
+      {labelProduct && <ProductLabelPrintDialog product={labelProduct} onClose={() => setLabelProduct(null)} />}
     </section>
   );
 }
