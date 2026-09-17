@@ -23,6 +23,7 @@ import {
 } from '../../domain/units';
 import type { YieldSample } from '../../domain/yieldSamples';
 import './yield.css';
+import './yieldEnhancement.css';
 
 type YieldInputForm = {
   key: string;
@@ -42,6 +43,7 @@ type YieldFormState = {
 };
 
 type YieldHistorySort = 'newest' | 'oldest';
+type YieldOutcomeFilter = 'all' | 'clean' | 'with-rejects';
 
 let inputSequence = 0;
 
@@ -111,6 +113,8 @@ export function YieldPage() {
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [historyQuery, setHistoryQuery] = useState('');
   const [historySort, setHistorySort] = useState<YieldHistorySort>('newest');
+  const [historyOutcome, setHistoryOutcome] = useState<YieldOutcomeFilter>('all');
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [form, setForm] = useState<YieldFormState>(() => emptyForm());
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
@@ -165,6 +169,16 @@ export function YieldPage() {
       && form.materialInputs.length > 0
       && completeMaterialInputs === form.materialInputs.length
       && draftGoodPieces !== null
+      && Number.isInteger(draftGoodPieces)
+      && draftGoodPieces >= 1
+      && draftRejectedPieces !== null
+      && Number.isInteger(draftRejectedPieces)
+      && draftRejectedPieces >= 0,
+  );
+  const draftReferenceReady = Boolean(form.id.trim() && form.recordedAt);
+  const draftMaterialsReady = form.materialInputs.length > 0 && completeMaterialInputs === form.materialInputs.length;
+  const draftOutcomeReady = Boolean(
+    draftGoodPieces !== null
       && Number.isInteger(draftGoodPieces)
       && draftGoodPieces >= 1
       && draftRejectedPieces !== null
@@ -247,13 +261,44 @@ export function YieldPage() {
     const product = products.find((item) => item.id === selectedProductId);
     setForm(emptyForm(product?.mixPresetId ?? ''));
     setFeedback(null);
+    setPendingDeleteId(null);
     setHistoryQuery('');
     setHistorySort('newest');
+    setHistoryOutcome('all');
   }, [loadHistory, products, selectedProductId]);
+
+  const effectiveId = effective?.sample.id ?? null;
+  const skippedIds = useMemo(
+    () => new Set(effective?.skippedInvalidSampleIds ?? []),
+    [effective],
+  );
+
+  const historySnapshot = useMemo(() => {
+    let goodPieces = 0;
+    let rejectedPieces = 0;
+    let latest: YieldSample | null = null;
+    for (const sample of history) {
+      goodPieces += sample.goodPieces;
+      rejectedPieces += sample.rejectedPieces;
+      if (!latest || new Date(sample.recordedAt).getTime() > new Date(latest.recordedAt).getTime()) latest = sample;
+    }
+    const totalPieces = goodPieces + rejectedPieces;
+    return {
+      totalSamples: history.length,
+      goodPieces,
+      rejectedPieces,
+      goodRate: totalPieces > 0 ? goodPieces / totalPieces : null,
+      latest,
+      cleanBatches: history.filter((sample) => sample.rejectedPieces === 0).length,
+      batchesWithRejects: history.filter((sample) => sample.rejectedPieces > 0).length,
+    };
+  }, [history]);
 
   const visibleHistory = useMemo(() => {
     const normalizedQuery = historyQuery.trim().toLocaleLowerCase();
     const filtered = history.filter((sample) => {
+      if (historyOutcome === 'clean' && sample.rejectedPieces !== 0) return false;
+      if (historyOutcome === 'with-rejects' && sample.rejectedPieces === 0) return false;
       if (!normalizedQuery) return true;
       const mixName = sample.mixPresetId
         ? mixById.get(sample.mixPresetId.toLocaleLowerCase())?.name ?? sample.mixPresetId
@@ -277,7 +322,7 @@ export function YieldPage() {
       const byId = left.id.localeCompare(right.id, undefined, { sensitivity: 'base' });
       return historySort === 'oldest' ? byTime || byId : -(byTime || byId);
     });
-  }, [history, historyQuery, historySort, materialById, mixById]);
+  }, [history, historyOutcome, historyQuery, historySort, materialById, mixById]);
 
   function unitOptions(materialId: string): InputUnit[] {
     const material = materialById.get(materialId.toLocaleLowerCase());
@@ -325,6 +370,34 @@ export function YieldPage() {
     setFeedback(null);
   }
 
+  function useSampleAsDraft(sample: YieldSample) {
+    if (!selectedProduct?.isActive) return;
+    setForm({
+      id: '',
+      mixPresetId: sample.mixPresetId ?? '',
+      goodPieces: String(sample.goodPieces),
+      rejectedPieces: String(sample.rejectedPieces),
+      recordedAt: localDateTimeValue(),
+      notes: '',
+      materialInputs: sample.materialInputs.map((input) => ({
+        ...newInput(input.unit),
+        materialId: input.materialId,
+        quantity: String(input.quantity),
+        unit: input.unit,
+      })),
+    });
+    setFeedback({
+      type: 'success',
+      message: `New draft started from ${sample.id}. Add a new Sample ID and replace copied quantities with this batch's actual evidence before recording.`,
+    });
+  }
+
+  function clearHistoryFilters() {
+    setHistoryQuery('');
+    setHistorySort('newest');
+    setHistoryOutcome('all');
+  }
+
   async function submitSample(event: FormEvent) {
     event.preventDefault();
     setFeedback(null);
@@ -362,6 +435,7 @@ export function YieldPage() {
     setFeedback(null);
     try {
       await yieldHistoryService.deleteSample(sample.id);
+      setPendingDeleteId(null);
       setFeedback({ type: 'success', message: `Yield sample ${sample.id} deleted as a correction.` });
       await loadHistory(sample.productId);
     } catch (error) {
@@ -369,21 +443,20 @@ export function YieldPage() {
     }
   }
 
-  const effectiveId = effective?.sample.id ?? null;
-  const skippedIds = new Set(effective?.skippedInvalidSampleIds ?? []);
   const effectiveTotal = effective
     ? effective.learning.goodPieces + effective.learning.rejectedPieces
     : 0;
   const effectiveGoodYield = effective && effectiveTotal > 0
     ? effective.learning.goodPieces / effectiveTotal
     : null;
+  const historyFiltered = historyQuery.trim() || historyOutcome !== 'all' || historySort !== 'newest';
 
   return (
     <section className="materials-workspace yield-workspace" aria-labelledby="yield-heading">
       <div className="page-heading-row yield-page-heading">
         <div>
           <p className="eyebrow">PHASE 2 · REAL PRODUCTION EVIDENCE</p>
-          <h1 id="yield-heading">Yield & history</h1>
+          <h1 id="yield-heading">Yield &amp; history</h1>
           <p className="page-lead">
             Record what a real batch consumed and how many good or rejected pieces it produced. The app uses the newest currently derivable sample as the learned material requirement for that product.
           </p>
@@ -479,6 +552,29 @@ export function YieldPage() {
             </div>
           </div>
 
+          <section className="yield-insights" aria-label="Yield history snapshot">
+            <div className="yield-insight-card">
+              <span>Recorded batches</span>
+              <strong>{historySnapshot.totalSamples}</strong>
+              <small>{historySnapshot.latest ? `Latest ${formatDate(historySnapshot.latest.recordedAt)}` : 'No evidence yet'}</small>
+            </div>
+            <div className="yield-insight-card is-primary">
+              <span>Effective good yield</span>
+              <strong>{effectiveGoodYield === null ? '—' : `${formatNumber(effectiveGoodYield * 100, 2)}%`}</strong>
+              <small>{effectiveId ? `From ${effectiveId}` : 'Waiting for derivable evidence'}</small>
+            </div>
+            <div className="yield-insight-card">
+              <span>Historical good-piece rate</span>
+              <strong>{historySnapshot.goodRate === null ? '—' : `${formatNumber(historySnapshot.goodRate * 100, 2)}%`}</strong>
+              <small>{historySnapshot.goodPieces} good · {historySnapshot.rejectedPieces} rejected</small>
+            </div>
+            <div className={`yield-insight-card ${skippedIds.size > 0 ? 'needs-attention' : ''}`}>
+              <span>Evidence needing attention</span>
+              <strong>{skippedIds.size}</strong>
+              <small>{skippedIds.size > 0 ? 'Newer sample(s) skipped from learning' : 'No skipped newer evidence'}</small>
+            </div>
+          </section>
+
           <div className="materials-layout yield-layout">
             <form className="panel material-form yield-form" aria-label="Yield sample" onSubmit={submitSample}>
               <div className="panel-heading yield-form-heading">
@@ -489,6 +585,12 @@ export function YieldPage() {
                 <span className={`status-pill ${draftReady ? 'status-active' : 'yield-draft-status'}`}>
                   {draftReady ? 'Ready to record' : 'Draft incomplete'}
                 </span>
+              </div>
+
+              <div className="yield-draft-progress" aria-label="Yield draft completion">
+                <span className={draftReferenceReady ? 'complete' : ''}>1 · Reference</span>
+                <span className={draftMaterialsReady ? 'complete' : ''}>2 · Materials</span>
+                <span className={draftOutcomeReady ? 'complete' : ''}>3 · Outcome</span>
               </div>
 
               <div className="yield-draft-preview" aria-label="Draft yield preview">
@@ -741,6 +843,7 @@ export function YieldPage() {
                   <div>
                     <p className="panel-kicker">IMMUTABLE HISTORY</p>
                     <h2>Recorded batches</h2>
+                    <p className="yield-history-subtitle">Compare outcomes, reuse a previous setup for a new batch, or correct evidence deliberately.</p>
                   </div>
                   <div className="material-count"><strong>{history.length}</strong><span>samples</span></div>
                 </div>
@@ -756,6 +859,18 @@ export function YieldPage() {
                       placeholder="Sample, material, mix, notes…"
                     />
                   </label>
+                  <label className="field yield-history-outcome">
+                    <span>Outcome</span>
+                    <select
+                      aria-label="Filter yield history by outcome"
+                      value={historyOutcome}
+                      onChange={(event) => setHistoryOutcome(event.target.value as YieldOutcomeFilter)}
+                    >
+                      <option value="all">All outcomes</option>
+                      <option value="clean">Zero rejects ({historySnapshot.cleanBatches})</option>
+                      <option value="with-rejects">With rejects ({historySnapshot.batchesWithRejects})</option>
+                    </select>
+                  </label>
                   <label className="field yield-history-sort">
                     <span>Sort</span>
                     <select
@@ -767,6 +882,11 @@ export function YieldPage() {
                       <option value="oldest">Oldest first</option>
                     </select>
                   </label>
+                  {historyFiltered && (
+                    <button type="button" className="button button-quiet yield-clear-history" onClick={clearHistoryFilters}>
+                      Clear filters
+                    </button>
+                  )}
                 </div>
 
                 {historyError ? (
@@ -791,7 +911,8 @@ export function YieldPage() {
                       <div className="empty-state">
                         <div className="empty-icon">⌕</div>
                         <h3>No matching batches</h3>
-                        <p>Try a different sample ID, material, mix preset, date, or note.</p>
+                        <p>Try a different sample ID, material, mix preset, outcome, date, or note.</p>
+                        <button type="button" className="button button-quiet" onClick={clearHistoryFilters}>Clear history filters</button>
                       </div>
                     ) : visibleHistory.map((sample) => {
                       const sampleIsEffective = sample.id === effectiveId;
@@ -810,27 +931,48 @@ export function YieldPage() {
                             <div className="history-badges">
                               {sampleIsEffective && <span className="status-pill status-active">Effective</span>}
                               {skippedInvalid && <span className="status-pill status-warning">Skipped invalid</span>}
+                              <span className={`status-pill ${sample.rejectedPieces === 0 ? 'yield-clean-badge' : 'yield-reject-badge'}`}>
+                                {sample.rejectedPieces === 0 ? 'Zero rejects' : `${sample.rejectedPieces} rejected`}
+                              </span>
                             </div>
                           </div>
-                          <div className="history-summary">
-                            <span>{sample.goodPieces} good</span>
-                            <span>{sample.rejectedPieces} rejected</span>
-                            <span>{formatNumber((1 - defectRate(sample)) * 100, 2)}% good yield</span>
-                            <span>{formatNumber(defectRate(sample) * 100, 2)}% defect</span>
-                            <span>{sample.mixPresetId ? (mixById.get(sample.mixPresetId.toLocaleLowerCase())?.name ?? sample.mixPresetId) : 'No mix preset'}</span>
+                          <div className="history-summary history-summary-grid">
+                            <span><small>Good pieces</small><strong>{sample.goodPieces}</strong></span>
+                            <span><small>Good yield</small><strong>{formatNumber((1 - defectRate(sample)) * 100, 2)}%</strong></span>
+                            <span><small>Defect rate</small><strong>{formatNumber(defectRate(sample) * 100, 2)}%</strong></span>
+                            <span><small>Mix</small><strong>{sample.mixPresetId ? (mixById.get(sample.mixPresetId.toLocaleLowerCase())?.name ?? sample.mixPresetId) : 'Manual batch'}</strong></span>
                           </div>
-                          <div className="history-materials">
-                            {sample.materialInputs.map((input, index) => (
-                              <span key={`${input.materialId}-${index}`}>
-                                {materialById.get(input.materialId.toLocaleLowerCase())?.name ?? input.materialId}: {formatNumber(input.quantity)} {input.unit}
-                              </span>
-                            ))}
-                          </div>
-                          {sample.notes && <p className="history-notes">{sample.notes}</p>}
-                          <div className="history-actions">
-                            <button type="button" className="text-button danger" onClick={() => void deleteSample(sample)}>
-                              Delete as correction
+                          <details className="history-evidence-details">
+                            <summary>Evidence details · {sample.materialInputs.length} material{sample.materialInputs.length === 1 ? '' : 's'}</summary>
+                            <div className="history-materials">
+                              {sample.materialInputs.map((input, index) => (
+                                <span key={`${input.materialId}-${index}`}>
+                                  {materialById.get(input.materialId.toLocaleLowerCase())?.name ?? input.materialId}: {formatNumber(input.quantity)} {input.unit}
+                                </span>
+                              ))}
+                            </div>
+                            {sample.notes && <p className="history-notes">{sample.notes}</p>}
+                          </details>
+                          <div className="history-actions yield-history-actions">
+                            <button
+                              type="button"
+                              className="button button-quiet"
+                              disabled={!selectedProduct?.isActive}
+                              onClick={() => useSampleAsDraft(sample)}
+                            >
+                              Use as new draft
                             </button>
+                            {pendingDeleteId === sample.id ? (
+                              <div className="yield-delete-confirm" role="group" aria-label={`Confirm deletion of ${sample.id}`}>
+                                <span>Delete this evidence as a correction?</span>
+                                <button type="button" className="text-button" onClick={() => setPendingDeleteId(null)}>Keep sample</button>
+                                <button type="button" className="text-button danger" onClick={() => void deleteSample(sample)}>Confirm correction delete</button>
+                              </div>
+                            ) : (
+                              <button type="button" className="text-button danger" onClick={() => setPendingDeleteId(sample.id)}>
+                                Delete as correction
+                              </button>
+                            )}
                           </div>
                         </article>
                       );
@@ -839,9 +981,9 @@ export function YieldPage() {
                 )}
                 <div className="list-footer yield-history-footer">
                   <span>
-                    {historyQuery.trim()
+                    {historyFiltered
                       ? `Showing ${visibleHistory.length} of ${history.length} samples`
-                      : 'Samples are immutable evidence; delete is an explicit correction.'}
+                      : 'Samples are immutable evidence; deletion requires explicit correction confirmation.'}
                   </span>
                   <span>{effectiveId ? `Effective: ${effectiveId}` : 'No effective sample'}</span>
                 </div>
