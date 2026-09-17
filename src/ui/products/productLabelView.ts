@@ -19,6 +19,8 @@ export interface ProductLabelOptions {
   copies: number;
   showCategory: boolean;
   showStatus: boolean;
+  showQr?: boolean;
+  showBarcode?: boolean;
 }
 
 export interface ProductLabelView {
@@ -32,6 +34,8 @@ export interface ProductLabelView {
   copies: number;
   showCategory: boolean;
   showStatus: boolean;
+  showQr: boolean;
+  showBarcode: boolean;
 }
 
 export function getProductLabelSizePreset(sizeId: ProductLabelSizeId): ProductLabelSizePreset {
@@ -55,5 +59,7 @@ export function buildProductLabelView(product: Product, options: ProductLabelOpt
     copies: normalizeProductLabelCopies(options.copies),
     showCategory: options.showCategory,
     showStatus: options.showStatus,
+    showQr: options.showQr ?? true,
+    showBarcode: options.showBarcode ?? true,
   };
 }
