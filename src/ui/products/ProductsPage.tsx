@@ -14,6 +14,7 @@ import { ProductCatalog } from './ProductCatalog';
 import { ProductComponentsView } from './ProductComponentsView';
 import { ProductStockView } from './ProductStockView';
 import './products.css';
+import './productEditorWorkflow.css';
 
 type WorkspaceView = 'products' | 'mixes' | 'components' | 'stock';
 type ActiveFilter = 'active' | 'archived' | 'all';
@@ -160,6 +161,12 @@ export function ProductsPage() {
 
   const [productForm, setProductForm] = useState<ProductFormState>(EMPTY_PRODUCT_FORM);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [productTouched, setProductTouched] = useState<string[]>([]);
+  const [productAttempted, setProductAttempted] = useState(false);
+  const [mixChangeNotice, setMixChangeNotice] = useState('');
+  const productFormElement = useRef<HTMLFormElement>(null);
+  const catalogReturnTarget = useRef<HTMLElement | null>(null);
   const [productFeedback, setProductFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -234,12 +241,52 @@ export function ProductsPage() {
   const activeMaterials = useMemo(() => materials.filter((material) => material.isActive), [materials]);
   const savedProduct = products.find((product) => product.id === editingProductId);
   const productDirty = JSON.stringify(productForm) !== JSON.stringify(savedProduct ? productToForm(savedProduct) : EMPTY_PRODUCT_FORM);
+  const reservePercent = Number(productForm.safetyWastePercent);
+  const productErrors: Record<string, string> = {};
+  if (!productForm.id.trim()) productErrors.id = 'Enter a unique product ID.';
+  else if (!editingProductId && products.some((product) => normalizeQuery(product.id) === normalizeQuery(productForm.id)))
+    productErrors.id = 'This product ID is already in use, including archived products.';
+  if (!productForm.name.trim()) productErrors.name = 'Enter a product name.';
+  else if (products.some((product) => product.id !== editingProductId && normalizeQuery(product.name) === normalizeQuery(productForm.name)))
+    productErrors.name = 'This product name is already in use. Choose a different name.';
+  if (!productForm.safetyWastePercent.trim()) productErrors.safetyWastePercent = 'Enter a material reserve percentage, including 0 for no reserve.';
+  else if (!Number.isFinite(reservePercent) || reservePercent < 0 || reservePercent >= 100)
+    productErrors.safetyWastePercent = 'Enter a percentage from 0 to less than 100.';
+  const selectedMix = mixPresets.find((preset) => normalizeQuery(preset.id) === normalizeQuery(productForm.mixPresetId));
+  if (productForm.mixPresetId && (!selectedMix || !selectedMix.compatibleCategories.includes(productForm.category)
+    || (!selectedMix.isActive && (savedProduct?.isActive ?? true))))
+    productErrors.mixPresetId = 'Choose an active compatible preset or select No mix preset.';
+  function visibleProductError(key: string) {
+    return (productAttempted || productTouched.includes(key)) ? productErrors[key] : undefined;
+  }
+
+  useEffect(() => {
+    if (editorOpen && pendingProduct === undefined) productNameInput.current?.focus();
+  }, [editorOpen, editingProductId]);
+
+  function resumeProductDraft() {
+    catalogReturnTarget.current = document.activeElement as HTMLElement;
+    setEditorOpen(true);
+  }
+
+  function backToCatalog() {
+    setEditorOpen(false);
+    requestAnimationFrame(() => {
+      const target = catalogReturnTarget.current;
+      if (target?.isConnected) target.focus();
+      if (document.activeElement !== target) document.querySelector<HTMLButtonElement>('button[aria-label="+ New product"]')?.focus();
+    });
+  }
 
   useEffect(() => {
     if (pendingProduct !== undefined) draftWarning.current?.focus();
   }, [pendingProduct]);
 
   function openProductEditor(product: Product | null) {
+    setEditorOpen(true);
+    setProductTouched([]);
+    setProductAttempted(false);
+    setMixChangeNotice('');
     setEditingProductId(product?.id ?? null);
     setProductForm(product ? productToForm(product) : EMPTY_PRODUCT_FORM);
     setProductFeedback(null);
@@ -248,6 +295,9 @@ export function ProductsPage() {
   }
 
   function requestProductEditor(product: Product | null) {
+    if (mutationInFlight.current) return;
+    catalogReturnTarget.current = document.activeElement as HTMLElement;
+    setEditorOpen(true);
     if (product && product.id === editingProductId) {
       productNameInput.current?.focus();
     } else if (productDirty) {
@@ -273,6 +323,13 @@ export function ProductsPage() {
   async function submitProduct(event: FormEvent) {
     event.preventDefault();
     if (mutationInFlight.current || loading || loadError) return;
+    setProductAttempted(true);
+    const firstError = Object.keys(productErrors)[0];
+    if (firstError) {
+      setProductFeedback({ type: 'error', message: productErrors[firstError] });
+      productFormElement.current?.querySelector<HTMLElement>(`[name="${firstError}"]`)?.focus();
+      return;
+    }
     mutationInFlight.current = true;
     setBusy(true);
     setProductFeedback(null);
@@ -282,22 +339,25 @@ export function ProductsPage() {
       if (editingProductId) {
         const existing = products.find((product) => product.id === editingProductId);
         const candidate = formToProduct(productForm, existing?.isActive ?? true);
-        await productService.updateProduct(editingProductId, {
+        const updated = await productService.updateProduct(editingProductId, {
           name: candidate.name,
           category: candidate.category,
           mixPresetId: candidate.mixPresetId,
           safetyWasteRate: candidate.safetyWasteRate,
           notes: candidate.notes,
         });
-        setProductForm(productToForm(candidate));
+        setProductForm(productToForm(updated));
         setProductFeedback({ type: 'success', message: 'Product updated.' });
       } else {
-        await productService.createProduct(formToProduct(productForm, true));
+        const created = await productService.createProduct(formToProduct(productForm, true));
         setProductFeedback({ type: 'success', message: 'Product created.' });
-        setProductForm(EMPTY_PRODUCT_FORM);
+        setEditingProductId(created.id);
+        setProductForm(productToForm(created));
       }
       await reload();
       setPendingProduct(undefined);
+      setProductAttempted(false);
+      setProductTouched([]);
     } catch (error) {
       setProductFeedback({ type: 'error', message: errorMessage(error) });
     } finally {
@@ -494,6 +554,10 @@ export function ProductsPage() {
           loadFailed={Boolean(loadError)}
           disabled={busy || loading || Boolean(loadError)}
           editingId={editingProductId}
+          editorOpen={editorOpen}
+          onBack={backToCatalog}
+          hasDraft={productDirty}
+          onResume={resumeProductDraft}
           onNew={() => requestProductEditor(null)}
           onEdit={requestProductEditor}
           onComponents={(product) => {
@@ -505,6 +569,14 @@ export function ProductsPage() {
         <form
           className="panel material-form product-details-form"
           aria-label="Product details"
+          ref={productFormElement}
+          noValidate
+          onChange={() => setProductFeedback(null)}
+          onBlurCapture={(event) => {
+            const target = event.target;
+            const key = target instanceof HTMLInputElement || target instanceof HTMLSelectElement || target instanceof HTMLTextAreaElement ? target.name : '';
+            if (key) setProductTouched((current) => current.includes(key) ? current : [...current, key]);
+          }}
           onSubmit={submitProduct}
           aria-busy={busy}
         >
@@ -541,98 +613,133 @@ export function ProductsPage() {
           )}
 
           <fieldset className="product-form-fields" disabled={busy || loading || Boolean(loadError)}>
-            <div className="form-grid">
-              <label className="field">
-                <span>Product ID</span>
-                <input
-                  required
-                  value={productForm.id}
-                  disabled={Boolean(editingProductId)}
-                  onChange={(event) => setProductForm({ ...productForm, id: event.target.value })}
-                  placeholder="ART-001"
-                />
-              </label>
-              <label className="field">
-                <span>Name</span>
-                <input
-                  ref={productNameInput}
-                  required
-                  value={productForm.name}
-                  onChange={(event) => setProductForm({ ...productForm, name: event.target.value })}
-                  placeholder="Paintable star"
-                />
-              </label>
-              <label className="field">
-                <span>Category</span>
-                <select
-                  value={productForm.category}
-                  onChange={(event) =>
-                    setProductForm({
-                      ...productForm,
-                      category: event.target.value as ProductCategory,
-                      mixPresetId: mixPresets.some(
-                        (preset) =>
-                          preset.id === productForm.mixPresetId &&
-                          preset.compatibleCategories.includes(event.target.value as ProductCategory),
-                      )
-                        ? productForm.mixPresetId
-                        : '',
-                    })
-                  }
-                >
-                  {PRODUCT_CATEGORIES.map((category) => (
-                    <option key={category} value={category}>
-                      {categoryLabel(category)}
-                    </option>
-                  ))}
-                </select>
-                <small>
-                  {PRODUCT_CATEGORY_RULES[productForm.category].productionStyle} · typical{' '}
-                  {PRODUCT_CATEGORY_RULES[productForm.category].typicalMixBasis} mix
-                </small>
-              </label>
-              <label className="field">
-                <span>Safety waste (%)</span>
-                <input
-                  required
-                  type="number"
-                  min="0"
-                  max="99.999"
-                  step="0.1"
-                  value={productForm.safetyWastePercent}
-                  onChange={(event) => setProductForm({ ...productForm, safetyWastePercent: event.target.value })}
-                />
-                <small>Extra direct material to allow for production waste. Enter 0 for no reserve.</small>
-              </label>
-              <label className="field field-wide">
-                <span>Mix preset</span>
-                <select
-                  value={productForm.mixPresetId}
-                  onChange={(event) => setProductForm({ ...productForm, mixPresetId: event.target.value })}
-                >
-                  <option value="">No mix preset</option>
-                  {compatibleMixes.map((preset) => (
-                    <option key={preset.id} value={preset.id}>
-                      {preset.name}
-                      {preset.isActive ? '' : ' (archived)'}
-                    </option>
-                  ))}
-                </select>
-                <small>Only presets compatible with {categoryLabel(productForm.category)} are shown.</small>
-              </label>
-              <label className="field field-wide">
-                <span>Notes</span>
-                <textarea
-                  value={productForm.notes}
-                  onChange={(event) => setProductForm({ ...productForm, notes: event.target.value })}
-                  placeholder="Mold, curing or production notes..."
-                />
-              </label>
+            <section className="product-editor-section" aria-labelledby="product-identity-heading">
+              <div className="product-section-heading"><span aria-hidden="true">1</span><div><h3 id="product-identity-heading">Product identity</h3><p>Give this product a unique ID and a recognizable name.</p></div></div>
+              <div className="form-grid">
+                <label className="field">
+                  <span>Product ID</span>
+                  <input
+                    required
+                    name="id"
+                    aria-invalid={Boolean(visibleProductError('id'))}
+                    aria-describedby="product-id-help product-id-error"
+                    value={productForm.id}
+                    disabled={Boolean(editingProductId)}
+                    onChange={(event) => setProductForm({ ...productForm, id: event.target.value })}
+                    placeholder="ART-001"
+                  />
+                  <small id="product-id-help">{editingProductId ? 'The ID is fixed so existing recipes and history stay linked.' : 'Use a memorable code, such as ART-001. The ID cannot be changed later.'}</small>
+                  <small className="product-field-error" id="product-id-error">{visibleProductError('id')}</small>
+                </label>
+                <label className="field">
+                  <span>Name</span>
+                  <input
+                    ref={productNameInput}
+                    name="name"
+                    aria-invalid={Boolean(visibleProductError('name'))}
+                    aria-describedby="product-name-error"
+                    required
+                    value={productForm.name}
+                    onChange={(event) => setProductForm({ ...productForm, name: event.target.value })}
+                    placeholder="Paintable star"
+                  />
+                  <small className="product-field-error" id="product-name-error">{visibleProductError('name')}</small>
+                </label>
+              </div>
+            </section>
+            <section className="product-editor-section" aria-labelledby="product-recipe-heading">
+              <div className="product-section-heading"><span aria-hidden="true">2</span><div><h3 id="product-recipe-heading">Production setup</h3><p>Choose the category, recipe reference, and extra material allowance.</p></div></div>
+              <div className="form-grid">
+                <label className="field">
+                  <span>Category</span>
+                  <select
+                    value={productForm.category}
+                    onChange={(event) => {
+                      const keepsMix = mixPresets.some((preset) => preset.id === productForm.mixPresetId && preset.compatibleCategories.includes(event.target.value as ProductCategory));
+                      setMixChangeNotice(productForm.mixPresetId && !keepsMix ? 'The previous mix was cleared because it does not support this category. Choose another preset or continue without one.' : '');
+                      setProductForm({
+                        ...productForm,
+                        category: event.target.value as ProductCategory,
+                        mixPresetId: keepsMix ? productForm.mixPresetId : '',
+                      });
+                    }}
+                  >
+                    {PRODUCT_CATEGORIES.map((category) => (
+                      <option key={category} value={category}>
+                        {categoryLabel(category)}
+                      </option>
+                    ))}
+                  </select>
+                  <small>
+                    {PRODUCT_CATEGORY_RULES[productForm.category].productionStyle} · typical{' '}
+                    {PRODUCT_CATEGORY_RULES[productForm.category].typicalMixBasis} mix
+                  </small>
+                </label>
+                <label className="field">
+                  <span>Safety waste (%)</span>
+                  <input
+                    required
+                    type="number"
+                    name="safetyWastePercent"
+                    aria-invalid={Boolean(visibleProductError('safetyWastePercent'))}
+                    aria-describedby="product-reserve-help product-reserve-error"
+                    min="0"
+                    max="100"
+                    step="any"
+                    value={productForm.safetyWastePercent}
+                    onChange={(event) => setProductForm({ ...productForm, safetyWastePercent: event.target.value })}
+                  />
+                  <small id="product-reserve-help">Extra direct material to allow for production waste. Enter 0 for no reserve.</small>
+                  <small className="product-field-error" id="product-reserve-error">{visibleProductError('safetyWastePercent')}</small>
+                </label>
+                <label className="field field-wide">
+                  <span>Mix preset</span>
+                  <select
+                    name="mixPresetId"
+                    aria-invalid={Boolean(visibleProductError('mixPresetId'))}
+                    aria-describedby="product-mix-help product-mix-error"
+                    value={productForm.mixPresetId}
+                    onChange={(event) => setProductForm({ ...productForm, mixPresetId: event.target.value })}
+                  >
+                    <option value="">No mix preset</option>
+                    {productForm.mixPresetId && !compatibleMixes.some((preset) => preset.id === productForm.mixPresetId) && <option value={productForm.mixPresetId}>{selectedMix?.name ?? productForm.mixPresetId} (unavailable)</option>}
+                    {compatibleMixes.map((preset) => (
+                      <option key={preset.id} value={preset.id}>
+                        {preset.name}
+                        {preset.isActive ? '' : ' (archived)'}
+                      </option>
+                    ))}
+                  </select>
+                  <small id="product-mix-help">{compatibleMixes.length ? `Only presets compatible with ${categoryLabel(productForm.category)} are shown. A preset is optional.` : 'No compatible presets yet. Save without one and add a recipe reference later.'}</small>
+                  <small className="product-field-error" id="product-mix-error">{visibleProductError('mixPresetId')}</small>
+                </label>
+              </div>
+              {mixChangeNotice && <p className="product-mix-notice" role="status">{mixChangeNotice}</p>}
+              <div className="product-reserve-preview" aria-label="Material reserve preview">
+                <span>Material planning example</span>
+                <strong>{productErrors.safetyWastePercent ? 'Enter a valid reserve to preview' : `100 g base + ${reservePercent.toLocaleString(undefined, { maximumFractionDigits: 4 })} g reserve = ${(100 + reservePercent).toLocaleString(undefined, { maximumFractionDigits: 4 })} g planned`}</strong>
+                <small>Applied to direct material requirements for this product.</small>
+              </div>
+            </section>
+            <section className="product-editor-section" aria-labelledby="product-notes-heading">
+              <div className="product-section-heading"><span aria-hidden="true">3</span><div><h3 id="product-notes-heading">Workshop notes <small>Optional</small></h3><p>Keep making instructions close to the product.</p></div></div>
+              <div className="form-grid">
+                <label className="field field-wide">
+                  <span>Notes</span>
+                  <textarea
+                    value={productForm.notes}
+                    onChange={(event) => setProductForm({ ...productForm, notes: event.target.value })}
+                    placeholder="Mold, curing or production notes..."
+                  />
+                </label>
+              </div>
+            </section>
+            <div className="product-editor-savebar">
+              <span>{editingProductId ? `Product ${editingProductId}` : 'New products are added as active.'}</span>
+              <button className="button button-primary button-full" type="submit">
+                {busy ? 'Saving...' : editingProductId ? 'Save product' : 'Create product'}
+              </button>
             </div>
-
-            <button className="button button-primary button-full" type="submit">
-              {busy ? 'Saving...' : editingProductId ? 'Save product' : 'Create product'}
-            </button>
           </fieldset>
         </form>
       </div>

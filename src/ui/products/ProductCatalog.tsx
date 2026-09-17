@@ -15,6 +15,10 @@ interface ProductCatalogProps {
   onNew: () => void;
   onComponents: (product: Product) => void;
   onToggleActive: (product: Product) => void;
+  editorOpen?: boolean;
+  onBack?: () => void;
+  onResume?: () => void;
+  hasDraft?: boolean;
 }
 
 type ProductEditorIntent =
@@ -33,6 +37,10 @@ export function ProductCatalog({
   onNew,
   onComponents,
   onToggleActive,
+  editorOpen,
+  onBack,
+  onResume,
+  hasDraft,
 }: ProductCatalogProps) {
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<ProductCategory | 'all'>('all');
@@ -40,7 +48,10 @@ export function ProductCatalog({
   const [sort, setSort] = useState<'name' | 'category'>('name');
   const [density, setDensity] = useState<'cards' | 'compact'>('cards');
   const [labelProduct, setLabelProduct] = useState<Product | null>(null);
-  const [editorIntent, setEditorIntent] = useState<ProductEditorIntent>(null);
+  const [localEditorIntent, setEditorIntent] = useState<ProductEditorIntent>(null);
+  const editingProduct = products.find((product) => product.id === editingId);
+  const editorIntent: ProductEditorIntent = editorOpen === undefined ? localEditorIntent : !editorOpen ? null
+    : editingId ? { mode: 'edit', productName: editingProduct?.name ?? editingId, productId: editingId } : { mode: 'new' };
   const mixById = useMemo(() => new Map(mixPresets.map((mix) => [mix.id.toLowerCase(), mix])), [mixPresets]);
   const matchingProducts = useMemo(() => {
     const search = query.trim().toLowerCase();
@@ -95,7 +106,8 @@ export function ProductCatalog({
             <button
               type="button"
               className="product-editor-back"
-              onClick={() => setEditorIntent(null)}
+              disabled={disabled}
+              onClick={() => { setEditorIntent(null); onBack?.(); }}
             >
               <span aria-hidden="true">←</span>
               Back to product catalog
@@ -115,8 +127,8 @@ export function ProductCatalog({
               <h2>{editorIntent.mode === 'new' ? 'Add a new product' : `Edit ${editorIntent.productName}`}</h2>
               <p>
                 {editorIntent.mode === 'new'
-                  ? 'Create the product here. Your collection stays separate and uncluttered.'
-                  : `Update ${editorIntent.productId} in a focused editor without mixing the form into the catalog.`}
+                  ? 'Set up the product identity, production recipe, and material reserve.'
+                  : `Update the details for ${editorIntent.productId}, then save your changes.`}
               </p>
             </div>
             <span className="product-editor-mode-pill">
@@ -132,6 +144,12 @@ export function ProductCatalog({
       )}
 
       <div className="product-catalog-collection" hidden={Boolean(editorIntent)}>
+        {hasDraft && onResume && (
+          <div className="product-resume-draft">
+            <div><strong>Continue your unsaved draft</strong><p>{editingProduct ? `Changes to ${editingProduct.name}` : 'A new product is in progress.'}</p></div>
+            <button type="button" className="button button-quiet" disabled={disabled} onClick={onResume}>Resume draft</button>
+          </div>
+        )}
         <div className="panel-heading">
           <div>
             <p className="panel-kicker">YOUR COLLECTION</p>
