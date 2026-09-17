@@ -12,7 +12,7 @@ This file is the high-level roadmap.
 
 For detailed historical implementation evidence, use the dedicated phase plans/completion records and Git history.
 
-Current Phase 5 records:
+Key persistence / desktop-boundary records:
 
 - `docs/PHASE_5_EXCEL_PERSISTENCE_PLAN.md`
 - `docs/PHASE_5_PROGRESS.md`
@@ -20,6 +20,8 @@ Current Phase 5 records:
 - `docs/PHASE_5_6A_INTEGRATED_EXCEL_ROUND_TRIP_WORKFLOW_PLAN.md`
 - `docs/PHASE_5_6A_INTEGRATED_EXCEL_ROUND_TRIP_WORKFLOW.md`
 - `docs/PHASE_5_6B_REGRESSION_BUILD_PHASE_5_COMPLETION.md`
+- `docs/PHYSICAL_IDENTIFICATION_STORAGE_FOUNDATION_PLAN.md`
+- `docs/PHASE_6_TAURI_DESKTOP_INTEGRATION_PLAN.md`
 
 Historical child completion records remain authoritative for their individual contracts and CI evidence.
 
@@ -38,18 +40,16 @@ Historical child completion records remain authoritative for their individual co
 
 ## Current Repository Milestone
 
-Phase 5 final pre-closeout green baseline:
+Latest green planning baseline before Phase 6 implementation:
 
 ```text
-develop  42f612e147b6fefc39068c2f978ccd03c97df9b5
-CI       35143413096 — SUCCESS
-131 test files / 1,439 tests
-TypeScript typecheck PASS
-Production build PASS
-149 modules transformed
+develop  7336f7fad57410a8e9888344c240590bae20f59f
+CI       35182152823 — SUCCESS
+Physical Identification & Storage Foundation — COMPLETE
+Phase 6 scope/decomposition review — IN DOCUMENTATION REVIEW
 ```
 
-The final Phase 5 documentation closeout is merged only after its own full pull-request CI succeeds; the exact resulting `develop` SHA and post-merge CI are the final Git-history evidence.
+The completed physical-identification foundation now extends persisted source truth with Mold and Storage Location records while preserving Phase 5 persistence boundaries. Phase 6 must build the native desktop boundary on top of those contracts rather than replace them.
 
 ---
 
@@ -62,7 +62,7 @@ Phase 2 — Product Recipes & Mold Yield                          COMPLETE
 Phase 3 — Product Components, Vessels & Nested Molded Products COMPLETE
 Phase 4 — Pricing & Production Planning                         COMPLETE
 Phase 5 — Excel Persistence                                     COMPLETE
-Phase 6 — Tauri Desktop Integration                             NEXT FOR SCOPE REVIEW / NOT STARTED
+Phase 6 — Tauri Desktop Integration                             SCOPED / IMPLEMENTATION NOT STARTED
 Phase 7 — Reporting & Operational Polish                        PLANNED
 ```
 
@@ -160,12 +160,13 @@ Final completion gate:
 
 ### Persisted source contract
 
-- versioned `BusinessDataset` covering all nine authoritative source repositories;
+- versioned `BusinessDataset` covering authoritative source repositories;
 - Material calibration evidence included as source truth;
-- normalized 13-sheet workbook v1 contract;
-- deterministic sheet/column/row semantics;
+- normalized workbook contract with deterministic sheet/column/row semantics;
 - complete cross-reference/graph validation;
 - missing-vs-zero/null/false preservation.
+
+The later Physical Identification & Storage Foundation extends that source contract with Mold and Storage Location records and workbook v2 compatibility while preserving the same persistence architecture.
 
 ### XLSX codec
 
@@ -179,7 +180,7 @@ Final completion gate:
 
 ### Snapshot, hydration and coordinator
 
-- complete snapshot of all nine source repositories;
+- complete source snapshot services;
 - validate-before-write atomic hydration;
 - previous-state snapshot and rollback behavior;
 - stable singleton repository/service identity;
@@ -229,45 +230,80 @@ Source/service round-trip scenarios cross real XLSX bytes and reuse the stable a
 
 ### Final Phase 5 gate
 
-Phase 5.6B requires and verifies:
+Phase 5.6B verified:
 
 - all Phase 1–5 tests green;
 - Phase 1–4 integration workflows green;
-- dedicated Phase 5.6 A1/A2/A3 integration suites green;
+- dedicated Phase 5.6 integration suites green;
 - browser persistence smoke/regression coverage green;
 - TypeScript typecheck green;
 - production build green;
 - documentation reconciled;
 - exact post-merge `develop` CI green.
 
-No runtime feature change is required by 5.6B unless this gate exposes a genuine defect.
-
 ---
 
 # Phase 6 — Tauri Desktop Integration
 
-Status: **NEXT FOR SCOPE REVIEW / NOT STARTED**
+Status: **SCOPED / IMPLEMENTATION NOT STARTED**
 
-Phase 6 introduces a new platform/native-filesystem boundary and must be scoped before implementation.
+Master plan:
 
-Expected Phase 6 ownership includes:
+`docs/PHASE_6_TAURI_DESKTOP_INTEGRATION_PLAN.md`
 
-- Tauri application shell/integration;
-- native Open / Save / Save As dialogs;
-- managed native workbook paths;
-- native `WorkbookTransport` implementation using the Phase 5 coordinator contract;
-- real filesystem backup location/rotation policy;
-- OS-level staged write and replace behavior;
-- explicit replacement/atomicity guarantees where the platform supports them;
-- file locking/concurrent-access policy;
-- `fsync` / durable flush decisions where applicable;
-- crash-consistency/recovery behavior;
-- desktop packaging/distribution;
-- platform-specific tests without moving business rules out of the existing domain/application layers.
+Phase 6 introduces the native shell/filesystem boundary while reusing the completed persistence architecture.
 
-Phase 6 must reuse the completed Phase 5 persistence boundaries rather than duplicate workbook parsing, validation, source snapshot, hydration, or business calculations.
+## Phase 6 architecture contract
 
-Before implementation, perform a dedicated Phase 6 scope/decomposition review.
+- React/Vite remains the application frontend.
+- `PersistenceCoordinator` remains authoritative for source snapshot, workbook export/import, validation, and hydration.
+- `WorkbookTransport` remains the native byte-persistence seam.
+- browser import/download workflows remain separate from native Open / Save / Save As.
+- the real safe-save filesystem transaction is Rust-backed through narrow Tauri commands so platform durability, replacement, locking, and crash-consistency semantics are explicit.
+- Tauri v2 capabilities follow least privilege; Phase 6 does not grant broad filesystem or shell access for convenience.
+- no business calculation or XLSX parsing moves into Rust.
+
+## Phase 6 task map
+
+```text
+6.0 — Scope, Readiness & Architecture Contract                 COMPLETE (planning only)
+6.1 — Tauri Shell, Build & Security Foundation                 NEXT / NOT STARTED
+    6.1A — Tauri v2 Project Scaffold & Dev/Build Scripts       NEXT
+    6.1B — Minimal Capability / Permission Baseline
+    6.1C — Native Build & CI Smoke Gate
+
+6.2 — Native Workbook Transport                                NOT STARTED
+    6.2A — Native Command / TypeScript Transport Contract
+    6.2B — Native Workbook Load Path
+    6.2C — Staged Save, Backup & Replacement Transaction
+    6.2D — Durability, Cleanup & Error Mapping
+
+6.3 — Desktop Workbook Open / Save / Save As Workflow          NOT STARTED
+    6.3A — Native Open Workflow
+    6.3B — Native Save As Workflow
+    6.3C — Save to Active Workbook Path
+    6.3D — Desktop Workbook Session Identity & UI State
+
+6.4 — Recovery, Concurrency & Filesystem Safety                NOT STARTED
+    6.4A — Backup Location / Naming / Retention Policy
+    6.4B — External Change & Concurrent Access Policy
+    6.4C — Crash / Interrupted-Save Recovery Policy
+    6.4D — Recovery UX & Failure-State Regression
+
+6.5 — Desktop Integration & Operational UX                     NOT STARTED
+    6.5A — Browser-vs-Desktop Runtime Composition
+    6.5B — Unsaved/Dirty-State & Close/Open Guard Policy
+    6.5C — Native Path / Recent-Workbook UX Boundary
+    6.5D — Desktop Security / Permission Review
+
+6.6 — Packaging, Platform Validation & Completion Gate         NOT STARTED
+    6.6A — Desktop Bundle Configuration
+    6.6B — Native CI / Platform Test Matrix
+    6.6C — Installer / Distribution Smoke Validation
+    6.6D — Phase 6 Regression & Completion Gate
+```
+
+Do not begin 6.2 native filesystem behavior until the 6.1 shell/build/security foundation is merged and green.
 
 ---
 
@@ -291,8 +327,8 @@ Phase 7 scope should be revisited after the desktop/native persistence workflow 
 ## Current Next Action
 
 ```text
-Phase 6 — Tauri Desktop Integration
-NEXT FOR SCOPE REVIEW / NOT STARTED
+6.1A — Tauri v2 Project Scaffold & Dev/Build Scripts
+NEXT / NOT STARTED
 ```
 
-Do not begin Phase 6 implementation until its scope has been reviewed and, if needed, decomposed into smaller development phases.
+Phase 6 implementation may begin only after this scope plan is merged and its exact post-merge `develop` CI is green.
