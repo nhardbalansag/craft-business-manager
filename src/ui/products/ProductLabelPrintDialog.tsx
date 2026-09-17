@@ -1,6 +1,6 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import type { Product } from '../../domain/products';
-import { printProductLabels } from './productLabelPrint';
+import { printProductLabels, type ProductLabelPrintWindowOpener } from './productLabelPrint';
 import {
   buildProductLabelView,
   DEFAULT_PRODUCT_LABEL_SIZE_ID,
@@ -16,13 +16,14 @@ import './productLabelPrint.css';
 interface ProductLabelPrintDialogProps {
   product: Product;
   onClose: () => void;
+  openPrintWindow?: ProductLabelPrintWindowOpener;
 }
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : 'The product label could not be printed.';
 }
 
-export function ProductLabelPrintDialog({ product, onClose }: ProductLabelPrintDialogProps) {
+export function ProductLabelPrintDialog({ product, onClose, openPrintWindow }: ProductLabelPrintDialogProps) {
   const [sizeId, setSizeId] = useState<ProductLabelSizeId>(DEFAULT_PRODUCT_LABEL_SIZE_ID);
   const [copies, setCopies] = useState('1');
   const [showCategory, setShowCategory] = useState(true);
@@ -46,7 +47,8 @@ export function ProductLabelPrintDialog({ product, onClose }: ProductLabelPrintD
     event.preventDefault();
     setFeedback(null);
     try {
-      printProductLabels(view);
+      if (openPrintWindow) printProductLabels(view, openPrintWindow);
+      else printProductLabels(view);
     } catch (error) {
       setFeedback(errorMessage(error));
     }
