@@ -1,5 +1,6 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import type { Product } from '../../domain/products';
+import { renderIdentityCode128Svg, renderIdentityQrSvg } from '../labels/machineReadable';
 import { printProductLabels, type ProductLabelPrintWindowOpener } from './productLabelPrint';
 import {
   buildProductLabelView,
@@ -28,6 +29,8 @@ export function ProductLabelPrintDialog({ product, onClose, openPrintWindow }: P
   const [copies, setCopies] = useState('1');
   const [showCategory, setShowCategory] = useState(true);
   const [showStatus, setShowStatus] = useState(true);
+  const [showQr, setShowQr] = useState(true);
+  const [showBarcode, setShowBarcode] = useState(true);
   const [feedback, setFeedback] = useState<string | null>(null);
 
   const size = getProductLabelSizePreset(sizeId);
@@ -39,8 +42,18 @@ export function ProductLabelPrintDialog({ product, onClose, openPrintWindow }: P
         copies: normalizedCopies,
         showCategory,
         showStatus,
+        showQr,
+        showBarcode,
       }),
-    [normalizedCopies, product, showCategory, showStatus, sizeId],
+    [normalizedCopies, product, showBarcode, showCategory, showQr, showStatus, sizeId],
+  );
+  const qrSvg = useMemo(
+    () => (view.showQr ? renderIdentityQrSvg('PRODUCT', view.product.id) : ''),
+    [view.product.id, view.showQr],
+  );
+  const barcodeSvg = useMemo(
+    () => (view.showBarcode ? renderIdentityCode128Svg(view.product.id) : ''),
+    [view.product.id, view.showBarcode],
   );
 
   function submit(event: FormEvent) {
@@ -105,6 +118,14 @@ export function ProductLabelPrintDialog({ product, onClose, openPrintWindow }: P
             <fieldset className="product-label-options">
               <legend>Include on label</legend>
               <label>
+                <input type="checkbox" checked={showQr} onChange={(event) => setShowQr(event.target.checked)} />
+                QR code
+              </label>
+              <label>
+                <input type="checkbox" checked={showBarcode} onChange={(event) => setShowBarcode(event.target.checked)} />
+                Code 128 barcode
+              </label>
+              <label>
                 <input type="checkbox" checked={showCategory} onChange={(event) => setShowCategory(event.target.checked)} />
                 Category
               </label>
@@ -144,24 +165,42 @@ export function ProductLabelPrintDialog({ product, onClose, openPrintWindow }: P
             </div>
             <div className="product-label-preview-stage">
               <div
-                className="product-label-preview-paper"
+                className={`product-label-preview-paper ${view.showQr || view.showBarcode ? 'has-codes' : ''}`}
                 style={{ aspectRatio: `${size.widthMm} / ${size.heightMm}` }}
                 aria-label="Product label preview"
               >
                 <span className="product-label-preview-brand">Craft Business Manager</span>
-                <strong className="product-label-preview-name">{view.product.name}</strong>
-                <span className="product-label-preview-id">{view.product.id}</span>
-                {(view.showCategory || view.showStatus) && (
-                  <span className="product-label-preview-details">
-                    {view.showCategory ? view.product.categoryLabel : ''}
-                    {view.showCategory && view.showStatus ? ' • ' : ''}
-                    {view.showStatus ? (view.product.isActive ? 'ACTIVE' : 'ARCHIVED') : ''}
-                  </span>
+                <div className="product-label-preview-main">
+                  <div className="product-label-preview-copy">
+                    <strong className="product-label-preview-name">{view.product.name}</strong>
+                    <span className="product-label-preview-id">{view.product.id}</span>
+                    {(view.showCategory || view.showStatus) && (
+                      <span className="product-label-preview-details">
+                        {view.showCategory ? view.product.categoryLabel : ''}
+                        {view.showCategory && view.showStatus ? ' • ' : ''}
+                        {view.showStatus ? (view.product.isActive ? 'ACTIVE' : 'ARCHIVED') : ''}
+                      </span>
+                    )}
+                  </div>
+                  {view.showQr && (
+                    <span
+                      className="product-label-preview-qr"
+                      aria-label="Product QR code preview"
+                      dangerouslySetInnerHTML={{ __html: qrSvg }}
+                    />
+                  )}
+                </div>
+                {view.showBarcode && (
+                  <span
+                    className="product-label-preview-barcode"
+                    aria-label="Product barcode preview"
+                    dangerouslySetInnerHTML={{ __html: barcodeSvg }}
+                  />
                 )}
               </div>
             </div>
             <p className="product-label-preview-help">
-              Preview is scaled for the screen. Printed dimensions come from the selected millimeter label size.
+              QR payload: <code>CBM:PRODUCT:{view.product.id}</code>. Barcode text is the Product ID. Preview is scaled for the screen.
             </p>
           </div>
         </div>
