@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { MixPreset } from '../../domain/mixPresets';
 import { PRODUCT_CATEGORIES, PRODUCT_CATEGORY_RULES, type Product, type ProductCategory } from '../../domain/products';
+import { PhysicalIdentificationWorkspace } from './PhysicalIdentificationWorkspace';
 import { ProductLabelPrintDialog } from './ProductLabelPrintDialog';
 
 interface ProductCatalogProps {
@@ -33,6 +34,7 @@ export function ProductCatalog({
   const [status, setStatus] = useState<'active' | 'archived' | 'all'>('active');
   const [sort, setSort] = useState<'name' | 'category'>('name');
   const [labelProduct, setLabelProduct] = useState<Product | null>(null);
+  const [physicalWorkspaceOpen, setPhysicalWorkspaceOpen] = useState(false);
   const mixById = useMemo(() => new Map(mixPresets.map((mix) => [mix.id.toLowerCase(), mix])), [mixPresets]);
   const visible = useMemo(() => {
     const search = query.trim().toLowerCase();
@@ -71,9 +73,20 @@ export function ProductCatalog({
           <p className="panel-kicker">YOUR COLLECTION</p>
           <h2>Product catalog</h2>
         </div>
-        <button type="button" className="button button-primary" disabled={disabled} onClick={onNew}>
-          + New product
-        </button>
+        <div className="product-card-actions">
+          <button
+            type="button"
+            className="button button-quiet"
+            disabled={disabled}
+            aria-expanded={physicalWorkspaceOpen}
+            onClick={() => setPhysicalWorkspaceOpen((current) => !current)}
+          >
+            Storage &amp; molds
+          </button>
+          <button type="button" className="button button-primary" disabled={disabled} onClick={onNew}>
+            + New product
+          </button>
+        </div>
       </div>
       <label className="field product-catalog-search">
         <span className="sr-only">Search products</span>
@@ -241,6 +254,7 @@ export function ProductCatalog({
         </div>
       )}
 
+      {physicalWorkspaceOpen && <PhysicalIdentificationWorkspace products={products} />}
       {labelProduct && <ProductLabelPrintDialog product={labelProduct} onClose={() => setLabelProduct(null)} />}
     </section>
   );
