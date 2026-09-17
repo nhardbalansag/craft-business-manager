@@ -20,6 +20,7 @@ import {
 } from './componentAwareProductionView';
 import { ProductionFinancialSummary } from './ProductionFinancialSummary';
 import { capacityPlan, parsePlannedQuantity, stockShortfall } from './productionPlanningView';
+import { AppIcon } from '../icons/AppIcon';
 import './production.css';
 
 const peso = new Intl.NumberFormat('en-PH', {
@@ -599,13 +600,13 @@ export function ProductionPage({ onOpenProducts }: { onOpenProducts: () => void 
                 ) : !plan || plan.requirements.length === 0 ? (
                   componentOnlyParent ? (
                     <div className="empty-state">
-                      <div className="empty-icon">✓</div>
+                      <div className="empty-icon" aria-hidden="true"><AppIcon name="check-circle" size={28} /></div>
                       <h3>No direct materials required for this parent</h3>
                       <p>Assembly depends on the discrete components in the next section.</p>
                     </div>
                   ) : (
                     <div className="empty-state">
-                      <div className="empty-icon">▦</div>
+                      <div className="empty-icon" aria-hidden="true"><AppIcon name="materials" size={28} /></div>
                       <h3>No derivable direct-material requirements</h3>
                       <p>Review Cost details for recipe or yield issues if this product needs direct materials.</p>
                     </div>
@@ -744,7 +745,7 @@ export function ProductionPage({ onOpenProducts }: { onOpenProducts: () => void 
                   </div>
                 ) : componentRows.length === 0 ? (
                   <div className="empty-state">
-                    <div className="empty-icon">◇</div>
+                    <div className="empty-icon" aria-hidden="true"><AppIcon name="component" size={28} /></div>
                     <h3>No discrete components</h3>
                     <p>This product has no assembly component requirements.</p>
                   </div>
