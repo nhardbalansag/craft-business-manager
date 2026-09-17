@@ -111,15 +111,88 @@
   min-width: 0;
 }
 
-.app-drawer .workbook-tools-popover {
+.workbook-tools-overlay {
   position: fixed;
-  top: 16px;
-  right: 16px;
-  bottom: 16px;
-  left: 280px;
-  width: auto;
+  inset: 0;
+  z-index: 100;
+}
+
+.workbook-tools-overlay[hidden] {
+  display: none;
+}
+
+.workbook-tools-backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: rgba(38, 32, 26, .42);
+  backdrop-filter: blur(3px);
+  cursor: default;
+}
+
+.workbook-tools-dialog {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  bottom: 14px;
+  left: auto;
+  z-index: 1;
+  width: min(980px, calc(100vw - 304px));
   max-height: none;
-  z-index: 80;
+  overflow: auto;
+  padding: 20px;
+  border-radius: 24px;
+  box-shadow: 0 28px 90px rgba(37, 30, 23, .3);
+  animation: workbook-tools-enter .18s ease-out;
+}
+
+@keyframes workbook-tools-enter {
+  from {
+    opacity: 0;
+    transform: translateX(14px) scale(.992);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+.workbook-tools-dialog .workbook-tools-close-row {
+  position: sticky;
+  top: -20px;
+  z-index: 3;
+  display: flex;
+  justify-content: flex-end;
+  margin: -8px -8px 8px;
+  padding: 8px;
+  background: linear-gradient(to bottom, #f8f4ed 72%, rgba(248, 244, 237, 0));
+}
+
+.workbook-tools-dialog .workbook-tools-close-row .button {
+  border: 1px solid #d8cfc2;
+  box-shadow: 0 4px 14px rgba(55, 45, 32, .08);
+}
+
+.workbook-tools-dialog .workbook-tools-popover-heading {
+  margin-top: 2px;
+}
+
+.workbook-tools-dialog .workbook-persistence-status,
+.workbook-tools-dialog .workbook-import-panel,
+.workbook-tools-dialog .public-google-sheets-panel,
+.workbook-tools-dialog .workbook-export-panel {
+  width: 100%;
+  margin: 0;
+}
+
+.workbook-tools-action-stack {
+  display: grid;
+  gap: 14px;
+  margin-top: 14px;
 }
 
 .app-content {
@@ -172,6 +245,10 @@
 .app-shell-with-drawer.is-sidebar-hidden .app-sidebar-toggle {
   left: 14px;
   transform: none;
+}
+
+.app-shell-with-drawer.is-sidebar-hidden .workbook-tools-dialog {
+  width: min(980px, calc(100vw - 28px));
 }
 
 .app-drawer-toggle,
@@ -262,11 +339,23 @@
     cursor: default;
   }
 
-  .app-drawer .workbook-tools-popover {
-    inset: 68px 12px 12px;
-    width: auto;
+  .workbook-tools-dialog,
+  .app-shell-with-drawer.is-sidebar-hidden .workbook-tools-dialog {
+    top: 10px;
+    right: 10px;
+    bottom: 10px;
+    width: calc(100vw - 20px);
     max-height: none;
-    border-radius: 18px;
+    border-radius: 20px;
+  }
+
+  .workbook-tools-dialog .workbook-tools-popover-heading {
+    display: grid;
+  }
+
+  .workbook-tools-dialog .workbook-tools-current-file {
+    min-width: 0;
+    max-width: none;
   }
 }
 
@@ -285,17 +374,19 @@
     padding: 9px 10px;
   }
 
-  .app-drawer .workbook-tools-popover {
-    inset: 62px 8px 8px;
+  .workbook-tools-dialog,
+  .app-shell-with-drawer.is-sidebar-hidden .workbook-tools-dialog {
+    top: 6px;
+    right: 6px;
+    bottom: 6px;
+    width: calc(100vw - 12px);
     padding: 14px;
+    border-radius: 16px;
   }
 
-  .app-drawer .workbook-tools-popover-heading {
-    display: grid;
-  }
-
-  .app-drawer .workbook-tools-current-file {
-    min-width: 0;
-    max-width: none;
+  .workbook-tools-dialog .workbook-tools-close-row {
+    top: -14px;
+    margin: -4px -4px 6px;
+    padding: 6px 4px;
   }
 }
