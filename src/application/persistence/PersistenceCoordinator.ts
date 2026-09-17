@@ -33,7 +33,7 @@ export type PersistenceClock = () => Date;
 export interface PersistenceCoordinatorOptions {
   readonly clock?: PersistenceClock;
   readonly applicationVersion?: string;
-  /** Enables workbook v2 with persisted StorageLocations and Molds. Defaults to legacy v1 behavior. */
+  /** Explicit override for workbook v2 physical-identification persistence. */
   readonly physicalIdentification?: boolean;
 }
 
@@ -60,6 +60,7 @@ export type PersistenceWorkbookApplyResult =
   | PersistenceLifecycleRejected;
 
 interface SnapshotSource {
+  readonly physicalIdentification?: boolean;
   snapshot(): Promise<BusinessDataset | PhysicalBusinessDataset>;
 }
 
@@ -120,8 +121,8 @@ function hydrationOperationalError(error: unknown): PersistenceLifecycleOperatio
  * Application-level persistence lifecycle coordinator.
  *
  * Legacy callers remain on the proven Phase 5 workbook-v1 contract by default.
- * The real application session opts into physicalIdentification, which layers the
- * v2 Molds/StorageLocations sheets over that same v1 business-source engine.
+ * A PhysicalSourceSnapshotService advertises its v2 capability, causing the real app
+ * session to persist Molds and StorageLocations without changing legacy test/mocking APIs.
  */
 export class PersistenceCoordinator {
   private readonly clock: PersistenceClock;
@@ -136,7 +137,8 @@ export class PersistenceCoordinator {
   ) {
     this.clock = options.clock ?? systemClock;
     this.applicationVersion = options.applicationVersion;
-    this.physicalIdentification = options.physicalIdentification ?? false;
+    this.physicalIdentification =
+      options.physicalIdentification ?? snapshotService.physicalIdentification ?? false;
   }
 
   async exportCurrentWorkbook(): Promise<PersistenceWorkbookExported> {
