@@ -153,28 +153,35 @@ export function renderBatchProductionRequestHtml(view: BatchProductionRequestVie
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>${escapeHtml(view.product.name)} — Production Request</title>
   <style>
-    @page { size: A4; margin: 12mm; }
+    @page { size: A4; margin: 18mm 16mm;
+      @bottom-left { content: "Craft Business Manager | Batch sheet"; font: 8pt Arial, sans-serif; color: #555; }
+      @bottom-right { content: "Page " counter(page) " of " counter(pages); font: 8pt Arial, sans-serif; color: #555; }
+    }
     * { box-sizing: border-box; }
-    html { background: #fff; }
-    body { margin: 0; color: #111; font-family: Arial, Helvetica, sans-serif; font-size: 10.5pt; line-height: 1.35; }
+    html { background: #edeae4; }
+    body { width: min(210mm, 100%); margin: 8mm auto; padding: 18mm 16mm; background: #fff; box-shadow: 0 2mm 8mm #0002; color: #111; font-family: Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.4; overflow-wrap: anywhere; }
     h1, h2, h3, p { margin-top: 0; }
     h1 { margin-bottom: 2mm; font-size: 20pt; letter-spacing: .02em; }
-    h2 { margin: 7mm 0 2.5mm; padding-bottom: 1.5mm; border-bottom: 1.5px solid #111; font-size: 12.5pt; text-transform: uppercase; letter-spacing: .04em; }
+    h2 { margin: 6mm 0 2.5mm; padding-bottom: 1.5mm; border-bottom: 1.5px solid #111; font-size: 12pt; text-transform: uppercase; letter-spacing: .04em; break-after: avoid; }
     h3 { margin-bottom: 2mm; font-size: 10.5pt; }
     .brand { margin-bottom: 1mm; font-size: 8.5pt; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
     .subhead { display: flex; justify-content: space-between; gap: 8mm; padding-bottom: 4mm; border-bottom: 2px solid #111; }
     .subhead p { margin: 0; }
-    .reference { text-align: right; font-size: 9pt; }
-    .summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3mm; margin-top: 4mm; }
+    .subhead > div { min-width: 0; }
+    .reference { flex: 0 0 48mm; text-align: right; font-size: 8pt; }
+    .summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 3mm; margin-top: 4mm; }
     .summary > div, .metric { padding: 2.5mm; border: 1px solid #aaa; break-inside: avoid; }
     .summary span, .metric span { display: block; margin-bottom: .8mm; color: #555; font-size: 7.5pt; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
     .summary strong, .metric strong { font-size: 10pt; }
     .readiness { margin-top: 3mm; padding: 2.5mm 3mm; border: 1.5px solid #111; font-weight: 700; }
-    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2mm; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 2mm; }
     table { width: 100%; border-collapse: collapse; table-layout: fixed; }
     thead { display: table-header-group; }
     th, td { padding: 1.8mm; border: 1px solid #bbb; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
     th { background: #eee; font-size: 7.5pt; letter-spacing: .03em; text-transform: uppercase; }
+    td { font-size: 9pt; }
+    .materials-table th:first-child { width: 28%; }
+    .components-table th:first-child { width: 23%; }
     tr { break-inside: avoid; }
     .num { text-align: right; font-variant-numeric: tabular-nums; }
     .muted { color: #555; font-size: 8.5pt; }
@@ -185,17 +192,29 @@ export function renderBatchProductionRequestHtml(view: BatchProductionRequestVie
     .blank-field { min-height: 11mm; padding-top: 2mm; border-bottom: 1px solid #111; }
     .blank-field span { display: block; color: #555; font-size: 8pt; text-transform: uppercase; }
     .notes-box { min-height: 25mm; border: 1px solid #888; }
-    .signatures { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7mm; margin-top: 12mm; }
+    .signatures { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7mm; margin-top: 12mm; break-after: avoid; }
     .signature { padding-top: 8mm; border-top: 1px solid #111; text-align: center; }
-    .footer { margin-top: 8mm; padding-top: 3mm; border-top: 1px solid #aaa; color: #555; font-size: 8pt; }
+    .footer { margin-top: 3mm; padding-top: 2mm; border-top: 1px solid #aaa; color: #555; font-size: 8pt; break-before: avoid; break-inside: avoid; }
+    .screen-note { margin-bottom: 8mm; padding: 3mm; border: 1px solid #ddd; color: #555; font-size: 9pt; }
     section { break-inside: auto; }
+    .keep-together, .signatures { break-inside: avoid; }
+    p { orphans: 3; widows: 3; }
+    @media screen and (max-width: 600px) {
+      body { margin: 0; padding: 8mm 5mm; }
+      .subhead { flex-direction: column; gap: 3mm; }
+      .reference { flex-basis: auto; text-align: left; }
+      .summary, .grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
     @media print {
-      body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+      html { background: #fff; }
+      .screen-note { display: none; }
+      body { width: auto; margin: 0; padding: 0; box-shadow: none; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
       a { color: inherit; text-decoration: none; }
     }
   </style>
 </head>
 <body>
+  <aside class="screen-note">A4 portrait | 16 mm side margins | 18 mm top and bottom. Choose <strong>Save as PDF</strong> in the print dialog. Keep default margins and turn off browser headers and footers for this layout.</aside>
   <header>
     <div class="brand">Craft Business Manager</div>
     <div class="subhead">
@@ -223,7 +242,7 @@ export function renderBatchProductionRequestHtml(view: BatchProductionRequestVie
 
   <section>
     <h2>Materials to Prepare</h2>
-    <table>
+    <table class="materials-table">
       <thead><tr><th>Material</th><th>Required</th><th>On hand</th><th>Shortage</th><th>Capacity</th><th>Status</th></tr></thead>
       <tbody>${materialRows(view)}</tbody>
     </table>
@@ -231,7 +250,7 @@ export function renderBatchProductionRequestHtml(view: BatchProductionRequestVie
 
   ${view.components.length > 0 ? `<section>
     <h2>Components / Vessels / Nested Products</h2>
-    <table>
+    <table class="components-table">
       <thead><tr><th>Component</th><th>Source</th><th>Role</th><th>Per parent</th><th>Batch qty</th><th>Available</th><th>Capacity</th><th>Status</th></tr></thead>
       <tbody>${componentRows(view)}</tbody>
     </table>
@@ -263,11 +282,12 @@ export function renderBatchProductionRequestHtml(view: BatchProductionRequestVie
 
   ${view.product.notes ? `<section><h2>Product Notes</h2><p>${escapeHtml(view.product.notes)}</p></section>` : ''}
 
-  <section>
+  <section class="keep-together">
     <h2>Production Notes / Instructions</h2>
     <div class="notes-box" aria-label="Blank production notes area"></div>
   </section>
 
+  <div class="keep-together">
   <section>
     <h2>Actual Production Results</h2>
     <div class="blank-grid">
@@ -287,8 +307,9 @@ export function renderBatchProductionRequestHtml(view: BatchProductionRequestVie
   </section>
 
   <footer class="footer">
-    Planning snapshot only. Printing does not reserve, decrement, or otherwise change stock. Use your browser's Print dialog to print this sheet or choose <strong>Save as PDF</strong>. This action does not itself persist a PDF or production-order record.
+    Planning snapshot only. Printing does not reserve, decrement, or otherwise change stock.
   </footer>
+  </div>
 </body>
 </html>`;
 }

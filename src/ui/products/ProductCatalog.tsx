@@ -33,22 +33,25 @@ export function ProductCatalog({
   const [category, setCategory] = useState<ProductCategory | 'all'>('all');
   const [status, setStatus] = useState<'active' | 'archived' | 'all'>('active');
   const [sort, setSort] = useState<'name' | 'category'>('name');
+  const [density, setDensity] = useState<'cards' | 'compact'>('cards');
   const [labelProduct, setLabelProduct] = useState<Product | null>(null);
   const [physicalWorkspaceOpen, setPhysicalWorkspaceOpen] = useState(false);
   const mixById = useMemo(() => new Map(mixPresets.map((mix) => [mix.id.toLowerCase(), mix])), [mixPresets]);
-  const visible = useMemo(() => {
+  const matchingProducts = useMemo(() => {
     const search = query.trim().toLowerCase();
     return products
       .filter((product) => {
         const mix = mixById.get(product.mixPresetId?.toLowerCase() ?? '');
         return (
           (status === 'all' || product.isActive === (status === 'active')) &&
-          (category === 'all' || category === product.category) &&
           [product.name, product.id, product.notes ?? '', product.mixPresetId ?? '', mix?.name ?? ''].some((value) =>
             value.toLowerCase().includes(search),
           )
         );
-      })
+      });
+  }, [products, mixById, query, status]);
+  const visible = useMemo(() => matchingProducts
+      .filter((product) => category === 'all' || category === product.category)
       .sort(
         (a, b) =>
           (sort === 'category'
@@ -56,8 +59,7 @@ export function ProductCatalog({
             : 0) ||
           a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }) ||
           a.id.localeCompare(b.id),
-      );
-  }, [products, mixById, query, category, status, sort]);
+      ), [matchingProducts, category, sort]);
   const filtered = query !== '' || category !== 'all' || status !== 'active';
 
   function clearFilters() {
@@ -73,7 +75,7 @@ export function ProductCatalog({
           <p className="panel-kicker">YOUR COLLECTION</p>
           <h2>Product catalog</h2>
         </div>
-        <div className="product-card-actions">
+        <div className="product-catalog-heading-actions">
           <button
             type="button"
             className="button button-quiet"
@@ -98,12 +100,12 @@ export function ProductCatalog({
         />
       </label>
       <div className="product-category-filters" role="group" aria-label="Filter by category">
-        <button type="button" aria-pressed={category === 'all'} onClick={() => setCategory('all')}>
-          All categories
+        <button type="button" aria-label="All categories" aria-pressed={category === 'all'} onClick={() => setCategory('all')}>
+          All categories <span className="product-filter-count" aria-hidden="true">{loading || loadFailed ? '-' : matchingProducts.length}</span>
         </button>
         {PRODUCT_CATEGORIES.map((value) => (
-          <button type="button" key={value} aria-pressed={category === value} onClick={() => setCategory(value)}>
-            {PRODUCT_CATEGORY_RULES[value].label}
+          <button type="button" key={value} aria-label={PRODUCT_CATEGORY_RULES[value].label} aria-pressed={category === value} onClick={() => setCategory(value)}>
+            {PRODUCT_CATEGORY_RULES[value].label} <span className="product-filter-count" aria-hidden="true">{loading || loadFailed ? '-' : matchingProducts.filter((product) => product.category === value).length}</span>
           </button>
         ))}
       </div>
@@ -133,13 +135,19 @@ export function ProductCatalog({
           </button>
         )}
       </div>
-      <p className="product-result-count" role="status">
-        {loadFailed
-          ? 'Catalog could not be refreshed'
-          : loading
-            ? 'Loading your collection...'
-            : `${visible.length} of ${products.length} products shown`}
-      </p>
+      <div className="product-results-toolbar">
+        <p className="product-result-count" role="status" aria-live="polite">
+          {loadFailed
+            ? 'Catalog could not be refreshed'
+            : loading
+              ? 'Loading your collection...'
+              : `${visible.length} of ${products.length} products shown`}
+        </p>
+        <div className="product-density-control" role="group" aria-label="Catalog layout">
+          <button type="button" aria-pressed={density === 'cards'} onClick={() => setDensity('cards')}>Cards</button>
+          <button type="button" aria-pressed={density === 'compact'} onClick={() => setDensity('compact')}>Compact</button>
+        </div>
+      </div>
       {loadFailed ? (
         <div className="empty-state">
           <h3>Catalog unavailable</h3>
@@ -169,7 +177,7 @@ export function ProductCatalog({
           </button>
         </div>
       ) : (
-        <div className="product-card-grid">
+        <div className={`product-card-grid ${density === 'compact' ? 'is-compact' : ''}`}>
           {visible.map((product) => {
             const mix = mixById.get(product.mixPresetId?.toLowerCase() ?? '');
             return (
@@ -186,7 +194,7 @@ export function ProductCatalog({
                     {product.isActive ? 'Active' : 'Archived'}
                   </span>
                 </div>
-                <div>
+                <div className="product-card-identity">
                   <p className="product-card-category">{PRODUCT_CATEGORY_RULES[product.category].label}</p>
                   <h3>{product.name}</h3>
                   <span className="material-id">{product.id}</span>

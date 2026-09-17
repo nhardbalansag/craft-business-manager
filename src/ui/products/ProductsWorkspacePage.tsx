@@ -33,12 +33,13 @@ export function ProductsWorkspacePage() {
   }, [loadProducts, mode]);
 
   return (
-    <section aria-label="Products workspace">
+    <section className="products-workshop-shell" aria-label="Products workspace">
       <nav className="workspace-switcher" aria-label="Products workshop areas">
         <button
           type="button"
           className={mode === 'catalog' ? 'active' : ''}
           aria-pressed={mode === 'catalog'}
+          aria-controls="products-catalog-area"
           onClick={() => setMode('catalog')}
         >
           <strong>Catalog &amp; recipes</strong>
@@ -48,6 +49,7 @@ export function ProductsWorkspacePage() {
           type="button"
           className={mode === 'physical' ? 'active' : ''}
           aria-pressed={mode === 'physical'}
+          aria-controls="products-physical-area"
           onClick={() => setMode('physical')}
         >
           <strong>Molds &amp; storage</strong>
@@ -55,20 +57,23 @@ export function ProductsWorkspacePage() {
         </button>
       </nav>
 
-      {mode === 'catalog' ? (
+      <div id="products-catalog-area" hidden={mode !== 'catalog'}>
         <ProductsPage />
-      ) : loadError ? (
-        <div className="feedback feedback-error" role="alert">
-          Could not load Products for physical identification: {loadError}{' '}
-          <button type="button" className="text-button" disabled={loadingProducts} onClick={() => void loadProducts()}>
-            Retry loading
-          </button>
-        </div>
-      ) : loadingProducts ? (
-        <div className="panel empty-state" role="status">Loading physical identification workspace…</div>
-      ) : (
-        <PhysicalIdentificationWorkspace products={products} />
-      )}
+      </div>
+      <div id="products-physical-area" className="products-physical-area" hidden={mode !== 'physical'}>
+        {mode === 'physical' && (loadError ? (
+          <div className="feedback feedback-error" role="alert">
+            Could not load Products for physical identification: {loadError}{' '}
+            <button type="button" className="text-button" disabled={loadingProducts} onClick={() => void loadProducts()}>
+              Retry loading
+            </button>
+          </div>
+        ) : loadingProducts ? (
+          <div className="panel empty-state" role="status">Loading physical identification workspace…</div>
+        ) : (
+          <PhysicalIdentificationWorkspace products={products} />
+        ))}
+      </div>
     </section>
   );
 }

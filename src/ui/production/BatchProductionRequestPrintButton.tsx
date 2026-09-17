@@ -120,7 +120,7 @@ export function BatchProductionRequestPrintButton({
   };
 
   return (
-    <section className="panel" aria-label="Production request sheet">
+    <section className="panel production-print-panel" aria-label="Production request sheet" aria-busy={preparing}>
       <div className="panel-heading">
         <div>
           <p className="panel-kicker">SHOP-FLOOR DOCUMENT</p>
@@ -129,6 +129,11 @@ export function BatchProductionRequestPrintButton({
             Open an A4 planning sheet with materials, components, capacity, costs, blank actual-result fields,
             and sign-off lines. Use the browser print dialog for paper or Save as PDF.
           </p>
+          <div className="production-print-format" aria-label="Batch sheet format">
+            <span>A4 portrait</span>
+            <span>16 mm side margins</span>
+            <span>18 mm top &amp; bottom</span>
+          </div>
         </div>
         <button
           type="button"

@@ -165,6 +165,9 @@ export function ProductsPage() {
   const [busy, setBusy] = useState(false);
   const mutationInFlight = useRef(false);
   const productNameInput = useRef<HTMLInputElement>(null);
+  const draftWarning = useRef<HTMLDivElement>(null);
+  // undefined means no pending switch; null means a new product was requested.
+  const [pendingProduct, setPendingProduct] = useState<Product | null | undefined>(undefined);
   const [componentProductId, setComponentProductId] = useState('');
 
   const [mixForm, setMixForm] = useState<MixFormState>(() => emptyMixForm());
@@ -229,11 +232,36 @@ export function ProductsPage() {
   );
 
   const activeMaterials = useMemo(() => materials.filter((material) => material.isActive), [materials]);
+  const savedProduct = products.find((product) => product.id === editingProductId);
+  const productDirty = JSON.stringify(productForm) !== JSON.stringify(savedProduct ? productToForm(savedProduct) : EMPTY_PRODUCT_FORM);
+
+  useEffect(() => {
+    if (pendingProduct !== undefined) draftWarning.current?.focus();
+  }, [pendingProduct]);
+
+  function openProductEditor(product: Product | null) {
+    setEditingProductId(product?.id ?? null);
+    setProductForm(product ? productToForm(product) : EMPTY_PRODUCT_FORM);
+    setProductFeedback(null);
+    setPendingProduct(undefined);
+    productNameInput.current?.focus();
+  }
+
+  function requestProductEditor(product: Product | null) {
+    if (product && product.id === editingProductId) {
+      productNameInput.current?.focus();
+    } else if (productDirty) {
+      setPendingProduct(product);
+    } else {
+      openProductEditor(product);
+    }
+  }
 
   function resetProductForm() {
     setEditingProductId(null);
     setProductForm(EMPTY_PRODUCT_FORM);
     setProductFeedback(null);
+    setPendingProduct(undefined);
   }
 
   function resetMixForm() {
@@ -261,6 +289,7 @@ export function ProductsPage() {
           safetyWasteRate: candidate.safetyWasteRate,
           notes: candidate.notes,
         });
+        setProductForm(productToForm(candidate));
         setProductFeedback({ type: 'success', message: 'Product updated.' });
       } else {
         await productService.createProduct(formToProduct(productForm, true));
@@ -268,6 +297,7 @@ export function ProductsPage() {
         setProductForm(EMPTY_PRODUCT_FORM);
       }
       await reload();
+      setPendingProduct(undefined);
     } catch (error) {
       setProductFeedback({ type: 'error', message: errorMessage(error) });
     } finally {
@@ -464,16 +494,8 @@ export function ProductsPage() {
           loadFailed={Boolean(loadError)}
           disabled={busy || loading || Boolean(loadError)}
           editingId={editingProductId}
-          onNew={() => {
-            resetProductForm();
-            productNameInput.current?.focus();
-          }}
-          onEdit={(product) => {
-            setEditingProductId(product.id);
-            setProductForm(productToForm(product));
-            setProductFeedback(null);
-            productNameInput.current?.focus();
-          }}
+          onNew={() => requestProductEditor(null)}
+          onEdit={requestProductEditor}
           onComponents={(product) => {
             setComponentProductId(product.id);
             setView('components');
@@ -497,11 +519,26 @@ export function ProductsPage() {
               </p>
             </div>
             {editingProductId && (
-              <button type="button" className="text-button" disabled={busy} onClick={resetProductForm}>
+              <button type="button" className="text-button" disabled={busy} onClick={() => requestProductEditor(null)}>
                 Clear
               </button>
             )}
           </div>
+
+          <div className={`product-editor-state ${productDirty ? 'has-changes' : ''}`} role="status">
+            <strong>{productDirty ? 'Unsaved changes' : editingProductId ? 'All changes saved' : 'New product'}</strong>
+            <span>{productDirty ? 'Save this draft before moving on, or discard it when switching products.' : 'Product identity, recipe setup, and workshop notes.'}</span>
+          </div>
+          {pendingProduct !== undefined && (
+            <div className="product-draft-warning" role="alert" ref={draftWarning} tabIndex={-1}>
+              <strong>Keep your current draft?</strong>
+              <p>{pendingProduct ? `Opening ${pendingProduct.name} will replace your unsaved changes.` : 'Starting a new product will replace your unsaved changes.'}</p>
+              <div>
+                <button className="button button-primary" type="button" disabled={busy} onClick={() => { setPendingProduct(undefined); productNameInput.current?.focus(); }}>Keep editing</button>
+                <button className="button button-quiet" type="button" disabled={busy} onClick={() => openProductEditor(pendingProduct)}>Discard changes</button>
+              </div>
+            </div>
+          )}
 
           <fieldset className="product-form-fields" disabled={busy || loading || Boolean(loadError)}>
             <div className="form-grid">

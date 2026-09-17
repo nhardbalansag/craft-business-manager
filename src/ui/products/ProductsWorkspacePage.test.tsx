@@ -52,6 +52,25 @@ async function flush() {
 }
 
 describe('ProductsWorkspacePage', () => {
+  it('preserves the product draft and catalog layout when visiting molds and storage', async () => {
+    await act(async () => root.render(<ProductsWorkspacePage />));
+    await flush();
+    await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="Edit Dinosaur Toy"]')!.click());
+    const name = container.querySelector<HTMLInputElement>('input[placeholder="Paintable star"]')!;
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(name, 'Draft dinosaur');
+      name.dispatchEvent(new Event('input', { bubbles: true }));
+      Array.from(container.querySelectorAll('button')).find((button) => button.textContent === 'Compact')!.click();
+    });
+    await act(async () => container.querySelector<HTMLButtonElement>('[aria-controls="products-physical-area"]')!.click());
+    await flush();
+    expect(container.querySelector('#products-catalog-area')?.hasAttribute('hidden')).toBe(true);
+    await act(async () => container.querySelector<HTMLButtonElement>('[aria-controls="products-catalog-area"]')!.click());
+    expect(name.value).toBe('Draft dinosaur');
+    expect(container.querySelector('.product-card-grid.is-compact')).not.toBeNull();
+    expect((await session.productService.getProduct('PRD-1'))?.name).toBe('Dinosaur Toy');
+  });
+
   it('makes the Mold and Storage workspace reachable from the Products section', async () => {
     await act(async () => root.render(<ProductsWorkspacePage />));
     await flush();
