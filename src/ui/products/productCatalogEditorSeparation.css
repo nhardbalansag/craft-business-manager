@@ -13,6 +13,18 @@
   display: none;
 }
 
+/* The legacy two-column layout reserved 370px for the Product details form.
+   In catalog mode that form is hidden, so let the collection consume the
+   entire available Products workspace instead of leaving an empty column. */
+.product-catalog-layout:not(:has(.product-catalog.is-editor-shell-open)) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.product-catalog-layout:not(:has(.product-catalog.is-editor-shell-open)) > .product-catalog {
+  grid-column: 1 / -1;
+  width: 100%;
+}
+
 .product-catalog.is-editor-shell-open {
   grid-column: 1 / -1;
   display: grid;
