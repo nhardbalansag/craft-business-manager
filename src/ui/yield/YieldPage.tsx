@@ -613,6 +613,12 @@ export function YieldPage() {
           </section>
 
           <div className="materials-layout yield-layout">
+            <section className="yield-evidence-column" aria-labelledby="yield-evidence-column-heading">
+              <div className="yield-column-heading">
+                <span className="yield-column-label">BATCH INPUT</span>
+                <h2 id="yield-evidence-column-heading">Batch evidence</h2>
+                <p>Enter this batch's actual consumption and piece counts. Draft values become evidence when you record the sample.</p>
+              </div>
             <form className="panel material-form yield-form" aria-busy={Boolean(busy)} aria-label="Yield sample" onSubmit={submitSample}>
               <div className="panel-heading yield-form-heading">
                 <div>
@@ -859,8 +865,14 @@ export function YieldPage() {
                 </div>
               )}
             </form>
+            </section>
 
-            <div className="yield-history-stack">
+            <section className="yield-history-stack yield-learning-column" aria-labelledby="yield-learning-column-heading">
+              <div className="yield-column-heading">
+                <span className="yield-column-label">SAVED RESULTS</span>
+                <h2 id="yield-learning-column-heading">Effective learning</h2>
+                <p>Review learned requirements from recorded samples. Editing the batch draft does not change these saved results.</p>
+              </div>
               <section className="panel effective-yield-card" aria-label="Effective yield learning">
                 <div className="panel-heading">
                   <div>
@@ -1049,7 +1061,7 @@ export function YieldPage() {
                   <span>{effectiveId ? `Effective: ${effectiveId}` : 'No effective sample'}</span>
                 </div>
               </section>
-            </div>
+            </section>
           </div>
         </>
       )}
