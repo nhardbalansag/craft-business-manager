@@ -31,6 +31,15 @@ import { YieldPage } from './ui/yield/YieldPage';
 type AppSection = 'materials' | 'calibration' | 'products' | 'yield' | 'production' | 'pricing';
 export type PersistenceUiClock = () => Date;
 
+const APP_SECTIONS: readonly { id: AppSection; label: string; shortLabel: string }[] = [
+  { id: 'materials', label: 'Materials', shortLabel: 'MA' },
+  { id: 'calibration', label: 'Calibration', shortLabel: 'CA' },
+  { id: 'products', label: 'Products', shortLabel: 'PR' },
+  { id: 'yield', label: 'Yield', shortLabel: 'YI' },
+  { id: 'production', label: 'Production', shortLabel: 'PD' },
+  { id: 'pricing', label: 'Pricing', shortLabel: 'PX' },
+];
+
 export interface AppProps {
   readonly workbookImportCommand?: BrowserWorkbookImportCommand;
   readonly publicGoogleSheetsImportCommand?: PublicGoogleSheetsImportCommandPort;
@@ -49,6 +58,7 @@ export default function App({
   persistenceUiClock,
 }: AppProps = {}) {
   const [section, setSection] = useState<AppSection>('materials');
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const workbookToolsRef = useRef<HTMLDetailsElement>(null);
   const workbookTriggerRef = useRef<HTMLElement>(null);
   const [workspaceRevision, setWorkspaceRevision] = useState(0);
@@ -77,6 +87,11 @@ export default function App({
     workbookTriggerRef.current?.focus();
   }
 
+  function selectSection(nextSection: AppSection) {
+    setSection(nextSection);
+    setDrawerOpen(false);
+  }
+
   function handleWorkbookHydrated(event: WorkbookImportHydratedEvent) {
     const observedAt = uiClock();
     setPersistenceStatus((current) =>
@@ -90,26 +105,56 @@ export default function App({
   }
 
   return (
-    <main className="app-shell">
-      <header className="app-header">
-        <div className="brand-lockup">
-          <div className="brand-mark" aria-hidden="true">CB</div>
-          <div>
-            <strong>Craft Business Manager</strong>
-            <span>Costing & production workspace</span>
+    <main className={`app-shell app-shell-with-drawer ${drawerOpen ? 'is-drawer-open' : ''}`}>
+      <button
+        type="button"
+        className="app-drawer-toggle"
+        aria-label={drawerOpen ? 'Close navigation menu' : 'Open navigation menu'}
+        aria-expanded={drawerOpen}
+        aria-controls="app-navigation-drawer"
+        onClick={() => setDrawerOpen((current) => !current)}
+      >
+        <span aria-hidden="true">{drawerOpen ? '×' : '☰'}</span>
+        <strong>{drawerOpen ? 'Close' : 'Menu'}</strong>
+      </button>
+
+      <aside id="app-navigation-drawer" className="app-drawer" aria-label="Application navigation drawer">
+        <div className="app-drawer-header">
+          <div className="brand-lockup">
+            <div className="brand-mark" aria-hidden="true">CB</div>
+            <div>
+              <strong>Craft Business Manager</strong>
+              <span>Costing &amp; production workspace</span>
+            </div>
           </div>
+          <button
+            type="button"
+            className="app-drawer-close"
+            aria-label="Close navigation menu"
+            onClick={() => setDrawerOpen(false)}
+          >
+            ×
+          </button>
         </div>
 
-        <div className="app-header-actions">
-          <nav className="phase-nav" aria-label="Application sections">
-            <button className={`nav-item ${section === 'materials' ? 'active' : ''}`} type="button" aria-current={section === 'materials' ? 'page' : undefined} onClick={() => setSection('materials')}>Materials</button>
-            <button className={`nav-item ${section === 'calibration' ? 'active' : ''}`} type="button" aria-current={section === 'calibration' ? 'page' : undefined} onClick={() => setSection('calibration')}>Calibration</button>
-            <button className={`nav-item ${section === 'products' ? 'active' : ''}`} type="button" aria-current={section === 'products' ? 'page' : undefined} onClick={() => setSection('products')}>Products</button>
-            <button className={`nav-item ${section === 'yield' ? 'active' : ''}`} type="button" aria-current={section === 'yield' ? 'page' : undefined} onClick={() => setSection('yield')}>Yield</button>
-            <button className={`nav-item ${section === 'production' ? 'active' : ''}`} type="button" aria-current={section === 'production' ? 'page' : undefined} onClick={() => setSection('production')}>Production</button>
-            <button className={`nav-item ${section === 'pricing' ? 'active' : ''}`} type="button" aria-current={section === 'pricing' ? 'page' : undefined} onClick={() => setSection('pricing')}>Pricing</button>
-          </nav>
+        <div className="app-drawer-section-label">Workspace</div>
+        <nav className="phase-nav app-drawer-nav" aria-label="Application sections">
+          {APP_SECTIONS.map((item) => (
+            <button
+              key={item.id}
+              className={`nav-item ${section === item.id ? 'active' : ''}`}
+              type="button"
+              aria-current={section === item.id ? 'page' : undefined}
+              onClick={() => selectSection(item.id)}
+            >
+              <span className="app-drawer-nav-icon" aria-hidden="true">{item.shortLabel}</span>
+              <span>{item.label}</span>
+            </button>
+          ))}
+        </nav>
 
+        <div className="app-drawer-workbook">
+          <div className="app-drawer-section-label">Data</div>
           <details
             className="workbook-tools"
             ref={workbookToolsRef}
@@ -138,7 +183,7 @@ export default function App({
               <div className="workbook-tools-popover-heading">
                 <div>
                   <p className="panel-kicker">WORKBOOK TOOLS</p>
-                  <h2>Data sources & workbook copies</h2>
+                  <h2>Data sources &amp; workbook copies</h2>
                   <p>
                     Open local XLSX files, import a public Google Sheets snapshot, review session
                     status, or download the current workspace as a workbook copy.
@@ -151,10 +196,7 @@ export default function App({
               </div>
 
               <WorkbookPersistenceStatusPanel status={persistenceStatus} />
-              <WorkbookImportPanel
-                command={importCommand}
-                onHydrated={handleWorkbookHydrated}
-              />
+              <WorkbookImportPanel command={importCommand} onHydrated={handleWorkbookHydrated} />
               <PublicGoogleSheetsImportPanel
                 command={googleSheetsImportCommand}
                 onHydrated={handleWorkbookHydrated}
@@ -171,16 +213,27 @@ export default function App({
             </div>
           </details>
         </div>
-      </header>
+      </aside>
 
-      <div className="workspace-revision-boundary" data-workspace-revision={workspaceRevision} key={workspaceRevision}>
-        {section === 'materials' && <MaterialsPage />}
-        {section === 'calibration' && <CalibrationPage />}
-        {section === 'products' && <ProductsWorkspacePage />}
-        {section === 'yield' && <YieldPage />}
-        {section === 'production' && <ProductionPage onOpenProducts={() => setSection('products')} />}
-        {section === 'pricing' && <PricingPage />}
-      </div>
+      {drawerOpen && (
+        <button
+          type="button"
+          className="app-drawer-backdrop"
+          aria-label="Close navigation menu"
+          onClick={() => setDrawerOpen(false)}
+        />
+      )}
+
+      <section className="app-content">
+        <div className="workspace-revision-boundary" data-workspace-revision={workspaceRevision} key={workspaceRevision}>
+          {section === 'materials' && <MaterialsPage />}
+          {section === 'calibration' && <CalibrationPage />}
+          {section === 'products' && <ProductsWorkspacePage />}
+          {section === 'yield' && <YieldPage />}
+          {section === 'production' && <ProductionPage onOpenProducts={() => selectSection('products')} />}
+          {section === 'pricing' && <PricingPage />}
+        </div>
+      </section>
     </main>
   );
 }
