@@ -115,6 +115,115 @@ async function submit() {
 }
 
 describe('Yield workspace UI/UX', () => {
+  it('makes unavailable copied materials visible and requires a valid replacement', async () => {
+    await seed();
+    await session.materialRepository.replaceAll([plaster, { ...plaster, id: 'ARCHIVED', name: 'Old plaster', isActive: false }]);
+    await session.yieldSampleRepository.replaceAll([sample({ materialInputs: [{ materialId: 'ARCHIVED', quantity: 100, unit: 'g' }] })]);
+    await mount();
+    await click('Use as new draft');
+    await fill(field('Sample ID'), 'REPLACEMENT');
+    const material = container.querySelector<HTMLSelectElement>('[aria-label="Yield material 1"]')!;
+    expect(material.selectedOptions[0].textContent).toContain('Old plaster (unavailable)');
+    expect(container.querySelector<HTMLButtonElement>('button[type="submit"]')?.disabled).toBe(true);
+    await fill(material, plaster.id);
+    expect(container.querySelector<HTMLButtonElement>('button[type="submit"]')?.disabled).toBe(false);
+  });
+
+  it('protects a draft when switching products, resetting, or copying history', async () => {
+    await seed();
+    await session.productRepository.replaceAll([product, { ...product, id: 'ART-002', name: 'Z Moon' }]);
+    await session.yieldSampleRepository.replaceAll([sample()]);
+    await mount();
+    await fill(field('Sample ID'), 'DRAFT');
+    const productSelect = container.querySelector<HTMLSelectElement>('.yield-product-bar select')!;
+    await fill(productSelect, 'ART-002');
+    expect(productSelect.value).toBe('ART-001');
+    expect(field('Sample ID').value).toBe('DRAFT');
+    expect(document.activeElement).toBe(container.querySelector('.yield-draft-confirm'));
+    await click('Keep editing');
+    await click('Use as new draft');
+    expect(field('Sample ID').value).toBe('DRAFT');
+    await click('Keep editing');
+    await click('Reset sample');
+    expect(field('Sample ID').value).toBe('DRAFT');
+    await click('Discard draft and continue');
+    expect(field('Sample ID').value).toBe('');
+    await click('Use as new draft');
+    expect(field('Good pieces').value).toBe('8');
+    expect(document.activeElement).toBe(field('Sample ID'));
+    await fill(productSelect, 'ART-002');
+    await click('Discard draft and continue');
+    expect(productSelect.value).toBe('ART-002');
+    expect(field('Good pieces').value).toBe('1');
+  });
+
+  it('ignores an older history response after switching back to another product', async () => {
+    await seed();
+    await session.productRepository.replaceAll([product, { ...product, id: 'ART-002', name: 'Z Moon' }]);
+    await session.yieldSampleRepository.replaceAll([sample()]);
+    await mount();
+    let release!: (samples: YieldSample[]) => void;
+    vi.spyOn(session.yieldHistoryService, 'listHistory').mockImplementationOnce(() => new Promise((resolve) => { release = resolve; }));
+    const productSelect = container.querySelector<HTMLSelectElement>('.yield-product-bar select')!;
+    await fill(productSelect, 'ART-002');
+    expect(container.querySelector('[aria-label="Yield history snapshot"]')?.textContent).toContain('Loading batch evidence');
+    expect(container.querySelector('[aria-label="Effective yield learning"]')?.textContent).not.toContain('YS-001');
+    await fill(productSelect, 'ART-001');
+    await act(async () => release([sample({ id: 'MOON-SAMPLE', productId: 'ART-002' })]));
+    expect(history()?.textContent).toContain('YS-001');
+    expect(history()?.textContent).not.toContain('MOON-SAMPLE');
+  });
+
+  it('blocks repeat saves and locks the product until recording finishes', async () => {
+    await seed();
+    await mount();
+    await fill(field('Sample ID'), 'SAVE-ONCE');
+    await fill(container.querySelector<HTMLSelectElement>('[aria-label="Yield material 1"]')!, plaster.id);
+    await fill(container.querySelector<HTMLInputElement>('[aria-label="Yield quantity 1"]')!, '100');
+    const record = session.yieldSampleEvidenceService.recordSample.bind(session.yieldSampleEvidenceService);
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => { release = resolve; });
+    const spy = vi.spyOn(session.yieldSampleEvidenceService, 'recordSample').mockImplementation(async (input) => { await gate; return record(input); });
+    await submit();
+    await submit();
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(container.querySelector<HTMLSelectElement>('.yield-product-bar select')?.disabled).toBe(true);
+    expect(container.querySelector<HTMLButtonElement>('button[type="submit"]')?.textContent).toContain('Recording');
+    await act(async () => release());
+    expect(await session.yieldSampleEvidenceService.listSamples({ productId: product.id })).toHaveLength(1);
+    expect(container.querySelector<HTMLSelectElement>('.yield-product-bar select')?.disabled).toBe(false);
+  });
+
+  it('requires a valid date and never previews percentages from invalid piece counts', async () => {
+    await seed();
+    await mount();
+    await fill(field('Sample ID'), 'CHECK');
+    await fill(container.querySelector<HTMLSelectElement>('[aria-label="Yield material 1"]')!, plaster.id);
+    await fill(container.querySelector<HTMLInputElement>('[aria-label="Yield quantity 1"]')!, '100');
+    await fill(field('Recorded at'), '');
+    expect(container.querySelector<HTMLButtonElement>('button[type="submit"]')?.disabled).toBe(true);
+    await fill(field('Recorded at'), '2026-09-18T10:00');
+    expect(container.querySelector<HTMLButtonElement>('button[type="submit"]')?.disabled).toBe(false);
+    await fill(field('Rejected pieces'), '-1');
+    expect(container.querySelector('[aria-label="Draft yield preview"]')?.textContent).not.toContain('%');
+    expect(container.querySelector<HTMLButtonElement>('button[type="submit"]')?.disabled).toBe(true);
+  });
+
+  it('preserves the entered evidence when saving fails and allows a retry', async () => {
+    await seed();
+    await mount();
+    await fill(field('Sample ID'), 'RETRY');
+    await fill(container.querySelector<HTMLSelectElement>('[aria-label="Yield material 1"]')!, plaster.id);
+    await fill(container.querySelector<HTMLInputElement>('[aria-label="Yield quantity 1"]')!, '100');
+    vi.spyOn(session.yieldSampleEvidenceService, 'recordSample').mockRejectedValueOnce(new Error('Save failed'));
+    await submit();
+    expect(field('Sample ID').value).toBe('RETRY');
+    expect(form()?.textContent).toContain('Save failed');
+    expect(container.querySelector<HTMLButtonElement>('button[type="submit"]')?.disabled).toBe(false);
+    await submit();
+    expect(await session.yieldSampleEvidenceService.listSamples({ productId: product.id })).toHaveLength(1);
+  });
+
   it('shows a real loading state before presenting the batch workspace', async () => {
     await seed();
     let release!: (value: Product[]) => void;
