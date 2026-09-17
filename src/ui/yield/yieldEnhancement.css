@@ -1,0 +1,279 @@
+.yield-insights {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: -4px 0 20px;
+}
+
+.yield-insight-card {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+  padding: 16px 17px;
+  border: 1px solid var(--yield-border);
+  border-radius: 16px;
+  background: #fffdf9;
+  box-shadow: 0 7px 24px rgb(47 41 34 / 5%);
+}
+
+.yield-insight-card > span {
+  color: var(--yield-muted);
+  font-size: .68rem;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.yield-insight-card > strong {
+  overflow-wrap: anywhere;
+  color: var(--yield-ink);
+  font-size: 1.35rem;
+  line-height: 1.15;
+}
+
+.yield-insight-card > small {
+  color: var(--yield-muted);
+  font-size: .73rem;
+  line-height: 1.45;
+}
+
+.yield-insight-card.is-primary {
+  border-color: #bdcdbf;
+  background: #f2f7f1;
+}
+
+.yield-insight-card.needs-attention {
+  border-color: #dcc995;
+  background: #fff9e9;
+}
+
+.yield-draft-progress {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+  margin-bottom: 12px;
+}
+
+.yield-draft-progress span {
+  position: relative;
+  min-width: 0;
+  padding: 8px 10px 8px 28px;
+  border: 1px solid #e5ded4;
+  border-radius: 10px;
+  background: #f8f5ef;
+  color: #81776c;
+  font-size: .7rem;
+  font-weight: 760;
+}
+
+.yield-draft-progress span::before {
+  content: '';
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  width: 9px;
+  height: 9px;
+  border: 2px solid #b8aea1;
+  border-radius: 999px;
+  transform: translateY(-50%);
+}
+
+.yield-draft-progress span.complete {
+  border-color: #c7d5c9;
+  background: #f2f7f1;
+  color: #496052;
+}
+
+.yield-draft-progress span.complete::before {
+  border-color: #55705e;
+  background: #55705e;
+  box-shadow: inset 0 0 0 2px #f2f7f1;
+}
+
+.yield-history-subtitle {
+  max-width: 620px;
+  margin: 5px 0 0;
+  color: var(--yield-muted);
+  font-size: .78rem;
+  line-height: 1.5;
+}
+
+.yield-history-panel .yield-history-toolbar {
+  grid-template-columns: minmax(180px, 1fr) minmax(145px, .55fr) minmax(130px, .48fr) auto;
+  align-items: end;
+}
+
+.yield-clear-history {
+  min-height: 42px;
+  align-self: end;
+  white-space: nowrap;
+}
+
+.history-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.history-summary-grid > span {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+  padding: 9px 10px;
+  border: 1px solid #e8e0d5;
+  border-radius: 11px;
+  background: #f8f5ef;
+}
+
+.history-summary-grid small {
+  color: #8c8276;
+  font-size: .63rem;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.history-summary-grid strong {
+  overflow: hidden;
+  color: #3c3731;
+  font-size: .82rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.yield-clean-badge {
+  background: #eaf3e9;
+  color: #48634e;
+}
+
+.yield-reject-badge {
+  background: #f8ece3;
+  color: #865b43;
+}
+
+.history-evidence-details {
+  margin-top: 11px;
+  padding: 9px 11px;
+  border: 1px solid #e8e0d5;
+  border-radius: 11px;
+  background: #fdfbf7;
+}
+
+.history-evidence-details summary {
+  cursor: pointer;
+  color: #655e56;
+  font-size: .75rem;
+  font-weight: 760;
+  list-style-position: inside;
+}
+
+.history-evidence-details[open] summary {
+  padding-bottom: 8px;
+  border-bottom: 1px solid #eee7dd;
+}
+
+.history-evidence-details .history-materials {
+  margin-top: 10px;
+}
+
+.yield-history-actions {
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 2px;
+}
+
+.yield-delete-confirm {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid #e1b7aa;
+  border-radius: 10px;
+  background: #fff7f3;
+}
+
+.yield-delete-confirm > span {
+  margin-right: auto;
+  color: #765044;
+  font-size: .74rem;
+  font-weight: 700;
+}
+
+.yield-history-item.effective-history-item {
+  position: relative;
+  padding-left: 24px;
+}
+
+.yield-history-item.effective-history-item::before {
+  content: '';
+  position: absolute;
+  inset: 14px auto 14px 0;
+  width: 4px;
+  border-radius: 0 4px 4px 0;
+  background: #65806a;
+}
+
+@media (max-width: 1180px) {
+  .yield-insights {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .yield-history-panel .yield-history-toolbar {
+    grid-template-columns: minmax(0, 1fr) minmax(140px, .55fr) minmax(130px, .5fr);
+  }
+
+  .yield-clear-history {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+}
+
+@media (max-width: 760px) {
+  .yield-insights,
+  .history-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .yield-history-panel .yield-history-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .yield-clear-history {
+    grid-column: auto;
+    width: 100%;
+  }
+
+  .yield-history-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .yield-history-actions > .button,
+  .yield-history-actions > .text-button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .yield-delete-confirm {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .yield-delete-confirm > span {
+    width: 100%;
+    margin-right: 0;
+  }
+}
+
+@media (max-width: 520px) {
+  .yield-insights,
+  .history-summary-grid,
+  .yield-draft-progress {
+    grid-template-columns: 1fr;
+  }
+}
