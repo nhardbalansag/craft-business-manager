@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useState, type KeyboardEvent } from 'react';
 import type { Product } from '../../domain/products';
 import { PRODUCT_CATEGORY_RULES } from '../../domain/products';
 import './yieldProductSearchPicker.css';
@@ -62,7 +62,7 @@ export function YieldProductSearchPicker({
     if (product.id !== selectedProductId) onSelect(product.id);
   }
 
-  function handleKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+  function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
     if (event.key === 'Escape') {
       setOpen(false);
       return;
