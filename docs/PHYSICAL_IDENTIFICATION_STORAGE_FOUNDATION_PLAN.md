@@ -10,7 +10,7 @@ Validation gate:
 - feature head before closeout documentation: `fdad966ab40213af4cc1e36aa9d2cc48852a47e3`
 - feature CI: `35180872109 — SUCCESS`
 - branch comparison: `53 commits ahead / 0 behind develop`
-- exact diff review: `41 changed files`, confined to the planned physical-identification, persistence, Product integration, label UI/test, and dependency surfaces
+- exact diff review: `42 changed files`, confined to the planned physical-identification, persistence, Product integration, label UI/test, and dependency surfaces
 - CI workflow validates TypeScript, full regression tests, and production build
 - PR / guarded merge / post-merge `develop` CI remain the final repository gates
 
