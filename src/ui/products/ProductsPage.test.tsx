@@ -107,6 +107,57 @@ async function seed() {
 }
 
 describe('product workshop interactions', () => {
+  it('keeps drafts when reselecting a product and asks before replacing them', async () => {
+    await seed();
+    await mount();
+    await click('Edit Alpha candle');
+    await fill(field('Name'), 'Unsaved candle');
+    await click('Edit Alpha candle');
+    expect(field('Name').value).toBe('Unsaved candle');
+    await click('Edit Beta star');
+    expect(field('Product ID').value).toBe('ALPHA');
+    expect(container.querySelector('.product-draft-warning')?.textContent).toContain('Opening Beta star');
+    expect(document.activeElement).toBe(container.querySelector('.product-draft-warning'));
+    await click('Keep editing');
+    expect(field('Name').value).toBe('Unsaved candle');
+    expect(document.activeElement).toBe(field('Name'));
+    await click('Edit Beta star');
+    await click('Discard changes');
+    expect(field('Product ID').value).toBe('BETA');
+    expect(field('Name').value).toBe('Beta star');
+    expect((await session.productService.getProduct('ALPHA'))?.name).toBe('Alpha candle');
+  });
+
+  it('guards starting a new product and clears draft status after saving', async () => {
+    await seed();
+    await mount();
+    await click('Edit Alpha candle');
+    await fill(field('Name'), 'Updated candle');
+    await click('+ New product');
+    expect(container.querySelector('.product-draft-warning')).not.toBeNull();
+    await click('Keep editing');
+    await submit();
+    expect(container.querySelector('.product-editor-state')?.textContent).toContain('All changes saved');
+    await click('+ New product');
+    expect(container.querySelector('.product-draft-warning')).toBeNull();
+    expect(field('Product ID').value).toBe('');
+  });
+
+  it('keeps filters and actions when switching catalog layout and shows matching category counts', async () => {
+    await seed();
+    await mount();
+    await click('Compact');
+    expect(catalog().querySelector('.product-card-grid.is-compact')).not.toBeNull();
+    await fill(catalog().querySelector('input')!, 'Signature blend');
+    expect(catalog().querySelector('[aria-label="Candle"] .product-filter-count')?.textContent).toBe('1');
+    expect(catalog().querySelector('[aria-label="Paintable art"] .product-filter-count')?.textContent).toBe('0');
+    await click('Cards');
+    expect(catalog().querySelectorAll('article')).toHaveLength(1);
+    expect(catalog().querySelector('input')?.value).toBe('Signature blend');
+    await click('Edit Alpha candle');
+    expect(field('Product ID').value).toBe('ALPHA');
+  });
+
   it('creates the first product from the guided form with a correct reserve rate', async () => {
     await mount();
     expect(catalog().textContent).toContain('Make room for your first creation');

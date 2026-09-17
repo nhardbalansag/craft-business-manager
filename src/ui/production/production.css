@@ -1,3 +1,15 @@
+.production-print-panel { padding: 22px; }
+.production-print-panel .panel-heading { align-items: center; margin-bottom: 12px; }
+.production-print-panel h3 { margin: 6px 0 10px; font-size: 1.25rem; }
+.production-print-panel p { max-width: 720px; margin: 0 0 12px; color: #6b645a; line-height: 1.6; }
+.production-print-panel .button { flex-shrink: 0; }
+.production-print-panel > small { color: #6b645a; line-height: 1.5; }
+.production-print-format { display: flex; flex-wrap: wrap; gap: 6px; }
+.production-print-format span { padding: 5px 8px; border-radius: 7px; background: #eee7db; color: #66543c; font-size: .75rem; font-weight: 700; }
+@media (max-width: 760px) {
+  .production-print-panel { padding: 18px; }
+  .production-print-panel .panel-heading { flex-direction: column; align-items: stretch; }
+}
 .production-workspace {
   display: grid;
   gap: 20px;
