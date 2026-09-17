@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { BrowserWorkbookExportCommand } from './application/persistence/BrowserWorkbookExportCommand';
 import { BrowserWorkbookImportCommand } from './application/persistence/BrowserWorkbookImportCommand';
 import { PublicGoogleSheetsImportCommand } from './application/persistence/PublicGoogleSheetsImportCommand';
@@ -31,6 +31,8 @@ import { YieldPage } from './ui/yield/YieldPage';
 type AppSection = 'materials' | 'calibration' | 'products' | 'yield' | 'production' | 'pricing';
 export type PersistenceUiClock = () => Date;
 
+const SIDEBAR_VISIBILITY_STORAGE_KEY = 'craft-business-manager.sidebar-visible';
+
 const APP_SECTIONS: readonly { id: AppSection; label: string }[] = [
   { id: 'materials', label: 'Materials' },
   { id: 'calibration', label: 'Calibration' },
@@ -51,6 +53,16 @@ function systemPersistenceUiClock(): Date {
   return new Date();
 }
 
+function initialSidebarVisible(): boolean {
+  if (typeof window === 'undefined') return true;
+
+  try {
+    return window.localStorage.getItem(SIDEBAR_VISIBILITY_STORAGE_KEY) !== 'hidden';
+  } catch {
+    return true;
+  }
+}
+
 export default function App({
   workbookImportCommand,
   publicGoogleSheetsImportCommand,
@@ -59,6 +71,7 @@ export default function App({
 }: AppProps = {}) {
   const [section, setSection] = useState<AppSection>('materials');
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [sidebarVisible, setSidebarVisible] = useState(initialSidebarVisible);
   const workbookToolsRef = useRef<HTMLDetailsElement>(null);
   const workbookTriggerRef = useRef<HTMLElement>(null);
   const [workspaceRevision, setWorkspaceRevision] = useState(0);
@@ -82,9 +95,28 @@ export default function App({
   const workbookIdentityLabel =
     persistenceStatus.activeImportedWorkbook?.fileName ?? 'No workbook imported';
 
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        SIDEBAR_VISIBILITY_STORAGE_KEY,
+        sidebarVisible ? 'visible' : 'hidden',
+      );
+    } catch {
+      // Sidebar visibility remains session-local when storage is unavailable.
+    }
+  }, [sidebarVisible]);
+
   function closeWorkbookTools() {
     if (workbookToolsRef.current) workbookToolsRef.current.open = false;
     workbookTriggerRef.current?.focus();
+  }
+
+  function toggleSidebarVisibility() {
+    setSidebarVisible((current) => {
+      const next = !current;
+      if (!next && workbookToolsRef.current) workbookToolsRef.current.open = false;
+      return next;
+    });
   }
 
   function selectSection(nextSection: AppSection) {
@@ -105,7 +137,20 @@ export default function App({
   }
 
   return (
-    <main className={`app-shell app-shell-with-drawer ${drawerOpen ? 'is-drawer-open' : ''}`}>
+    <main
+      className={`app-shell app-shell-with-drawer ${drawerOpen ? 'is-drawer-open' : ''} ${sidebarVisible ? '' : 'is-sidebar-hidden'}`}
+    >
+      <button
+        type="button"
+        className="app-sidebar-toggle"
+        aria-label={sidebarVisible ? 'Hide navigation sidebar' : 'Show navigation sidebar'}
+        aria-expanded={sidebarVisible}
+        aria-controls="app-navigation-drawer"
+        onClick={toggleSidebarVisibility}
+      >
+        <span aria-hidden="true">{sidebarVisible ? '‹' : '›'}</span>
+      </button>
+
       <button
         type="button"
         className="app-drawer-toggle"

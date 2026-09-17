@@ -9,6 +9,7 @@ let root: Root;
 
 beforeEach(() => {
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
+  window.localStorage.clear();
   container = document.createElement('div');
   document.body.append(container);
   root = createRoot(container);
@@ -17,6 +18,7 @@ beforeEach(() => {
 afterEach(async () => {
   await act(async () => root.unmount());
   container.remove();
+  window.localStorage.clear();
   vi.unstubAllGlobals();
 });
 
@@ -48,6 +50,41 @@ describe('application navigation drawer', () => {
     expect(drawer?.textContent).toContain('Production');
     expect(drawer?.textContent).toContain('Pricing');
     expect(drawer?.querySelector('[aria-label="Workbook tools"]')).not.toBeNull();
+  });
+
+  it('hides and shows the desktop sidebar while remembering the preference', async () => {
+    await mount();
+
+    const shell = container.querySelector<HTMLElement>('.app-shell-with-drawer')!;
+    const toggle = container.querySelector<HTMLButtonElement>('.app-sidebar-toggle')!;
+
+    expect(toggle.getAttribute('aria-label')).toBe('Hide navigation sidebar');
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    expect(shell.classList.contains('is-sidebar-hidden')).toBe(false);
+    expect(window.localStorage.getItem('craft-business-manager.sidebar-visible')).toBe('visible');
+
+    await clickButton('Hide navigation sidebar');
+    expect(toggle.getAttribute('aria-label')).toBe('Show navigation sidebar');
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    expect(shell.classList.contains('is-sidebar-hidden')).toBe(true);
+    expect(window.localStorage.getItem('craft-business-manager.sidebar-visible')).toBe('hidden');
+
+    await clickButton('Show navigation sidebar');
+    expect(toggle.getAttribute('aria-label')).toBe('Hide navigation sidebar');
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    expect(shell.classList.contains('is-sidebar-hidden')).toBe(false);
+    expect(window.localStorage.getItem('craft-business-manager.sidebar-visible')).toBe('visible');
+  });
+
+  it('restores a previously hidden desktop sidebar preference', async () => {
+    window.localStorage.setItem('craft-business-manager.sidebar-visible', 'hidden');
+    await mount();
+
+    const shell = container.querySelector<HTMLElement>('.app-shell-with-drawer')!;
+    const toggle = container.querySelector<HTMLButtonElement>('.app-sidebar-toggle')!;
+    expect(shell.classList.contains('is-sidebar-hidden')).toBe(true);
+    expect(toggle.getAttribute('aria-label')).toBe('Show navigation sidebar');
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
   });
 
   it('opens and closes the responsive drawer with the menu control', async () => {
