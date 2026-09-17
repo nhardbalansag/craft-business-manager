@@ -31,13 +31,13 @@ import { YieldPage } from './ui/yield/YieldPage';
 type AppSection = 'materials' | 'calibration' | 'products' | 'yield' | 'production' | 'pricing';
 export type PersistenceUiClock = () => Date;
 
-const APP_SECTIONS: readonly { id: AppSection; label: string; shortLabel: string }[] = [
-  { id: 'materials', label: 'Materials', shortLabel: 'MA' },
-  { id: 'calibration', label: 'Calibration', shortLabel: 'CA' },
-  { id: 'products', label: 'Products', shortLabel: 'PR' },
-  { id: 'yield', label: 'Yield', shortLabel: 'YI' },
-  { id: 'production', label: 'Production', shortLabel: 'PD' },
-  { id: 'pricing', label: 'Pricing', shortLabel: 'PX' },
+const APP_SECTIONS: readonly { id: AppSection; label: string }[] = [
+  { id: 'materials', label: 'Materials' },
+  { id: 'calibration', label: 'Calibration' },
+  { id: 'products', label: 'Products' },
+  { id: 'yield', label: 'Yield' },
+  { id: 'production', label: 'Production' },
+  { id: 'pricing', label: 'Pricing' },
 ];
 
 export interface AppProps {
@@ -147,8 +147,7 @@ export default function App({
               aria-current={section === item.id ? 'page' : undefined}
               onClick={() => selectSection(item.id)}
             >
-              <span className="app-drawer-nav-icon" data-label={item.shortLabel} aria-hidden="true" />
-              <span>{item.label}</span>
+              {item.label}
             </button>
           ))}
         </nav>
