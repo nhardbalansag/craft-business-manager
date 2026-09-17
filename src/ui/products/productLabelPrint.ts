@@ -1,3 +1,4 @@
+import { renderIdentityCode128Svg, renderIdentityQrSvg } from '../labels/machineReadable';
 import type { ProductLabelView } from './productLabelView';
 
 export type ProductLabelPrintErrorCode = 'POPUP_BLOCKED';
@@ -42,12 +43,21 @@ function renderLabel(view: ProductLabelView, copyIndex: number): string {
   ]
     .filter(Boolean)
     .join('<span class="dot">•</span>');
+  const qr = view.showQr ? renderIdentityQrSvg('PRODUCT', view.product.id) : '';
+  const barcode = view.showBarcode ? renderIdentityCode128Svg(view.product.id) : '';
+  const machineReadable = view.showQr || view.showBarcode;
 
-  return `<section class="label" aria-label="Product label copy ${copyIndex + 1}">
+  return `<section class="label${machineReadable ? ' has-codes' : ''}" aria-label="Product label copy ${copyIndex + 1}">
     <div class="brand">Craft Business Manager</div>
-    <div class="product-name">${escapeHtml(view.product.name)}</div>
-    <div class="product-id">${escapeHtml(view.product.id)}</div>
-    ${details ? `<div class="details">${details}</div>` : ''}
+    <div class="main-row">
+      <div class="identity-copy">
+        <div class="product-name">${escapeHtml(view.product.name)}</div>
+        <div class="product-id">${escapeHtml(view.product.id)}</div>
+        ${details ? `<div class="details">${details}</div>` : ''}
+      </div>
+      ${view.showQr ? `<div class="qr" aria-label="Product QR code">${qr}</div>` : ''}
+    </div>
+    ${view.showBarcode ? `<div class="barcode" aria-label="Product Code 128 barcode">${barcode}</div>` : ''}
   </section>`;
 }
 
@@ -69,7 +79,7 @@ export function renderProductLabelPrintHtml(view: ProductLabelView): string {
     .label {
       width: ${view.size.widthMm}mm;
       height: ${view.size.heightMm}mm;
-      padding: 2.4mm;
+      padding: 2.2mm;
       display: flex;
       flex-direction: column;
       justify-content: center;
@@ -79,17 +89,19 @@ export function renderProductLabelPrintHtml(view: ProductLabelView): string {
     }
     .label:last-child { break-after: auto; page-break-after: auto; }
     .brand {
-      margin-bottom: 1.2mm;
-      font-size: 5.5pt;
+      margin-bottom: 1mm;
+      font-size: 5pt;
       font-weight: 700;
-      letter-spacing: .09em;
+      letter-spacing: .08em;
       text-transform: uppercase;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
+    .main-row { display: flex; gap: 1.5mm; align-items: center; min-height: 0; }
+    .identity-copy { flex: 1; min-width: 0; }
     .product-name {
-      font-size: ${view.size.widthMm <= 40 ? '11pt' : '13pt'};
+      font-size: ${view.size.widthMm <= 40 ? '9pt' : '11pt'};
       line-height: 1.05;
       font-weight: 800;
       overflow-wrap: anywhere;
@@ -97,27 +109,33 @@ export function renderProductLabelPrintHtml(view: ProductLabelView): string {
       overflow: hidden;
     }
     .product-id {
-      margin-top: 1.6mm;
-      padding: .8mm 1mm;
-      border: 1.5px solid #000;
+      margin-top: 1mm;
       font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
-      font-size: ${view.size.widthMm <= 40 ? '9pt' : '10.5pt'};
+      font-size: ${view.size.widthMm <= 40 ? '7pt' : '8.5pt'};
       font-weight: 800;
-      letter-spacing: .04em;
-      text-align: center;
+      letter-spacing: .03em;
       overflow-wrap: anywhere;
     }
     .details {
-      margin-top: 1.3mm;
+      margin-top: .8mm;
       display: flex;
-      gap: 1mm;
+      gap: .8mm;
       align-items: center;
       flex-wrap: wrap;
-      font-size: 6.2pt;
+      font-size: 5.3pt;
       font-weight: 700;
       text-transform: uppercase;
     }
-    .dot { font-size: 5pt; }
+    .dot { font-size: 4.5pt; }
+    .qr { flex: 0 0 auto; width: ${view.size.widthMm <= 40 ? '11mm' : '13mm'}; height: ${view.size.widthMm <= 40 ? '11mm' : '13mm'}; }
+    .qr svg { width: 100%; height: 100%; display: block; }
+    .barcode { margin-top: .8mm; width: 100%; height: ${view.size.heightMm <= 25 ? '5mm' : '6mm'}; overflow: hidden; }
+    .barcode svg { width: 100%; height: 100%; display: block; }
+    .label:not(.has-codes) .product-id {
+      padding: .8mm 1mm;
+      border: 1.5px solid #000;
+      text-align: center;
+    }
     @media print {
       html, body { width: ${view.size.widthMm}mm; }
       body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }

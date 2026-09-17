@@ -24,7 +24,7 @@ import {
   recordSuccessfulWorkbookImport,
 } from './ui/persistence/workbookPersistenceSession';
 import { PricingPage } from './ui/pricing/PricingPage';
-import { ProductsPage } from './ui/products/ProductsPage';
+import { ProductsWorkspacePage } from './ui/products/ProductsWorkspacePage';
 import { ProductionPage } from './ui/production/ProductionPage';
 import { YieldPage } from './ui/yield/YieldPage';
 
@@ -176,7 +176,7 @@ export default function App({
       <div className="workspace-revision-boundary" data-workspace-revision={workspaceRevision} key={workspaceRevision}>
         {section === 'materials' && <MaterialsPage />}
         {section === 'calibration' && <CalibrationPage />}
-        {section === 'products' && <ProductsPage />}
+        {section === 'products' && <ProductsWorkspacePage />}
         {section === 'yield' && <YieldPage />}
         {section === 'production' && <ProductionPage onOpenProducts={() => setSection('products')} />}
         {section === 'pricing' && <PricingPage />}

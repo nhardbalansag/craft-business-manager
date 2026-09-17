@@ -1,12 +1,8 @@
-import type { CompleteSourceSnapshotService } from './CompleteSourceSnapshotService';
+import type { BusinessDataset } from '../../domain/types';
 import {
-  PersistenceLifecycleOperationalError,
-  type PersistenceLifecycleRejected,
-} from './PersistenceLifecycle';
-import {
-  DatasetHydrationError,
-  type ValidatedAtomicDatasetHydrationService,
-} from './ValidatedAtomicDatasetHydrationService';
+  toLegacyBusinessDataset,
+  type PhysicalBusinessDataset,
+} from '../../domain/physicalBusinessDataset';
 import {
   exportBusinessDatasetToXlsx,
   type WorkbookExportMetadata,
@@ -15,6 +11,10 @@ import {
   importBusinessDatasetFromXlsx,
   type ImportedWorkbookMetadata,
 } from '../../storage/businessDatasetWorkbookImport';
+import {
+  exportPhysicalBusinessDatasetToXlsx,
+  importPhysicalBusinessDatasetFromXlsx,
+} from '../../storage/physicalBusinessDatasetWorkbook';
 import type { WorkbookBinaryInput, WorkbookCodec } from '../../storage/workbookCodec';
 import {
   cloneWorkbookBytes,
@@ -22,12 +22,22 @@ import {
   type WorkbookSaveReceipt,
   type WorkbookTransport,
 } from '../../storage/WorkbookTransport';
+import {
+  PersistenceLifecycleOperationalError,
+  type PersistenceLifecycleRejected,
+} from './PersistenceLifecycle';
+import {
+  DatasetHydrationError,
+  type DatasetHydrationResult,
+} from './ValidatedAtomicDatasetHydrationService';
 
 export type PersistenceClock = () => Date;
 
 export interface PersistenceCoordinatorOptions {
   readonly clock?: PersistenceClock;
   readonly applicationVersion?: string;
+  /** Explicit override for workbook v2 physical-identification persistence. */
+  readonly physicalIdentification?: boolean;
 }
 
 export interface PersistenceWorkbookExported {
@@ -52,8 +62,14 @@ export type PersistenceWorkbookApplyResult =
   | PersistenceWorkbookHydrated
   | PersistenceLifecycleRejected;
 
-type SnapshotSource = Pick<CompleteSourceSnapshotService, 'snapshot'>;
-type HydrationTarget = Pick<ValidatedAtomicDatasetHydrationService, 'hydrate'>;
+interface SnapshotSource {
+  readonly physicalIdentification?: boolean;
+  snapshot(): Promise<BusinessDataset | PhysicalBusinessDataset>;
+}
+
+interface HydrationTarget {
+  hydrate(candidate: unknown): Promise<DatasetHydrationResult>;
+}
 
 interface PreparedWorkbookExport {
   readonly bytes: Uint8Array;
@@ -62,6 +78,14 @@ interface PreparedWorkbookExport {
 
 function systemClock(): Date {
   return new Date();
+}
+
+function isPhysicalDataset(dataset: BusinessDataset | PhysicalBusinessDataset): dataset is PhysicalBusinessDataset {
+  return 'storageLocations' in dataset && 'molds' in dataset;
+}
+
+function hasPhysicalSourceRecords(dataset: PhysicalBusinessDataset): boolean {
+  return dataset.storageLocations.length > 0 || dataset.molds.length > 0;
 }
 
 function hydrationOperationalError(error: unknown): PersistenceLifecycleOperationalError {
@@ -103,15 +127,15 @@ function hydrationOperationalError(error: unknown): PersistenceLifecycleOperatio
 /**
  * Application-level persistence lifecycle coordinator.
  *
- * This is the single Phase 5.3C orchestration boundary for:
- * - complete live source snapshot -> canonical XLSX export -> optional byte transport save; and
- * - workbook bytes / transport load -> strict current-version import -> validated atomic hydration.
- *
- * It never owns repository lists, workbook sheet mappings, or hydration replacement mechanics.
+ * Legacy callers remain on the proven Phase 5 workbook-v1 contract by default.
+ * A PhysicalSourceSnapshotService advertises physical-identification capability. The
+ * real app keeps emitting v1 while no physical records exist, then automatically moves
+ * to v2 once a StorageLocation or Mold must be persisted. Imports accept both versions.
  */
 export class PersistenceCoordinator {
   private readonly clock: PersistenceClock;
   private readonly applicationVersion?: string;
+  private readonly physicalIdentification: boolean;
 
   constructor(
     private readonly snapshotService: SnapshotSource,
@@ -121,12 +145,12 @@ export class PersistenceCoordinator {
   ) {
     this.clock = options.clock ?? systemClock;
     this.applicationVersion = options.applicationVersion;
+    this.physicalIdentification =
+      options.physicalIdentification ?? snapshotService.physicalIdentification ?? false;
   }
 
-  /** Export the current complete authoritative source state without requiring a transport. */
   async exportCurrentWorkbook(): Promise<PersistenceWorkbookExported> {
     const prepared = await this.prepareCurrentWorkbookExport();
-
     return {
       status: 'exported',
       bytes: cloneWorkbookBytes(prepared.bytes),
@@ -134,7 +158,6 @@ export class PersistenceCoordinator {
     };
   }
 
-  /** Export the current source state and save the resulting XLSX bytes through a byte transport. */
   async saveCurrentWorkbook(
     transport: WorkbookTransport,
     options: WorkbookSaveOptions = {},
@@ -161,16 +184,14 @@ export class PersistenceCoordinator {
     };
   }
 
-  /**
-   * Strictly import caller-provided workbook bytes and atomically apply the reconstructed dataset.
-   * Expected invalid-workbook diagnostics are returned as a rejection and never reach hydration.
-   */
   async importAndApplyWorkbook(
     bytes: WorkbookBinaryInput,
   ): Promise<PersistenceWorkbookApplyResult> {
     let imported;
     try {
-      imported = importBusinessDatasetFromXlsx(cloneWorkbookBytes(bytes), this.codec);
+      imported = this.physicalIdentification
+        ? importPhysicalBusinessDatasetFromXlsx(cloneWorkbookBytes(bytes), this.codec)
+        : importBusinessDatasetFromXlsx(cloneWorkbookBytes(bytes), this.codec);
     } catch (error) {
       throw new PersistenceLifecycleOperationalError(
         'import',
@@ -209,7 +230,6 @@ export class PersistenceCoordinator {
     };
   }
 
-  /** Load workbook bytes through a transport and execute the exact same import/apply path. */
   async loadCurrentWorkbook(
     transport: WorkbookTransport,
   ): Promise<PersistenceWorkbookApplyResult> {
@@ -229,7 +249,7 @@ export class PersistenceCoordinator {
   }
 
   private async prepareCurrentWorkbookExport(): Promise<PreparedWorkbookExport> {
-    let dataset;
+    let dataset: BusinessDataset | PhysicalBusinessDataset;
     try {
       dataset = await this.snapshotService.snapshot();
     } catch (error) {
@@ -248,7 +268,19 @@ export class PersistenceCoordinator {
           ? {}
           : { applicationVersion: this.applicationVersion }),
       };
-      const bytes = exportBusinessDatasetToXlsx(dataset, metadata, this.codec);
+
+      if (this.physicalIdentification && !isPhysicalDataset(dataset)) {
+        throw new Error('Physical-identification persistence requires a physical source snapshot.');
+      }
+
+      let bytes: Uint8Array;
+      if (this.physicalIdentification && isPhysicalDataset(dataset)) {
+        bytes = hasPhysicalSourceRecords(dataset)
+          ? exportPhysicalBusinessDatasetToXlsx(dataset, metadata, this.codec)
+          : exportBusinessDatasetToXlsx(toLegacyBusinessDataset(dataset), metadata, this.codec);
+      } else {
+        bytes = exportBusinessDatasetToXlsx(dataset as BusinessDataset, metadata, this.codec);
+      }
 
       return {
         bytes: cloneWorkbookBytes(bytes),

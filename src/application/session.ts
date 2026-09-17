@@ -5,8 +5,12 @@ import { InMemoryMaterialRepository } from './materials/InMemoryMaterialReposito
 import { MaterialService } from './materials/MaterialService';
 import { InMemoryMixPresetRepository } from './mixPresets/InMemoryMixPresetRepository';
 import { MixPresetService } from './mixPresets/MixPresetService';
+import { InMemoryMoldRepository } from './molds/InMemoryMoldRepository';
+import { MoldService } from './molds/MoldService';
 import { CompleteSourceSnapshotService } from './persistence/CompleteSourceSnapshotService';
 import { PersistenceCoordinator } from './persistence/PersistenceCoordinator';
+import { PhysicalDatasetHydrationService } from './persistence/PhysicalDatasetHydrationService';
+import { PhysicalSourceSnapshotService } from './persistence/PhysicalSourceSnapshotService';
 import { ValidatedAtomicDatasetHydrationService } from './persistence/ValidatedAtomicDatasetHydrationService';
 import { FullyLoadedProductUnitCostService } from './productCosts/FullyLoadedProductUnitCostService';
 import { RecursiveFullyLoadedProductComponentCostService } from './productCosts/RecursiveFullyLoadedProductComponentCostService';
@@ -38,6 +42,8 @@ import { RecipeMaterialCostPreviewService } from './recipeCosts/RecipeMaterialCo
 import { EffectiveRecipeRequirementService } from './recipeRequirements/EffectiveRecipeRequirementService';
 import { FixedRecipeItemService } from './recipeItems/FixedRecipeItemService';
 import { InMemoryFixedRecipeItemRepository } from './recipeItems/InMemoryFixedRecipeItemRepository';
+import { InMemoryStorageLocationRepository } from './storageLocations/InMemoryStorageLocationRepository';
+import { StorageLocationService } from './storageLocations/StorageLocationService';
 import { InMemoryYieldSampleRepository } from './yieldSamples/InMemoryYieldSampleRepository';
 import { YieldHistoryService } from './yieldSamples/YieldHistoryService';
 import { YieldLearningService } from './yieldSamples/YieldLearningService';
@@ -52,6 +58,8 @@ export const productStockRepository = new InMemoryProductStockRepository();
 export const productFinancialProfileRepository = new InMemoryProductFinancialProfileRepository();
 export const yieldSampleRepository = new InMemoryYieldSampleRepository();
 export const fixedRecipeItemRepository = new InMemoryFixedRecipeItemRepository();
+export const storageLocationRepository = new InMemoryStorageLocationRepository();
+export const moldRepository = new InMemoryMoldRepository();
 
 export const completeSourceSnapshotService = new CompleteSourceSnapshotService({
   materials: materialRepository,
@@ -81,10 +89,23 @@ export const validatedAtomicDatasetHydrationService =
     completeSourceSnapshotService,
   );
 
+export const physicalSourceSnapshotService = new PhysicalSourceSnapshotService(
+  completeSourceSnapshotService,
+  storageLocationRepository,
+  moldRepository,
+);
+
+export const physicalDatasetHydrationService = new PhysicalDatasetHydrationService(
+  validatedAtomicDatasetHydrationService,
+  physicalSourceSnapshotService,
+  storageLocationRepository,
+  moldRepository,
+);
+
 const persistenceWorkbookCodec = new SheetJsWorkbookCodec();
 export const persistenceCoordinator = new PersistenceCoordinator(
-  completeSourceSnapshotService,
-  validatedAtomicDatasetHydrationService,
+  physicalSourceSnapshotService,
+  physicalDatasetHydrationService,
   persistenceWorkbookCodec,
 );
 
@@ -106,6 +127,15 @@ export const productStockService = new ProductStockService(
 export const productFinancialProfileService = new ProductFinancialProfileService(
   productFinancialProfileRepository,
   productRepository,
+);
+export const moldService = new MoldService(
+  moldRepository,
+  productRepository,
+  storageLocationRepository,
+);
+export const storageLocationService = new StorageLocationService(
+  storageLocationRepository,
+  moldService,
 );
 export const componentSourceAvailabilityService = new ComponentSourceAvailabilityService(
   materialRepository,
@@ -132,7 +162,16 @@ export const calibrationService = new CalibrationService(calibrationRepository, 
 export const productService = new ProductService(
   productRepository,
   mixPresetRepository,
-  productComponentService,
+  {
+    async assertProductCanArchive(productId: string) {
+      await productComponentService.assertProductCanArchive(productId);
+      await moldService.assertProductCanArchive(productId);
+    },
+    async assertProductCanActivate(productId: string) {
+      await productComponentService.assertProductCanActivate(productId);
+      await moldService.assertProductCanActivate(productId);
+    },
+  },
 );
 export const mixPresetService = new MixPresetService(
   mixPresetRepository,

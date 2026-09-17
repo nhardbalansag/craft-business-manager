@@ -1,24 +1,29 @@
 import { PRODUCT_CATEGORY_RULES, type Product } from '../../domain/products';
+import {
+  DEFAULT_THERMAL_LABEL_SIZE_ID,
+  getThermalLabelSizePreset,
+  normalizeThermalLabelCopies,
+  THERMAL_LABEL_MAX_COPIES,
+  THERMAL_LABEL_MIN_COPIES,
+  THERMAL_LABEL_SIZE_PRESETS,
+  type ThermalLabelSizeId,
+  type ThermalLabelSizePreset,
+} from '../labels/thermalLabel';
 
-export const PRODUCT_LABEL_SIZE_PRESETS = [
-  { id: '40x30', label: '40 × 30 mm', widthMm: 40, heightMm: 30 },
-  { id: '50x30', label: '50 × 30 mm', widthMm: 50, heightMm: 30 },
-  { id: '50x25', label: '50 × 25 mm', widthMm: 50, heightMm: 25 },
-  { id: '60x40', label: '60 × 40 mm', widthMm: 60, heightMm: 40 },
-] as const;
-
-export type ProductLabelSizeId = (typeof PRODUCT_LABEL_SIZE_PRESETS)[number]['id'];
-export type ProductLabelSizePreset = (typeof PRODUCT_LABEL_SIZE_PRESETS)[number];
-
-export const DEFAULT_PRODUCT_LABEL_SIZE_ID: ProductLabelSizeId = '40x30';
-export const PRODUCT_LABEL_MIN_COPIES = 1;
-export const PRODUCT_LABEL_MAX_COPIES = 50;
+export const PRODUCT_LABEL_SIZE_PRESETS = THERMAL_LABEL_SIZE_PRESETS;
+export type ProductLabelSizeId = ThermalLabelSizeId;
+export type ProductLabelSizePreset = ThermalLabelSizePreset;
+export const DEFAULT_PRODUCT_LABEL_SIZE_ID = DEFAULT_THERMAL_LABEL_SIZE_ID;
+export const PRODUCT_LABEL_MIN_COPIES = THERMAL_LABEL_MIN_COPIES;
+export const PRODUCT_LABEL_MAX_COPIES = THERMAL_LABEL_MAX_COPIES;
 
 export interface ProductLabelOptions {
   sizeId: ProductLabelSizeId;
   copies: number;
   showCategory: boolean;
   showStatus: boolean;
+  showQr?: boolean;
+  showBarcode?: boolean;
 }
 
 export interface ProductLabelView {
@@ -32,15 +37,16 @@ export interface ProductLabelView {
   copies: number;
   showCategory: boolean;
   showStatus: boolean;
+  showQr: boolean;
+  showBarcode: boolean;
 }
 
 export function getProductLabelSizePreset(sizeId: ProductLabelSizeId): ProductLabelSizePreset {
-  return PRODUCT_LABEL_SIZE_PRESETS.find((preset) => preset.id === sizeId) ?? PRODUCT_LABEL_SIZE_PRESETS[0];
+  return getThermalLabelSizePreset(sizeId);
 }
 
 export function normalizeProductLabelCopies(value: number): number {
-  if (!Number.isFinite(value)) return PRODUCT_LABEL_MIN_COPIES;
-  return Math.min(PRODUCT_LABEL_MAX_COPIES, Math.max(PRODUCT_LABEL_MIN_COPIES, Math.trunc(value)));
+  return normalizeThermalLabelCopies(value);
 }
 
 export function buildProductLabelView(product: Product, options: ProductLabelOptions): ProductLabelView {
@@ -55,5 +61,7 @@ export function buildProductLabelView(product: Product, options: ProductLabelOpt
     copies: normalizeProductLabelCopies(options.copies),
     showCategory: options.showCategory,
     showStatus: options.showStatus,
+    showQr: options.showQr ?? true,
+    showBarcode: options.showBarcode ?? true,
   };
 }

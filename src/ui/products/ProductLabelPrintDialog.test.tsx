@@ -35,6 +35,15 @@ function setNativeInputValue(input: HTMLInputElement, value: string) {
   input.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
+function checkbox(labelText: string): HTMLInputElement {
+  const label = Array.from(container.querySelectorAll('label')).find((candidate) =>
+    candidate.textContent?.includes(labelText),
+  );
+  const input = label?.querySelector<HTMLInputElement>('input[type="checkbox"]');
+  if (!input) throw new Error(`Missing checkbox: ${labelText}`);
+  return input;
+}
+
 beforeEach(() => {
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
   container = document.createElement('div');
@@ -50,7 +59,7 @@ afterEach(async () => {
 });
 
 describe('ProductLabelPrintDialog', () => {
-  it('previews product identity and prints selected size, copies, and optional details', async () => {
+  it('previews product QR/barcode identity and prints selected size, copies, and optional details', async () => {
     const target = printWindow();
 
     await act(async () => {
@@ -60,11 +69,13 @@ describe('ProductLabelPrintDialog', () => {
     expect(container.querySelector('[role="dialog"]')).toBeTruthy();
     expect(container.querySelector('[aria-label="Product label preview"]')?.textContent).toContain('Storage Candle');
     expect(container.querySelector('[aria-label="Product label preview"]')?.textContent).toContain('CANDLE-001');
+    expect(container.querySelector('[aria-label="Product QR code preview"] svg')).toBeTruthy();
+    expect(container.querySelector('[aria-label="Product barcode preview"] svg')).toBeTruthy();
+    expect(container.textContent).toContain('CBM:PRODUCT:CANDLE-001');
     expect(container.textContent).toContain('Printer selection happens in your browser / operating system.');
 
     const sizeSelect = container.querySelector('select')!;
     const copiesInput = container.querySelector('input[type="number"]') as HTMLInputElement;
-    const checkboxes = Array.from(container.querySelectorAll('input[type="checkbox"]')) as HTMLInputElement[];
 
     await act(async () => {
       sizeSelect.value = '60x40';
@@ -74,7 +85,7 @@ describe('ProductLabelPrintDialog', () => {
       setNativeInputValue(copiesInput, '3');
     });
     await act(async () => {
-      checkboxes[0]!.click();
+      checkbox('Category').click();
     });
 
     const printButton = Array.from(container.querySelectorAll('button')).find((button) =>
@@ -86,10 +97,23 @@ describe('ProductLabelPrintDialog', () => {
 
     const written = vi.mocked(target.document.write).mock.calls[0]![0];
     expect(written).toContain('@page { size: 60mm 40mm; margin: 0; }');
-    expect(written.match(/class="label"/g)).toHaveLength(3);
+    expect(written.match(/class="label has-codes"/g)).toHaveLength(3);
     expect(written).not.toContain('>Candle<');
     expect(written).toContain('ACTIVE');
+    expect(written).toContain('class="qr"');
+    expect(written).toContain('class="barcode"');
     expect(target.print).toHaveBeenCalledOnce();
+  });
+
+  it('can disable QR and barcode independently', async () => {
+    const target = printWindow();
+    await act(async () => {
+      root.render(<ProductLabelPrintDialog product={product} onClose={vi.fn()} openPrintWindow={() => target} />);
+    });
+
+    await act(async () => checkbox('QR code').click());
+    expect(container.querySelector('[aria-label="Product QR code preview"]')).toBeNull();
+    expect(container.querySelector('[aria-label="Product barcode preview"] svg')).toBeTruthy();
   });
 
   it('closes without printing when the user cancels', async () => {
