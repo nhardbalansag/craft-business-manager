@@ -75,9 +75,16 @@ async function fill(
 
 async function click(text: string) {
   const button = Array.from(container.querySelectorAll('button')).find(
-    (item) => item.textContent?.trim() === text,
+    (item) => item.textContent?.trim() === text || item.querySelector('strong')?.textContent?.trim() === text,
   );
   if (!button) throw new Error(`No button: ${text}`);
+  await act(async () => button.click());
+  await flush();
+}
+
+async function clickLabel(label: string) {
+  const button = container.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`);
+  if (!button) throw new Error(`No button label: ${label}`);
   await act(async () => button.click());
   await flush();
 }
@@ -98,6 +105,43 @@ async function createLocation(id: string, name: string, type: 'rack' | 'shelf' |
 }
 
 describe('PhysicalIdentificationWorkspace', () => {
+  it('summarizes physical records and makes unassigned molds a one-click working view', async () => {
+    await session.storageLocationService.createLocation({
+      id: 'RACK-A',
+      name: 'Rack A',
+      type: 'rack',
+      isActive: true,
+    });
+    await session.moldService.createMold({
+      id: 'MOLD-ASSIGNED',
+      productId: 'PRD-1',
+      name: 'Assigned Dinosaur Mold',
+      storageLocationId: 'RACK-A',
+      isActive: true,
+    });
+    await session.moldService.createMold({
+      id: 'MOLD-LOOSE',
+      productId: 'PRD-1',
+      name: 'Loose Dinosaur Mold',
+      isActive: true,
+    });
+
+    await mount();
+
+    expect(container.querySelector('[aria-label="Show active molds"]')?.textContent).toContain('2');
+    expect(container.querySelector('[aria-label="Show unassigned molds"]')?.textContent).toContain('1');
+    expect(container.querySelector('[aria-label="Show active storage locations"]')?.textContent).toContain('1');
+
+    await clickLabel('Show unassigned molds');
+
+    const cards = Array.from(container.querySelectorAll('.physical-id-card'));
+    expect(cards).toHaveLength(1);
+    expect(cards[0]?.textContent).toContain('Loose Dinosaur Mold');
+    expect(cards[0]?.textContent).toContain('Needs storage');
+    expect(cards[0]?.textContent).toContain('Unassigned — choose a storage location');
+    expect(container.querySelector<HTMLSelectElement>('[aria-label="Mold storage assignment filter"]')?.value).toBe('unassigned');
+  });
+
   it('creates Rack → Shelf → Bin records and then creates a mold assigned to the resolved path', async () => {
     await mount();
     await click('Storage');
