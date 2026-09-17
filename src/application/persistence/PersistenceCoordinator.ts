@@ -1,5 +1,8 @@
 import type { BusinessDataset } from '../../domain/types';
-import type { PhysicalBusinessDataset } from '../../domain/physicalBusinessDataset';
+import {
+  toLegacyBusinessDataset,
+  type PhysicalBusinessDataset,
+} from '../../domain/physicalBusinessDataset';
 import {
   exportBusinessDatasetToXlsx,
   type WorkbookExportMetadata,
@@ -81,6 +84,10 @@ function isPhysicalDataset(dataset: BusinessDataset | PhysicalBusinessDataset): 
   return 'storageLocations' in dataset && 'molds' in dataset;
 }
 
+function hasPhysicalSourceRecords(dataset: PhysicalBusinessDataset): boolean {
+  return dataset.storageLocations.length > 0 || dataset.molds.length > 0;
+}
+
 function hydrationOperationalError(error: unknown): PersistenceLifecycleOperationalError {
   if (error instanceof DatasetHydrationError) {
     if (error.code === 'SNAPSHOT_FAILED') {
@@ -121,8 +128,9 @@ function hydrationOperationalError(error: unknown): PersistenceLifecycleOperatio
  * Application-level persistence lifecycle coordinator.
  *
  * Legacy callers remain on the proven Phase 5 workbook-v1 contract by default.
- * A PhysicalSourceSnapshotService advertises its v2 capability, causing the real app
- * session to persist Molds and StorageLocations without changing legacy test/mocking APIs.
+ * A PhysicalSourceSnapshotService advertises physical-identification capability. The
+ * real app keeps emitting v1 while no physical records exist, then automatically moves
+ * to v2 once a StorageLocation or Mold must be persisted. Imports accept both versions.
  */
 export class PersistenceCoordinator {
   private readonly clock: PersistenceClock;
@@ -265,10 +273,14 @@ export class PersistenceCoordinator {
         throw new Error('Physical-identification persistence requires a physical source snapshot.');
       }
 
-      const bytes =
-        this.physicalIdentification && isPhysicalDataset(dataset)
+      let bytes: Uint8Array;
+      if (this.physicalIdentification && isPhysicalDataset(dataset)) {
+        bytes = hasPhysicalSourceRecords(dataset)
           ? exportPhysicalBusinessDatasetToXlsx(dataset, metadata, this.codec)
-          : exportBusinessDatasetToXlsx(dataset as BusinessDataset, metadata, this.codec);
+          : exportBusinessDatasetToXlsx(toLegacyBusinessDataset(dataset), metadata, this.codec);
+      } else {
+        bytes = exportBusinessDatasetToXlsx(dataset as BusinessDataset, metadata, this.codec);
+      }
 
       return {
         bytes: cloneWorkbookBytes(bytes),
