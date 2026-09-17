@@ -6,6 +6,7 @@ import {
 import type { ProductComponent } from '../../domain/productComponents';
 import type { ProductStock } from '../../domain/productStock';
 import type { Product } from '../../domain/products';
+import { AppIcon } from '../icons/AppIcon';
 import {
   buildProductStockRows,
   type ProductStockRow,
@@ -177,7 +178,7 @@ export function ProductStockView({ products, catalogLoading }: ProductStockViewP
   if (products.length === 0) {
     return (
       <div className="panel empty-state">
-        <div className="empty-icon">◇</div>
+        <div className="empty-icon" aria-hidden="true"><AppIcon name="products" size={28} /></div>
         <h3>Create a Product first</h3>
         <p>Finished component stock needs Product identities before current on-hand counts can be recorded.</p>
       </div>
@@ -298,7 +299,7 @@ export function ProductStockView({ products, catalogLoading }: ProductStockViewP
             <div className="empty-state"><p>Loading finished component stock…</p></div>
           ) : rows.length === 0 ? (
             <div className="empty-state">
-              <div className="empty-icon">□</div>
+              <div className="empty-icon" aria-hidden="true"><AppIcon name="inventory" size={28} /></div>
               <h3>No finished component stock rows yet</h3>
               <p>Add a Product-backed component first. Once a child Product is used, its missing or recorded ProductStock will appear here.</p>
             </div>
