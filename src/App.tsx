@@ -210,6 +210,7 @@ export default function App({
               aria-current={section === item.id ? 'page' : undefined}
               onClick={() => selectSection(item.id)}
             >
+              <span className={`app-nav-icon app-nav-icon-${item.id}`} aria-hidden="true" />
               {item.label}
             </button>
           ))}
