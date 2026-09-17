@@ -84,10 +84,11 @@ describe('App public Google Sheets integration', () => {
     );
 
     const details = container.querySelector<HTMLDetailsElement>('details.workbook-tools')!;
+    const overlay = container.querySelector<HTMLElement>('.workbook-tools-overlay')!;
+    const dialog = container.querySelector<HTMLElement>('#workbook-tools-dialog')!;
     expect(details.open).toBe(false);
-    expect(details.querySelector('.workbook-tools-popover')?.textContent).toContain(
-      'GOOGLE SHEETS · PUBLIC',
-    );
+    expect(overlay.hidden).toBe(true);
+    expect(dialog.textContent).toContain('GOOGLE SHEETS · PUBLIC');
     expect(details.querySelector('.workbook-tools-trigger')?.textContent).toContain(
       'No workbook imported',
     );
