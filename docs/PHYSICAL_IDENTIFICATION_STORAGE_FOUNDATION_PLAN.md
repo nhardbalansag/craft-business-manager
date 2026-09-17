@@ -1,10 +1,18 @@
 # Physical Identification & Storage Foundation — Development Plan
 
-Status: IN PROGRESS
+Status: PIS6 VALIDATION COMPLETE — READY FOR PR
 
 Baseline:
 - `develop`: `78d339b6427df0ab916030689a1d75f55e8cb9da`
 - post-merge CI: `35170032170 — SUCCESS`
+
+Validation gate:
+- feature head before closeout documentation: `fdad966ab40213af4cc1e36aa9d2cc48852a47e3`
+- feature CI: `35180872109 — SUCCESS`
+- branch comparison: `53 commits ahead / 0 behind develop`
+- exact diff review: `41 changed files`, confined to the planned physical-identification, persistence, Product integration, label UI/test, and dependency surfaces
+- CI workflow validates TypeScript, full regression tests, and production build
+- PR / guarded merge / post-merge `develop` CI remain the final repository gates
 
 ## Goal
 
@@ -192,7 +200,7 @@ Storage label must support:
 
 ## PIS6 — Validation & completion gate
 
-Focused tests must cover:
+Focused tests cover:
 - domain validation and hierarchy rules;
 - duplicate IDs;
 - cycle prevention;
@@ -209,16 +217,23 @@ Focused tests must cover:
 - Products workspace navigation and CRUD paths;
 - printing remains non-destructive.
 
-Completion requires:
+Validation evidence before PR:
 - TypeScript PASS;
 - full regression suite PASS;
 - production build PASS;
-- feature CI PASS;
-- exact diff review;
+- feature CI PASS (`35180872109`);
+- exact diff review COMPLETE;
+- feature branch is based on the exact unchanged `develop` baseline (`78d339b6427df0ab916030689a1d75f55e8cb9da`).
+
+Final repository completion requires:
 - PR to `develop`;
 - PR CI PASS;
 - guarded merge with expected head SHA;
 - post-merge `develop` CI PASS.
+
+## Scope decision: drawers / generalized storage
+
+This foundation intentionally implements the approved normalized hierarchy `rack -> shelf -> bin` only. Drawer/custom location types are not required for PIS completion and are deferred to a follow-up storage-taxonomy enhancement so they do not expand the persistence contract during this completion gate.
 
 ## Non-goals
 
