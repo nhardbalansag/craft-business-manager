@@ -153,7 +153,7 @@ export function renderBatchProductionRequestHtml(view: BatchProductionRequestVie
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>${escapeHtml(view.product.name)} — Production Request</title>
   <style>
-    @page { size: A4; margin: 18mm 16mm;
+    @page { size: A4; margin: 4mm;
       @bottom-left { content: "Craft Business Manager | Batch sheet"; font: 8pt Arial, sans-serif; color: #555; }
       @bottom-right { content: "Page " counter(page) " of " counter(pages); font: 8pt Arial, sans-serif; color: #555; }
     }
@@ -208,13 +208,22 @@ export function renderBatchProductionRequestHtml(view: BatchProductionRequestVie
     @media print {
       html { background: #fff; }
       .screen-note { display: none; }
-      body { width: auto; margin: 0; padding: 0; box-shadow: none; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+      body {
+        width: auto;
+        margin: 0;
+        padding: 14mm 12mm;
+        box-shadow: none;
+        -webkit-box-decoration-break: clone;
+        box-decoration-break: clone;
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+      }
       a { color: inherit; text-decoration: none; }
     }
   </style>
 </head>
 <body>
-  <aside class="screen-note">A4 portrait | 16 mm side margins | 18 mm top and bottom. Choose <strong>Save as PDF</strong> in the print dialog. Keep default margins and turn off browser headers and footers for this layout.</aside>
+  <aside class="screen-note">A4 portrait | the PDF keeps a built-in content inset even if the browser margin setting is None. With default print margins the layout totals 16 mm at the sides and 18 mm at the top and bottom. Turn off browser headers and footers.</aside>
   <header>
     <div class="brand">Craft Business Manager</div>
     <div class="subhead">
