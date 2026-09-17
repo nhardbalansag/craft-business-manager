@@ -9,6 +9,7 @@ import {
   type ProductComponentSourceType,
 } from '../../domain/productComponents';
 import type { Product } from '../../domain/products';
+import { AppIcon } from '../icons/AppIcon';
 import {
   buildProductCompositionPreview,
   type ProductCompositionPreviewNode,
@@ -74,7 +75,7 @@ function PreviewBranch({ node }: { node: ProductCompositionPreviewNode }) {
   return (
     <li className={`composition-tree-item ${node.issue ? 'composition-tree-issue' : ''}`}>
       <div className="composition-tree-line">
-        <span className="composition-tree-connector" aria-hidden="true">↳</span>
+        <span className="composition-tree-connector" aria-hidden="true"><AppIcon name="corner-down-right" size={16} /></span>
         <span>
           <strong>{node.quantityPerParent} × {node.sourceName}</strong>
           <small>
@@ -268,7 +269,7 @@ export function ProductComponentsView({ products, materials, catalogLoading, ini
   if (products.length === 0) {
     return (
       <div className="panel empty-state">
-        <div className="empty-icon">◇</div>
+        <div className="empty-icon" aria-hidden="true"><AppIcon name="component" size={28} /></div>
         <h3>Create a Product first</h3>
         <p>Product composition needs a parent Product before Material or Product components can be added.</p>
       </div>
@@ -412,7 +413,7 @@ export function ProductComponentsView({ products, materials, catalogLoading, ini
             <div className="empty-state"><p>Loading components…</p></div>
           ) : parentComponents.length === 0 ? (
             <div className="empty-state">
-              <div className="empty-icon">＋</div>
+              <div className="empty-icon" aria-hidden="true"><AppIcon name="plus-circle" size={28} /></div>
               <h3>No component lines yet</h3>
               <p>Add a vessel, molded piece, insert, accessory, or another discrete assembly input.</p>
             </div>
