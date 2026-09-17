@@ -72,8 +72,10 @@ export default function App({
   const [section, setSection] = useState<AppSection>('materials');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [sidebarVisible, setSidebarVisible] = useState(initialSidebarVisible);
+  const [workbookToolsOpen, setWorkbookToolsOpen] = useState(false);
   const workbookToolsRef = useRef<HTMLDetailsElement>(null);
   const workbookTriggerRef = useRef<HTMLElement>(null);
+  const workbookCloseButtonRef = useRef<HTMLButtonElement>(null);
   const [workspaceRevision, setWorkspaceRevision] = useState(0);
   const [persistenceStatus, setPersistenceStatus] = useState(() =>
     createWorkbookPersistenceSessionStatus(),
@@ -106,15 +108,31 @@ export default function App({
     }
   }, [sidebarVisible]);
 
+  useEffect(() => {
+    if (workbookToolsOpen) workbookCloseButtonRef.current?.focus();
+  }, [workbookToolsOpen]);
+
+  function setWorkbookToolsVisibility(open: boolean, returnFocus = false) {
+    if (workbookToolsRef.current) workbookToolsRef.current.open = open;
+    setWorkbookToolsOpen(open);
+    if (!open && returnFocus) workbookTriggerRef.current?.focus();
+  }
+
   function closeWorkbookTools() {
-    if (workbookToolsRef.current) workbookToolsRef.current.open = false;
-    workbookTriggerRef.current?.focus();
+    setWorkbookToolsVisibility(false, true);
+  }
+
+  function toggleWorkbookTools(event: React.MouseEvent<HTMLElement>) {
+    event.preventDefault();
+    const nextOpen = !workbookToolsOpen;
+    setWorkbookToolsVisibility(nextOpen);
+    if (nextOpen) setDrawerOpen(false);
   }
 
   function toggleSidebarVisibility() {
     setSidebarVisible((current) => {
       const next = !current;
-      if (!next && workbookToolsRef.current) workbookToolsRef.current.open = false;
+      if (!next) setWorkbookToolsVisibility(false);
       return next;
     });
   }
@@ -138,7 +156,7 @@ export default function App({
 
   return (
     <main
-      className={`app-shell app-shell-with-drawer ${drawerOpen ? 'is-drawer-open' : ''} ${sidebarVisible ? '' : 'is-sidebar-hidden'}`}
+      className={`app-shell app-shell-with-drawer ${drawerOpen ? 'is-drawer-open' : ''} ${sidebarVisible ? '' : 'is-sidebar-hidden'} ${workbookToolsOpen ? 'is-workbook-tools-open' : ''}`}
     >
       <button
         type="button"
@@ -199,17 +217,15 @@ export default function App({
 
         <div className="app-drawer-workbook">
           <div className="app-drawer-section-label">Data</div>
-          <details
-            className="workbook-tools"
-            ref={workbookToolsRef}
-            onKeyDown={(event) => {
-              if (event.key === 'Escape' && event.currentTarget.open) {
-                event.preventDefault();
-                closeWorkbookTools();
-              }
-            }}
-          >
-            <summary className="workbook-tools-trigger" ref={workbookTriggerRef} aria-label="Workbook tools">
+          <details className="workbook-tools" ref={workbookToolsRef} open={workbookToolsOpen}>
+            <summary
+              className="workbook-tools-trigger"
+              ref={workbookTriggerRef}
+              aria-label="Workbook tools"
+              aria-expanded={workbookToolsOpen}
+              aria-controls="workbook-tools-dialog"
+              onClick={toggleWorkbookTools}
+            >
               <span className="workbook-tools-icon" aria-hidden="true">▣</span>
               <span className="workbook-tools-trigger-copy">
                 <strong>Workbook</strong>
@@ -217,47 +233,77 @@ export default function App({
               </span>
               <span className="workbook-tools-chevron" aria-hidden="true">⌄</span>
             </summary>
-
-            <div className="workbook-tools-popover">
-              <div className="workbook-tools-close-row">
-                <button className="button button-quiet" type="button" onClick={closeWorkbookTools}>
-                  Close workbook tools
-                </button>
-              </div>
-              <div className="workbook-tools-popover-heading">
-                <div>
-                  <p className="panel-kicker">WORKBOOK TOOLS</p>
-                  <h2>Data sources &amp; workbook copies</h2>
-                  <p>
-                    Open local XLSX files, import a public Google Sheets snapshot, review session
-                    status, or download the current workspace as a workbook copy.
-                  </p>
-                </div>
-                <span className="workbook-tools-current-file" title={workbookIdentityLabel}>
-                  <small>Current imported source</small>
-                  <strong>{workbookIdentityLabel}</strong>
-                </span>
-              </div>
-
-              <WorkbookPersistenceStatusPanel status={persistenceStatus} />
-              <WorkbookImportPanel command={importCommand} onHydrated={handleWorkbookHydrated} />
-              <PublicGoogleSheetsImportPanel
-                command={googleSheetsImportCommand}
-                onHydrated={handleWorkbookHydrated}
-              />
-              <WorkbookExportPanel
-                command={exportCommand}
-                onDownloaded={(result) => {
-                  const observedAt = uiClock();
-                  setPersistenceStatus((current) =>
-                    recordSuccessfulWorkbookExport(current, { result, observedAt }),
-                  );
-                }}
-              />
-            </div>
           </details>
         </div>
       </aside>
+
+      <div
+        className="workbook-tools-overlay"
+        hidden={!workbookToolsOpen}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') {
+            event.preventDefault();
+            closeWorkbookTools();
+          }
+        }}
+      >
+        <button
+          type="button"
+          className="workbook-tools-backdrop"
+          aria-label="Close workbook tools"
+          onClick={closeWorkbookTools}
+        />
+        <section
+          id="workbook-tools-dialog"
+          className="workbook-tools-popover workbook-tools-dialog"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="workbook-tools-dialog-title"
+        >
+          <div className="workbook-tools-close-row">
+            <button
+              ref={workbookCloseButtonRef}
+              className="button button-quiet"
+              type="button"
+              onClick={closeWorkbookTools}
+            >
+              Close workbook tools
+            </button>
+          </div>
+          <div className="workbook-tools-popover-heading">
+            <div>
+              <p className="panel-kicker">WORKBOOK TOOLS</p>
+              <h2 id="workbook-tools-dialog-title">Data sources &amp; workbook copies</h2>
+              <p>
+                Open local XLSX files, import a public Google Sheets snapshot, review session
+                status, or download the current workspace as a workbook copy.
+              </p>
+            </div>
+            <span className="workbook-tools-current-file" title={workbookIdentityLabel}>
+              <small>Current imported source</small>
+              <strong>{workbookIdentityLabel}</strong>
+            </span>
+          </div>
+
+          <WorkbookPersistenceStatusPanel status={persistenceStatus} />
+          <div className="workbook-tools-action-stack">
+            <WorkbookImportPanel command={importCommand} onHydrated={handleWorkbookHydrated} />
+            <PublicGoogleSheetsImportPanel
+              command={googleSheetsImportCommand}
+              onHydrated={handleWorkbookHydrated}
+            />
+            <WorkbookExportPanel
+              command={exportCommand}
+              onDownloaded={(result) => {
+                const observedAt = uiClock();
+                setPersistenceStatus((current) =>
+                  recordSuccessfulWorkbookExport(current, { result, observedAt }),
+                );
+              }}
+            />
+          </div>
+        </section>
+      </div>
 
       {drawerOpen && (
         <button
