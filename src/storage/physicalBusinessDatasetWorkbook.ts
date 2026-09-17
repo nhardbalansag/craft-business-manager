@@ -292,23 +292,30 @@ export function importPhysicalBusinessDatasetFromXlsx(
     return failure({ stage: 'compatibility', code: 'INVALID_FORMAT_ID', message: `Workbook formatId must be ${CRAFT_BUSINESS_WORKBOOK_FORMAT_ID}.`, sheetName: '_Meta' });
   }
 
-  if (
-    typeof workbookVersion === 'number' &&
-    typeof datasetVersion === 'number' &&
-    (workbookVersion > CURRENT_PHYSICAL_WORKBOOK_FORMAT_VERSION || datasetVersion > 2)
-  ) {
+  const numericVersionPair =
+    typeof workbookVersion === 'number' && typeof datasetVersion === 'number';
+  const isFutureVersion =
+    numericVersionPair &&
+    (workbookVersion > CURRENT_PHYSICAL_WORKBOOK_FORMAT_VERSION || datasetVersion > 2);
+  const isMixedPhysicalEnvelope = workbookVersion === 2 && datasetVersion === 1;
+
+  if (isFutureVersion || isMixedPhysicalEnvelope) {
     return failure({
       stage: 'compatibility',
       code: 'UNSUPPORTED_FUTURE_VERSION',
-      message: `Workbook version ${workbookVersion}/${datasetVersion} is newer than supported physical workbook version ${CURRENT_PHYSICAL_WORKBOOK_FORMAT_VERSION}/2.`,
+      message: `Workbook version ${String(workbookVersion)}/${String(datasetVersion)} is newer than or incompatible with supported physical workbook version ${CURRENT_PHYSICAL_WORKBOOK_FORMAT_VERSION}/2.`,
       sheetName: '_Meta',
       rowIndex: 0,
       excelRow: 2,
       compatibilityStatus: 'unsupported-future',
-      sourceVersion: {
-        workbookFormatVersion: workbookVersion,
-        datasetSchemaVersion: datasetVersion,
-      },
+      ...(numericVersionPair
+        ? {
+            sourceVersion: {
+              workbookFormatVersion: workbookVersion,
+              datasetSchemaVersion: datasetVersion,
+            },
+          }
+        : {}),
       targetVersion: {
         workbookFormatVersion: CURRENT_PHYSICAL_WORKBOOK_FORMAT_VERSION,
         datasetSchemaVersion: 2,
