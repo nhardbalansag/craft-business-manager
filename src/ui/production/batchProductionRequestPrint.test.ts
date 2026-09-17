@@ -85,7 +85,10 @@ describe('batch production request print document', () => {
   it('renders an A4 production request with preparation, financial, actual-result and sign-off sections', () => {
     const html = renderBatchProductionRequestHtml(view());
 
-    expect(html).toContain('@page { size: A4;');
+    expect(html).toContain('@page { size: A4; margin: 4mm;');
+    expect(html).toContain('padding: 14mm 12mm;');
+    expect(html).toContain('box-decoration-break: clone;');
+    expect(html).toContain('built-in content inset even if the browser margin setting is None');
     expect(html).toContain('Production Request / Batch Sheet');
     expect(html).toContain('Materials to Prepare');
     expect(html).toContain('Soy wax');
@@ -98,7 +101,6 @@ describe('batch production request print document', () => {
     expect(html).toContain('Prepared by');
     expect(html).toContain('Produced by');
     expect(html).toContain('Checked by');
-    expect(html).toContain('Save as PDF');
     expect(html).toContain('Printing does not reserve, decrement, or otherwise change stock');
   });
 
