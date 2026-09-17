@@ -36,7 +36,23 @@ describe('productLabelView', () => {
       copies: 4,
       showCategory: true,
       showStatus: false,
+      showQr: true,
+      showBarcode: true,
     });
+  });
+
+  it('allows QR and Code 128 to be disabled independently', () => {
+    const view = buildProductLabelView(product, {
+      sizeId: '40x30',
+      copies: 1,
+      showCategory: false,
+      showStatus: false,
+      showQr: false,
+      showBarcode: true,
+    });
+
+    expect(view.showQr).toBe(false);
+    expect(view.showBarcode).toBe(true);
   });
 
   it('normalizes copy bounds and resolves supported millimeter presets', () => {
