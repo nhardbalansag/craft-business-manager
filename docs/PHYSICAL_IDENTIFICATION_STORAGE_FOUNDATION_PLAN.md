@@ -1,24 +1,29 @@
 # Physical Identification & Storage Foundation — Development Plan
 
-Status: PIS6 VALIDATION COMPLETE — READY FOR PR
+Status: COMPLETE
 
 Baseline:
-- `develop`: `78d339b6427df0ab916030689a1d75f55e8cb9da`
-- post-merge CI: `35170032170 — SUCCESS`
+- original `develop`: `78d339b6427df0ab916030689a1d75f55e8cb9da`
+- original post-merge CI: `35170032170 — SUCCESS`
 
-Validation gate:
-- feature head before closeout documentation: `fdad966ab40213af4cc1e36aa9d2cc48852a47e3`
-- feature CI: `35180872109 — SUCCESS`
-- branch comparison: `53 commits ahead / 0 behind develop`
-- exact diff review: `42 changed files`, confined to the planned physical-identification, persistence, Product integration, label UI/test, and dependency surfaces
-- CI workflow validates TypeScript, full regression tests, and production build
-- PR / guarded merge / post-merge `develop` CI remain the final repository gates
+Completion evidence:
+- implementation feature branch: `feature/physical-identification-storage-foundation`
+- final feature head: `a924654a0264a021dd854a3474e361f1a7648862`
+- implementation validation CI: `35180872109 — SUCCESS`
+- docs-inclusive feature CI: `35181655292 — SUCCESS`
+- exact PR file list reviewed: `42 changed files`
+- PR: `#226 — Add physical identification and storage foundation`
+- PR CI: `35181812559 — SUCCESS`
+- guarded merge used expected head SHA `a924654a0264a021dd854a3474e361f1a7648862`
+- merge commit on `develop`: `9f1b78bf97d11d46338b9001edf5175a3e41fdcd`
+- post-merge `develop` CI: `35181912497 — SUCCESS`
+- CI validated TypeScript, the full regression suite, and the production build
 
 ## Goal
 
 Extend the existing browser-based thermal product-label workflow into one coherent physical-identification system for products, molds, and workshop storage.
 
-The completed scope must provide:
+The completed scope provides:
 - standards-compliant QR codes;
 - Code 128 barcodes;
 - persistent Mold IDs and Mold records;
@@ -35,8 +40,8 @@ The completed scope must provide:
 
 Authoritative identity stays separate from physical location:
 - Product IDs already exist and remain unchanged.
-- Mold IDs are new stable identifiers, e.g. `MOLD-0012`.
-- Storage Location IDs are new stable identifiers, e.g. `LOC-BIN-0004`.
+- Mold IDs are stable identifiers, e.g. `MOLD-0012`.
+- Storage Location IDs are stable identifiers, e.g. `LOC-BIN-0004`.
 - Moving a mold changes only `storageLocationId`; it never changes the Mold ID.
 
 ### Hierarchical storage model
@@ -79,128 +84,109 @@ Use deterministic identification payloads:
 - Storage QR: `CBM:LOCATION:<location-id>`
 - Code 128 barcode text: the authoritative entity ID itself.
 
-QR/barcode generation must be standards-compliant SVG. Use `@bwip-js/generic` so the application can render both QR Code and Code 128 with one browser-compatible SVG library and without a network barcode service.
+QR/barcode generation uses standards-compliant SVG through `@bwip-js/generic`, without a network barcode service.
 
 ### Persistence compatibility
 
-Adding molds and storage locations changes persisted source truth. Therefore:
-- bump `BusinessDataset` schema from v1 to v2;
-- bump canonical workbook format from v1 to v2;
-- add `Molds` and `StorageLocations` sheets;
-- register an explicit v1/v1 -> v2/v2 workbook migration that adds empty new sheets and updates `_Meta`;
-- preserve all existing v1 source data unchanged during migration;
-- keep future versions fail-closed.
+Adding molds and storage locations changes persisted source truth. The completed implementation therefore:
+- supports the physical-identification dataset/workbook v2 contract;
+- adds `Molds` and `StorageLocations` sheets;
+- imports legacy v1/v1 workbooks into the v2 physical dataset with empty new collections;
+- preserves existing v1 source data during migration;
+- keeps unsupported/future versions fail-closed;
+- keeps hydration rejection-safe and restores previous live state when apply fails.
 
-## PIS0 — Contracts & dependency readiness
+## PIS0 — Contracts & dependency readiness — COMPLETE
 
-- add the standards-compliant SVG barcode/QR dependency;
-- define shared machine-readable payload helpers;
-- keep code generation pure/deterministic where possible;
-- test QR and Code 128 output structure and invalid/blank ID behavior.
+Completed:
+- standards-compliant SVG barcode/QR dependency;
+- shared deterministic machine-readable payload helpers;
+- QR and Code 128 generation tests, including invalid/blank identity behavior.
 
-## PIS1 — Storage Location domain & services
+## PIS1 — Storage Location domain & services — COMPLETE
 
-Add:
+Completed:
 - `StorageLocation` domain contract and validation;
 - hierarchy validation and cycle protection;
 - repository interface + in-memory implementation;
-- application service for create/update/archive/list;
+- create/update/archive/list service behavior;
 - deterministic location-path resolution;
-- safe archive rules so an active child cannot silently lose its parent.
+- archive protection for active child/location relationships.
 
-## PIS2 — Mold identity domain & services
+## PIS2 — Mold identity domain & services — COMPLETE
 
-Add:
+Completed:
 - `Mold` domain contract and validation;
 - repository interface + in-memory implementation;
-- application service for create/update/archive/list;
+- create/update/archive/list service behavior;
 - Product referential integrity;
 - optional Storage Location referential integrity;
 - move/unassign storage behavior without identity mutation.
 
-## PIS3 — Dataset / workbook persistence v2
+## PIS3 — Dataset / workbook persistence v2 — COMPLETE
 
-Extend the canonical persisted source dataset with:
+Completed persisted source extensions:
 - `storageLocations`;
 - `molds`.
 
-Update:
-- source snapshot service;
-- atomic hydration service;
-- dataset validation/cloning;
-- workbook schema;
-- workbook export/import;
-- compatibility/migration registry;
+Completed integration:
+- physical source snapshot service;
+- rejection-safe atomic physical hydration;
+- physical dataset validation/cloning;
+- workbook v2 export/import;
+- v1 compatibility/migration;
 - row/reference validation;
-- session composition.
+- session composition through the existing persistence coordinator.
 
-Required canonical sheets:
+Canonical physical sheets:
 - `StorageLocations`;
 - `Molds`.
 
-Required regression:
+Regression covers:
 - v2 round-trip fidelity;
-- v1 workbook migrates with empty storage/mold collections;
-- invalid parent/product/location references reject atomically;
-- failed import must not partially replace live repositories.
+- v1 workbook migration with empty storage/mold collections;
+- invalid parent/product/location reference rejection;
+- failed hydration without partial live-state mutation.
 
-## PIS4 — Product QR & barcode labels
+## PIS4 — Product QR & barcode labels — COMPLETE
 
-Enhance the existing Product label dialog/renderer:
+Completed Product label enhancements:
 - optional QR code;
 - optional Code 128 barcode;
 - live preview representation;
 - printed SVGs generated from Product ID;
-- exact millimeter label presets retained;
-- copies retained;
-- category/status options retained;
-- small-label layouts remain readable and fail clearly if a selected content combination cannot fit safely.
+- existing exact millimeter label presets and copy counts retained;
+- category/status controls retained;
+- machine-readable label regression coverage.
 
-## PIS5 — Mold & Storage workspace UI
+## PIS5 — Mold & Storage workspace UI — COMPLETE
 
-Extend the Products workshop with dedicated views:
-- `Molds`;
-- `Storage`.
+The Products section now exposes the physical-identification workspace while preserving the existing Product/Mix/Component/Stock workshop.
 
 ### Molds view
 
-Provide:
+Completed:
 - create/edit/archive mold;
 - select owning Product;
 - assign/move/unassign Storage Location;
 - show current Rack / Shelf / Bin path;
 - search/filter;
-- `Print mold label`.
-
-Mold label must support:
-- mold name;
-- Mold ID;
-- owning Product ID/name;
-- current storage path when assigned;
-- QR code;
-- Code 128 barcode;
-- size/copies controls.
+- `Print mold label`;
+- label content for mold identity, owning Product, current storage path, QR, Code 128, size, and copies.
 
 ### Storage view
 
-Provide:
+Completed:
 - create/edit/archive rack/shelf/bin;
-- parent selection constrained by hierarchy;
-- path preview;
+- hierarchy-constrained parent selection;
+- path display/preview;
 - search/filter;
-- `Print storage label`.
+- `Print storage label`;
+- label content for type/name, Location ID, full path, QR, Code 128, size, and copies.
 
-Storage label must support:
-- location name/type;
-- Location ID;
-- full human-readable path;
-- QR code;
-- Code 128 barcode;
-- size/copies controls.
+## PIS6 — Validation & completion gate — COMPLETE
 
-## PIS6 — Validation & completion gate
-
-Focused tests cover:
+Focused regression covers:
 - domain validation and hierarchy rules;
 - duplicate IDs;
 - cycle prevention;
@@ -208,7 +194,7 @@ Focused tests cover:
 - move/unassign semantics;
 - dataset snapshot/hydration;
 - workbook v2 import/export;
-- v1 -> v2 migration;
+- v1 -> v2 compatibility/migration;
 - QR SVG generation;
 - Code 128 SVG generation;
 - product label machine-readable options;
@@ -217,33 +203,31 @@ Focused tests cover:
 - Products workspace navigation and CRUD paths;
 - printing remains non-destructive.
 
-Validation evidence before PR:
+Repository gate results:
 - TypeScript PASS;
 - full regression suite PASS;
 - production build PASS;
-- feature CI PASS (`35180872109`);
+- feature CI PASS;
 - exact diff review COMPLETE;
-- feature branch is based on the exact unchanged `develop` baseline (`78d339b6427df0ab916030689a1d75f55e8cb9da`).
-
-Final repository completion requires:
-- PR to `develop`;
+- PR to `develop` COMPLETE;
 - PR CI PASS;
-- guarded merge with expected head SHA;
+- guarded merge COMPLETE;
 - post-merge `develop` CI PASS.
 
 ## Scope decision: drawers / generalized storage
 
-This foundation intentionally implements the approved normalized hierarchy `rack -> shelf -> bin` only. Drawer/custom location types are not required for PIS completion and are deferred to a follow-up storage-taxonomy enhancement so they do not expand the persistence contract during this completion gate.
+This foundation intentionally implements the approved normalized hierarchy `rack -> shelf -> bin` only. Drawer/custom location types are not required for PIS completion and remain a follow-up storage-taxonomy enhancement so they do not expand this completed persistence contract.
 
-## Non-goals
+## Non-goals / follow-up capabilities
 
 - direct USB / serial / Bluetooth printer discovery;
 - silent/default printer selection;
 - raw TSPL/ZPL/CPCL/ESC-POS command output;
 - Tauri native direct printing;
 - camera/scanner input workflow;
+- drawer/custom storage taxonomy;
 - mold maintenance lifecycle / wear counters;
 - stock deduction from scanning or printing;
 - automatic production transactions.
 
-Those remain follow-up capabilities built on this persisted identification foundation.
+These are follow-up capabilities built on the completed persisted identification foundation.
