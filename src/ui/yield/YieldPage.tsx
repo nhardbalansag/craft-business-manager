@@ -23,6 +23,7 @@ import {
 } from '../../domain/units';
 import type { YieldSample } from '../../domain/yieldSamples';
 import { YieldProductSearchPicker } from './YieldProductSearchPicker';
+import { AppIcon } from '../icons/AppIcon';
 import './yield.css';
 import './yieldEnhancement.css';
 
@@ -517,7 +518,7 @@ export function YieldPage() {
 
       {loading ? (
         <div className="panel yield-state-panel" role="status" aria-live="polite">
-          <div className="yield-state-icon" aria-hidden="true">◎</div>
+          <div className="yield-state-icon" aria-hidden="true"><AppIcon name="activity" size={28} /></div>
           <div>
             <h2>Loading yield workspace</h2>
             <p>Checking products, materials, mix presets, and production evidence…</p>
@@ -525,7 +526,7 @@ export function YieldPage() {
         </div>
       ) : masterError ? (
         <div className="panel yield-state-panel yield-state-error" role="alert">
-          <div className="yield-state-icon" aria-hidden="true">!</div>
+          <div className="yield-state-icon" aria-hidden="true"><AppIcon name="alert" size={27} /></div>
           <div>
             <h2>Yield workspace unavailable</h2>
             <p>{masterError}</p>
@@ -536,7 +537,7 @@ export function YieldPage() {
         </div>
       ) : products.length === 0 ? (
         <div className="panel yield-state-panel">
-          <div className="yield-state-icon" aria-hidden="true">◇</div>
+          <div className="yield-state-icon" aria-hidden="true"><AppIcon name="products" size={27} /></div>
           <div>
             <h2>Create a product first</h2>
             <p>Yield evidence needs a Product record before a real production batch can be recorded.</p>
@@ -985,13 +986,13 @@ export function YieldPage() {
                       <div className="empty-state"><p>Loading yield history…</p></div>
                     ) : history.length === 0 ? (
                       <div className="empty-state">
-                        <div className="empty-icon">◎</div>
+                        <div className="empty-icon" aria-hidden="true"><AppIcon name="history" size={28} /></div>
                         <h3>No yield history yet</h3>
                         <p>Record a real sample batch to start learning material consumption per good piece.</p>
                       </div>
                     ) : visibleHistory.length === 0 ? (
                       <div className="empty-state">
-                        <div className="empty-icon">⌕</div>
+                        <div className="empty-icon" aria-hidden="true"><AppIcon name="search" size={28} /></div>
                         <h3>No matching batches</h3>
                         <p>Try a different sample ID, material, mix preset, outcome, date, or note.</p>
                         <button type="button" className="button button-quiet" onClick={clearHistoryFilters}>Clear history filters</button>
