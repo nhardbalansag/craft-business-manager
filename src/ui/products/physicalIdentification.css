@@ -1,0 +1,162 @@
+.physical-id-workspace {
+  margin-top: 22px;
+  padding-top: 22px;
+  border-top: 1px solid var(--border, #d7dce4);
+}
+
+.physical-id-heading,
+.physical-id-toolbar,
+.physical-id-mode,
+.physical-id-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.physical-id-heading {
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.physical-id-heading h2,
+.physical-id-heading p {
+  margin-bottom: 0;
+}
+
+.physical-id-mode {
+  padding: 4px;
+  border: 1px solid var(--border, #d7dce4);
+  border-radius: 12px;
+  background: var(--surface-soft, #f7f8fa);
+}
+
+.physical-id-mode button {
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.physical-id-mode button.active {
+  background: var(--surface, #fff);
+  box-shadow: 0 1px 4px rgb(15 23 42 / 12%);
+  font-weight: 700;
+}
+
+.physical-id-toolbar {
+  margin: 18px 0;
+}
+
+.physical-id-toolbar input {
+  flex: 1;
+  min-width: 0;
+}
+
+.physical-id-toolbar select {
+  width: 150px;
+}
+
+.physical-id-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.75fr) minmax(0, 1.25fr);
+  gap: 18px;
+}
+
+.physical-id-form {
+  align-self: start;
+  display: grid;
+  gap: 14px;
+}
+
+.physical-id-form textarea {
+  min-height: 84px;
+  resize: vertical;
+}
+
+.physical-id-list {
+  min-width: 0;
+}
+
+.physical-id-card {
+  padding: 16px 0;
+  border-top: 1px solid var(--border, #d7dce4);
+}
+
+.physical-id-card:first-of-type {
+  border-top: 0;
+}
+
+.physical-id-card h4 {
+  margin: 7px 0 3px;
+}
+
+.physical-id-card code {
+  font-size: 0.78rem;
+  overflow-wrap: anywhere;
+}
+
+.physical-id-card dl {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.physical-id-card dl div {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 8px;
+}
+
+.physical-id-card dt {
+  color: var(--text-muted, #667085);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.physical-id-card dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.physical-id-type {
+  margin-left: 8px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.physical-id-path {
+  margin: 10px 0;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+.physical-id-actions {
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+@media (max-width: 860px) {
+  .physical-id-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .physical-id-heading {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 560px) {
+  .physical-id-toolbar,
+  .physical-id-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .physical-id-toolbar select {
+    width: 100%;
+  }
+}
