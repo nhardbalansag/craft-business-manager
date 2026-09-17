@@ -107,6 +107,83 @@ async function seed() {
 }
 
 describe('product workshop interactions', () => {
+  it('keeps editor context tied to the current draft until a switch is accepted', async () => {
+    await seed();
+    await mount();
+    await click('Edit Alpha candle');
+    await fill(field('Name'), 'Unsaved candle');
+    await click('Edit Beta star');
+    expect(catalog().querySelector('.product-editor-context h2')?.textContent).toBe('Edit Alpha candle');
+    await click('Keep editing');
+    expect(catalog().querySelector('.product-editor-context h2')?.textContent).toBe('Edit Alpha candle');
+    await click('Edit Beta star');
+    await click('Discard changes');
+    expect(catalog().querySelector('.product-editor-context h2')?.textContent).toBe('Edit Beta star');
+    await click('Clear');
+    expect(catalog().querySelector('.product-editor-context h2')?.textContent).toBe('Add a new product');
+  });
+
+  it('resumes a new product draft from the catalog without resetting its fields', async () => {
+    await mount();
+    await click('+ New product');
+    await fill(field('Name'), 'Unfinished star');
+    await act(async () => catalog().querySelector<HTMLButtonElement>('.product-editor-back')!.click());
+    expect(catalog().querySelector<HTMLElement>('.product-catalog-collection')?.hidden).toBe(false);
+    await click('Resume draft');
+    expect(field('Name').value).toBe('Unfinished star');
+    expect(catalog().querySelector<HTMLElement>('.product-catalog-collection')?.hidden).toBe(true);
+    expect(document.activeElement).toBe(field('Name'));
+  });
+
+  it('focuses inline identity errors and previews fractional material reserves', async () => {
+    await seed();
+    await mount();
+    await click('+ New product');
+    await fill(field('Product ID'), ' alpha ');
+    await fill(field('Name'), 'New star');
+    await submit();
+    expect(field('Product ID').getAttribute('aria-invalid')).toBe('true');
+    expect(document.activeElement).toBe(field('Product ID'));
+    expect(container.querySelector('#product-id-error')?.textContent).toContain('already in use');
+    await fill(field('Product ID'), 'NEW');
+    await fill(field('Safety waste (%)'), '7.25');
+    expect(form().querySelector('[aria-label="Material reserve preview"]')?.textContent).toContain('107.25 g planned');
+    await submit();
+    expect((await session.productService.getProduct('NEW'))?.safetyWasteRate).toBe(0.0725);
+  });
+
+  it('retains normalized saved details without a false unsaved warning', async () => {
+    await mount();
+    await click('+ New product');
+    await fill(field('Product ID'), ' NEW ');
+    await fill(field('Name'), ' New star ');
+    await submit();
+    expect(field('Product ID').value).toBe('NEW');
+    expect((field('Product ID') as HTMLInputElement).disabled).toBe(true);
+    expect(field('Name').value).toBe('New star');
+    expect(form().querySelector('.product-editor-state')?.textContent).toContain('All changes saved');
+    await fill(field('Name'), ' Updated star ');
+    await submit();
+    expect(field('Name').value).toBe('Updated star');
+    expect(form().querySelector('.product-editor-state')?.textContent).toContain('All changes saved');
+    expect(catalog().querySelector('.product-editor-context h2')?.textContent).toBe('Edit Updated star');
+  });
+
+  it('explains cleared mixes and preserves a draft when the save service fails', async () => {
+    await seed();
+    await mount();
+    await click('Edit Alpha candle');
+    await fill(field('Category'), 'candle-pot');
+    expect(form().querySelector('.product-mix-notice')?.textContent).toContain('previous mix was cleared');
+    vi.spyOn(session.productService, 'updateProduct').mockRejectedValueOnce(new Error('Could not save'));
+    await fill(field('Name'), 'Changed pot');
+    await submit();
+    expect(field('Name').value).toBe('Changed pot');
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain('Could not save');
+    await submit();
+    expect((await session.productService.getProduct('ALPHA'))?.name).toBe('Changed pot');
+  });
+
   it('keeps drafts when reselecting a product and asks before replacing them', async () => {
     await seed();
     await mount();

@@ -232,15 +232,6 @@
   transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease;
 }
 
-.product-catalog-layout:has(.product-catalog.is-editor-shell-open) .product-details-form .field:hover {
-  border-color: #cfbea8;
-}
-
-.product-catalog-layout:has(.product-catalog.is-editor-shell-open) .product-details-form .field:focus-within {
-  border-color: #9b7e53;
-  box-shadow: 0 0 0 3px rgba(155, 126, 83, .11), 0 10px 24px rgba(72, 55, 34, .06);
-}
-
 .product-catalog-layout:has(.product-catalog.is-editor-shell-open) .product-details-form .field > span {
   display: flex;
   align-items: center;
@@ -253,7 +244,7 @@
   text-transform: uppercase;
 }
 
-.product-catalog-layout:has(.product-catalog.is-editor-shell-open) .product-details-form .field:has(input:disabled) > span::after {
+.product-catalog-layout:has(.product-catalog.is-editor-shell-open) .product-details-form .field:has(input[name="id"][disabled]) > span::after {
   content: 'Locked';
   padding: 3px 7px;
   border-radius: 999px;
@@ -289,25 +280,6 @@
   margin-top: -1px;
   color: #7a7064;
   line-height: 1.45;
-}
-
-/* Visual grouping keeps the existing semantic form and service rules intact. */
-.product-catalog-layout:has(.product-catalog.is-editor-shell-open) .product-details-form .form-grid > .field:nth-child(1),
-.product-catalog-layout:has(.product-catalog.is-editor-shell-open) .product-details-form .form-grid > .field:nth-child(2) {
-  border-top: 4px solid #9b7e53;
-}
-
-.product-catalog-layout:has(.product-catalog.is-editor-shell-open) .product-details-form .form-grid > .field:nth-child(3),
-.product-catalog-layout:has(.product-catalog.is-editor-shell-open) .product-details-form .form-grid > .field:nth-child(4) {
-  border-top: 4px solid #7d9068;
-}
-
-.product-catalog-layout:has(.product-catalog.is-editor-shell-open) .product-details-form .form-grid > .field:nth-child(5) {
-  border-top: 4px solid #6f8195;
-}
-
-.product-catalog-layout:has(.product-catalog.is-editor-shell-open) .product-details-form .form-grid > .field:nth-child(6) {
-  border-top: 4px solid #8a7c8e;
 }
 
 .product-catalog-layout:has(.product-catalog.is-editor-shell-open) .product-details-form .field-wide {
