@@ -146,19 +146,10 @@
   transition: color .16s ease, background .16s ease, border-color .16s ease;
 }
 
-.app-nav-icon::before {
-  display: block;
-  font-size: .86rem;
-  font-weight: 760;
-  line-height: 1;
+.app-nav-icon .app-icon {
+  width: 18px;
+  height: 18px;
 }
-
-.app-nav-icon-materials::before { content: '▦'; }
-.app-nav-icon-calibration::before { content: '⌁'; }
-.app-nav-icon-products::before { content: '◇'; }
-.app-nav-icon-yield::before { content: '↗'; }
-.app-nav-icon-production::before { content: '▥'; }
-.app-nav-icon-pricing::before { content: '$'; }
 
 .app-drawer-nav .nav-item:hover .app-nav-icon,
 .app-drawer-nav .nav-item.active .app-nav-icon {
@@ -268,9 +259,9 @@
   box-shadow: 8px 6px 20px rgba(24, 29, 26, .17);
 }
 
-.app-sidebar-toggle span {
-  font-size: 1.3rem;
-  transform: translateY(-1px);
+.app-sidebar-toggle .app-icon {
+  width: 18px;
+  height: 18px;
 }
 
 .app-shell-with-drawer.is-sidebar-hidden .app-sidebar-toggle {
@@ -356,4 +347,9 @@
     height: 29px;
     flex-basis: 29px;
   }
+}
+
+.app-drawer .workbook-tools-icon .app-icon,
+.app-drawer .workbook-tools-chevron .app-icon {
+  display: block;
 }
