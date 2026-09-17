@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act } from 'react';
+import { act, type ComponentProps } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Product } from '../../domain/products';
@@ -32,13 +32,15 @@ afterEach(async () => {
 });
 
 function button(text: string) {
-  const match = Array.from(container.querySelectorAll('button')).find((item) => item.textContent?.trim() === text);
+  const match = Array.from(container.querySelectorAll('button')).find(
+    (item) => item.getAttribute('aria-label') === text || item.textContent?.replace(/\s+/g, ' ').trim() === text,
+  );
   if (!match) throw new Error(`Missing button: ${text}`);
   return match as HTMLButtonElement;
 }
 
-async function renderCatalog(overrides: Partial<React.ComponentProps<typeof ProductCatalog>> = {}) {
-  const props: React.ComponentProps<typeof ProductCatalog> = {
+async function renderCatalog(overrides: Partial<ComponentProps<typeof ProductCatalog>> = {}) {
+  const props: ComponentProps<typeof ProductCatalog> = {
     products: [product],
     mixPresets: [],
     loading: false,
@@ -59,25 +61,26 @@ async function renderCatalog(overrides: Partial<React.ComponentProps<typeof Prod
 describe('Product catalog / editor separation', () => {
   it('keeps the collection as a catalog-only view until Add product is requested', async () => {
     const props = await renderCatalog();
+    const catalog = container.querySelector('[aria-label="Product catalog"]')!;
+    const collection = catalog.querySelector<HTMLElement>('.product-catalog-collection')!;
 
-    expect(container.querySelector('[aria-label="Product catalog"]')).not.toBeNull();
+    expect(collection.hidden).toBe(false);
     expect(container.querySelector('[aria-label="Product editor navigation"]')).toBeNull();
     expect(container.textContent).toContain('Browse, search, organize, and manage your collection');
     expect(container.textContent).not.toContain('Storage & molds');
 
-    await act(async () => button('+ Add product').click());
+    await act(async () => button('+ New product').click());
 
     expect(props.onNew).toHaveBeenCalledTimes(1);
-    const editorShell = container.querySelector('[aria-label="Product editor navigation"]');
-    expect(editorShell).not.toBeNull();
-    expect(editorShell?.classList.contains('is-editor-shell-open')).toBe(true);
-    expect(editorShell?.textContent).toContain('Add a new product');
-    expect(editorShell?.textContent).toContain('Products/Product catalog/Add product');
-    expect(container.querySelector('[aria-label="Product catalog"]')).toBeNull();
-    expect(container.querySelector('input[type="search"]')).toBeNull();
+    const editorNavigation = container.querySelector('[aria-label="Product editor navigation"]');
+    expect(editorNavigation).not.toBeNull();
+    expect(catalog.classList.contains('is-editor-shell-open')).toBe(true);
+    expect(editorNavigation?.textContent).toContain('Add a new product');
+    expect(editorNavigation?.textContent?.replace(/\s+/g, ' ')).toContain('Products / Product catalog / Add product');
+    expect(collection.hidden).toBe(true);
   });
 
-  it('opens Edit product as a focused editor context instead of leaving the collection beside it', async () => {
+  it('opens Edit product as a focused editor context while keeping collection state mounted but hidden', async () => {
     const onEdit = vi.fn();
     await renderCatalog({ onEdit });
 
@@ -86,21 +89,24 @@ describe('Product catalog / editor separation', () => {
     await act(async () => edit!.click());
 
     expect(onEdit).toHaveBeenCalledWith(product);
-    const editorShell = container.querySelector('[aria-label="Product editor navigation"]');
-    expect(editorShell?.textContent).toContain('Edit Paintable Star');
-    expect(editorShell?.textContent).toContain('ART-STAR-01');
-    expect(container.querySelector('[aria-label="Paintable Star"]')).toBeNull();
+    const catalog = container.querySelector('[aria-label="Product catalog"]')!;
+    const editorNavigation = container.querySelector('[aria-label="Product editor navigation"]');
+    expect(editorNavigation?.textContent).toContain('Edit Paintable Star');
+    expect(editorNavigation?.textContent).toContain('ART-STAR-01');
+    expect(catalog.querySelector<HTMLElement>('.product-catalog-collection')?.hidden).toBe(true);
+    expect(catalog.querySelector('[aria-label="Paintable Star"]')).not.toBeNull();
   });
 
   it('returns to the product catalog without discarding the parent-owned draft', async () => {
     const props = await renderCatalog();
 
-    await act(async () => button('+ Add product').click());
+    await act(async () => button('+ New product').click());
     expect(container.querySelector('[aria-label="Product editor navigation"]')).not.toBeNull();
 
-    await act(async () => button('←Back to product catalog').click());
+    await act(async () => button('← Back to product catalog').click());
 
-    expect(container.querySelector('[aria-label="Product catalog"]')).not.toBeNull();
+    const catalog = container.querySelector('[aria-label="Product catalog"]')!;
+    expect(catalog.querySelector<HTMLElement>('.product-catalog-collection')?.hidden).toBe(false);
     expect(container.querySelector('[aria-label="Product editor navigation"]')).toBeNull();
     expect(props.onNew).toHaveBeenCalledTimes(1);
     expect(props.onEdit).not.toHaveBeenCalled();
