@@ -1,10 +1,17 @@
+import type { BusinessDataset } from '../../domain/types';
 import type { PhysicalBusinessDataset } from '../../domain/physicalBusinessDataset';
+import {
+  exportBusinessDatasetToXlsx,
+  type WorkbookExportMetadata,
+} from '../../storage/businessDatasetWorkbookExport';
+import {
+  importBusinessDatasetFromXlsx,
+  type ImportedWorkbookMetadata,
+} from '../../storage/businessDatasetWorkbookImport';
 import {
   exportPhysicalBusinessDatasetToXlsx,
   importPhysicalBusinessDatasetFromXlsx,
 } from '../../storage/physicalBusinessDatasetWorkbook';
-import type { WorkbookExportMetadata } from '../../storage/businessDatasetWorkbookExport';
-import type { ImportedWorkbookMetadata } from '../../storage/businessDatasetWorkbookImport';
 import type { WorkbookBinaryInput, WorkbookCodec } from '../../storage/workbookCodec';
 import {
   cloneWorkbookBytes,
@@ -26,6 +33,8 @@ export type PersistenceClock = () => Date;
 export interface PersistenceCoordinatorOptions {
   readonly clock?: PersistenceClock;
   readonly applicationVersion?: string;
+  /** Enables workbook v2 with persisted StorageLocations and Molds. Defaults to legacy v1 behavior. */
+  readonly physicalIdentification?: boolean;
 }
 
 export interface PersistenceWorkbookExported {
@@ -51,7 +60,7 @@ export type PersistenceWorkbookApplyResult =
   | PersistenceLifecycleRejected;
 
 interface SnapshotSource {
-  snapshot(): Promise<PhysicalBusinessDataset>;
+  snapshot(): Promise<BusinessDataset | PhysicalBusinessDataset>;
 }
 
 interface HydrationTarget {
@@ -65,6 +74,10 @@ interface PreparedWorkbookExport {
 
 function systemClock(): Date {
   return new Date();
+}
+
+function isPhysicalDataset(dataset: BusinessDataset | PhysicalBusinessDataset): dataset is PhysicalBusinessDataset {
+  return 'storageLocations' in dataset && 'molds' in dataset;
 }
 
 function hydrationOperationalError(error: unknown): PersistenceLifecycleOperationalError {
@@ -106,13 +119,14 @@ function hydrationOperationalError(error: unknown): PersistenceLifecycleOperatio
 /**
  * Application-level persistence lifecycle coordinator.
  *
- * The current application persistence contract is workbook v2. Existing Phase 5 v1
- * business sheets are preserved by the physical workbook adapter, while Molds and
- * StorageLocations are persisted as additional authoritative source collections.
+ * Legacy callers remain on the proven Phase 5 workbook-v1 contract by default.
+ * The real application session opts into physicalIdentification, which layers the
+ * v2 Molds/StorageLocations sheets over that same v1 business-source engine.
  */
 export class PersistenceCoordinator {
   private readonly clock: PersistenceClock;
   private readonly applicationVersion?: string;
+  private readonly physicalIdentification: boolean;
 
   constructor(
     private readonly snapshotService: SnapshotSource,
@@ -122,6 +136,7 @@ export class PersistenceCoordinator {
   ) {
     this.clock = options.clock ?? systemClock;
     this.applicationVersion = options.applicationVersion;
+    this.physicalIdentification = options.physicalIdentification ?? false;
   }
 
   async exportCurrentWorkbook(): Promise<PersistenceWorkbookExported> {
@@ -164,7 +179,9 @@ export class PersistenceCoordinator {
   ): Promise<PersistenceWorkbookApplyResult> {
     let imported;
     try {
-      imported = importPhysicalBusinessDatasetFromXlsx(cloneWorkbookBytes(bytes), this.codec);
+      imported = this.physicalIdentification
+        ? importPhysicalBusinessDatasetFromXlsx(cloneWorkbookBytes(bytes), this.codec)
+        : importBusinessDatasetFromXlsx(cloneWorkbookBytes(bytes), this.codec);
     } catch (error) {
       throw new PersistenceLifecycleOperationalError(
         'import',
@@ -222,7 +239,7 @@ export class PersistenceCoordinator {
   }
 
   private async prepareCurrentWorkbookExport(): Promise<PreparedWorkbookExport> {
-    let dataset: PhysicalBusinessDataset;
+    let dataset: BusinessDataset | PhysicalBusinessDataset;
     try {
       dataset = await this.snapshotService.snapshot();
     } catch (error) {
@@ -241,7 +258,15 @@ export class PersistenceCoordinator {
           ? {}
           : { applicationVersion: this.applicationVersion }),
       };
-      const bytes = exportPhysicalBusinessDatasetToXlsx(dataset, metadata, this.codec);
+
+      if (this.physicalIdentification && !isPhysicalDataset(dataset)) {
+        throw new Error('Physical-identification persistence requires a physical source snapshot.');
+      }
+
+      const bytes =
+        this.physicalIdentification && isPhysicalDataset(dataset)
+          ? exportPhysicalBusinessDatasetToXlsx(dataset, metadata, this.codec)
+          : exportBusinessDatasetToXlsx(dataset as BusinessDataset, metadata, this.codec);
 
       return {
         bytes: cloneWorkbookBytes(bytes),
