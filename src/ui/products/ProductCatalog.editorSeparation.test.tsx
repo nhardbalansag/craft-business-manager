@@ -73,10 +73,13 @@ describe('Product catalog / editor separation', () => {
 
     expect(props.onNew).toHaveBeenCalledTimes(1);
     const editorNavigation = container.querySelector('[aria-label="Product editor navigation"]');
+    const breadcrumb = container.querySelector('[aria-label="Product editor location"]');
     expect(editorNavigation).not.toBeNull();
     expect(catalog.classList.contains('is-editor-shell-open')).toBe(true);
     expect(editorNavigation?.textContent).toContain('Add a new product');
-    expect(editorNavigation?.textContent?.replace(/\s+/g, ' ')).toContain('Products / Product catalog / Add product');
+    expect(breadcrumb?.textContent).toContain('Products');
+    expect(breadcrumb?.textContent).toContain('Product catalog');
+    expect(breadcrumb?.textContent).toContain('Add product');
     expect(collection.hidden).toBe(true);
   });
 
@@ -103,7 +106,9 @@ describe('Product catalog / editor separation', () => {
     await act(async () => button('+ New product').click());
     expect(container.querySelector('[aria-label="Product editor navigation"]')).not.toBeNull();
 
-    await act(async () => button('← Back to product catalog').click());
+    const back = container.querySelector<HTMLButtonElement>('.product-editor-back');
+    expect(back).not.toBeNull();
+    await act(async () => back!.click());
 
     const catalog = container.querySelector('[aria-label="Product catalog"]')!;
     expect(catalog.querySelector<HTMLElement>('.product-catalog-collection')?.hidden).toBe(false);
