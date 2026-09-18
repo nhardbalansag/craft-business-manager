@@ -411,23 +411,35 @@ export class WorkbookMigrationRegistry {
 
 function migrateWorkbookV1ToV2(document: WorkbookNeutralDocument): WorkbookNeutralDocument {
   const migrated = cloneWorkbookNeutralDocument(document);
-  const meta = migrated.sheets.find((sheet) => sheet.name === '_Meta');
-  const products = migrated.sheets.find((sheet) => sheet.name === 'Products');
 
-  if (meta?.rows[0]) {
-    meta.rows[0].workbookFormatVersion = 2;
-  }
+  return {
+    sheets: migrated.sheets.map((sheet) => {
+      if (sheet.name === '_Meta') {
+        return {
+          ...sheet,
+          rows: sheet.rows.map((row, index) =>
+            index === 0 ? { ...row, workbookFormatVersion: 2 } : row,
+          ),
+        };
+      }
 
-  if (products && !products.columns.includes('preferredYieldSampleId')) {
-    const mixPresetIndex = products.columns.indexOf('mixPresetId');
-    const insertAt = mixPresetIndex >= 0 ? mixPresetIndex + 1 : products.columns.length;
-    products.columns.splice(insertAt, 0, 'preferredYieldSampleId');
-    for (const row of products.rows) {
-      row.preferredYieldSampleId = undefined;
-    }
-  }
+      if (sheet.name !== 'Products' || sheet.columns.includes('preferredYieldSampleId')) {
+        return sheet;
+      }
 
-  return migrated;
+      const mixPresetIndex = sheet.columns.indexOf('mixPresetId');
+      const insertAt = mixPresetIndex >= 0 ? mixPresetIndex + 1 : sheet.columns.length;
+      return {
+        ...sheet,
+        columns: [
+          ...sheet.columns.slice(0, insertAt),
+          'preferredYieldSampleId',
+          ...sheet.columns.slice(insertAt),
+        ],
+        rows: sheet.rows.map((row) => ({ ...row, preferredYieldSampleId: undefined })),
+      };
+    }),
+  };
 }
 
 export const PRODUCTION_WORKBOOK_MIGRATION_STEPS: readonly WorkbookMigrationStep[] = [
