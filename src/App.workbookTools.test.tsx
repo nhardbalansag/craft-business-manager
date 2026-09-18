@@ -36,6 +36,16 @@ async function clickButton(label: string) {
 }
 
 describe('Workbook tools disclosure', () => {
+  it('returns focus to the visible mobile menu when the workbook closes', async () => {
+    vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: true })));
+    await mount();
+    await clickButton('Open navigation menu');
+    await act(async () => container.querySelector<HTMLElement>('.workbook-tools-trigger')!.click());
+    await act(async () => container.querySelector<HTMLButtonElement>('.workbook-tools-close-row button')!.click());
+    expect(document.activeElement).toBe(container.querySelector('.app-drawer-toggle'));
+    expect(container.querySelector('.app-shell')?.classList.contains('is-drawer-open')).toBe(false);
+  });
+
   it('keeps persistence status, import, and export tools collapsed by default', async () => {
     await mount();
 

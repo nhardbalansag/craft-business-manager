@@ -10,6 +10,8 @@
 }
 
 .product-label-dialog {
+  min-width: 0;
+  overflow-wrap: anywhere;
   width: min(920px, 100%);
   max-height: min(760px, calc(100vh - 48px));
   overflow: auto;
@@ -19,6 +21,11 @@
   background: var(--surface, #fff);
   box-shadow: 0 24px 70px rgb(15 23 42 / 24%);
 }
+
+.product-label-dialog-heading > div { min-width: 0; }
+.product-label-dialog-heading > button { flex: 0 0 auto; }
+.product-label-preview-heading { flex-wrap: wrap; }
+.product-label-dialog :is(input, select, textarea) { max-width: 100%; }
 
 .product-label-dialog-heading,
 .product-label-dialog-actions,
@@ -67,6 +74,13 @@
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.product-label-options input[type="checkbox"] {
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  padding: 0;
 }
 
 .product-label-printer-note {
@@ -213,6 +227,7 @@
 
   .product-label-dialog {
     max-height: calc(100vh - 24px);
+    max-height: calc(100dvh - 24px);
     padding: 18px;
   }
 

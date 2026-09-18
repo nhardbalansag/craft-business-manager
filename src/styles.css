@@ -263,7 +263,7 @@ input:disabled { background: #eee9e0; color: #888075; }
 
 .filters { display: grid; grid-template-columns: minmax(220px, 1fr) 170px 150px; gap: 10px; padding: 0 22px 18px; }
 .search-field { min-width: 0; }
-.table-wrap { border-top: 1px solid #e2dbd0; min-height: 390px; overflow-x: auto; }
+.table-wrap { position: relative; border-top: 1px solid #e2dbd0; min-height: 390px; overflow-x: auto; }
 .materials-table { width: 100%; border-collapse: collapse; min-width: 760px; }
 .materials-table th,
 .materials-table td { padding: 14px 16px; text-align: left; border-bottom: 1px solid #eee8df; vertical-align: middle; }

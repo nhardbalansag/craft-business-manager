@@ -179,7 +179,7 @@
   grid-template-columns: minmax(220px, 1fr) 150px;
   gap: 10px;
 }
-.calibration-table-wrap { min-height: 330px; }
+.calibration-table-wrap { min-height: 330px; max-width: 100%; overflow-x: auto; }
 .calibration-table td:first-child { min-width: 180px; }
 .calibration-table .group-pill { margin-top: 6px; }
 .calibration-table .cost-detail { display: block; margin-top: 4px; color: #91877b; font-size: .73rem; line-height: 1.4; }

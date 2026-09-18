@@ -77,6 +77,7 @@ export default function App({
   const workbookToolsRef = useRef<HTMLDetailsElement>(null);
   const workbookTriggerRef = useRef<HTMLElement>(null);
   const workbookCloseButtonRef = useRef<HTMLButtonElement>(null);
+  const mobileMenuRef = useRef<HTMLButtonElement>(null);
   const [workspaceRevision, setWorkspaceRevision] = useState(0);
   const [persistenceStatus, setPersistenceStatus] = useState(() =>
     createWorkbookPersistenceSessionStatus(),
@@ -116,7 +117,10 @@ export default function App({
   function setWorkbookToolsVisibility(open: boolean, returnFocus = false) {
     if (workbookToolsRef.current) workbookToolsRef.current.open = open;
     setWorkbookToolsOpen(open);
-    if (!open && returnFocus) workbookTriggerRef.current?.focus();
+    if (!open && returnFocus) {
+      const target = window.matchMedia?.('(max-width: 900px)').matches ? mobileMenuRef.current : workbookTriggerRef.current;
+      target?.focus();
+    }
   }
 
   function closeWorkbookTools() {
@@ -173,6 +177,7 @@ export default function App({
       <button
         type="button"
         className="app-drawer-toggle"
+        ref={mobileMenuRef}
         aria-label={drawerOpen ? 'Close navigation menu' : 'Open navigation menu'}
         aria-expanded={drawerOpen}
         aria-controls="app-navigation-drawer"

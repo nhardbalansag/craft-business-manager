@@ -79,6 +79,7 @@
 }
 
 .app-drawer-nav.phase-nav {
+  grid-template-columns: minmax(0, 1fr);
   gap: 4px;
   margin-bottom: 18px;
 }
@@ -237,6 +238,8 @@
 
 .app-content {
   margin-left: var(--app-sidebar-width);
+  container-type: inline-size;
+  container-name: workspace;
 }
 
 .app-sidebar-toggle {
@@ -277,6 +280,15 @@
 }
 
 @media (max-width: 900px) {
+  .app-shell-with-drawer .app-content {
+    margin-left: 0;
+  }
+
+  .app-shell-with-drawer:not(.is-drawer-open) .app-drawer {
+    visibility: hidden;
+    pointer-events: none;
+  }
+
   .app-drawer,
   .app-shell-with-drawer.is-sidebar-hidden .app-drawer {
     width: min(318px, calc(100vw - 42px));
@@ -352,4 +364,29 @@
 .app-drawer .workbook-tools-icon .app-icon,
 .app-drawer .workbook-tools-chevron .app-icon {
   display: block;
+}
+
+/* Size workspace columns against usable space after the sidebar, not the viewport. */
+@container workspace (max-width: 1040px) {
+  .app-content .materials-layout,
+  .app-content .calibration-workspace .calibration-layout,
+  .app-content .components-editor-layout,
+  .app-content .product-stock-layout,
+  .app-content .physical-id-layout,
+  .app-content .pricing-layout { grid-template-columns: minmax(0, 1fr); }
+  .app-content .material-form, .app-content .physical-id-form,
+  .app-content .pricing-editor-panel { position: static; }
+  .app-content .yield-learning-column { border-left: 0; padding-left: 0; border-top: 1px solid #d8cebf; padding-top: 24px; }
+  .app-content .yield-column-heading { min-height: 0; }
+  .app-content .physical-id-toolbar { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .app-content .physical-id-clear { grid-column: 1 / -1; }
+}
+
+@container workspace (max-width: 760px) {
+  .app-content .physical-id-toolbar { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-drawer, .app-content, .app-sidebar-toggle { transition: none; }
+  .workbook-tools-dialog { animation: none; }
 }

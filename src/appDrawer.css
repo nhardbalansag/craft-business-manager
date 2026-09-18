@@ -10,6 +10,8 @@
   width: 264px;
   display: flex;
   flex-direction: column;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   gap: 20px;
   padding: 20px 16px 16px;
   border-right: 1px solid #d8d1c4;
@@ -20,6 +22,7 @@
 }
 
 .app-drawer-header {
+  flex-shrink: 0;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -52,6 +55,7 @@
 }
 
 .app-drawer-nav.phase-nav {
+  flex: 0 0 auto;
   width: 100%;
   display: grid;
   gap: 5px;
@@ -95,6 +99,7 @@
 }
 
 .app-drawer-workbook {
+  flex-shrink: 0;
   margin-top: auto;
   display: grid;
   gap: 8px;

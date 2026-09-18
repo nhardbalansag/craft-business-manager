@@ -16,11 +16,11 @@ input, select, textarea { min-width: 0; }
     touch-action: manipulation;
   }
   .app-shell .production-capacity-action { min-height: 44px; }
-  .app-shell .materials-workspace :is(input, select, textarea),
-  .app-shell .workbook-tools :is(input, select, textarea) { font-size: 16px; }
+  .app-shell :is(input, select, textarea) { font-size: 16px; }
   .app-shell input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
   .app-shell select { min-height: 44px; }
-  .category-checkboxes label, .production-toggle { min-height: 44px; }
+  .category-checkboxes label, .production-toggle, .product-label-options label { min-height: 44px; }
+  .app-shell :is(.yield-product-search-input-wrap, .production-product-search-input-wrap) input { padding-right: 56px; }
 }
 
 @media (max-width: 1180px) {
