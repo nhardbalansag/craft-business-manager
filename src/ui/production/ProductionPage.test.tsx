@@ -154,7 +154,7 @@ describe('production planning interactions', () => {
     expect(overview().textContent).toContain('Calculating your batch');
     expect(overview().textContent).not.toContain('PHP');
     await quantity('');
-    expect(container.querySelector('input')?.getAttribute('aria-invalid')).toBe('true');
+    expect(container.querySelector('input[type="number"]')?.getAttribute('aria-invalid')).toBe('true');
     expect(overview().textContent).not.toContain('Calculating');
     await act(async () => resolve(lateResult));
     expect(overview().textContent).not.toContain('PHP');
@@ -204,11 +204,14 @@ describe('production planning interactions', () => {
       quantityPerParent: 1,
     });
     await mount();
+    const productSearch = container.querySelector<HTMLInputElement>('[aria-label="Search product to make"]')!;
     await act(async () => {
-      const select = container.querySelector('select')!;
-      select.value = 'CANDLE';
-      select.dispatchEvent(new Event('change', { bubbles: true }));
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(productSearch, 'CANDLE');
+      productSearch.dispatchEvent(new Event('input', { bubbles: true }));
     });
+    const candleOption = Array.from(container.querySelectorAll<HTMLButtonElement>('[role="option"]'))
+      .find((item) => item.textContent?.includes('Workshop Candle'))!;
+    await act(async () => candleOption.click());
     expect(overview().textContent).toContain('Capacity unresolved');
     expect(button('Use current capacity').disabled).toBe(true);
     await click('Materials to prepare');
