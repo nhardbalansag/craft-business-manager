@@ -409,7 +409,34 @@ export class WorkbookMigrationRegistry {
   }
 }
 
-export const PRODUCTION_WORKBOOK_MIGRATION_STEPS: readonly WorkbookMigrationStep[] = [];
+function migrateDatasetV1ToV2(document: WorkbookNeutralDocument): WorkbookNeutralDocument {
+  const migrated = cloneWorkbookNeutralDocument(document);
+  const meta = migrated.sheets.find((sheet) => sheet.name === '_Meta');
+  const products = migrated.sheets.find((sheet) => sheet.name === 'Products');
+
+  if (meta?.rows[0]) {
+    meta.rows[0].datasetSchemaVersion = 2;
+  }
+
+  if (products && !products.columns.includes('preferredYieldSampleId')) {
+    const mixPresetIndex = products.columns.indexOf('mixPresetId');
+    const insertAt = mixPresetIndex >= 0 ? mixPresetIndex + 1 : products.columns.length;
+    products.columns.splice(insertAt, 0, 'preferredYieldSampleId');
+    for (const row of products.rows) {
+      row.preferredYieldSampleId = undefined;
+    }
+  }
+
+  return migrated;
+}
+
+export const PRODUCTION_WORKBOOK_MIGRATION_STEPS: readonly WorkbookMigrationStep[] = [
+  {
+    from: { workbookFormatVersion: 1, datasetSchemaVersion: 1 },
+    to: { workbookFormatVersion: 1, datasetSchemaVersion: 2 },
+    migrate: migrateDatasetV1ToV2,
+  },
+];
 
 export const productionWorkbookMigrationRegistry = new WorkbookMigrationRegistry(
   PRODUCTION_WORKBOOK_MIGRATION_STEPS,
