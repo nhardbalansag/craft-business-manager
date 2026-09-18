@@ -213,6 +213,7 @@ function productRows(dataset: BusinessDataset): Readonly<Record<string, unknown>
     name: product.name,
     category: product.category,
     mixPresetId: optional(product.mixPresetId),
+    preferredYieldSampleId: optional(product.preferredYieldSampleId),
     safetyWasteRate: product.safetyWasteRate,
     notes: optional(product.notes),
     isActive: product.isActive,
