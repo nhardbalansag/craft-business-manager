@@ -1,6 +1,7 @@
 import { useEffect, useId, useMemo, useState, type KeyboardEvent } from 'react';
 import type { Product } from '../../domain/products';
 import { PRODUCT_CATEGORY_RULES } from '../../domain/products';
+import { AppIcon } from '../icons/AppIcon';
 import './yieldProductSearchPicker.css';
 
 const PRODUCT_RESULT_LIMIT = 8;
@@ -98,7 +99,7 @@ export function YieldProductSearchPicker({
       <label className="field yield-product-search-field">
         <span>Find product</span>
         <div className="yield-product-search-input-wrap">
-          <span className="yield-product-search-icon" aria-hidden="true">⌕</span>
+          <span className="yield-product-search-icon" aria-hidden="true"><AppIcon name="search" size={18} /></span>
           <input
             type="search"
             role="combobox"
@@ -133,7 +134,7 @@ export function YieldProductSearchPicker({
                 setActiveIndex(0);
               }}
             >
-              ×
+              <AppIcon name="close" size={16} />
             </button>
           )}
         </div>

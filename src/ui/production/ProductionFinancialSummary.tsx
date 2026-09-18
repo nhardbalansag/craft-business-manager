@@ -1,4 +1,5 @@
 import type { PlannedBatchCapacityFeasibilityResult } from '../../application/production/PlannedBatchCapacityFeasibilityService';
+import { AppIcon } from '../icons/AppIcon';
 import { BatchProductionRequestPrintButton } from './BatchProductionRequestPrintButton';
 import {
   buildFinancialLimiterRows,
@@ -62,7 +63,7 @@ export function ProductionFinancialSummary({
                 : 'Some stock or recipe information is missing. Review the issues below before relying on this estimate.'}
           </p>
           <button className="button button-primary" type="button" onClick={onPrepare}>
-            Review preparation list <span aria-hidden="true">&rarr;</span>
+            Review preparation list <AppIcon name="chevron-right" size={16} />
           </button>
         </div>
         <div className="production-capacity-snapshot">

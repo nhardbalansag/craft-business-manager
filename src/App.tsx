@@ -27,19 +27,20 @@ import { PricingPage } from './ui/pricing/PricingPage';
 import { ProductsWorkspacePage } from './ui/products/ProductsWorkspacePage';
 import { ProductionPage } from './ui/production/ProductionPage';
 import { YieldPage } from './ui/yield/YieldPage';
+import { AppIcon, type AppIconName } from './ui/icons/AppIcon';
 
 type AppSection = 'materials' | 'calibration' | 'products' | 'yield' | 'production' | 'pricing';
 export type PersistenceUiClock = () => Date;
 
 const SIDEBAR_VISIBILITY_STORAGE_KEY = 'craft-business-manager.sidebar-visible';
 
-const APP_SECTIONS: readonly { id: AppSection; label: string }[] = [
-  { id: 'materials', label: 'Materials' },
-  { id: 'calibration', label: 'Calibration' },
-  { id: 'products', label: 'Products' },
-  { id: 'yield', label: 'Yield' },
-  { id: 'production', label: 'Production' },
-  { id: 'pricing', label: 'Pricing' },
+const APP_SECTIONS: readonly { id: AppSection; label: string; icon: AppIconName }[] = [
+  { id: 'materials', label: 'Materials', icon: 'materials' },
+  { id: 'calibration', label: 'Calibration', icon: 'calibration' },
+  { id: 'products', label: 'Products', icon: 'products' },
+  { id: 'yield', label: 'Yield', icon: 'yield' },
+  { id: 'production', label: 'Production', icon: 'production' },
+  { id: 'pricing', label: 'Pricing', icon: 'pricing' },
 ];
 
 export interface AppProps {
@@ -166,7 +167,7 @@ export default function App({
         aria-controls="app-navigation-drawer"
         onClick={toggleSidebarVisibility}
       >
-        <span aria-hidden="true">{sidebarVisible ? '‹' : '›'}</span>
+        <AppIcon name={sidebarVisible ? 'chevron-left' : 'chevron-right'} size={18} />
       </button>
 
       <button
@@ -177,7 +178,7 @@ export default function App({
         aria-controls="app-navigation-drawer"
         onClick={() => setDrawerOpen((current) => !current)}
       >
-        <span aria-hidden="true">{drawerOpen ? '×' : '☰'}</span>
+        <AppIcon name={drawerOpen ? 'close' : 'menu'} size={18} />
         <strong>{drawerOpen ? 'Close' : 'Menu'}</strong>
       </button>
 
@@ -196,7 +197,7 @@ export default function App({
             aria-label="Close navigation menu"
             onClick={() => setDrawerOpen(false)}
           >
-            ×
+            <AppIcon name="close" size={18} />
           </button>
         </div>
 
@@ -210,7 +211,7 @@ export default function App({
               aria-current={section === item.id ? 'page' : undefined}
               onClick={() => selectSection(item.id)}
             >
-              <span className={`app-nav-icon app-nav-icon-${item.id}`} aria-hidden="true" />
+              <span className={`app-nav-icon app-nav-icon-${item.id}`} aria-hidden="true"><AppIcon name={item.icon} size={18} /></span>
               {item.label}
             </button>
           ))}
@@ -227,12 +228,12 @@ export default function App({
               aria-controls="workbook-tools-dialog"
               onClick={toggleWorkbookTools}
             >
-              <span className="workbook-tools-icon" aria-hidden="true">▣</span>
+              <span className="workbook-tools-icon" aria-hidden="true"><AppIcon name="workbook" size={18} /></span>
               <span className="workbook-tools-trigger-copy">
                 <strong>Workbook</strong>
                 <small title={workbookIdentityLabel}>{workbookIdentityLabel}</small>
               </span>
-              <span className="workbook-tools-chevron" aria-hidden="true">⌄</span>
+              <span className="workbook-tools-chevron" aria-hidden="true"><AppIcon name="chevron-down" size={16} /></span>
             </summary>
           </details>
         </div>

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { MixPreset } from '../../domain/mixPresets';
 import { PRODUCT_CATEGORIES, PRODUCT_CATEGORY_RULES, type Product, type ProductCategory } from '../../domain/products';
+import { AppIcon } from '../icons/AppIcon';
 import { ProductLabelPrintDialog } from './ProductLabelPrintDialog';
 import './productCatalogEditorSeparation.css';
 
@@ -109,7 +110,7 @@ export function ProductCatalog({
               disabled={disabled}
               onClick={() => { setEditorIntent(null); onBack?.(); }}
             >
-              <span aria-hidden="true">←</span>
+              <AppIcon name="arrow-left" size={16} />
               Back to product catalog
             </button>
             <div className="product-editor-breadcrumb" aria-label="Product editor location">
@@ -238,7 +239,7 @@ export function ProductCatalog({
         ) : products.length === 0 ? (
           <div className="empty-state">
             <span className="product-category-icon" aria-hidden="true">
-              01
+              <AppIcon name="products" size={22} />
             </span>
             <h3>Make room for your first creation</h3>
             <p>Add a product, choose its category, and set the material reserve for future batches.</p>
@@ -266,7 +267,11 @@ export function ProductCatalog({
                 >
                   <div className="product-card-top">
                     <span className={`product-category-icon category-${product.category}`} aria-hidden="true">
-                      {product.category === 'candle' ? 'C' : product.category === 'candle-pot' ? 'P' : 'A'}
+                      {product.category === 'candle'
+                        ? <AppIcon name="flame" size={18} />
+                        : product.category === 'candle-pot'
+                          ? <AppIcon name="jar" size={18} />
+                          : <AppIcon name="palette" size={18} />}
                     </span>
                     <span className={`status-pill ${product.isActive ? 'status-active' : ''}`}>
                       {product.isActive ? 'Active' : 'Archived'}
