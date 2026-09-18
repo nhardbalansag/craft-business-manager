@@ -70,6 +70,59 @@ describe('Phase 5.4A2 workbook import compatibility preparation', () => {
     expect(result.document.sheets[0]).not.toBe(source.sheets[0]);
   });
 
+  it('migrates a v1 Products sheet to v2 with a blank preferred Yield reference', () => {
+    const source: WorkbookNeutralDocument = {
+      sheets: [
+        {
+          name: '_Meta',
+          columns: ['formatId', 'workbookFormatVersion', 'datasetSchemaVersion'],
+          rows: [{
+            formatId: CRAFT_BUSINESS_WORKBOOK_FORMAT_ID,
+            workbookFormatVersion: 1,
+            datasetSchemaVersion: 1,
+          }],
+        },
+        {
+          name: 'Products',
+          columns: ['id', 'name', 'category', 'mixPresetId', 'safetyWasteRate', 'notes', 'isActive'],
+          rows: [{
+            id: 'PROD-LEGACY',
+            name: 'Legacy product',
+            category: 'paintable-art',
+            mixPresetId: undefined,
+            safetyWasteRate: 0.05,
+            notes: undefined,
+            isActive: true,
+          }],
+        },
+      ],
+    };
+
+    const result = prepareWorkbookForCurrentImport(source);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.migrated).toBe(true);
+    expect(result.sourceVersion).toEqual(version(1, 1));
+    expect(result.targetVersion).toEqual(version(2, 1));
+
+    const meta = result.document.sheets.find((sheet) => sheet.name === '_Meta')!;
+    const products = result.document.sheets.find((sheet) => sheet.name === 'Products')!;
+    expect(meta.rows[0].workbookFormatVersion).toBe(2);
+    expect(products.columns).toEqual([
+      'id',
+      'name',
+      'category',
+      'mixPresetId',
+      'preferredYieldSampleId',
+      'safetyWasteRate',
+      'notes',
+      'isActive',
+    ]);
+    expect(products.rows[0].preferredYieldSampleId).toBeUndefined();
+    expect(source.sheets[1].columns).not.toContain('preferredYieldSampleId');
+  });
+
   it('preserves structured missing-metadata preflight diagnostics', () => {
     const result = prepareWorkbookForCurrentImport({ sheets: [] });
     expect(result).toEqual({
