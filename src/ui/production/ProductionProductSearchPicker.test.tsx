@@ -82,6 +82,8 @@ describe('ProductionProductSearchPicker', () => {
     await typeQuery('candle');
     await act(async () => {
       input.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+    });
+    await act(async () => {
       input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
     });
 
