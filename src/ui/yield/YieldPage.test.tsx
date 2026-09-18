@@ -292,6 +292,53 @@ describe('Yield workspace UI/UX', () => {
     expect(await session.yieldSampleEvidenceService.getSample('YLD-0007')).toMatchObject({ productId: 'ART-002' });
   });
 
+  it('lets the user prefer an older Yield sample and return to automatic latest-valid selection', async () => {
+    await seed();
+    await session.yieldSampleRepository.replaceAll([
+      sample({
+        id: 'YS-OLD',
+        materialInputs: [{ materialId: 'MAT-PLASTER', quantity: 800, unit: 'g' }],
+        goodPieces: 8,
+        rejectedPieces: 0,
+        recordedAt: '2026-09-15T01:00:00.000Z',
+      }),
+      sample({
+        id: 'YS-NEW',
+        materialInputs: [{ materialId: 'MAT-PLASTER', quantity: 600, unit: 'g' }],
+        goodPieces: 8,
+        rejectedPieces: 0,
+        recordedAt: '2026-09-16T01:00:00.000Z',
+      }),
+    ]);
+
+    await mount();
+
+    const effective = container.querySelector<HTMLElement>('[aria-label="Effective yield learning"]')!;
+    expect(effective.textContent).toContain('Sample YS-NEW');
+
+    const older = history()!.querySelector<HTMLElement>('[aria-label="Yield sample YS-OLD"]')!;
+    await click('Use as preferred yield', older);
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(effective.textContent).toContain('Sample YS-OLD');
+    expect(effective.textContent).toContain('Preferred effective');
+    expect(await session.productRepository.findById('ART-001')).toMatchObject({
+      preferredYieldSampleId: 'YS-OLD',
+    });
+
+    await click('Use latest valid automatically', effective);
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(effective.textContent).toContain('Sample YS-NEW');
+    expect((await session.productRepository.findById('ART-001'))?.preferredYieldSampleId).toBeUndefined();
+  });
+
   it('supports searchable and sortable batch history without changing the effective sample', async () => {
     await seed();
     await session.yieldSampleRepository.replaceAll([

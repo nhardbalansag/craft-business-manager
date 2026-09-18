@@ -56,7 +56,7 @@ function metaDocument(
 }
 
 describe('Phase 5.4A3 persistence compatibility completion gate', () => {
-  it('preserves current v1/v1 direct XLSX import and metadata through the coordinator', async () => {
+  it('preserves current v2/v1 direct XLSX import and metadata through the coordinator', async () => {
     const codec = new SheetJsWorkbookCodec();
     const hydration = acceptingHydration();
     const coordinator = new PersistenceCoordinator(snapshotSource(), hydration, codec);
@@ -75,7 +75,7 @@ describe('Phase 5.4A3 persistence compatibility completion gate', () => {
       status: 'hydrated',
       metadata: {
         formatId: CRAFT_BUSINESS_WORKBOOK_FORMAT_ID,
-        workbookFormatVersion: 1,
+        workbookFormatVersion: 2,
         datasetSchemaVersion: 1,
         exportedAt: '2026-09-16T02:35:00.000Z',
         applicationVersion: '5.4a3-current',
@@ -103,9 +103,9 @@ describe('Phase 5.4A3 persistence compatibility completion gate', () => {
 
   it('rejects all production future-version combinations before hydration', async () => {
     for (const [workbookFormatVersion, datasetSchemaVersion] of [
-      [2, 1],
-      [1, 2],
+      [3, 1],
       [2, 2],
+      [3, 2],
     ] as const) {
       const hydration = acceptingHydration();
       const coordinator = new PersistenceCoordinator(

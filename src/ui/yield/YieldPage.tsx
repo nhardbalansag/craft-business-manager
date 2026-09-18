@@ -128,7 +128,7 @@ export function YieldPage() {
   const [form, setForm] = useState<YieldFormState>(() => emptyForm());
   const [draftBaseline, setDraftBaseline] = useState(() => draftKey(form));
   const [pendingAction, setPendingAction] = useState<DraftAction | null>(null);
-  const [busy, setBusy] = useState<'save' | 'delete' | null>(null);
+  const [busy, setBusy] = useState<'save' | 'delete' | 'preference' | null>(null);
   const mutationInFlight = useRef(false);
   const historyRequest = useRef(0);
   const draftWarning = useRef<HTMLDivElement>(null);
@@ -206,9 +206,15 @@ export function YieldPage() {
       let notice: string;
       try {
         nextEffective = await yieldHistoryService.getEffective(productId);
-        notice = nextEffective.skippedInvalidSampleIds.length > 0
-          ? `${nextEffective.skippedInvalidSampleIds.length} newer sample(s) were skipped because they cannot currently be derived.`
-          : 'The newest currently derivable sample is effective.';
+        if (nextEffective.selectionMode === 'preferred') {
+          notice = `Preferred sample ${nextEffective.sample.id} is driving learned requirements until you choose another sample or return to automatic selection.`;
+        } else if (nextEffective.preferredSampleUnavailable && nextEffective.preferredSampleId) {
+          notice = `Preferred sample ${nextEffective.preferredSampleId} is unavailable, so ${nextEffective.sample.id} is temporarily being used as the latest valid fallback.`;
+        } else {
+          notice = nextEffective.skippedInvalidSampleIds.length > 0
+            ? `${nextEffective.skippedInvalidSampleIds.length} newer sample(s) were skipped because they cannot currently be derived.`
+            : 'The newest currently derivable sample is effective automatically.';
+        }
       } catch (error) {
         if (error instanceof YieldHistoryServiceError && error.code === 'NO_SAMPLES') {
           notice = 'No yield samples have been recorded for this product yet.';
@@ -464,6 +470,43 @@ export function YieldPage() {
     }
   }
 
+  async function preferSample(sample: YieldSample) {
+    if (mutationInFlight.current || !selectedProduct) return;
+    mutationInFlight.current = true;
+    setBusy('preference');
+    setFeedback(null);
+    try {
+      await yieldHistoryService.setPreferred(selectedProduct.id, sample.id);
+      setFeedback({ type: 'success', message: `Yield sample ${sample.id} is now preferred for ${selectedProduct.name}.` });
+      await loadHistory(selectedProduct.id);
+    } catch (error) {
+      setFeedback({ type: 'error', message: errorMessage(error) });
+    } finally {
+      mutationInFlight.current = false;
+      setBusy(null);
+    }
+  }
+
+  async function clearPreferredYield() {
+    if (mutationInFlight.current || !selectedProduct) return;
+    mutationInFlight.current = true;
+    setBusy('preference');
+    setFeedback(null);
+    try {
+      const automatic = await yieldHistoryService.clearPreferred(selectedProduct.id);
+      setFeedback({
+        type: 'success',
+        message: `Automatic Yield selection restored. ${automatic.sample.id} is now effective.`,
+      });
+      await loadHistory(selectedProduct.id);
+    } catch (error) {
+      setFeedback({ type: 'error', message: errorMessage(error) });
+    } finally {
+      mutationInFlight.current = false;
+      setBusy(null);
+    }
+  }
+
   async function deleteSample(sample: YieldSample) {
     if (mutationInFlight.current) return;
     mutationInFlight.current = true;
@@ -497,7 +540,7 @@ export function YieldPage() {
           <p className="eyebrow">PHASE 2 · REAL PRODUCTION EVIDENCE</p>
           <h1 id="yield-heading">Yield &amp; history</h1>
           <p className="page-lead">
-            Record what a real batch consumed and how many good or rejected pieces it produced. The app uses the newest currently derivable sample as the learned material requirement for that product.
+            Record what a real batch consumed and how many good or rejected pieces it produced. Choose a preferred historical sample when it best represents normal production, or leave selection automatic to use the newest currently derivable sample.
           </p>
         </div>
         <div
@@ -895,9 +938,25 @@ export function YieldPage() {
                     <p className="panel-kicker">EFFECTIVE LEARNING</p>
                     <h2>{effective ? `Sample ${effective.sample.id}` : 'No effective sample'}</h2>
                   </div>
-                  {effective && <span className="status-pill status-active">Effective</span>}
+                  {effective && (
+                    <span className="status-pill status-active">
+                      {effective.selectionMode === 'preferred' ? 'Preferred effective' : 'Effective'}
+                    </span>
+                  )}
                 </div>
                 <p className="yield-notice">{effectiveNotice}</p>
+                {effective?.preferredSampleId && (
+                  <div className="yield-preference-actions">
+                    <button
+                      type="button"
+                      className="button button-quiet"
+                      disabled={Boolean(busy)}
+                      onClick={() => void clearPreferredYield()}
+                    >
+                      {busy === 'preference' ? 'Updating selection…' : 'Use latest valid automatically'}
+                    </button>
+                  </div>
+                )}
                 {effective && (
                   <>
                     <div className="yield-effective-meta">
@@ -1005,6 +1064,7 @@ export function YieldPage() {
                       </div>
                     ) : visibleHistory.map((sample) => {
                       const sampleIsEffective = sample.id === effectiveId;
+                      const sampleIsPreferred = effective?.preferredSampleId === sample.id;
                       const skippedInvalid = skippedIds.has(sample.id);
                       return (
                         <article
@@ -1018,7 +1078,8 @@ export function YieldPage() {
                               <span>{formatDate(sample.recordedAt)}</span>
                             </div>
                             <div className="history-badges">
-                              {sampleIsEffective && <span className="status-pill status-active">Effective</span>}
+                              {sampleIsPreferred && <span className="status-pill status-active">Preferred</span>}
+                              {sampleIsEffective && !sampleIsPreferred && <span className="status-pill status-active">Effective</span>}
                               {skippedInvalid && <span className="status-pill status-warning">Skipped invalid</span>}
                               <span className={`status-pill ${sample.rejectedPieces === 0 ? 'yield-clean-badge' : 'yield-reject-badge'}`}>
                                 {sample.rejectedPieces === 0 ? 'Zero rejects' : `${sample.rejectedPieces} rejected`}
@@ -1043,6 +1104,14 @@ export function YieldPage() {
                             {sample.notes && <p className="history-notes">{sample.notes}</p>}
                           </details>
                           <div className="history-actions yield-history-actions">
+                            <button
+                              type="button"
+                              className="button button-quiet"
+                              disabled={Boolean(busy)}
+                              onClick={() => void preferSample(sample)}
+                            >
+                              {sampleIsPreferred ? 'Preferred yield' : 'Use as preferred yield'}
+                            </button>
                             <button
                               type="button"
                               className="button button-quiet"
@@ -1074,7 +1143,7 @@ export function YieldPage() {
                       ? `Showing ${visibleHistory.length} of ${history.length} samples`
                       : 'Samples are immutable evidence; deletion requires explicit correction confirmation.'}
                   </span>
-                  <span>{effectiveId ? `Effective: ${effectiveId}` : 'No effective sample'}</span>
+                  <span>{effectiveId ? `${effective?.selectionMode === 'preferred' ? 'Preferred effective' : 'Effective'}: ${effectiveId}` : 'No effective sample'}</span>
                 </div>
               </section>
             </section>

@@ -57,13 +57,14 @@ function service(options: {
   samples?: YieldSample[];
 } = {}) {
   const sampleRepository = new InMemoryYieldSampleRepository(options.samples ?? []);
+  const productRepository = new InMemoryProductRepository(options.products ?? [product()]);
   const instance = new YieldHistoryService(
     sampleRepository,
-    new InMemoryProductRepository(options.products ?? [product()]),
+    productRepository,
     new InMemoryMaterialRepository(options.materials ?? [plaster()]),
     new InMemoryCalibrationRepository(),
   );
-  return { instance, sampleRepository };
+  return { instance, sampleRepository, productRepository };
 }
 
 describe('YieldHistoryService', () => {
@@ -98,6 +99,52 @@ describe('YieldHistoryService', () => {
     expect(effective.learning.sampleId).toBe('YS-NEW');
     expect(effective.learning.materialRequirements[0].baseQuantityPerGoodPiece).toBe(75);
     expect(effective.skippedInvalidSampleIds).toEqual([]);
+  });
+
+  it('uses an explicitly preferred older sample until automatic selection is restored', async () => {
+    const { instance, productRepository } = service({
+      samples: [
+        sample('YS-OLD', '2026-09-09T08:00:00.000Z', 800),
+        sample('YS-NEW', '2026-09-10T08:00:00.000Z', 600),
+      ],
+    });
+
+    await expect(instance.setPreferred('PROD-1', 'YS-OLD')).resolves.toMatchObject({
+      sample: { id: 'YS-OLD' },
+      selectionMode: 'preferred',
+      preferredSampleId: 'YS-OLD',
+    });
+
+    await expect(instance.getEffective('PROD-1')).resolves.toMatchObject({
+      sample: { id: 'YS-OLD' },
+      selectionMode: 'preferred',
+      preferredSampleId: 'YS-OLD',
+    });
+    await expect(productRepository.findById('PROD-1')).resolves.toMatchObject({
+      preferredYieldSampleId: 'YS-OLD',
+    });
+
+    await expect(instance.clearPreferred('PROD-1')).resolves.toMatchObject({
+      sample: { id: 'YS-NEW' },
+      selectionMode: 'automatic',
+    });
+    expect((await productRepository.findById('PROD-1'))?.preferredYieldSampleId).toBeUndefined();
+  });
+
+  it('refuses to prefer a sample that cannot currently derive learning', async () => {
+    const { instance, productRepository } = service({
+      samples: [
+        sample('YS-VALID', '2026-09-09T08:00:00.000Z', 800, 'g'),
+        sample('YS-BROKEN', '2026-09-10T08:00:00.000Z', 3, 'cup'),
+      ],
+    });
+
+    await expect(instance.setPreferred('PROD-1', 'YS-BROKEN')).rejects.toMatchObject({
+      code: 'SAMPLE_NOT_DERIVABLE',
+      productId: 'PROD-1',
+      sampleId: 'YS-BROKEN',
+    });
+    expect((await productRepository.findById('PROD-1'))?.preferredYieldSampleId).toBeUndefined();
   });
 
   it('skips a newer non-derivable sample and falls back to the newest valid history record', async () => {
@@ -155,6 +202,24 @@ describe('YieldHistoryService', () => {
     await expect(instance.getEffective('PROD-1')).resolves.toMatchObject({
       sample: { id: 'YS-OLD' },
       learning: { sampleId: 'YS-OLD' },
+    });
+  });
+
+  it('clears a preferred reference when that sample is deleted as a correction', async () => {
+    const { instance, productRepository } = service({
+      samples: [
+        sample('YS-OLD', '2026-09-09T08:00:00.000Z', 800),
+        sample('YS-NEW', '2026-09-10T08:00:00.000Z', 600),
+      ],
+    });
+
+    await instance.setPreferred('PROD-1', 'YS-OLD');
+    await instance.deleteSample('YS-OLD');
+
+    expect((await productRepository.findById('PROD-1'))?.preferredYieldSampleId).toBeUndefined();
+    await expect(instance.getEffective('PROD-1')).resolves.toMatchObject({
+      sample: { id: 'YS-NEW' },
+      selectionMode: 'automatic',
     });
   });
 

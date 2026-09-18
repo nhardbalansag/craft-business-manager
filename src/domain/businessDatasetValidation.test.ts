@@ -181,6 +181,20 @@ describe('BusinessDataset complete integrity validation', () => {
     expect(validateBusinessDatasetIntegrity(dataset)).toEqual({ valid: true, issues: [] });
   });
 
+  it('validates preferred Yield references and Product ownership', () => {
+    const valid = makeDataset();
+    valid.products[0].preferredYieldSampleId = ' YIELD-POT-1 ';
+    expect(validateBusinessDatasetIntegrity(valid)).toEqual({ valid: true, issues: [] });
+
+    const missing = makeDataset();
+    missing.products[0].preferredYieldSampleId = 'YIELD-MISSING';
+    expectIssue(missing, 'MISSING_REFERENCE', 'products[0].preferredYieldSampleId');
+
+    const wrongProduct = makeDataset();
+    wrongProduct.products[1].preferredYieldSampleId = 'yield-pot-1';
+    expectIssue(wrongProduct, 'REFERENCE_MISMATCH', 'products[1].preferredYieldSampleId');
+  });
+
   it('keeps archived historical relationships round-trippable', () => {
     const dataset = makeDataset();
     dataset.materials.forEach((material) => { material.isActive = false; });

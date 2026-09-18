@@ -62,7 +62,7 @@ describe('Phase 5.4A1 workbook compatibility foundation', () => {
       ok: true,
       metadata: {
         formatId: CRAFT_BUSINESS_WORKBOOK_FORMAT_ID,
-        workbookFormatVersion: 1,
+        workbookFormatVersion: 2,
         datasetSchemaVersion: 1,
       },
     });
@@ -111,22 +111,33 @@ describe('Phase 5.4A1 workbook compatibility foundation', () => {
     });
   });
 
-  it('classifies the public v1/v1 contract as current with an empty production registry', () => {
-    expect(PRODUCTION_WORKBOOK_MIGRATION_STEPS).toEqual([]);
-    expect(CURRENT_WORKBOOK_VERSION_KEY).toEqual(version(1, 1));
+  it('keeps v2/v1 current and exposes an explicit v1/v1 migration path', () => {
+    expect(PRODUCTION_WORKBOOK_MIGRATION_STEPS).toHaveLength(1);
+    expect(PRODUCTION_WORKBOOK_MIGRATION_STEPS[0]).toMatchObject({
+      from: version(1, 1),
+      to: version(2, 1),
+    });
+    expect(CURRENT_WORKBOOK_VERSION_KEY).toEqual(version(2, 1));
     expect(classifyWorkbookCompatibility(createMinimalDocument())).toEqual({
       status: 'current',
       metadata: {
         formatId: CRAFT_BUSINESS_WORKBOOK_FORMAT_ID,
-        workbookFormatVersion: 1,
+        workbookFormatVersion: 2,
         datasetSchemaVersion: 1,
       },
-      version: version(1, 1),
+      version: version(2, 1),
     });
+    expect(classifyWorkbookCompatibility(createMinimalDocument(1, 1))).toEqual(
+      expect.objectContaining({
+        status: 'migratable',
+        version: version(1, 1),
+        target: version(2, 1),
+      }),
+    );
   });
 
   it('classifies any future version axis as unsupported future', () => {
-    expect(classifyWorkbookCompatibility(createMinimalDocument(2, 1))).toEqual(
+    expect(classifyWorkbookCompatibility(createMinimalDocument(3, 1))).toEqual(
       expect.objectContaining({ status: 'unsupported-future' }),
     );
     expect(classifyWorkbookCompatibility(createMinimalDocument(1, 2))).toEqual(

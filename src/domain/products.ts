@@ -50,6 +50,8 @@ export interface Product {
   category: ProductCategory;
   /** Optional reference only; mix-preset contract/validation is implemented in Phase 2.1B/2.1C. */
   mixPresetId?: string;
+  /** Optional user-selected Yield sample that should drive effective learning for this Product. */
+  preferredYieldSampleId?: string;
   /** Planning reserve entered as a decimal rate, e.g. 0.05 = 5%. Must satisfy 0 <= rate < 1. */
   safetyWasteRate: number;
   notes?: string;
@@ -63,6 +65,7 @@ export type ProductContractErrorCode =
   | 'INVALID_NAME'
   | 'INVALID_CATEGORY'
   | 'INVALID_MIX_PRESET_ID'
+  | 'INVALID_PREFERRED_YIELD_SAMPLE_ID'
   | 'INVALID_SAFETY_WASTE_RATE'
   | 'INVALID_ACTIVE_STATE';
 
@@ -130,6 +133,14 @@ export function validateProductContract(product: Product): void {
       'INVALID_MIX_PRESET_ID',
       'Mix preset ID cannot be blank when provided.',
       product.mixPresetId,
+    );
+  }
+
+  if (product.preferredYieldSampleId !== undefined && !product.preferredYieldSampleId.trim()) {
+    throw new ProductContractError(
+      'INVALID_PREFERRED_YIELD_SAMPLE_ID',
+      'Preferred Yield sample ID cannot be blank when provided.',
+      product.preferredYieldSampleId,
     );
   }
 

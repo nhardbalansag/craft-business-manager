@@ -30,6 +30,7 @@ export type BusinessDatasetValidationIssueCode =
   | 'INVALID_RECORD'
   | 'DUPLICATE_IDENTITY'
   | 'MISSING_REFERENCE'
+  | 'REFERENCE_MISMATCH'
   | 'INVALID_COMPONENT_GRAPH';
 
 export interface BusinessDatasetValidationIssue {
@@ -302,6 +303,8 @@ function productField(errorCodeValue: string | undefined): string | undefined {
       return 'category';
     case 'INVALID_MIX_PRESET_ID':
       return 'mixPresetId';
+    case 'INVALID_PREFERRED_YIELD_SAMPLE_ID':
+      return 'preferredYieldSampleId';
     case 'INVALID_SAFETY_WASTE_RATE':
       return 'safetyWasteRate';
     case 'INVALID_ACTIVE_STATE':
@@ -488,6 +491,12 @@ function validateReferences(dataset: BusinessDataset, issues: BusinessDatasetVal
   const materialIds = identitySet(dataset.materials, (row) => readString(row, 'id'));
   const mixPresetIds = identitySet(dataset.mixPresets, (row) => readString(row, 'id'));
   const productIds = identitySet(dataset.products, (row) => readString(row, 'id'));
+  const yieldSamplesById = new Map(
+    dataset.yieldSamples
+      .map((sample) => [readString(sample, 'id'), readString(sample, 'productId')] as const)
+      .filter((entry): entry is readonly [string, string | undefined] => Boolean(entry[0]?.trim()))
+      .map(([sampleId, productId]) => [canonical(sampleId), productId]),
+  );
 
   for (let index = 0; index < dataset.materialCalibrations.length; index += 1) {
     const row = dataset.materialCalibrations[index];
@@ -522,16 +531,48 @@ function validateReferences(dataset: BusinessDataset, issues: BusinessDatasetVal
 
   for (let index = 0; index < dataset.products.length; index += 1) {
     const row = dataset.products[index];
+    const productId = readString(row, 'id');
     addMissingReference(
       issues,
       'products',
       index,
-      readString(row, 'id'),
+      productId,
       'mixPresetId',
       readString(row, 'mixPresetId'),
       mixPresetIds,
       'MixPreset',
     );
+
+    const preferredYieldSampleId = readString(row, 'preferredYieldSampleId');
+    addMissingReference(
+      issues,
+      'products',
+      index,
+      productId,
+      'preferredYieldSampleId',
+      preferredYieldSampleId,
+      new Set(yieldSamplesById.keys()),
+      'Yield sample',
+    );
+
+    if (preferredYieldSampleId?.trim() && yieldSamplesById.has(canonical(preferredYieldSampleId))) {
+      const preferredProductId = yieldSamplesById.get(canonical(preferredYieldSampleId));
+      if (
+        productId?.trim() &&
+        preferredProductId?.trim() &&
+        canonical(productId) !== canonical(preferredProductId)
+      ) {
+        issues.push({
+          code: 'REFERENCE_MISMATCH',
+          collection: 'products',
+          index,
+          entityId: productId,
+          field: 'preferredYieldSampleId',
+          path: entityPath('products', index, 'preferredYieldSampleId'),
+          message: `Preferred Yield sample ${preferredYieldSampleId.trim()} belongs to Product ${preferredProductId.trim()}, not ${productId.trim()}.`,
+        });
+      }
+    }
   }
 
   for (let index = 0; index < dataset.yieldSamples.length; index += 1) {

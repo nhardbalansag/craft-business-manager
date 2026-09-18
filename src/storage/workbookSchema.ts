@@ -15,7 +15,7 @@ import { PRODUCT_CATEGORIES } from '../domain/products';
 import { SUPPORTED_UNITS, UNIT_CATALOG } from '../domain/units';
 
 export const CRAFT_BUSINESS_WORKBOOK_FORMAT_ID = 'craft-business-manager' as const;
-export const CURRENT_WORKBOOK_FORMAT_VERSION = 1 as const;
+export const CURRENT_WORKBOOK_FORMAT_VERSION = 2 as const;
 
 export const CANONICAL_WORKBOOK_SHEET_NAMES = [
   '_Meta',
@@ -222,6 +222,7 @@ export const WORKBOOK_SHEETS: readonly WorkbookSheetContract[] = [
       column('name', 'text', true, 'name'),
       column('category', 'text', true, 'category', { allowedValues: PRODUCT_CATEGORIES, tokenKind: 'enum' }),
       column('mixPresetId', 'text', false, 'mixPresetId'),
+      column('preferredYieldSampleId', 'text', false, 'preferredYieldSampleId'),
       column('safetyWasteRate', 'number', true, 'safetyWasteRate'),
       column('notes', 'text', false, 'notes'),
       column('isActive', 'boolean', true, 'isActive'),

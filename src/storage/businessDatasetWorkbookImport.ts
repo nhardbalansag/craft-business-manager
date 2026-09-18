@@ -393,6 +393,8 @@ function reconstructProducts(document: WorkbookNeutralDocument): Product[] {
     };
     const mixPresetId = optionalText(row, 'mixPresetId');
     if (mixPresetId !== undefined) product.mixPresetId = mixPresetId;
+    const preferredYieldSampleId = optionalText(row, 'preferredYieldSampleId');
+    if (preferredYieldSampleId !== undefined) product.preferredYieldSampleId = preferredYieldSampleId;
     const notes = optionalText(row, 'notes');
     if (notes !== undefined) product.notes = notes;
     return product;

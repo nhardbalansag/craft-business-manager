@@ -409,7 +409,46 @@ export class WorkbookMigrationRegistry {
   }
 }
 
-export const PRODUCTION_WORKBOOK_MIGRATION_STEPS: readonly WorkbookMigrationStep[] = [];
+function migrateWorkbookV1ToV2(document: WorkbookNeutralDocument): WorkbookNeutralDocument {
+  const migrated = cloneWorkbookNeutralDocument(document);
+
+  return {
+    sheets: migrated.sheets.map((sheet) => {
+      if (sheet.name === '_Meta') {
+        return {
+          ...sheet,
+          rows: sheet.rows.map((row, index) =>
+            index === 0 ? { ...row, workbookFormatVersion: 2 } : row,
+          ),
+        };
+      }
+
+      if (sheet.name !== 'Products' || sheet.columns.includes('preferredYieldSampleId')) {
+        return sheet;
+      }
+
+      const mixPresetIndex = sheet.columns.indexOf('mixPresetId');
+      const insertAt = mixPresetIndex >= 0 ? mixPresetIndex + 1 : sheet.columns.length;
+      return {
+        ...sheet,
+        columns: [
+          ...sheet.columns.slice(0, insertAt),
+          'preferredYieldSampleId',
+          ...sheet.columns.slice(insertAt),
+        ],
+        rows: sheet.rows.map((row) => ({ ...row, preferredYieldSampleId: undefined })),
+      };
+    }),
+  };
+}
+
+export const PRODUCTION_WORKBOOK_MIGRATION_STEPS: readonly WorkbookMigrationStep[] = [
+  {
+    from: { workbookFormatVersion: 1, datasetSchemaVersion: 1 },
+    to: { workbookFormatVersion: 2, datasetSchemaVersion: 1 },
+    migrate: migrateWorkbookV1ToV2,
+  },
+];
 
 export const productionWorkbookMigrationRegistry = new WorkbookMigrationRegistry(
   PRODUCTION_WORKBOOK_MIGRATION_STEPS,
