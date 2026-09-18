@@ -17,6 +17,9 @@ export interface EffectiveYieldSelection {
   learning: YieldSampleLearning;
   /** Newer history records skipped because they could not currently be derived. */
   skippedInvalidSampleIds: string[];
+  selectionMode: 'preferred' | 'automatic';
+  preferredSampleId?: string;
+  preferredSampleUnavailable?: boolean;
 }
 
 export type YieldHistoryServiceErrorCode =
@@ -24,6 +27,7 @@ export type YieldHistoryServiceErrorCode =
   | 'SAMPLE_NOT_FOUND'
   | 'NO_SAMPLES'
   | 'NO_VALID_SAMPLES'
+  | 'SAMPLE_NOT_DERIVABLE'
   | 'LAST_EFFECTIVE_SAMPLE';
 
 export class YieldHistoryServiceError extends Error {
@@ -113,6 +117,7 @@ export class YieldHistoryService {
           sample,
           learning,
           skippedInvalidSampleIds,
+          selectionMode: 'automatic',
         };
       } catch (error) {
         if (!isExpectedLearningFailure(error)) throw error;
@@ -127,13 +132,106 @@ export class YieldHistoryService {
     );
   }
 
+  private async derivePreferredSelection(
+    productId: string,
+    sample: YieldSample,
+  ): Promise<EffectiveYieldSelection> {
+    const [materials, calibrations] = await Promise.all([
+      this.materials.list(),
+      this.calibrations.list(),
+    ]);
+
+    try {
+      const learning = deriveYieldSampleLearning(sample, materials, calibrations);
+      return {
+        sample,
+        learning,
+        skippedInvalidSampleIds: [],
+        selectionMode: 'preferred',
+        preferredSampleId: sample.id,
+      };
+    } catch (error) {
+      if (!isExpectedLearningFailure(error)) throw error;
+      throw new YieldHistoryServiceError(
+        'SAMPLE_NOT_DERIVABLE',
+        `Preferred Yield sample ${sample.id} cannot currently produce learned requirements.`,
+        { productId, sampleId: sample.id },
+      );
+    }
+  }
+
   async getEffective(productId: string): Promise<EffectiveYieldSelection> {
-    const history = await this.listHistory(productId);
+    const product = await this.requireProduct(productId);
+    const history = await this.listHistory(product.id);
+
+    if (product.preferredYieldSampleId) {
+      const preferredKey = comparable(product.preferredYieldSampleId);
+      const preferred = history.find((sample) => comparable(sample.id) === preferredKey);
+
+      if (preferred) {
+        try {
+          return await this.derivePreferredSelection(product.id, preferred);
+        } catch (error) {
+          if (!(error instanceof YieldHistoryServiceError) || error.code !== 'SAMPLE_NOT_DERIVABLE') {
+            throw error;
+          }
+        }
+      }
+
+      try {
+        const fallback = await this.selectEffectiveFromHistory(history);
+        return {
+          ...fallback,
+          preferredSampleId: product.preferredYieldSampleId,
+          preferredSampleUnavailable: true,
+        };
+      } catch (error) {
+        if (error instanceof YieldHistoryServiceError && !error.productId) {
+          throw new YieldHistoryServiceError(error.code, error.message, { productId: product.id });
+        }
+        throw error;
+      }
+    }
+
     try {
       return await this.selectEffectiveFromHistory(history);
     } catch (error) {
       if (error instanceof YieldHistoryServiceError && !error.productId) {
-        throw new YieldHistoryServiceError(error.code, error.message, { productId });
+        throw new YieldHistoryServiceError(error.code, error.message, { productId: product.id });
+      }
+      throw error;
+    }
+  }
+
+  async setPreferred(productId: string, sampleId: string): Promise<EffectiveYieldSelection> {
+    const product = await this.requireProduct(productId);
+    const history = await this.listHistory(product.id);
+    const sample = history.find((candidate) => comparable(candidate.id) === comparable(sampleId));
+
+    if (!sample) {
+      throw new YieldHistoryServiceError(
+        'SAMPLE_NOT_FOUND',
+        `Yield sample ${sampleId.trim()} was not found for Product ${product.id}.`,
+        { productId: product.id, sampleId: sampleId.trim() },
+      );
+    }
+
+    const selection = await this.derivePreferredSelection(product.id, sample);
+    await this.products.replace({ ...product, preferredYieldSampleId: sample.id });
+    return selection;
+  }
+
+  async clearPreferred(productId: string): Promise<EffectiveYieldSelection> {
+    const product = await this.requireProduct(productId);
+    const { preferredYieldSampleId: _preferred, ...withoutPreferred } = product;
+    await this.products.replace(withoutPreferred);
+    const history = await this.listHistory(product.id);
+
+    try {
+      return await this.selectEffectiveFromHistory(history);
+    } catch (error) {
+      if (error instanceof YieldHistoryServiceError && !error.productId) {
+        throw new YieldHistoryServiceError(error.code, error.message, { productId: product.id });
       }
       throw error;
     }
@@ -161,11 +259,14 @@ export class YieldHistoryService {
 
     const product = await this.requireProduct(target.productId);
     const history = await this.listHistory(target.productId);
+    const preferredTargetsDeletion =
+      product.preferredYieldSampleId !== undefined &&
+      comparable(product.preferredYieldSampleId) === comparable(target.id);
 
     if (product.isActive) {
       let currentEffective: EffectiveYieldSelection | null = null;
       try {
-        currentEffective = await this.selectEffectiveFromHistory(history);
+        currentEffective = await this.getEffective(product.id);
       } catch (error) {
         if (!(error instanceof YieldHistoryServiceError) || error.code !== 'NO_VALID_SAMPLES') {
           throw error;
@@ -203,5 +304,10 @@ export class YieldHistoryService {
     }
 
     await this.samples.delete(target.id);
+
+    if (preferredTargetsDeletion) {
+      const { preferredYieldSampleId: _preferred, ...withoutPreferred } = product;
+      await this.products.replace(withoutPreferred);
+    }
   }
 }
