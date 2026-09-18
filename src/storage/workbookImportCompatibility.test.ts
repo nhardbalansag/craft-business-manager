@@ -93,8 +93,8 @@ describe('Phase 5.4A2 workbook import compatibility preparation', () => {
           stage: 'compatibility',
           code: 'UNSUPPORTED_FUTURE_VERSION',
           compatibilityStatus: 'unsupported-future',
-          sourceVersion: version(2, 1),
-          targetVersion: version(1, 1),
+          sourceVersion: version(3, 1),
+          targetVersion: version(2, 1),
         }),
       ],
     });
