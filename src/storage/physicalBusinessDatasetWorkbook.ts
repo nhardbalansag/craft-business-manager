@@ -25,6 +25,7 @@ import {
 import {
   CANONICAL_WORKBOOK_SHEET_NAMES,
   CRAFT_BUSINESS_WORKBOOK_FORMAT_ID,
+  CURRENT_WORKBOOK_FORMAT_VERSION,
   type WorkbookNeutralDocument,
   type WorkbookNeutralSheet,
 } from './workbookSchema';
@@ -251,7 +252,7 @@ function legacyDocumentFromV2(document: WorkbookNeutralDocument): WorkbookNeutra
               columns: [...candidate.columns],
               rows: candidate.rows.map((row) => ({
                 ...row,
-                workbookFormatVersion: 1,
+                workbookFormatVersion: CURRENT_WORKBOOK_FORMAT_VERSION,
                 datasetSchemaVersion: 1,
               })),
             },
@@ -297,9 +298,7 @@ export function importPhysicalBusinessDatasetFromXlsx(
   const isFutureVersion =
     numericVersionPair &&
     (workbookVersion > CURRENT_PHYSICAL_WORKBOOK_FORMAT_VERSION || datasetVersion > 2);
-  const isMixedPhysicalEnvelope = workbookVersion === 2 && datasetVersion === 1;
-
-  if (isFutureVersion || isMixedPhysicalEnvelope) {
+  if (isFutureVersion) {
     return failure({
       stage: 'compatibility',
       code: 'UNSUPPORTED_FUTURE_VERSION',
@@ -323,7 +322,10 @@ export function importPhysicalBusinessDatasetFromXlsx(
     });
   }
 
-  if (workbookVersion === 1 && datasetVersion === 1) {
+  if (
+    (workbookVersion === 1 && datasetVersion === 1) ||
+    (workbookVersion === CURRENT_WORKBOOK_FORMAT_VERSION && datasetVersion === 1)
+  ) {
     const legacy = importBusinessDatasetFromXlsx(bytes, codec, resourceLimitOverrides);
     if (!legacy.ok) return legacy;
     return {
@@ -337,7 +339,7 @@ export function importPhysicalBusinessDatasetFromXlsx(
     return failure({
       stage: 'compatibility',
       code: 'UNSUPPORTED_WORKBOOK_VERSION',
-      message: `Workbook version ${String(workbookVersion)}/${String(datasetVersion)} is not supported. Expected 1/1 or 2/2.`,
+      message: `Workbook version ${String(workbookVersion)}/${String(datasetVersion)} is not supported. Expected legacy 1/1, core ${CURRENT_WORKBOOK_FORMAT_VERSION}/1, or physical ${CURRENT_PHYSICAL_WORKBOOK_FORMAT_VERSION}/2.`,
       sheetName: '_Meta',
     });
   }
