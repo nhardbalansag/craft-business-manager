@@ -62,7 +62,7 @@ describe('Phase 5.4A1 workbook compatibility foundation', () => {
       ok: true,
       metadata: {
         formatId: CRAFT_BUSINESS_WORKBOOK_FORMAT_ID,
-        workbookFormatVersion: 1,
+        workbookFormatVersion: 2,
         datasetSchemaVersion: 1,
       },
     });
@@ -126,7 +126,7 @@ describe('Phase 5.4A1 workbook compatibility foundation', () => {
   });
 
   it('classifies any future version axis as unsupported future', () => {
-    expect(classifyWorkbookCompatibility(createMinimalDocument(2, 1))).toEqual(
+    expect(classifyWorkbookCompatibility(createMinimalDocument(3, 1))).toEqual(
       expect.objectContaining({ status: 'unsupported-future' }),
     );
     expect(classifyWorkbookCompatibility(createMinimalDocument(1, 2))).toEqual(
