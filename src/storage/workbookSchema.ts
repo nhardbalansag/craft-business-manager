@@ -222,6 +222,7 @@ export const WORKBOOK_SHEETS: readonly WorkbookSheetContract[] = [
       column('name', 'text', true, 'name'),
       column('category', 'text', true, 'category', { allowedValues: PRODUCT_CATEGORIES, tokenKind: 'enum' }),
       column('mixPresetId', 'text', false, 'mixPresetId'),
+      column('preferredYieldSampleId', 'text', false, 'preferredYieldSampleId'),
       column('safetyWasteRate', 'number', true, 'safetyWasteRate'),
       column('notes', 'text', false, 'notes'),
       column('isActive', 'boolean', true, 'isActive'),
