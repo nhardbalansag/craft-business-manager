@@ -33,7 +33,11 @@ let root: Root;
 
 beforeEach(async () => {
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
-  await session.productComponentRepository.replaceAll([]);
+  await Promise.all([
+    session.productRepository.replaceAll([product]),
+    session.materialRepository.replaceAll([pieceMaterial]),
+    session.productComponentRepository.replaceAll([]),
+  ]);
   container = document.createElement('div');
   document.body.append(container);
   root = createRoot(container);
