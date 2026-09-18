@@ -91,7 +91,13 @@ describe('physical business workbook v2', () => {
     );
 
     const currentDocument = createPhysicalBusinessDatasetWorkbookDocument(dataset, metadata);
-    const legacyDocument = structuredClone(currentDocument);
+    const legacyDocument = structuredClone(currentDocument) as {
+      sheets: Array<{
+        name: string;
+        columns: string[];
+        rows: Array<Record<string, unknown>>;
+      }>;
+    };
     const products = legacyDocument.sheets.find((sheet) => sheet.name === 'Products')!;
     products.columns = products.columns.filter((column) => column !== 'preferredYieldSampleId');
     products.rows = products.rows.map((row) => {
