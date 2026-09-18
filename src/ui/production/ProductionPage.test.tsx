@@ -154,7 +154,7 @@ describe('production planning interactions', () => {
     expect(overview().textContent).toContain('Calculating your batch');
     expect(overview().textContent).not.toContain('PHP');
     await quantity('');
-    expect(container.querySelector('input')?.getAttribute('aria-invalid')).toBe('true');
+    expect(container.querySelector('input[type="number"]')?.getAttribute('aria-invalid')).toBe('true');
     expect(overview().textContent).not.toContain('Calculating');
     await act(async () => resolve(lateResult));
     expect(overview().textContent).not.toContain('PHP');
