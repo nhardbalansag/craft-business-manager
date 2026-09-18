@@ -67,7 +67,7 @@ describe('physical business workbook v2', () => {
 
     expect(imported.ok).toBe(true);
     if (!imported.ok) return;
-    expect(imported.metadata.workbookFormatVersion).toBe(1);
+    expect(imported.metadata.workbookFormatVersion).toBe(2);
     expect(imported.dataset.schemaVersion).toBe(2);
     expect(imported.dataset.storageLocations).toEqual([]);
     expect(imported.dataset.molds).toEqual([]);
