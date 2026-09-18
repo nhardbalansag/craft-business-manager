@@ -19,6 +19,7 @@ import {
   buildProductionIssueRows,
 } from './componentAwareProductionView';
 import { ProductionFinancialSummary } from './ProductionFinancialSummary';
+import { ProductionProductSearchPicker } from './ProductionProductSearchPicker';
 import { capacityPlan, parsePlannedQuantity, stockShortfall } from './productionPlanningView';
 import { AppIcon } from '../icons/AppIcon';
 import './production.css';
@@ -235,25 +236,12 @@ export function ProductionPage({ onOpenProducts }: { onOpenProducts: () => void 
                 <p>Estimates update as you plan.</p>
               </div>
             </div>
-            <label className="field">
-              <span>Product to make</span>
-              <select
-                value={productId}
-                disabled={loading || products.length === 0}
-                onChange={(event) => setProductId(event.target.value)}
-              >
-                {products.length === 0 ? (
-                  <option value="">No products available</option>
-                ) : (
-                  products.map((product) => (
-                    <option key={product.id} value={product.id}>
-                      {product.name}
-                      {product.isActive ? '' : ' (archived)'}
-                    </option>
-                  ))
-                )}
-              </select>
-            </label>
+            <ProductionProductSearchPicker
+              products={products}
+              selectedProductId={productId}
+              disabled={loading || products.length === 0}
+              onSelect={setProductId}
+            />
             <label className="field">
               <span>Planned finished pieces</span>
               <input
