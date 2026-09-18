@@ -240,13 +240,65 @@ function reconstructMolds(sheetValue: WorkbookNeutralSheet): Mold[] {
   });
 }
 
+const LEGACY_PHYSICAL_PRODUCTS_COLUMNS = [
+  'id',
+  'name',
+  'category',
+  'mixPresetId',
+  'safetyWasteRate',
+  'notes',
+  'isActive',
+] as const;
+
+function normalizeLegacyPhysicalProductsSheet(
+  candidate: WorkbookNeutralSheet,
+): WorkbookNeutralSheet {
+  if (candidate.name !== 'Products') {
+    return {
+      ...candidate,
+      columns: [...candidate.columns],
+      rows: candidate.rows.map((row) => ({ ...row })),
+    };
+  }
+
+  const isRecognizedPrePreferredYieldShape =
+    candidate.columns.length === LEGACY_PHYSICAL_PRODUCTS_COLUMNS.length &&
+    candidate.columns.every(
+      (column, index) => column === LEGACY_PHYSICAL_PRODUCTS_COLUMNS[index],
+    );
+
+  if (!isRecognizedPrePreferredYieldShape) {
+    return {
+      ...candidate,
+      columns: [...candidate.columns],
+      rows: candidate.rows.map((row) => ({ ...row })),
+    };
+  }
+
+  const mixPresetIndex = candidate.columns.indexOf('mixPresetId');
+  const insertAt = mixPresetIndex + 1;
+
+  return {
+    ...candidate,
+    columns: [
+      ...candidate.columns.slice(0, insertAt),
+      'preferredYieldSampleId',
+      ...candidate.columns.slice(insertAt),
+    ],
+    rows: candidate.rows.map((row) => ({
+      ...row,
+      preferredYieldSampleId: undefined,
+    })),
+  };
+}
+
 function legacyDocumentFromV2(document: WorkbookNeutralDocument): WorkbookNeutralDocument {
   return {
     sheets: document.sheets
       .filter((candidate) => candidate.name !== PHYSICAL_STORAGE_SHEET_NAME && candidate.name !== PHYSICAL_MOLDS_SHEET_NAME)
       .map((candidate) =>
         candidate.name !== '_Meta'
-          ? { ...candidate, columns: [...candidate.columns], rows: candidate.rows.map((row) => ({ ...row })) }
+          ? normalizeLegacyPhysicalProductsSheet(candidate)
           : {
               ...candidate,
               columns: [...candidate.columns],
