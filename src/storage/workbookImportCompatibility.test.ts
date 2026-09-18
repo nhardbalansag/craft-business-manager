@@ -57,14 +57,14 @@ function step(from: WorkbookVersionKey, to: WorkbookVersionKey): WorkbookMigrati
 
 describe('Phase 5.4A2 workbook import compatibility preparation', () => {
   it('returns a defensive current-form document without requiring current business sheets', () => {
-    const source = documentAt(1, 1);
+    const source = documentAt(2, 1);
     const result = prepareWorkbookForCurrentImport(source);
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.migrated).toBe(false);
-    expect(result.sourceVersion).toEqual(version(1, 1));
-    expect(result.targetVersion).toEqual(version(1, 1));
+    expect(result.sourceVersion).toEqual(version(2, 1));
+    expect(result.targetVersion).toEqual(version(2, 1));
     expect(result.document).toEqual(source);
     expect(result.document).not.toBe(source);
     expect(result.document.sheets[0]).not.toBe(source.sheets[0]);
@@ -78,14 +78,14 @@ describe('Phase 5.4A2 workbook import compatibility preparation', () => {
         expect.objectContaining({
           stage: 'preflight',
           code: 'MISSING_META_SHEET',
-          targetVersion: version(1, 1),
+          targetVersion: version(2, 1),
         }),
       ],
     });
   });
 
   it('fails closed when any source version axis is newer than the target', () => {
-    const result = prepareWorkbookForCurrentImport(documentAt(2, 1));
+    const result = prepareWorkbookForCurrentImport(documentAt(3, 1));
     expect(result).toEqual({
       ok: false,
       issues: [
