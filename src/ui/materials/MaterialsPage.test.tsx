@@ -125,12 +125,13 @@ describe('Materials workspace interactions', () => {
     await act(async () => release([]));
     await click('Add your first material');
     expect(document.activeElement).toBe(field('Material name'));
-    await fill(field('Material ID'), 'PAINT');
     await fill(field('Material name'), 'Paint');
     await fill(field('Package cost'), '100');
     await fill(field('On-hand quantity'), '500');
     await submit();
-    expect(await session.materialService.getMaterial('PAINT')).toMatchObject({
+    expect(field('Material ID').value).toBe('MAT-0001');
+    expect((field('Material ID') as HTMLInputElement).readOnly).toBe(true);
+    expect(await session.materialService.getMaterial('MAT-0001')).toMatchObject({
       name: 'Paint',
       packageCost: 100,
       onHandQuantity: 500,
@@ -174,7 +175,8 @@ describe('Materials workspace interactions', () => {
     await seed();
     await mount();
     await click('Edit Plaster of Paris');
-    expect((field('Material ID') as HTMLInputElement).disabled).toBe(true);
+    expect(field('Material ID').value).toBe('PLASTER');
+    expect((field('Material ID') as HTMLInputElement).readOnly).toBe(true);
     await fill(field('Material name'), 'Draft plaster');
     await navigate('inventory');
     await fill(catalog().querySelector('input')!, 'Soy');
