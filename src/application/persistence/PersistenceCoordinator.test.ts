@@ -216,7 +216,7 @@ describe('PersistenceCoordinator Phase 5.3C3 import/load/hydrate orchestration',
       status: 'hydrated',
       metadata: {
         formatId: 'craft-business-manager',
-        workbookFormatVersion: 1,
+        workbookFormatVersion: 2,
         datasetSchemaVersion: 1,
         exportedAt: '2026-09-16T08:00:00.000Z',
         applicationVersion: 'c3-test',
