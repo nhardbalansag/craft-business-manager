@@ -3,6 +3,7 @@ import { createEmptyBusinessDataset } from '../domain/businessDataset';
 import { extendLegacyBusinessDataset } from '../domain/physicalBusinessDataset';
 import { exportBusinessDatasetToXlsx } from './businessDatasetWorkbookExport';
 import {
+  createPhysicalBusinessDatasetWorkbookDocument,
   exportPhysicalBusinessDatasetToXlsx,
   importPhysicalBusinessDatasetFromXlsx,
 } from './physicalBusinessDatasetWorkbook';
@@ -55,6 +56,55 @@ describe('physical business workbook v2', () => {
     expect(imported.metadata.workbookFormatVersion).toBe(2);
     expect(imported.metadata.datasetSchemaVersion).toBe(2);
     expect(imported.dataset.products).toEqual(dataset.products);
+    expect(imported.dataset.storageLocations).toEqual(byId(dataset.storageLocations));
+    expect(imported.dataset.molds).toEqual(byId(dataset.molds));
+  });
+
+  it('imports a pre-Preferred-Yield physical v2 workbook without changing existing records', () => {
+    const base = createEmptyBusinessDataset();
+    base.products.push({
+      id: 'PRD-LEGACY',
+      name: 'Legacy Dinosaur',
+      category: 'paintable-art',
+      safetyWasteRate: 0.05,
+      notes: 'existing product record',
+      isActive: true,
+    });
+
+    const dataset = extendLegacyBusinessDataset(
+      base,
+      [
+        { id: 'LOC-RACK-A', name: 'Rack A', type: 'rack', isActive: true },
+        { id: 'LOC-SHELF-1', name: 'Shelf 1', type: 'shelf', parentId: 'LOC-RACK-A', isActive: true },
+        { id: 'LOC-BIN-01', name: 'Bin 01', type: 'bin', parentId: 'LOC-SHELF-1', isActive: true },
+      ],
+      [
+        {
+          id: 'MOLD-0001',
+          productId: 'PRD-LEGACY',
+          name: 'Legacy Dinosaur Mold',
+          storageLocationId: 'LOC-BIN-01',
+          notes: 'existing mold record',
+          isActive: true,
+        },
+      ],
+    );
+
+    const currentDocument = createPhysicalBusinessDatasetWorkbookDocument(dataset, metadata);
+    const legacyDocument = structuredClone(currentDocument);
+    const products = legacyDocument.sheets.find((sheet) => sheet.name === 'Products')!;
+    products.columns = products.columns.filter((column) => column !== 'preferredYieldSampleId');
+    products.rows = products.rows.map((row) => {
+      const { preferredYieldSampleId: _preferredYieldSampleId, ...legacyRow } = row;
+      return legacyRow;
+    });
+
+    const imported = importPhysicalBusinessDatasetFromXlsx(codec.encode(legacyDocument), codec);
+
+    expect(imported.ok).toBe(true);
+    if (!imported.ok) return;
+    expect(imported.dataset.products).toEqual(dataset.products);
+    expect(imported.dataset.products[0].preferredYieldSampleId).toBeUndefined();
     expect(imported.dataset.storageLocations).toEqual(byId(dataset.storageLocations));
     expect(imported.dataset.molds).toEqual(byId(dataset.molds));
   });
