@@ -157,23 +157,23 @@ function sheet(document: MutableWorkbook, name: string): MutableSheet {
 }
 
 describe('Phase 5.4A3 compatibility regression and completion gate', () => {
-  it('keeps production compatibility at public v1/v1 with no fabricated migration steps', () => {
-    expect(CURRENT_WORKBOOK_VERSION_KEY).toEqual(version(1, 1));
-    expect(PRODUCTION_WORKBOOK_MIGRATION_STEPS).toEqual([]);
+  it('keeps production compatibility at current v2/v1 with the explicit v1/v1 migration', () => {
+    expect(CURRENT_WORKBOOK_VERSION_KEY).toEqual(version(2, 1));
+    expect(PRODUCTION_WORKBOOK_MIGRATION_STEPS).toHaveLength(1);
 
-    const result = prepareWorkbookForCurrentImport(versionDocument(1, 1));
+    const result = prepareWorkbookForCurrentImport(versionDocument(2, 1));
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.migrated).toBe(false);
-    expect(result.sourceVersion).toEqual(version(1, 1));
-    expect(result.targetVersion).toEqual(version(1, 1));
+    expect(result.sourceVersion).toEqual(version(2, 1));
+    expect(result.targetVersion).toEqual(version(2, 1));
   });
 
   it('fails closed for every future-axis combination, including mixed synthetic lower/future pairs', () => {
     const cases = [
-      { source: version(2, 1), target: version(1, 1) },
-      { source: version(1, 2), target: version(1, 1) },
-      { source: version(2, 2), target: version(1, 1) },
+      { source: version(3, 1), target: version(2, 1) },
+      { source: version(2, 2), target: version(2, 1) },
+      { source: version(3, 2), target: version(2, 1) },
       { source: version(2, 4), target: version(3, 3) },
       { source: version(4, 2), target: version(3, 3) },
     ];
