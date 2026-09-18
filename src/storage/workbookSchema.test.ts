@@ -95,7 +95,7 @@ const EXPECTED_COLUMNS: Record<WorkbookSheetName, readonly string[]> = {
   MixPresets: ['id', 'name', 'basis', 'notes', 'isActive'],
   MixPresetCategories: ['mixPresetId', 'categoryOrder', 'category'],
   MixPresetLines: ['mixPresetId', 'lineOrder', 'materialId', 'role', 'parts'],
-  Products: ['id', 'name', 'category', 'mixPresetId', 'safetyWasteRate', 'notes', 'isActive'],
+  Products: ['id', 'name', 'category', 'mixPresetId', 'preferredYieldSampleId', 'safetyWasteRate', 'notes', 'isActive'],
   YieldSamples: [
     'id',
     'productId',
@@ -138,7 +138,7 @@ const EXPECTED_COLUMNS: Record<WorkbookSheetName, readonly string[]> = {
 describe('Phase 5.1B workbook schema contract', () => {
   it('locks workbook identity/version independently from the dataset version', () => {
     expect(CRAFT_BUSINESS_WORKBOOK_FORMAT_ID).toBe('craft-business-manager');
-    expect(CURRENT_WORKBOOK_FORMAT_VERSION).toBe(1);
+    expect(CURRENT_WORKBOOK_FORMAT_VERSION).toBe(2);
     expect(WORKBOOK_SCHEMA_BY_NAME._Meta.columns.map((column) => column.key)).toContain(
       'datasetSchemaVersion',
     );
@@ -480,7 +480,7 @@ describe('Phase 5.1B workbook schema contract', () => {
     );
 
     const futureWorkbook = createValidWorkbook();
-    sheet(futureWorkbook, '_Meta').rows[0].workbookFormatVersion = 2;
+    sheet(futureWorkbook, '_Meta').rows[0].workbookFormatVersion = 3;
     expect(validateWorkbookSchema(futureWorkbook)).toContainEqual(
       expect.objectContaining({ code: 'INVALID_WORKBOOK_FORMAT_VERSION' }),
     );
