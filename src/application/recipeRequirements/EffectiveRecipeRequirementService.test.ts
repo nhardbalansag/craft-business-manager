@@ -113,6 +113,37 @@ describe('EffectiveRecipeRequirementService', () => {
     ]);
   });
 
+  it('uses the Product preferred Yield sample in downstream effective requirements', async () => {
+    const older: YieldSample = {
+      ...yieldSample,
+      id: 'YS-OLD',
+      materialInputs: [{ materialId: 'MAT-WAX', quantity: 800, unit: 'g' }],
+      goodPieces: 10,
+      recordedAt: '2026-09-13T10:00:00.000Z',
+    };
+    const newer: YieldSample = {
+      ...yieldSample,
+      id: 'YS-NEW',
+      materialInputs: [{ materialId: 'MAT-WAX', quantity: 500, unit: 'g' }],
+      goodPieces: 10,
+      recordedAt: '2026-09-14T10:00:00.000Z',
+    };
+
+    const result = await makeService({
+      product: { ...product, preferredYieldSampleId: 'YS-OLD' },
+      samples: [older, newer],
+    }).deriveForProduct('CND-001');
+
+    expect(result.effectiveYieldSampleId).toBe('YS-OLD');
+    expect(result.requirements).toContainEqual(
+      expect.objectContaining({
+        materialId: 'MAT-WAX',
+        baseQuantityPerProduct: 80,
+        source: 'yield',
+      }),
+    );
+  });
+
   it('combines fixed and yield contributions for the same material', async () => {
     const waxTopUp: FixedRecipeItem = {
       id: 'RI-WAX-TOPUP',
