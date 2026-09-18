@@ -10,6 +10,7 @@ import {
   type EffectiveYieldSelection,
   YieldHistoryServiceError,
 } from '../../application/yieldSamples/YieldHistoryService';
+import { nextSequentialId } from '../../domain/identifiers';
 import type { Material } from '../../domain/materials';
 import { isMaterialCupWeightBridge } from '../../domain/materials';
 import type { MixPreset } from '../../domain/mixPresets';
@@ -113,6 +114,7 @@ export function YieldPage() {
   const [mixPresets, setMixPresets] = useState<MixPreset[]>([]);
   const [selectedProductId, setSelectedProductId] = useState('');
   const [history, setHistory] = useState<YieldSample[]>([]);
+  const [knownSampleIds, setKnownSampleIds] = useState<string[]>([]);
   const [effective, setEffective] = useState<EffectiveYieldSelection | null>(null);
   const [effectiveNotice, setEffectiveNotice] = useState('Select a product to inspect yield history.');
   const [loading, setLoading] = useState(true);
@@ -129,7 +131,6 @@ export function YieldPage() {
   const [busy, setBusy] = useState<'save' | 'delete' | null>(null);
   const mutationInFlight = useRef(false);
   const historyRequest = useRef(0);
-  const sampleIdInput = useRef<HTMLInputElement>(null);
   const draftWarning = useRef<HTMLDivElement>(null);
   const draftDirty = draftKey(form) !== draftBaseline;
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -175,7 +176,8 @@ export function YieldPage() {
       && (areUnitsCompatible(input.unit, material.baseUnit) || isMaterialCupWeightBridge(input.unit, material.baseUnit));
   }).length;
   const draftMixReady = !form.mixPresetId || compatibleMixes.some((mix) => mix.id === form.mixPresetId);
-  const draftReferenceReady = Boolean(form.id.trim() && Number.isFinite(new Date(form.recordedAt).getTime()) && draftMixReady);
+  const generatedSampleId = useMemo(() => nextSequentialId(knownSampleIds, 'YLD'), [knownSampleIds]);
+  const draftReferenceReady = Boolean(Number.isFinite(new Date(form.recordedAt).getTime()) && draftMixReady);
   const draftMaterialsReady = form.materialInputs.length > 0 && completeMaterialInputs === form.materialInputs.length;
   const draftReady = Boolean(selectedProduct?.isActive && draftReferenceReady && draftMaterialsReady && draftOutcomeReady);
 
@@ -234,14 +236,16 @@ export function YieldPage() {
     setLoading(true);
     setMasterError(null);
     try {
-      const [nextProducts, nextMaterials, nextMixes] = await Promise.all([
+      const [nextProducts, nextMaterials, nextMixes, nextSamples] = await Promise.all([
         productService.listProducts(),
         materialService.listMaterials(),
         mixPresetService.listMixPresets(),
+        yieldSampleEvidenceService.listSamples(),
       ]);
       setProducts(nextProducts);
       setMaterials(nextMaterials);
       setMixPresets(nextMixes);
+      setKnownSampleIds(nextSamples.map((sample) => sample.id));
       setSelectedProductId((current) => {
         if (current && nextProducts.some((product) => product.id === current)) return current;
         return nextProducts.find((product) => product.isActive)?.id ?? nextProducts[0]?.id ?? '';
@@ -388,10 +392,9 @@ export function YieldPage() {
         unit: input.unit,
       })),
     });
-    sampleIdInput.current?.focus();
     setFeedback({
       type: 'success',
-      message: `New draft started from ${sample.id}. Add a new Sample ID and replace copied quantities with this batch's actual evidence before recording.`,
+      message: `New draft started from ${sample.id}. A fresh Sample ID will be assigned automatically; replace copied quantities with this batch's actual evidence before recording.`,
     });
   }
 
@@ -431,8 +434,11 @@ export function YieldPage() {
     setBusy('save');
     try {
       const recordedAt = new Date(form.recordedAt);
+      const currentSamples = await yieldSampleEvidenceService.listSamples();
+      const reservedIds = new Set([...knownSampleIds, ...currentSamples.map((sample) => sample.id)]);
+      const sampleId = nextSequentialId([...reservedIds], 'YLD');
       await yieldSampleEvidenceService.recordSample({
-        id: form.id,
+        id: sampleId,
         productId: selectedProduct.id,
         mixPresetId: form.mixPresetId.trim() || undefined,
         materialInputs: form.materialInputs.map((input) => ({
@@ -446,8 +452,9 @@ export function YieldPage() {
         notes: form.notes,
       });
 
+      setKnownSampleIds((current) => current.includes(sampleId) ? current : [...current, sampleId]);
       replaceDraft(emptyForm(selectedProduct.mixPresetId ?? ''));
-      setFeedback({ type: 'success', message: 'Yield sample recorded.' });
+      setFeedback({ type: 'success', message: `Yield sample ${sampleId} recorded.` });
       await loadHistory(selectedProduct.id);
     } catch (error) {
       setFeedback({ type: 'error', message: errorMessage(error) });
@@ -645,7 +652,7 @@ export function YieldPage() {
                   <strong>Keep your unsaved batch?</strong>
                   <p>{pendingAction.kind === 'product' ? 'Switching products will replace the current draft.' : pendingAction.kind === 'copy' ? `Using ${pendingAction.sample.id} will replace the current draft.` : 'Resetting will clear your current draft.'}</p>
                   <div>
-                    <button type="button" className="button button-primary" disabled={Boolean(busy)} onClick={() => { setPendingAction(null); sampleIdInput.current?.focus(); }}>Keep editing</button>
+                    <button type="button" className="button button-primary" disabled={Boolean(busy)} onClick={() => { setPendingAction(null); }}>Keep editing</button>
                     <button type="button" className="button button-quiet" disabled={Boolean(busy)} onClick={() => performDraftAction(pendingAction)}>Discard draft and continue</button>
                   </div>
                 </div>
@@ -677,7 +684,7 @@ export function YieldPage() {
               <p className="yield-draft-help">
                 {draftReady
                   ? 'This draft has the minimum evidence needed to record the batch.'
-                  : 'Add a sample ID and valid date, complete each active material line, and enter whole-piece counts.'}
+                  : 'Use a valid date, complete each active material line, and enter whole-piece counts. The Sample ID is assigned automatically.'}
               </p>
 
               <section className="yield-form-section" aria-labelledby="yield-batch-reference-heading">
@@ -692,13 +699,12 @@ export function YieldPage() {
                   <label className="field">
                     <span>Sample ID</span>
                     <input
-                      ref={sampleIdInput}
-                      value={form.id}
+                      value={generatedSampleId}
+                      readOnly
+                      aria-readonly="true"
                       disabled={Boolean(busy) || !selectedProduct?.isActive}
-                      onChange={(event) => setForm({ ...form, id: event.target.value })}
-                      placeholder="YS-ART-001-001"
                     />
-                    <small>Unique evidence ID for this real batch.</small>
+                    <small>Assigned automatically when this batch is recorded. Existing Yield IDs are never changed.</small>
                   </label>
                   <label className="field">
                     <span>Recorded at</span>
