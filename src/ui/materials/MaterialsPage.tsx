@@ -1,6 +1,7 @@
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { calibrationService, materialService } from '../../application/session';
 import { MaterialApplicationError } from '../../application/materials/MaterialService';
+import { nextSequentialId } from '../../domain/identifiers';
 import { MaterialCalibrationError, type MaterialCalibrationEvidence } from '../../domain/materialCalibration';
 import {
   MATERIAL_GROUPS,
@@ -270,12 +271,16 @@ export function MaterialsPage() {
     [calibrationMap],
   );
 
+  const generatedMaterialId = useMemo(() => nextSequentialId(materials.map((material) => material.id), 'MAT'), [materials]);
   const purchaseOptions = useMemo(() => purchaseUnitOptions(form.baseUnit), [form.baseUnit]);
   const stockOptions = useMemo(
     () => onHandUnitOptions(form.baseUnit, form.purchaseUnit),
     [form.baseUnit, form.purchaseUnit],
   );
-  const previewMaterial = useMemo(() => formToMaterial(form, true), [form]);
+  const previewMaterial = useMemo(
+    () => formToMaterial(editingId ? form : { ...form, id: generatedMaterialId }, true),
+    [editingId, form, generatedMaterialId],
+  );
   const previewEvidence = useMemo(() => evidenceFor(previewMaterial.id), [evidenceFor, previewMaterial.id]);
   const costingPreview = useMemo(
     () => packageCostingOrNull(previewMaterial, previewEvidence),
@@ -382,7 +387,10 @@ export function MaterialsPage() {
         );
       }
       const existing = editingId ? await materialService.getMaterial(editingId) : null;
-      const candidate = formToMaterial(form, existing?.isActive ?? true);
+      const candidate = formToMaterial(
+        editingId ? form : { ...form, id: generatedMaterialId },
+        existing?.isActive ?? true,
+      );
 
       if (editingId) {
         const { id: _ignored, ...changes } = candidate;
@@ -574,13 +582,11 @@ export function MaterialsPage() {
               <label className="field">
                 <span>Material ID</span>
                 <input
-                  required
-                  value={form.id}
-                  disabled={Boolean(editingId)}
-                  placeholder="MAT-PLASTER"
-                  onChange={(event) => setForm((current) => ({ ...current, id: event.target.value }))}
+                  value={editingId ? form.id : generatedMaterialId}
+                  readOnly
+                  aria-readonly="true"
                 />
-                <small>A unique reference that stays the same after creation.</small>
+                <small>{editingId ? 'Existing Material ID is preserved permanently.' : 'Assigned automatically when you create this material. Existing records are never renumbered.'}</small>
               </label>
 
               <label className="field">
