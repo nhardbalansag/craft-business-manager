@@ -416,7 +416,7 @@ describe('Phase 5.4C3 recovery safety completion gate', () => {
 
   it('rejects future workbook versions distinctly from corruption and business-data errors', async () => {
     const document = mutableDocument();
-    sheet(document, '_Meta').rows[0].workbookFormatVersion = 2;
+    sheet(document, '_Meta').rows[0].workbookFormatVersion = 3;
 
     const { summary } = await expectRejectedWithoutStateChange(
       workbookCodecFor(document as WorkbookNeutralDocument),
