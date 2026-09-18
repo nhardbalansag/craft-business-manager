@@ -288,7 +288,7 @@ describe('Yield workspace UI/UX', () => {
 
     expect(field('Sample ID').value).toBe('YLD-0008');
     expect((field('Sample ID') as HTMLInputElement).readOnly).toBe(true);
-    expect(history()?.textContent).toContain('YS-CUSTOM');
+    expect(await session.yieldSampleEvidenceService.getSample('YS-CUSTOM')).toMatchObject({ productId: 'ART-001' });
     expect(await session.yieldSampleEvidenceService.getSample('YLD-0007')).toMatchObject({ productId: 'ART-002' });
   });
 
