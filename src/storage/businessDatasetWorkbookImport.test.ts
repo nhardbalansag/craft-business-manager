@@ -216,7 +216,7 @@ describe('BusinessDataset workbook import', () => {
     if (!result.ok) throw new Error(JSON.stringify(result.issues));
     expect(result.metadata).toEqual({
       formatId: 'craft-business-manager',
-      workbookFormatVersion: 1,
+      workbookFormatVersion: 2,
       datasetSchemaVersion: CURRENT_BUSINESS_DATASET_SCHEMA_VERSION,
       exportedAt: METADATA.exportedAt,
       applicationVersion: METADATA.applicationVersion,
