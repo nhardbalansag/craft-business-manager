@@ -409,13 +409,13 @@ export class WorkbookMigrationRegistry {
   }
 }
 
-function migrateDatasetV1ToV2(document: WorkbookNeutralDocument): WorkbookNeutralDocument {
+function migrateWorkbookV1ToV2(document: WorkbookNeutralDocument): WorkbookNeutralDocument {
   const migrated = cloneWorkbookNeutralDocument(document);
   const meta = migrated.sheets.find((sheet) => sheet.name === '_Meta');
   const products = migrated.sheets.find((sheet) => sheet.name === 'Products');
 
   if (meta?.rows[0]) {
-    meta.rows[0].datasetSchemaVersion = 2;
+    meta.rows[0].workbookFormatVersion = 2;
   }
 
   if (products && !products.columns.includes('preferredYieldSampleId')) {
@@ -433,8 +433,8 @@ function migrateDatasetV1ToV2(document: WorkbookNeutralDocument): WorkbookNeutra
 export const PRODUCTION_WORKBOOK_MIGRATION_STEPS: readonly WorkbookMigrationStep[] = [
   {
     from: { workbookFormatVersion: 1, datasetSchemaVersion: 1 },
-    to: { workbookFormatVersion: 1, datasetSchemaVersion: 2 },
-    migrate: migrateDatasetV1ToV2,
+    to: { workbookFormatVersion: 2, datasetSchemaVersion: 1 },
+    migrate: migrateWorkbookV1ToV2,
   },
 ];
 
