@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { moldService, storageLocationService } from '../../application/session';
+import { nextSequentialId } from '../../domain/identifiers';
 import type { Mold } from '../../domain/molds';
 import type { Product } from '../../domain/products';
 import {
@@ -155,6 +156,12 @@ export function PhysicalIdentificationWorkspace({ products }: { products: readon
     [locations],
   );
 
+  const generatedMoldId = useMemo(() => nextSequentialId(molds.map((mold) => mold.id), 'MOLD'), [molds]);
+  const generatedLocationId = useMemo(
+    () => nextSequentialId(locations.map((location) => location.id), `LOC-${locationForm.type.toUpperCase()}`),
+    [locationForm.type, locations],
+  );
+
   const filtersActive =
     query.trim() !== '' ||
     status !== 'active' ||
@@ -213,7 +220,7 @@ export function PhysicalIdentificationWorkspace({ products }: { products: readon
         setFeedback({ type: 'success', message: 'Mold updated.' });
       } else {
         await moldService.createMold({
-          id: moldForm.id,
+          id: generatedMoldId,
           productId: moldForm.productId,
           name: moldForm.name,
           storageLocationId: moldForm.storageLocationId || undefined,
@@ -247,7 +254,7 @@ export function PhysicalIdentificationWorkspace({ products }: { products: readon
         setFeedback({ type: 'success', message: 'Storage location updated.' });
       } else {
         await storageLocationService.createLocation({
-          id: locationForm.id,
+          id: generatedLocationId,
           name: locationForm.name,
           type: locationForm.type,
           parentId: locationForm.type === 'rack' ? undefined : locationForm.parentId || undefined,
@@ -421,7 +428,7 @@ export function PhysicalIdentificationWorkspace({ products }: { products: readon
               <div><p className="panel-kicker">MOLD RECORD</p><h3>{editingMoldId ? 'Edit mold' : 'Add a mold'}</h3><p className="physical-id-form-copy">{editingMoldId ? 'Update the product details or move this mold without changing its stable ID.' : 'Register a physical mold and optionally place it into storage now.'}</p></div>
               {editingMoldId && <button type="button" className="text-button" onClick={resetMoldForm}>Cancel edit</button>}
             </div>
-            <label className="field"><span>Mold ID</span><input required value={moldForm.id} disabled={Boolean(editingMoldId)} onChange={(event) => setMoldForm((current) => ({ ...current, id: event.target.value }))} placeholder="MOLD-0012" /></label>
+            <label className="field"><span>Mold ID</span><input value={editingMoldId ? moldForm.id : generatedMoldId} readOnly aria-readonly="true" /><small>{editingMoldId ? 'Existing Mold ID is preserved.' : 'Assigned automatically when this mold is created.'}</small></label>
             <label className="field"><span>Mold name</span><input required value={moldForm.name} onChange={(event) => setMoldForm((current) => ({ ...current, name: event.target.value }))} placeholder="Dinosaur Mold #1" /></label>
             <label className="field"><span>Product</span><select required value={moldForm.productId} onChange={(event) => setMoldForm((current) => ({ ...current, productId: event.target.value }))}><option value="">Select product</option>{products.filter((product) => product.isActive || product.id === moldForm.productId).map((product) => <option key={product.id} value={product.id}>{product.name} · {product.id}</option>)}</select></label>
             <label className="field"><span>Storage location</span><select value={moldForm.storageLocationId} onChange={(event) => setMoldForm((current) => ({ ...current, storageLocationId: event.target.value }))}><option value="">Unassigned</option>{assignableLocations.map((location) => <option key={location.id} value={location.id}>{pathByLocationId[location.id] ?? location.name}</option>)}</select><small>Moving a mold changes only its location. Its Mold ID stays the same.</small></label>
@@ -455,7 +462,7 @@ export function PhysicalIdentificationWorkspace({ products }: { products: readon
               <div><p className="panel-kicker">STORAGE RECORD</p><h3>{editingLocationId ? 'Edit location' : 'Add a location'}</h3><p className="physical-id-form-copy">{editingLocationId ? 'Rename or reposition this location while preserving its stable Location ID.' : 'Build the storage hierarchy from Rack → Shelf → Bin.'}</p></div>
               {editingLocationId && <button type="button" className="text-button" onClick={resetLocationForm}>Cancel edit</button>}
             </div>
-            <label className="field"><span>Location ID</span><input required value={locationForm.id} disabled={Boolean(editingLocationId)} onChange={(event) => setLocationForm((current) => ({ ...current, id: event.target.value }))} placeholder="LOC-BIN-0004" /></label>
+            <label className="field"><span>Location ID</span><input value={editingLocationId ? locationForm.id : generatedLocationId} readOnly aria-readonly="true" /><small>{editingLocationId ? 'Existing Location ID is preserved.' : 'Assigned automatically from the selected storage type when this location is created.'}</small></label>
             <label className="field"><span>Name</span><input required value={locationForm.name} onChange={(event) => setLocationForm((current) => ({ ...current, name: event.target.value }))} placeholder="Bin 04" /></label>
             <label className="field"><span>Type</span><select value={locationForm.type} onChange={(event) => setLocationForm((current) => ({ ...current, type: event.target.value as StorageLocationType, parentId: '' }))}>{STORAGE_LOCATION_TYPES.map((type) => <option key={type} value={type}>{titleCase(type)}</option>)}</select></label>
             {locationForm.type !== 'rack' && <label className="field"><span>{locationForm.type === 'shelf' ? 'Rack' : 'Shelf'} parent</span><select required value={locationForm.parentId} onChange={(event) => setLocationForm((current) => ({ ...current, parentId: event.target.value }))}><option value="">Select parent</option>{parentOptions.map((location) => <option key={location.id} value={location.id}>{pathByLocationId[location.id] ?? location.name}</option>)}</select><small>The parent determines this location's full workshop path.</small></label>}
