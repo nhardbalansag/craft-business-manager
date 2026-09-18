@@ -135,31 +135,26 @@ describe('product workshop interactions', () => {
     expect(document.activeElement).toBe(field('Name'));
   });
 
-  it('focuses inline identity errors and previews fractional material reserves', async () => {
+  it('assigns a stable Product ID automatically and previews fractional material reserves', async () => {
     await seed();
     await mount();
     await click('+ New product');
-    await fill(field('Product ID'), ' alpha ');
+    expect(field('Product ID').value).toBe('PROD-0001');
+    expect((field('Product ID') as HTMLInputElement).readOnly).toBe(true);
     await fill(field('Name'), 'New star');
-    await submit();
-    expect(field('Product ID').getAttribute('aria-invalid')).toBe('true');
-    expect(document.activeElement).toBe(field('Product ID'));
-    expect(container.querySelector('#product-id-error')?.textContent).toContain('already in use');
-    await fill(field('Product ID'), 'NEW');
     await fill(field('Safety waste (%)'), '7.25');
     expect(form().querySelector('[aria-label="Material reserve preview"]')?.textContent).toContain('107.25 g planned');
     await submit();
-    expect((await session.productService.getProduct('NEW'))?.safetyWasteRate).toBe(0.0725);
+    expect((await session.productService.getProduct('PROD-0001'))?.safetyWasteRate).toBe(0.0725);
   });
 
   it('retains normalized saved details without a false unsaved warning', async () => {
     await mount();
     await click('+ New product');
-    await fill(field('Product ID'), ' NEW ');
     await fill(field('Name'), ' New star ');
     await submit();
-    expect(field('Product ID').value).toBe('NEW');
-    expect((field('Product ID') as HTMLInputElement).disabled).toBe(true);
+    expect(field('Product ID').value).toBe('PROD-0001');
+    expect((field('Product ID') as HTMLInputElement).readOnly).toBe(true);
     expect(field('Name').value).toBe('New star');
     expect(form().querySelector('.product-editor-state')?.textContent).toContain('All changes saved');
     await fill(field('Name'), ' Updated star ');
@@ -217,7 +212,7 @@ describe('product workshop interactions', () => {
     expect(container.querySelector('.product-editor-state')?.textContent).toContain('All changes saved');
     await click('+ New product');
     expect(container.querySelector('.product-draft-warning')).toBeNull();
-    expect(field('Product ID').value).toBe('');
+    expect(field('Product ID').value).toBe('PROD-0001');
   });
 
   it('keeps filters and actions when switching catalog layout and shows matching category counts', async () => {
@@ -240,11 +235,10 @@ describe('product workshop interactions', () => {
     expect(catalog().textContent).toContain('Make room for your first creation');
     await click('Add your first product');
     expect(document.activeElement).toBe(field('Name'));
-    await fill(field('Product ID'), 'STAR');
     await fill(field('Name'), 'Paintable star');
     await fill(field('Safety waste (%)'), '7.5');
     await submit();
-    expect(await session.productService.getProduct('STAR')).toMatchObject({
+    expect(await session.productService.getProduct('PROD-0001')).toMatchObject({
       name: 'Paintable star',
       safetyWasteRate: 0.075,
     });
@@ -269,7 +263,7 @@ describe('product workshop interactions', () => {
     await seed();
     await mount();
     await click('Edit Alpha candle');
-    expect((field('Product ID') as HTMLInputElement).disabled).toBe(true);
+    expect((field('Product ID') as HTMLInputElement).readOnly).toBe(true);
     await fill(field('Category'), 'paintable-art');
     expect(field('Mix preset').value).toBe('MIX');
     await fill(field('Name'), 'Updated candle');
@@ -428,11 +422,12 @@ describe('product workshop interactions', () => {
     const mixes = container.querySelector<HTMLElement>('#products-view-mixes')!;
     const mixForm = mixes.querySelector('form')!;
     const inputs = mixForm.querySelectorAll<HTMLInputElement>('input:not([type="checkbox"])');
-    await fill(inputs[0]!, 'BLEND');
+    expect(inputs[0]!.value).toBe('MIX-0001');
+    expect(inputs[0]!.readOnly).toBe(true);
     await fill(inputs[1]!, 'New wax blend');
     await fill(mixForm.querySelector<HTMLSelectElement>('[aria-label="Mix material 1"]')!, 'WAX');
     await act(async () => mixForm.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })));
-    expect((await session.mixPresetService.listMixPresets()).find((item) => item.id === 'BLEND')).toMatchObject({
+    expect((await session.mixPresetService.listMixPresets()).find((item) => item.id === 'MIX-0001')).toMatchObject({
       name: 'New wax blend',
       lines: [{ materialId: 'WAX', parts: 100, role: 'primary' }],
     });

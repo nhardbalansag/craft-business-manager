@@ -96,12 +96,14 @@ async function submit() {
   await flush();
 }
 
-async function createLocation(id: string, name: string, type: 'rack' | 'shelf' | 'bin', parentId = '') {
-  await fill(field('Location ID'), id);
-  await fill(field('Name'), name);
+async function createLocation(name: string, type: 'rack' | 'shelf' | 'bin', parentId = '') {
   await fill(field('Type'), type);
+  const generatedId = field('Location ID').value;
+  expect((field('Location ID') as HTMLInputElement).readOnly).toBe(true);
+  await fill(field('Name'), name);
   if (type !== 'rack') await fill(field(type === 'shelf' ? 'Rack parent' : 'Shelf parent'), parentId);
   await submit();
+  return generatedId;
 }
 
 describe('PhysicalIdentificationWorkspace', () => {
@@ -146,24 +148,28 @@ describe('PhysicalIdentificationWorkspace', () => {
     await mount();
     await click('Storage');
 
-    await createLocation('RACK-A', 'Rack A', 'rack');
-    await createLocation('SHELF-2', 'Shelf 2', 'shelf', 'RACK-A');
-    await createLocation('BIN-04', 'Bin 04', 'bin', 'SHELF-2');
+    const rackId = await createLocation('Rack A', 'rack');
+    const shelfId = await createLocation('Shelf 2', 'shelf', rackId);
+    const binId = await createLocation('Bin 04', 'bin', shelfId);
 
-    expect(await session.storageLocationService.formatPath('BIN-04')).toBe('Rack A / Shelf 2 / Bin 04');
+    expect(rackId).toBe('LOC-RACK-0001');
+    expect(shelfId).toBe('LOC-SHELF-0001');
+    expect(binId).toBe('LOC-BIN-0001');
+    expect(await session.storageLocationService.formatPath(binId)).toBe('Rack A / Shelf 2 / Bin 04');
     expect(container.textContent).toContain('Rack A / Shelf 2 / Bin 04');
 
     await click('Molds');
-    await fill(field('Mold ID'), 'MOLD-0012');
+    expect(field('Mold ID').value).toBe('MOLD-0001');
+    expect((field('Mold ID') as HTMLInputElement).readOnly).toBe(true);
     await fill(field('Mold name'), 'Dinosaur Mold');
     await fill(field('Product'), 'PRD-1');
-    await fill(field('Storage location'), 'BIN-04');
+    await fill(field('Storage location'), binId);
     await submit();
 
-    expect(await session.moldService.getMold('MOLD-0012')).toMatchObject({
-      id: 'MOLD-0012',
+    expect(await session.moldService.getMold('MOLD-0001')).toMatchObject({
+      id: 'MOLD-0001',
       productId: 'PRD-1',
-      storageLocationId: 'BIN-04',
+      storageLocationId: binId,
     });
     expect(container.textContent).toContain('Dinosaur Toy');
     expect(container.textContent).toContain('Rack A / Shelf 2 / Bin 04');

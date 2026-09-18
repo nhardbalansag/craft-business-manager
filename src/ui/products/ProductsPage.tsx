@@ -1,5 +1,6 @@
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { materialService, mixPresetService, productService } from '../../application/session';
+import { nextSequentialId } from '../../domain/identifiers';
 import type { Material } from '../../domain/materials';
 import {
   MIX_PRESET_LINE_ROLES,
@@ -240,13 +241,12 @@ export function ProductsPage() {
   );
 
   const activeMaterials = useMemo(() => materials.filter((material) => material.isActive), [materials]);
+  const generatedProductId = useMemo(() => nextSequentialId(products.map((product) => product.id), 'PROD'), [products]);
+  const generatedMixId = useMemo(() => nextSequentialId(mixPresets.map((preset) => preset.id), 'MIX'), [mixPresets]);
   const savedProduct = products.find((product) => product.id === editingProductId);
   const productDirty = JSON.stringify(productForm) !== JSON.stringify(savedProduct ? productToForm(savedProduct) : EMPTY_PRODUCT_FORM);
   const reservePercent = Number(productForm.safetyWastePercent);
   const productErrors: Record<string, string> = {};
-  if (!productForm.id.trim()) productErrors.id = 'Enter a unique product ID.';
-  else if (!editingProductId && products.some((product) => normalizeQuery(product.id) === normalizeQuery(productForm.id)))
-    productErrors.id = 'This product ID is already in use, including archived products.';
   if (!productForm.name.trim()) productErrors.name = 'Enter a product name.';
   else if (products.some((product) => product.id !== editingProductId && normalizeQuery(product.name) === normalizeQuery(productForm.name)))
     productErrors.name = 'This product name is already in use. Choose a different name.';
@@ -350,7 +350,7 @@ export function ProductsPage() {
         setProductForm(productToForm(updated));
         setProductFeedback({ type: 'success', message: 'Product updated.' });
       } else {
-        const created = await productService.createProduct(formToProduct(productForm, true));
+        const created = await productService.createProduct(formToProduct({ ...productForm, id: generatedProductId }, true));
         setProductFeedback({ type: 'success', message: 'Product created.' });
         setEditingProductId(created.id);
         setProductForm(productToForm(created));
@@ -408,7 +408,7 @@ export function ProductsPage() {
         });
         setMixFeedback({ type: 'success', message: 'Mix preset updated.' });
       } else {
-        await mixPresetService.createMixPreset(formToMixPreset(mixForm, true));
+        await mixPresetService.createMixPreset(formToMixPreset({ ...mixForm, id: generatedMixId }, true));
         setMixFeedback({ type: 'success', message: 'Mix preset created.' });
         setMixForm(emptyMixForm());
       }
@@ -615,22 +615,17 @@ export function ProductsPage() {
 
           <fieldset className="product-form-fields" disabled={busy || loading || Boolean(loadError)}>
             <section className="product-editor-section" aria-labelledby="product-identity-heading">
-              <div className="product-section-heading"><span aria-hidden="true">1</span><div><h3 id="product-identity-heading">Product identity</h3><p>Give this product a unique ID and a recognizable name.</p></div></div>
+              <div className="product-section-heading"><span aria-hidden="true">1</span><div><h3 id="product-identity-heading">Product identity</h3><p>Name the product; its stable ID is assigned automatically.</p></div></div>
               <div className="form-grid">
                 <label className="field">
                   <span>Product ID</span>
                   <input
-                    required
-                    name="id"
-                    aria-invalid={Boolean(visibleProductError('id'))}
-                    aria-describedby="product-id-help product-id-error"
-                    value={productForm.id}
-                    disabled={Boolean(editingProductId)}
-                    onChange={(event) => setProductForm({ ...productForm, id: event.target.value })}
-                    placeholder="ART-001"
+                    aria-describedby="product-id-help"
+                    value={editingProductId ? productForm.id : generatedProductId}
+                    readOnly
+                    aria-readonly="true"
                   />
-                  <small id="product-id-help">{editingProductId ? 'The ID is fixed so existing recipes and history stay linked.' : 'Use a memorable code, such as ART-001. The ID cannot be changed later.'}</small>
-                  <small className="product-field-error" id="product-id-error">{visibleProductError('id')}</small>
+                  <small id="product-id-help">{editingProductId ? 'The existing ID is preserved so recipes and history stay linked.' : 'Assigned automatically when this product is created. Existing Product IDs are never changed.'}</small>
                 </label>
                 <label className="field">
                   <span>Name</span>
@@ -763,12 +758,11 @@ export function ProductsPage() {
                 <label className="field">
                   <span>Preset ID</span>
                   <input
-                    required
-                    value={mixForm.id}
-                    disabled={Boolean(editingMixId)}
-                    onChange={(event) => setMixForm({ ...mixForm, id: event.target.value })}
-                    placeholder="MIX-PLASTER-2-1"
+                    value={editingMixId ? mixForm.id : generatedMixId}
+                    readOnly
+                    aria-readonly="true"
                   />
+                  <small>{editingMixId ? 'Existing Preset ID is preserved.' : 'Assigned automatically when the mix preset is created.'}</small>
                 </label>
                 <label className="field">
                   <span>Name</span>
