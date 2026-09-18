@@ -151,12 +151,14 @@ describe('Yield history enhanced workflows', () => {
     const rejectSample = history.querySelector<HTMLElement>('[aria-label="Yield sample YS-REJECT"]')!;
     await click('Use as new draft', rejectSample);
 
-    expect(formField('Sample ID').value).toBe('');
+    expect(formField('Sample ID').value).toBe('YLD-0001');
+    expect((formField('Sample ID') as HTMLInputElement).readOnly).toBe(true);
     expect(formField('Good pieces').value).toBe('8');
     expect(formField('Rejected pieces').value).toBe('2');
     expect(container.querySelector<HTMLSelectElement>('[aria-label="Yield material 1"]')?.value).toBe('MAT-PLASTER');
     expect(container.querySelector<HTMLInputElement>('[aria-label="Yield quantity 1"]')?.value).toBe('800');
     expect(container.textContent).toContain('New draft started from YS-REJECT');
+    expect(container.textContent).toContain('fresh Sample ID will be assigned automatically');
 
     await click('Delete as correction', rejectSample);
     expect((await session.yieldSampleEvidenceService.listSamples({ productId: product.id }))).toHaveLength(2);
