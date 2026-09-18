@@ -9,7 +9,7 @@ import type { BusinessDataset } from './types';
 import { cloneYieldSample } from './yieldSamples';
 
 /** First formally specified complete persisted business-source dataset. */
-export const CURRENT_BUSINESS_DATASET_SCHEMA_VERSION = 1 as const;
+export const CURRENT_BUSINESS_DATASET_SCHEMA_VERSION = 2 as const;
 
 /**
  * Every authoritative Phase 1–4 source collection that must survive persistence.
