@@ -44,7 +44,7 @@ describe('Phase 5.4A2 XLSX import compatibility handoff', () => {
   it('runs version compatibility before strict current-sheet validation for future workbooks', () => {
     const result = importBusinessDatasetFromXlsx(
       new Uint8Array([1]),
-      codecFor(metaDocument(2, 1)),
+      codecFor(metaDocument(3, 1)),
     );
 
     expect(result).toEqual({
@@ -54,8 +54,8 @@ describe('Phase 5.4A2 XLSX import compatibility handoff', () => {
           stage: 'compatibility',
           code: 'UNSUPPORTED_FUTURE_VERSION',
           compatibilityStatus: 'unsupported-future',
-          sourceVersion: { workbookFormatVersion: 2, datasetSchemaVersion: 1 },
-          targetVersion: { workbookFormatVersion: 1, datasetSchemaVersion: 1 },
+          sourceVersion: { workbookFormatVersion: 3, datasetSchemaVersion: 1 },
+          targetVersion: { workbookFormatVersion: 2, datasetSchemaVersion: 1 },
         }),
       ],
     });
