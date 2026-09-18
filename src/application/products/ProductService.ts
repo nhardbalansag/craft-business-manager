@@ -58,6 +58,7 @@ function normalizeProduct(product: Product): Product {
     id: product.id.trim(),
     name: product.name.trim(),
     mixPresetId: product.mixPresetId?.trim() || undefined,
+    preferredYieldSampleId: product.preferredYieldSampleId?.trim() || undefined,
     notes: product.notes?.trim() || undefined,
   };
 }
