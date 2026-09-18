@@ -106,6 +106,7 @@ function datasetFixture(): BusinessDataset {
         name: 'Paintable figure',
         category: 'paintable-art',
         mixPresetId: 'mix-z',
+        preferredYieldSampleId: 'yield-1',
         safetyWasteRate: 0.075123456789,
         isActive: false,
       },
