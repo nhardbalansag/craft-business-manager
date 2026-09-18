@@ -1,5 +1,6 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { productComponentService } from '../../application/session';
+import { nextSequentialId } from '../../domain/identifiers';
 import type { Material } from '../../domain/materials';
 import { validateProductCompositionGraph } from '../../domain/productCompositionGraph';
 import {
@@ -184,6 +185,8 @@ export function ProductComponentsView({ products, materials, catalogLoading, ini
       .sort((left, right) => left.name.localeCompare(right.name, undefined, { sensitivity: 'base' }));
   }, [components, editingComponentId, form.role, products, selectedParent, usedSourceKeys]);
 
+  const generatedComponentId = useMemo(() => nextSequentialId(components.map((component) => component.id), 'COMP'), [components]);
+
   const preview = useMemo(
     () => selectedParent
       ? buildProductCompositionPreview(selectedParent.id, products, materials, components)
@@ -215,7 +218,7 @@ export function ProductComponentsView({ products, materials, catalogLoading, ini
     }
 
     const candidate: ProductComponent = {
-      id: form.id,
+      id: editingComponentId ? form.id : generatedComponentId,
       parentProductId: selectedParent.id,
       sourceType: form.sourceType,
       sourceId: form.sourceId,
@@ -328,11 +331,12 @@ export function ProductComponentsView({ products, materials, catalogLoading, ini
               <label className="field">
                 <span>Component ID</span>
                 <input
-                  value={form.id}
-                  disabled={Boolean(editingComponentId) || !writable}
-                  onChange={(event) => setForm({ ...form, id: event.target.value })}
-                  placeholder="COMP-PRODUCT-001"
+                  value={editingComponentId ? form.id : generatedComponentId}
+                  readOnly
+                  aria-readonly="true"
+                  disabled={!writable}
                 />
+                <small>{editingComponentId ? 'Existing Component ID is preserved.' : 'Assigned automatically when the component is added.'}</small>
               </label>
 
               <label className="field">
