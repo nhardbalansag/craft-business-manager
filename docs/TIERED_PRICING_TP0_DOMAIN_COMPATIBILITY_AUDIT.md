@@ -718,12 +718,14 @@ Recommended split:
 - mismatched or invalid ready Default evidence fails closed
 - existing `ProductPricingQuoteService` semantics remain unchanged
 
-### TP4 — Default Pricing Compatibility Layer
+### TP4 — Default Pricing Compatibility Layer — COMPLETE
 
-- explicitly preserve existing Default / Single semantics
-- prove current ProductPricingQuote results are unchanged when no tiers exist
-- prove adding tiers does not alter Default / Single quote
-- prove ExpectedBatchFinancials still uses default price through TP7
+- existing Default / Single semantics explicitly preserved
+- no-tier Product pricing quote remains unchanged
+- adding Package / Bulk tiers does not alter existing ProductPricingQuote fields
+- cheaper tier existence does not change ExpectedBatchFinancials revenue
+- ExpectedBatchFinancials continues using Default / Single selling price through TP7
+- no production pricing-service behavior was modified; compatibility is enforced by regressions
 
 ### TP5 — Workbook / Dataset Persistence & Migration
 
@@ -877,8 +879,8 @@ All conditions are satisfied by this audit.
 
 ## 16. Exact Next Task
 
-**TP4 — Default Pricing Compatibility Layer — NEXT / NOT STARTED**
+**TP5A — BusinessDataset v2 Source Collection — NEXT / NOT STARTED**
 
-TP3 is complete. TP3C adds Default / Single comparison and explicit below-cost diagnostics to tier quotes without modifying the existing Default / Single pricing service semantics.
+TP4 is complete with explicit regression proof that tier records are additive: ProductPricingQuote retains Default / Single semantics and ExpectedBatchFinancials continues using the Default / Single selling price through TP7.
 
-Stop after TP3. Do not start TP4, persistence migration, UI, or quantity-aware selection automatically.
+TP5 remains a high-risk persistence/migration phase and is already split into TP5A–TP5G. Stop after TP4. Do not start TP5A automatically.
