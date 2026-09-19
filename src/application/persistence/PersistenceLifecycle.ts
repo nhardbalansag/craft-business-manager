@@ -1,4 +1,3 @@
-import type { BusinessDatasetValidationIssue } from '../../domain/businessDatasetValidation';
 import type { BusinessDatasetWorkbookImportIssue } from '../../storage/businessDatasetWorkbookImport';
 
 export type PersistenceLifecycleStage =
@@ -53,11 +52,17 @@ export interface PersistenceWorkbookImportRejected {
   readonly issues: readonly BusinessDatasetWorkbookImportIssue[];
 }
 
+export interface PersistenceDatasetHydrationIssue {
+  readonly code: string;
+  readonly message: string;
+  readonly path: string;
+}
+
 /** Defensive result shape if hydration rejects a candidate before writes. */
 export interface PersistenceDatasetHydrationRejected {
   readonly status: 'rejected';
   readonly stage: 'hydrate';
-  readonly issues: readonly BusinessDatasetValidationIssue[];
+  readonly issues: readonly PersistenceDatasetHydrationIssue[];
 }
 
 export type PersistenceLifecycleRejected =
