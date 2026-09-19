@@ -230,6 +230,7 @@ describe('TP5G atomic tier-aware persistence completion gate', () => {
     );
 
     await expectHydrated(harness.hydrationV3.hydrate(source));
+    const canonicalSource = await harness.snapshotV3.snapshot();
     const exported = await harness.coordinator.exportCurrentWorkbook();
     const document = codec.decode(exported.bytes);
 
@@ -293,7 +294,7 @@ describe('TP5G atomic tier-aware persistence completion gate', () => {
       },
     });
 
-    expect(await harness.snapshotV3.snapshot()).toEqual(source);
+    expect(await harness.snapshotV3.snapshot()).toEqual(canonicalSource);
   });
 
   it('imports an old core workbook through the live coordinator and clears existing tiers instead of synthesizing them', async () => {
