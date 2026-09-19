@@ -2,115 +2,333 @@
 
 ## Objective
 
-Build a desktop-first tool for material costing, mold-yield learning, inventory-based production estimates, multi-vessel candle recipes, and selling-price/profit planning.
+Build a desktop-first business tool for material costing, real-production yield learning, inventory-based production estimates, multi-vessel / multi-component craft products, selling-price and profit planning, and safe local persistence.
 
-The domain layer must not depend on Excel so persistence can move to SQLite later.
+The domain and application layers remain storage-agnostic so Excel persistence can later move to SQLite or another durable store without rewriting business rules.
 
-## Phase 0 — Repository & Architecture Foundation
+## Documentation Authority
 
-Status: **IN PROGRESS / FOUNDATION CREATED**
+This file is the high-level roadmap.
 
-- React + TypeScript + Vite scaffold
-- `main` and `develop` branch strategy
-- domain type contracts
-- pure costing/yield helpers
-- storage-port abstraction
-- Excel adapter boundary
+For detailed historical implementation evidence, use the dedicated phase plans/completion records and Git history.
 
-Completion gate:
+Key persistence / desktop-boundary records:
 
-- project installs, type-checks, and builds
-- domain functions have automated tests
-- architecture decisions documented
+- `docs/PHASE_5_EXCEL_PERSISTENCE_PLAN.md`
+- `docs/PHASE_5_PROGRESS.md`
+- `docs/PHASE_5_5_EXCEL_PERSISTENCE_UI.md`
+- `docs/PHASE_5_6A_INTEGRATED_EXCEL_ROUND_TRIP_WORKFLOW_PLAN.md`
+- `docs/PHASE_5_6A_INTEGRATED_EXCEL_ROUND_TRIP_WORKFLOW.md`
+- `docs/PHASE_5_6B_REGRESSION_BUILD_PHASE_5_COMPLETION.md`
+- `docs/PHYSICAL_IDENTIFICATION_STORAGE_FOUNDATION_PLAN.md`
+- `docs/PHASE_6_TAURI_DESKTOP_INTEGRATION_PLAN.md`
 
-## Phase 1 — Materials, Units & Calibration
+Historical child completion records remain authoritative for their individual contracts and CI evidence.
 
-- materials CRUD
-- package price → cost/base-unit calculation
-- standard units: g, kg, mL, L, cup, pc
-- manual package conversion
-- dry-material grams-per-cup calibration
-- on-hand inventory
-- supplier/source metadata
+## Delivery Principles
 
-## Phase 2 — Product Recipes & Mold Yield
+- preserve user-entered/source evidence and derive normalized values;
+- use canonical internal units (`g`, `mL`, `pc`);
+- keep React behind application services rather than duplicating business rules in UI code;
+- keep derived costing/yield/capacity/pricing outputs out of authoritative persistence;
+- keep workbook codec, dataset validation, repository hydration, and filesystem transport separate;
+- keep browser persistence workflows separate from native filesystem behavior;
+- advance tasks only after branch/PR CI, guarded merge, and exact post-merge `develop` CI succeed;
+- plan/scope the next phase before beginning implementation when the phase introduces a new platform boundary.
 
-- three categories: paintable art, candle pot, candle
-- mix presets and ratio basis
-- sample-yield recording
-- good/rejected piece tracking
-- material-per-good-piece calculation
-- safety-waste adjustment
-- estimated producible pieces from inventory
+---
 
-Mold volume is optional; sample batches are authoritative when volume is unknown.
+## Current Repository Milestone
 
-## Phase 3 — Multi-Vessel / Multi-Component Products
-
-A sellable candle may include multiple components, for example:
-
-- 1 glass cup
-- 3 mini heart molded components
-- 2 mini flower molded components
-- 1 wick
-- 1 label
-
-The system must calculate both total component cost and the limiting component capacity.
-
-## Phase 4 — Pricing & Production Planning
-
-- total unit cost including waste-adjusted material usage
-- fixed profit amount
-- markup percentage
-- target margin percentage
-- planned batch cost
-- expected revenue and profit
-- production-capacity warnings
-
-## Phase 5 — Excel Persistence
-
-- workbook schema/versioning
-- load/save `.xlsx`
-- workbook validation
-- atomic save strategy
-- timestamped backups
-- import existing workbook data where feasible
-
-Proposed sheets:
-
-- Materials
-- Calibrations
-- MixPresets
-- Products
-- RecipeItems
-- ProductComponents
-- MoldYieldSamples
-- Settings
-
-## Phase 6 — Tauri Desktop Integration
-
-- native open/save dialogs
-- application data directory
-- backup folder
-- safe file write/replace flow
-- desktop packaging
-
-## Phase 7 — Reporting & Operational Polish
-
-- dashboard
-- inventory valuation
-- product profitability report
-- material requirement planning
-- low-stock indicators
-- production history
-- Excel report export
-
-## Storage migration path
+Latest green planning baseline before Phase 6 implementation:
 
 ```text
-UI → Application Services → StoragePort
-                             ├─ ExcelStorage (v1)
-                             └─ SQLiteStorage (future)
+develop  7336f7fad57410a8e9888344c240590bae20f59f
+CI       35182152823 — SUCCESS
+Physical Identification & Storage Foundation — COMPLETE
+Phase 6 scope/decomposition review — IN DOCUMENTATION REVIEW
 ```
 
-No React component should read/write spreadsheet cells directly.
+The completed physical-identification foundation now extends persisted source truth with Mold and Storage Location records while preserving Phase 5 persistence boundaries. Phase 6 must build the native desktop boundary on top of those contracts rather than replace them.
+
+---
+
+## Overall Phase Status
+
+```text
+Phase 0 — Repository & Architecture Foundation                  COMPLETE
+Phase 1 — Materials, Units & Calibration                        COMPLETE
+Phase 2 — Product Recipes & Mold Yield                          COMPLETE
+Phase 3 — Product Components, Vessels & Nested Molded Products COMPLETE
+Phase 4 — Pricing & Production Planning                         COMPLETE
+Phase 5 — Excel Persistence                                     COMPLETE
+Phase 6 — Tauri Desktop Integration                             SCOPED / IMPLEMENTATION NOT STARTED
+Phase 7 — Reporting & Operational Polish                        PLANNED
+```
+
+---
+
+# Completed Business Foundation — Phases 0–4
+
+## Phase 0 — Repository & Architecture Foundation — COMPLETE
+
+Established the React/TypeScript project structure, domain/application separation, testing/CI baseline, and repository workflow used by later phases.
+
+## Phase 1 — Materials, Units & Calibration — COMPLETE
+
+Established:
+
+- canonical unit conversion;
+- material-specific calibration;
+- package/purchase costing;
+- inventory quantity and valuation semantics;
+- supplier/source metadata;
+- missing-vs-zero evidence rules;
+- Materials and Calibration application/UI workflows.
+
+## Phase 2 — Product Recipes & Mold Yield — COMPLETE
+
+Established:
+
+- product categories;
+- mix presets and ratio lines;
+- fixed recipes;
+- immutable real-production yield samples;
+- learned per-piece material requirements;
+- safety waste;
+- material-cost preview;
+- inventory-based production capacity;
+- Products/Yield workflows.
+
+## Phase 3 — Components, Vessels & Nested Products — COMPLETE
+
+Established:
+
+- Material-backed components;
+- Product-backed components;
+- vessel/component composition;
+- ProductStock;
+- cycle-safe nested Product graphs;
+- recursive component costing;
+- component-aware capacity and limiter tracing.
+
+## Phase 4 — Pricing & Production Planning — COMPLETE
+
+Established:
+
+- waste-adjusted direct material cost;
+- fully loaded product cost;
+- labor and overhead financial profiles;
+- selling-price policies;
+- profit, markup, and margin metrics;
+- physical planned-batch cost;
+- expected revenue/profit;
+- assembly-capacity trace;
+- planned-batch capacity feasibility and bottleneck warnings;
+- Production and Pricing workspaces.
+
+---
+
+# Phase 5 — Excel Persistence — COMPLETE
+
+Master plan:
+
+`docs/PHASE_5_EXCEL_PERSISTENCE_PLAN.md`
+
+Final status tracker:
+
+`docs/PHASE_5_PROGRESS.md`
+
+Final completion gate:
+
+`docs/PHASE_5_6B_REGRESSION_BUILD_PHASE_5_COMPLETION.md`
+
+## Final Phase 5 task map
+
+```text
+5.1 — Persisted Dataset & Workbook Contract Foundation   COMPLETE
+5.2 — XLSX Workbook Codec                                 COMPLETE
+5.3 — Snapshot, Hydration & Persistence Coordination      COMPLETE
+5.4 — Version Compatibility, Backup & Recovery Safety     COMPLETE
+5.5 — Excel Persistence UI                                COMPLETE
+5.6 — Integration & Completion Gate                       COMPLETE
+    5.6A — Integrated Excel Round-Trip Workflow           COMPLETE
+    5.6B — Regression / Build / Phase 5 Completion        COMPLETE
+```
+
+## Phase 5 delivered
+
+### Persisted source contract
+
+- versioned `BusinessDataset` covering authoritative source repositories;
+- Material calibration evidence included as source truth;
+- normalized workbook contract with deterministic sheet/column/row semantics;
+- complete cross-reference/graph validation;
+- missing-vs-zero/null/false preservation.
+
+The later Physical Identification & Storage Foundation extends that source contract with Mold and Storage Location records and workbook v2 compatibility while preserving the same persistence architecture.
+
+### XLSX codec
+
+- SheetJS behind a library-neutral `WorkbookCodec`;
+- in-memory `Uint8Array` encode/decode;
+- deterministic source-to-XLSX export;
+- strict XLSX-to-source import;
+- formula rejection for authoritative values;
+- normalized child-sheet reconstruction;
+- structured workbook diagnostics and resource limits.
+
+### Snapshot, hydration and coordinator
+
+- complete source snapshot services;
+- validate-before-write atomic hydration;
+- previous-state snapshot and rollback behavior;
+- stable singleton repository/service identity;
+- one `PersistenceCoordinator` for export/save/import/load/apply workflows.
+
+### Compatibility, backup and recovery safety
+
+- explicit workbook/dataset version handling;
+- migration registry/boundary;
+- fail-closed future-version behavior;
+- transport-owned backup/staged-replacement/replacement guarantees;
+- safe in-memory reference transport for transaction testing;
+- corrupt/malformed/resource-limit diagnostics;
+- deterministic recovery categories/actions;
+- rejection without partial live-state mutation.
+
+### Browser persistence UI
+
+- `.xlsx` file selection/import;
+- explicit destructive replacement confirmation;
+- successful workspace refresh from hydrated source state;
+- workbook export/download-copy;
+- deterministic filename and XLSX MIME handling;
+- persistence session identity/status;
+- raw validation detail plus deterministic recovery guidance;
+- retry/failure regression coverage;
+- truthful browser language that does not claim native overwrite/durability.
+
+### Integrated round-trip proof
+
+Phase 5.6A verifies the complete A–J matrix:
+
+```text
+A — complete source round-trip                          GREEN
+B — calibration-dependent material equivalence         GREEN
+C — yield + recipe Product equivalence                 GREEN
+D — nested components + ProductStock equivalence       GREEN
+E — financial profile missing vs explicit zero         GREEN
+F — Phase 4 pricing/production equivalence             GREEN
+G — invalid workbook preserves state                   GREEN
+H — unsupported future version                         GREEN
+I — deterministic workbook schema/row semantics        GREEN
+J — backup/replace failure integration                 GREEN
+```
+
+Source/service round-trip scenarios cross real XLSX bytes and reuse the stable application graph. Derived costing/yield/capacity/pricing/production results remain recalculated rather than persisted.
+
+### Final Phase 5 gate
+
+Phase 5.6B verified:
+
+- all Phase 1–5 tests green;
+- Phase 1–4 integration workflows green;
+- dedicated Phase 5.6 integration suites green;
+- browser persistence smoke/regression coverage green;
+- TypeScript typecheck green;
+- production build green;
+- documentation reconciled;
+- exact post-merge `develop` CI green.
+
+---
+
+# Phase 6 — Tauri Desktop Integration
+
+Status: **SCOPED / IMPLEMENTATION NOT STARTED**
+
+Master plan:
+
+`docs/PHASE_6_TAURI_DESKTOP_INTEGRATION_PLAN.md`
+
+Phase 6 introduces the native shell/filesystem boundary while reusing the completed persistence architecture.
+
+## Phase 6 architecture contract
+
+- React/Vite remains the application frontend.
+- `PersistenceCoordinator` remains authoritative for source snapshot, workbook export/import, validation, and hydration.
+- `WorkbookTransport` remains the native byte-persistence seam.
+- browser import/download workflows remain separate from native Open / Save / Save As.
+- the real safe-save filesystem transaction is Rust-backed through narrow Tauri commands so platform durability, replacement, locking, and crash-consistency semantics are explicit.
+- Tauri v2 capabilities follow least privilege; Phase 6 does not grant broad filesystem or shell access for convenience.
+- no business calculation or XLSX parsing moves into Rust.
+
+## Phase 6 task map
+
+```text
+6.0 — Scope, Readiness & Architecture Contract                 COMPLETE (planning only)
+6.1 — Tauri Shell, Build & Security Foundation                 NEXT / NOT STARTED
+    6.1A — Tauri v2 Project Scaffold & Dev/Build Scripts       NEXT
+    6.1B — Minimal Capability / Permission Baseline
+    6.1C — Native Build & CI Smoke Gate
+
+6.2 — Native Workbook Transport                                NOT STARTED
+    6.2A — Native Command / TypeScript Transport Contract
+    6.2B — Native Workbook Load Path
+    6.2C — Staged Save, Backup & Replacement Transaction
+    6.2D — Durability, Cleanup & Error Mapping
+
+6.3 — Desktop Workbook Open / Save / Save As Workflow          NOT STARTED
+    6.3A — Native Open Workflow
+    6.3B — Native Save As Workflow
+    6.3C — Save to Active Workbook Path
+    6.3D — Desktop Workbook Session Identity & UI State
+
+6.4 — Recovery, Concurrency & Filesystem Safety                NOT STARTED
+    6.4A — Backup Location / Naming / Retention Policy
+    6.4B — External Change & Concurrent Access Policy
+    6.4C — Crash / Interrupted-Save Recovery Policy
+    6.4D — Recovery UX & Failure-State Regression
+
+6.5 — Desktop Integration & Operational UX                     NOT STARTED
+    6.5A — Browser-vs-Desktop Runtime Composition
+    6.5B — Unsaved/Dirty-State & Close/Open Guard Policy
+    6.5C — Native Path / Recent-Workbook UX Boundary
+    6.5D — Desktop Security / Permission Review
+
+6.6 — Packaging, Platform Validation & Completion Gate         NOT STARTED
+    6.6A — Desktop Bundle Configuration
+    6.6B — Native CI / Platform Test Matrix
+    6.6C — Installer / Distribution Smoke Validation
+    6.6D — Phase 6 Regression & Completion Gate
+```
+
+Do not begin 6.2 native filesystem behavior until the 6.1 shell/build/security foundation is merged and green.
+
+---
+
+# Phase 7 — Reporting & Operational Polish
+
+Status: **PLANNED**
+
+Expected later work may include:
+
+- business/reporting dashboards;
+- printable/exportable operational summaries;
+- usability/accessibility polish;
+- advanced filtering/search;
+- workflow/productivity improvements;
+- deployment/update/operational documentation.
+
+Phase 7 scope should be revisited after the desktop/native persistence workflow is stable.
+
+---
+
+## Current Next Action
+
+```text
+6.1A — Tauri v2 Project Scaffold & Dev/Build Scripts
+NEXT / NOT STARTED
+```
+
+Phase 6 implementation may begin only after this scope plan is merged and its exact post-merge `develop` CI is green.

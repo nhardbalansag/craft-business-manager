@@ -1,0 +1,1155 @@
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  materialService,
+  mixPresetService,
+  productService,
+  yieldHistoryService,
+  yieldSampleEvidenceService,
+} from '../../application/session';
+import {
+  type EffectiveYieldSelection,
+  YieldHistoryServiceError,
+} from '../../application/yieldSamples/YieldHistoryService';
+import { nextSequentialId } from '../../domain/identifiers';
+import type { Material } from '../../domain/materials';
+import { isMaterialCupWeightBridge } from '../../domain/materials';
+import type { MixPreset } from '../../domain/mixPresets';
+import { isMixPresetCompatibleWithCategory } from '../../domain/mixPresets';
+import type { Product } from '../../domain/products';
+import { PRODUCT_CATEGORY_RULES } from '../../domain/products';
+import {
+  SUPPORTED_UNITS,
+  areUnitsCompatible,
+  type InputUnit,
+} from '../../domain/units';
+import type { YieldSample } from '../../domain/yieldSamples';
+import { YieldProductSearchPicker } from './YieldProductSearchPicker';
+import { AppIcon } from '../icons/AppIcon';
+import './yield.css';
+import './yieldEnhancement.css';
+
+type YieldInputForm = {
+  key: string;
+  materialId: string;
+  quantity: string;
+  unit: InputUnit;
+};
+
+type YieldFormState = {
+  id: string;
+  mixPresetId: string;
+  goodPieces: string;
+  rejectedPieces: string;
+  recordedAt: string;
+  notes: string;
+  materialInputs: YieldInputForm[];
+};
+
+type DraftAction = { kind: 'product'; id: string } | { kind: 'copy'; sample: YieldSample } | { kind: 'reset' };
+
+function draftKey(form: YieldFormState): string {
+  return JSON.stringify({ ...form, materialInputs: form.materialInputs.map(({ key: _key, ...input }) => input) });
+}
+
+type YieldHistorySort = 'newest' | 'oldest';
+type YieldOutcomeFilter = 'all' | 'clean' | 'with-rejects';
+
+let inputSequence = 0;
+
+function localDateTimeValue(): string {
+  const now = new Date();
+  const local = new Date(now.getTime() - now.getTimezoneOffset() * 60_000);
+  return local.toISOString().slice(0, 16);
+}
+
+function newInput(unit: InputUnit = 'g'): YieldInputForm {
+  inputSequence += 1;
+  return {
+    key: `yield-input-${inputSequence}`,
+    materialId: '',
+    quantity: '',
+    unit,
+  };
+}
+
+function emptyForm(mixPresetId = ''): YieldFormState {
+  return {
+    id: '',
+    mixPresetId,
+    goodPieces: '1',
+    rejectedPieces: '0',
+    recordedAt: localDateTimeValue(),
+    notes: '',
+    materialInputs: [newInput()],
+  };
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : 'Something went wrong. Please check the evidence and try again.';
+}
+
+function formatDate(value: string): string {
+  const parsed = new Date(value);
+  return Number.isFinite(parsed.getTime()) ? parsed.toLocaleString() : value;
+}
+
+function formatNumber(value: number, maximumFractionDigits = 6): string {
+  return value.toLocaleString(undefined, { maximumFractionDigits });
+}
+
+function defectRate(sample: YieldSample): number {
+  const total = sample.goodPieces + sample.rejectedPieces;
+  return total === 0 ? 0 : sample.rejectedPieces / total;
+}
+
+function numericField(value: string): number | null {
+  if (!value.trim()) return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+export function YieldPage() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [materials, setMaterials] = useState<Material[]>([]);
+  const [mixPresets, setMixPresets] = useState<MixPreset[]>([]);
+  const [selectedProductId, setSelectedProductId] = useState('');
+  const [history, setHistory] = useState<YieldSample[]>([]);
+  const [knownSampleIds, setKnownSampleIds] = useState<string[]>([]);
+  const [effective, setEffective] = useState<EffectiveYieldSelection | null>(null);
+  const [effectiveNotice, setEffectiveNotice] = useState('Select a product to inspect yield history.');
+  const [loading, setLoading] = useState(true);
+  const [masterError, setMasterError] = useState<string | null>(null);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
+  const [historyQuery, setHistoryQuery] = useState('');
+  const [historySort, setHistorySort] = useState<YieldHistorySort>('newest');
+  const [historyOutcome, setHistoryOutcome] = useState<YieldOutcomeFilter>('all');
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [form, setForm] = useState<YieldFormState>(() => emptyForm());
+  const [draftBaseline, setDraftBaseline] = useState(() => draftKey(form));
+  const [pendingAction, setPendingAction] = useState<DraftAction | null>(null);
+  const [busy, setBusy] = useState<'save' | 'delete' | 'preference' | null>(null);
+  const mutationInFlight = useRef(false);
+  const historyRequest = useRef(0);
+  const draftWarning = useRef<HTMLDivElement>(null);
+  const draftDirty = draftKey(form) !== draftBaseline;
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  const selectedProduct = useMemo(
+    () => products.find((product) => product.id === selectedProductId) ?? null,
+    [products, selectedProductId],
+  );
+
+  const activeMaterials = useMemo(
+    () => materials.filter((material) => material.isActive),
+    [materials],
+  );
+
+  const compatibleMixes = useMemo(() => {
+    if (!selectedProduct) return [];
+    return mixPresets.filter(
+      (preset) => preset.isActive && isMixPresetCompatibleWithCategory(preset, selectedProduct.category),
+    );
+  }, [mixPresets, selectedProduct]);
+
+  const materialById = useMemo(
+    () => new Map(materials.map((material) => [material.id.toLocaleLowerCase(), material])),
+    [materials],
+  );
+
+  const mixById = useMemo(
+    () => new Map(mixPresets.map((preset) => [preset.id.toLocaleLowerCase(), preset])),
+    [mixPresets],
+  );
+
+  const draftGoodPieces = numericField(form.goodPieces);
+  const draftRejectedPieces = numericField(form.rejectedPieces);
+  const draftOutcomeReady = draftGoodPieces !== null && Number.isInteger(draftGoodPieces) && draftGoodPieces >= 1
+    && draftRejectedPieces !== null && Number.isInteger(draftRejectedPieces) && draftRejectedPieces >= 0;
+  const draftTotalPieces = draftOutcomeReady ? draftGoodPieces + draftRejectedPieces : null;
+  const draftDefectRate = draftOutcomeReady ? draftRejectedPieces / (draftGoodPieces + draftRejectedPieces) : null;
+  const draftGoodYield = draftOutcomeReady ? draftGoodPieces / (draftGoodPieces + draftRejectedPieces) : null;
+  const completeMaterialInputs = form.materialInputs.filter((input) => {
+    const material = materialById.get(input.materialId.toLocaleLowerCase());
+    const quantity = numericField(input.quantity);
+    return material?.isActive && quantity !== null && quantity > 0
+      && (areUnitsCompatible(input.unit, material.baseUnit) || isMaterialCupWeightBridge(input.unit, material.baseUnit));
+  }).length;
+  const draftMixReady = !form.mixPresetId || compatibleMixes.some((mix) => mix.id === form.mixPresetId);
+  const generatedSampleId = useMemo(() => nextSequentialId(knownSampleIds, 'YLD'), [knownSampleIds]);
+  const draftReferenceReady = Boolean(Number.isFinite(new Date(form.recordedAt).getTime()) && draftMixReady);
+  const draftMaterialsReady = form.materialInputs.length > 0 && completeMaterialInputs === form.materialInputs.length;
+  const draftReady = Boolean(selectedProduct?.isActive && draftReferenceReady && draftMaterialsReady && draftOutcomeReady);
+
+  function replaceDraft(next: YieldFormState) {
+    setForm(next);
+    setDraftBaseline(draftKey(next));
+    setPendingAction(null);
+  }
+
+  useEffect(() => {
+    if (pendingAction) draftWarning.current?.focus();
+  }, [pendingAction]);
+
+  const loadHistory = useCallback(async (productId: string) => {
+    const request = ++historyRequest.current;
+    setHistory([]);
+    setEffective(null);
+    setHistoryError(null);
+    setEffectiveNotice(productId ? 'Loading yield evidence...' : 'Select a product to inspect yield history.');
+    setHistoryLoading(Boolean(productId));
+    if (!productId) return;
+    try {
+      const nextHistory = await yieldHistoryService.listHistory(productId);
+      if (request !== historyRequest.current) return;
+      let nextEffective: EffectiveYieldSelection | null = null;
+      let notice: string;
+      try {
+        nextEffective = await yieldHistoryService.getEffective(productId);
+        if (nextEffective.selectionMode === 'preferred') {
+          notice = `Preferred sample ${nextEffective.sample.id} is driving learned requirements until you choose another sample or return to automatic selection.`;
+        } else if (nextEffective.preferredSampleUnavailable && nextEffective.preferredSampleId) {
+          notice = `Preferred sample ${nextEffective.preferredSampleId} is unavailable, so ${nextEffective.sample.id} is temporarily being used as the latest valid fallback.`;
+        } else {
+          notice = nextEffective.skippedInvalidSampleIds.length > 0
+            ? `${nextEffective.skippedInvalidSampleIds.length} newer sample(s) were skipped because they cannot currently be derived.`
+            : 'The newest currently derivable sample is effective automatically.';
+        }
+      } catch (error) {
+        if (error instanceof YieldHistoryServiceError && error.code === 'NO_SAMPLES') {
+          notice = 'No yield samples have been recorded for this product yet.';
+        } else if (error instanceof YieldHistoryServiceError && error.code === 'NO_VALID_SAMPLES') {
+          notice = 'Yield history exists, but no sample can currently produce learned requirements. Check material calibration and references.';
+        } else {
+          throw error;
+        }
+      }
+      if (request !== historyRequest.current) return;
+      setHistory(nextHistory);
+      setEffective(nextEffective);
+      setEffectiveNotice(notice);
+    } catch (error) {
+      if (request !== historyRequest.current) return;
+      const message = errorMessage(error);
+      setHistoryError(message);
+      setEffectiveNotice(message);
+    } finally {
+      if (request === historyRequest.current) setHistoryLoading(false);
+    }
+  }, []);
+
+  const loadMasters = useCallback(async () => {
+    setLoading(true);
+    setMasterError(null);
+    try {
+      const [nextProducts, nextMaterials, nextMixes, nextSamples] = await Promise.all([
+        productService.listProducts(),
+        materialService.listMaterials(),
+        mixPresetService.listMixPresets(),
+        yieldSampleEvidenceService.listSamples(),
+      ]);
+      setProducts(nextProducts);
+      setMaterials(nextMaterials);
+      setMixPresets(nextMixes);
+      setKnownSampleIds(nextSamples.map((sample) => sample.id));
+      setSelectedProductId((current) => {
+        if (current && nextProducts.some((product) => product.id === current)) return current;
+        return nextProducts.find((product) => product.isActive)?.id ?? nextProducts[0]?.id ?? '';
+      });
+    } catch (error) {
+      setMasterError(errorMessage(error));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadMasters();
+  }, [loadMasters]);
+
+  useEffect(() => {
+    void loadHistory(selectedProductId);
+    const product = products.find((item) => item.id === selectedProductId);
+    replaceDraft(emptyForm(product?.mixPresetId ?? ''));
+    setFeedback(null);
+    setPendingDeleteId(null);
+    setHistoryQuery('');
+    setHistorySort('newest');
+    setHistoryOutcome('all');
+    return () => { historyRequest.current += 1; };
+  }, [loadHistory, products, selectedProductId]);
+
+  const effectiveId = effective?.sample.id ?? null;
+  const skippedIds = useMemo(
+    () => new Set(effective?.skippedInvalidSampleIds ?? []),
+    [effective],
+  );
+
+  const historySnapshot = useMemo(() => {
+    let goodPieces = 0;
+    let rejectedPieces = 0;
+    let latest: YieldSample | null = null;
+    for (const sample of history) {
+      goodPieces += sample.goodPieces;
+      rejectedPieces += sample.rejectedPieces;
+      if (!latest || new Date(sample.recordedAt).getTime() > new Date(latest.recordedAt).getTime()) latest = sample;
+    }
+    const totalPieces = goodPieces + rejectedPieces;
+    return {
+      totalSamples: history.length,
+      goodPieces,
+      rejectedPieces,
+      goodRate: totalPieces > 0 ? goodPieces / totalPieces : null,
+      latest,
+      cleanBatches: history.filter((sample) => sample.rejectedPieces === 0).length,
+      batchesWithRejects: history.filter((sample) => sample.rejectedPieces > 0).length,
+    };
+  }, [history]);
+
+  const visibleHistory = useMemo(() => {
+    const normalizedQuery = historyQuery.trim().toLocaleLowerCase();
+    const filtered = history.filter((sample) => {
+      if (historyOutcome === 'clean' && sample.rejectedPieces !== 0) return false;
+      if (historyOutcome === 'with-rejects' && sample.rejectedPieces === 0) return false;
+      if (!normalizedQuery) return true;
+      const mixName = sample.mixPresetId
+        ? mixById.get(sample.mixPresetId.toLocaleLowerCase())?.name ?? sample.mixPresetId
+        : 'no mix preset';
+      const materialNames = sample.materialInputs.map((input) =>
+        materialById.get(input.materialId.toLocaleLowerCase())?.name ?? input.materialId,
+      );
+      return [
+        sample.id,
+        sample.notes ?? '',
+        formatDate(sample.recordedAt),
+        mixName,
+        ...materialNames,
+      ].some((value) => value.toLocaleLowerCase().includes(normalizedQuery));
+    });
+
+    return [...filtered].sort((left, right) => {
+      const leftTime = new Date(left.recordedAt).getTime();
+      const rightTime = new Date(right.recordedAt).getTime();
+      const byTime = leftTime - rightTime;
+      const byId = left.id.localeCompare(right.id, undefined, { sensitivity: 'base' });
+      return historySort === 'oldest' ? byTime || byId : -(byTime || byId);
+    });
+  }, [history, historyOutcome, historyQuery, historySort, materialById, mixById]);
+
+  function unitOptions(materialId: string): InputUnit[] {
+    const material = materialById.get(materialId.toLocaleLowerCase());
+    if (!material) return [...SUPPORTED_UNITS];
+    return SUPPORTED_UNITS.filter(
+      (unit) =>
+        areUnitsCompatible(unit, material.baseUnit) ||
+        isMaterialCupWeightBridge(unit, material.baseUnit),
+    );
+  }
+
+  function updateMaterialInput(key: string, changes: Partial<Omit<YieldInputForm, 'key'>>) {
+    setForm((current) => ({
+      ...current,
+      materialInputs: current.materialInputs.map((input) =>
+        input.key === key ? { ...input, ...changes } : input,
+      ),
+    }));
+  }
+
+  function changeMaterial(key: string, materialId: string) {
+    const material = materialById.get(materialId.toLocaleLowerCase());
+    updateMaterialInput(key, {
+      materialId,
+      unit: (material?.baseUnit ?? 'g') as InputUnit,
+    });
+  }
+
+  function addMaterialInput() {
+    setForm((current) => ({
+      ...current,
+      materialInputs: [...current.materialInputs, newInput()],
+    }));
+  }
+
+  function removeMaterialInput(key: string) {
+    setForm((current) => ({
+      ...current,
+      materialInputs: current.materialInputs.filter((input) => input.key !== key),
+    }));
+  }
+
+  function resetDraft() {
+    replaceDraft(emptyForm(selectedProduct?.mixPresetId ?? ''));
+    setFeedback(null);
+  }
+
+  function useSampleAsDraft(sample: YieldSample) {
+    if (!selectedProduct?.isActive) return;
+    setForm({
+      id: '',
+      mixPresetId: mixById.get(sample.mixPresetId?.toLocaleLowerCase() ?? '')?.id ?? sample.mixPresetId ?? '',
+      goodPieces: String(sample.goodPieces),
+      rejectedPieces: String(sample.rejectedPieces),
+      recordedAt: localDateTimeValue(),
+      notes: '',
+      materialInputs: sample.materialInputs.map((input) => ({
+        ...newInput(input.unit),
+        materialId: materialById.get(input.materialId.toLocaleLowerCase())?.id ?? input.materialId,
+        quantity: String(input.quantity),
+        unit: input.unit,
+      })),
+    });
+    setFeedback({
+      type: 'success',
+      message: `New draft started from ${sample.id}. A fresh Sample ID will be assigned automatically; replace copied quantities with this batch's actual evidence before recording.`,
+    });
+  }
+
+  function performDraftAction(action: DraftAction) {
+    setPendingAction(null);
+    if (action.kind === 'product') setSelectedProductId(action.id);
+    else if (action.kind === 'copy') useSampleAsDraft(action.sample);
+    else resetDraft();
+  }
+
+  function requestDraftAction(action: DraftAction) {
+    if (mutationInFlight.current) return;
+    if (draftDirty) setPendingAction(action);
+    else performDraftAction(action);
+  }
+
+  function clearHistoryFilters() {
+    setHistoryQuery('');
+    setHistorySort('newest');
+    setHistoryOutcome('all');
+  }
+
+  async function submitSample(event: FormEvent) {
+    event.preventDefault();
+    if (mutationInFlight.current) return;
+    setFeedback(null);
+    if (!selectedProduct) {
+      setFeedback({ type: 'error', message: 'Select a product first.' });
+      return;
+    }
+
+    if (!draftReady) {
+      setFeedback({ type: 'error', message: 'Complete the reference, active material quantities, and valid whole-piece counts before recording.' });
+      return;
+    }
+    mutationInFlight.current = true;
+    setBusy('save');
+    try {
+      const recordedAt = new Date(form.recordedAt);
+      const currentSamples = await yieldSampleEvidenceService.listSamples();
+      const reservedIds = new Set([...knownSampleIds, ...currentSamples.map((sample) => sample.id)]);
+      const sampleId = nextSequentialId([...reservedIds], 'YLD');
+      await yieldSampleEvidenceService.recordSample({
+        id: sampleId,
+        productId: selectedProduct.id,
+        mixPresetId: form.mixPresetId.trim() || undefined,
+        materialInputs: form.materialInputs.map((input) => ({
+          materialId: input.materialId,
+          quantity: Number(input.quantity),
+          unit: input.unit,
+        })),
+        goodPieces: Number(form.goodPieces),
+        rejectedPieces: Number(form.rejectedPieces),
+        recordedAt: Number.isFinite(recordedAt.getTime()) ? recordedAt.toISOString() : form.recordedAt,
+        notes: form.notes,
+      });
+
+      setKnownSampleIds((current) => current.includes(sampleId) ? current : [...current, sampleId]);
+      replaceDraft(emptyForm(selectedProduct.mixPresetId ?? ''));
+      setFeedback({ type: 'success', message: `Yield sample ${sampleId} recorded.` });
+      await loadHistory(selectedProduct.id);
+    } catch (error) {
+      setFeedback({ type: 'error', message: errorMessage(error) });
+    } finally {
+      mutationInFlight.current = false;
+      setBusy(null);
+    }
+  }
+
+  async function preferSample(sample: YieldSample) {
+    if (mutationInFlight.current || !selectedProduct) return;
+    mutationInFlight.current = true;
+    setBusy('preference');
+    setFeedback(null);
+    try {
+      await yieldHistoryService.setPreferred(selectedProduct.id, sample.id);
+      setFeedback({ type: 'success', message: `Yield sample ${sample.id} is now preferred for ${selectedProduct.name}.` });
+      await loadHistory(selectedProduct.id);
+    } catch (error) {
+      setFeedback({ type: 'error', message: errorMessage(error) });
+    } finally {
+      mutationInFlight.current = false;
+      setBusy(null);
+    }
+  }
+
+  async function clearPreferredYield() {
+    if (mutationInFlight.current || !selectedProduct) return;
+    mutationInFlight.current = true;
+    setBusy('preference');
+    setFeedback(null);
+    try {
+      const automatic = await yieldHistoryService.clearPreferred(selectedProduct.id);
+      setFeedback({
+        type: 'success',
+        message: `Automatic Yield selection restored. ${automatic.sample.id} is now effective.`,
+      });
+      await loadHistory(selectedProduct.id);
+    } catch (error) {
+      setFeedback({ type: 'error', message: errorMessage(error) });
+    } finally {
+      mutationInFlight.current = false;
+      setBusy(null);
+    }
+  }
+
+  async function deleteSample(sample: YieldSample) {
+    if (mutationInFlight.current) return;
+    mutationInFlight.current = true;
+    setBusy('delete');
+    setFeedback(null);
+    try {
+      await yieldHistoryService.deleteSample(sample.id);
+      setPendingDeleteId(null);
+      setFeedback({ type: 'success', message: `Yield sample ${sample.id} deleted as a correction.` });
+      await loadHistory(sample.productId);
+    } catch (error) {
+      setFeedback({ type: 'error', message: errorMessage(error) });
+    } finally {
+      mutationInFlight.current = false;
+      setBusy(null);
+    }
+  }
+
+  const effectiveTotal = effective
+    ? effective.learning.goodPieces + effective.learning.rejectedPieces
+    : 0;
+  const effectiveGoodYield = effective && effectiveTotal > 0
+    ? effective.learning.goodPieces / effectiveTotal
+    : null;
+  const historyFiltered = historyQuery.trim() || historyOutcome !== 'all' || historySort !== 'newest';
+
+  return (
+    <section className="materials-workspace yield-workspace" aria-labelledby="yield-heading">
+      <div className="page-heading-row yield-page-heading">
+        <div>
+          <p className="eyebrow">PHASE 2 · REAL PRODUCTION EVIDENCE</p>
+          <h1 id="yield-heading">Yield &amp; history</h1>
+          <p className="page-lead">
+            Record what a real batch consumed and how many good or rejected pieces it produced. Choose a preferred historical sample when it best represents normal production, or leave selection automatic to use the newest currently derivable sample.
+          </p>
+        </div>
+        <div
+          className="session-badge"
+          title="Yield evidence is part of the authoritative workbook source dataset when you export or save a workbook copy."
+        >
+          <span className="status-dot" aria-hidden="true" />Included in workbook exports
+        </div>
+      </div>
+
+      <ol className="yield-guide panel" aria-label="Yield workflow">
+        <li>
+          <span className="yield-step-number">1</span>
+          <div><strong>Choose the product</strong><small>Yield history and learned requirements belong to one product.</small></div>
+        </li>
+        <li>
+          <span className="yield-step-number">2</span>
+          <div><strong>Record the real batch</strong><small>Enter actual material consumption plus good and rejected pieces.</small></div>
+        </li>
+        <li>
+          <span className="yield-step-number">3</span>
+          <div><strong>Review effective learning</strong><small>The newest derivable sample becomes the active per-good-piece evidence.</small></div>
+        </li>
+      </ol>
+
+      {loading ? (
+        <div className="panel yield-state-panel" role="status" aria-live="polite">
+          <div className="yield-state-icon" aria-hidden="true"><AppIcon name="activity" size={28} /></div>
+          <div>
+            <h2>Loading yield workspace</h2>
+            <p>Checking products, materials, mix presets, and production evidence…</p>
+          </div>
+        </div>
+      ) : masterError ? (
+        <div className="panel yield-state-panel yield-state-error" role="alert">
+          <div className="yield-state-icon" aria-hidden="true"><AppIcon name="alert" size={27} /></div>
+          <div>
+            <h2>Yield workspace unavailable</h2>
+            <p>{masterError}</p>
+            <button type="button" className="button button-quiet" onClick={() => void loadMasters()}>
+              Retry loading
+            </button>
+          </div>
+        </div>
+      ) : products.length === 0 ? (
+        <div className="panel yield-state-panel">
+          <div className="yield-state-icon" aria-hidden="true"><AppIcon name="products" size={27} /></div>
+          <div>
+            <h2>Create a product first</h2>
+            <p>Yield evidence needs a Product record before a real production batch can be recorded.</p>
+          </div>
+        </div>
+      ) : (
+        <>
+          <div className="yield-product-bar panel">
+            <div className="yield-product-picker-shell">
+              <YieldProductSearchPicker
+                products={products}
+                selectedProductId={selectedProductId}
+                disabled={products.length === 0 || Boolean(busy)}
+                onSelect={(productId) => requestDraftAction({ kind: 'product', id: productId })}
+              />
+              <select
+                className="sr-only yield-product-native-select"
+                aria-hidden="true"
+                tabIndex={-1}
+                value={selectedProductId}
+                disabled={products.length === 0 || Boolean(busy)}
+                onChange={(event) => requestDraftAction({ kind: 'product', id: event.target.value })}
+              >
+                {products.map((product) => (
+                  <option key={product.id} value={product.id}>
+                    {product.name} · {PRODUCT_CATEGORY_RULES[product.category].label}{product.isActive ? '' : ' · archived'}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="yield-product-context">
+              <div>
+                <span className="yield-context-label">Selected product</span>
+                <strong>{selectedProduct?.name ?? 'Select a product'}</strong>
+                <small>{selectedProduct ? PRODUCT_CATEGORY_RULES[selectedProduct.category].productionStyle : 'No production style'}</small>
+              </div>
+              <div>
+                <span className="yield-context-label">Compatible mixes</span>
+                <strong>{compatibleMixes.length}</strong>
+                <small>{compatibleMixes.length === 1 ? 'active preset' : 'active presets'}</small>
+              </div>
+              <div>
+                <span className="yield-context-label">Evidence</span>
+                <strong>{history.length}</strong>
+                <small>{effectiveId ? `effective: ${effectiveId}` : 'no effective sample yet'}</small>
+              </div>
+              <div>
+                <span className="yield-context-label">Status</span>
+                <strong>{selectedProduct?.isActive ? 'Active' : 'Archived'}</strong>
+                <small>{selectedProduct?.isActive ? 'ready for new evidence' : 'history view only'}</small>
+              </div>
+            </div>
+          </div>
+
+          <section className="yield-insights" aria-label="Yield history snapshot" aria-busy={historyLoading}>
+            {historyLoading || historyError ? (
+              <div className="yield-insight-card yield-insights-message" role="status">
+                <strong>{historyLoading ? 'Loading batch evidence...' : 'Evidence summary unavailable'}</strong>
+                <small>{historyLoading ? 'Reading history for the selected product.' : 'Retry history below to refresh the summary.'}</small>
+              </div>
+            ) : <>
+            <div className="yield-insight-card">
+              <span>Recorded batches</span>
+              <strong>{historySnapshot.totalSamples}</strong>
+              <small>{historySnapshot.latest ? `Latest ${formatDate(historySnapshot.latest.recordedAt)}` : 'No evidence yet'}</small>
+            </div>
+            <div className="yield-insight-card is-primary">
+              <span>Effective good yield</span>
+              <strong>{effectiveGoodYield === null ? '—' : `${formatNumber(effectiveGoodYield * 100, 2)}%`}</strong>
+              <small>{effectiveId ? `From ${effectiveId}` : 'Waiting for derivable evidence'}</small>
+            </div>
+            <div className="yield-insight-card">
+              <span>Historical good-piece rate</span>
+              <strong>{historySnapshot.goodRate === null ? '—' : `${formatNumber(historySnapshot.goodRate * 100, 2)}%`}</strong>
+              <small>{historySnapshot.goodPieces} good · {historySnapshot.rejectedPieces} rejected</small>
+            </div>
+            <div className={`yield-insight-card ${skippedIds.size > 0 ? 'needs-attention' : ''}`}>
+              <span>Evidence needing attention</span>
+              <strong>{skippedIds.size}</strong>
+              <small>{skippedIds.size > 0 ? 'Newer sample(s) skipped from learning' : 'No skipped newer evidence'}</small>
+            </div>
+            </>}
+          </section>
+
+          <div className="materials-layout yield-layout">
+            <section className="yield-evidence-column" aria-labelledby="yield-evidence-column-heading">
+              <div className="yield-column-heading">
+                <span className="yield-column-label">BATCH INPUT</span>
+                <h2 id="yield-evidence-column-heading">Batch evidence</h2>
+                <p>Enter this batch's actual consumption and piece counts. Draft values become evidence when you record the sample.</p>
+              </div>
+            <form className="panel material-form yield-form" aria-busy={Boolean(busy)} aria-label="Yield sample" onSubmit={submitSample}>
+              <div className="panel-heading yield-form-heading">
+                <div>
+                  <p className="panel-kicker">BATCH EVIDENCE</p>
+                  <h2>Record a yield sample</h2>
+                </div>
+                <span className={`status-pill ${draftReady ? 'status-active' : 'yield-draft-status'}`}>
+                  {busy === 'save' ? 'Recording...' : draftReady ? 'Ready to record' : 'Draft incomplete'}
+                </span>
+              </div>
+
+              {pendingAction && (
+                <div className="yield-draft-confirm" role="alert" ref={draftWarning} tabIndex={-1}>
+                  <strong>Keep your unsaved batch?</strong>
+                  <p>{pendingAction.kind === 'product' ? 'Switching products will replace the current draft.' : pendingAction.kind === 'copy' ? `Using ${pendingAction.sample.id} will replace the current draft.` : 'Resetting will clear your current draft.'}</p>
+                  <div>
+                    <button type="button" className="button button-primary" disabled={Boolean(busy)} onClick={() => { setPendingAction(null); }}>Keep editing</button>
+                    <button type="button" className="button button-quiet" disabled={Boolean(busy)} onClick={() => performDraftAction(pendingAction)}>Discard draft and continue</button>
+                  </div>
+                </div>
+              )}
+              <div className="yield-draft-progress" aria-label="Yield draft completion">
+                <span className={draftReferenceReady ? 'complete' : ''}>1 · Reference</span>
+                <span className={draftMaterialsReady ? 'complete' : ''}>2 · Materials</span>
+                <span className={draftOutcomeReady ? 'complete' : ''}>3 · Outcome</span>
+              </div>
+
+              <div className="yield-draft-preview" aria-label="Draft yield preview">
+                <div>
+                  <span>Total pieces</span>
+                  <strong>{draftTotalPieces ?? '—'}</strong>
+                </div>
+                <div>
+                  <span>Good yield</span>
+                  <strong>{draftGoodYield === null ? '—' : `${formatNumber(draftGoodYield * 100, 2)}%`}</strong>
+                </div>
+                <div>
+                  <span>Defect rate</span>
+                  <strong>{draftDefectRate === null ? '—' : `${formatNumber(draftDefectRate * 100, 2)}%`}</strong>
+                </div>
+                <div>
+                  <span>Material lines</span>
+                  <strong>{completeMaterialInputs}/{form.materialInputs.length}</strong>
+                </div>
+              </div>
+              <p className="yield-draft-help">
+                {draftReady
+                  ? 'This draft has the minimum evidence needed to record the batch.'
+                  : 'Use a valid date, complete each active material line, and enter whole-piece counts. The Sample ID is assigned automatically.'}
+              </p>
+
+              <section className="yield-form-section" aria-labelledby="yield-batch-reference-heading">
+                <div className="yield-section-heading">
+                  <span className="yield-section-number">1</span>
+                  <div>
+                    <h3 id="yield-batch-reference-heading">Batch reference</h3>
+                    <p>Identify when the batch happened and which preset, if any, you followed.</p>
+                  </div>
+                </div>
+                <div className="form-grid">
+                  <label className="field">
+                    <span>Sample ID</span>
+                    <input
+                      value={generatedSampleId}
+                      readOnly
+                      aria-readonly="true"
+                      disabled={Boolean(busy) || !selectedProduct?.isActive}
+                    />
+                    <small>Assigned automatically when this batch is recorded. Existing Yield IDs are never changed.</small>
+                  </label>
+                  <label className="field">
+                    <span>Recorded at</span>
+                    <input
+                      type="datetime-local"
+                      value={form.recordedAt}
+                      disabled={Boolean(busy) || !selectedProduct?.isActive}
+                      onChange={(event) => setForm({ ...form, recordedAt: event.target.value })}
+                    />
+                  </label>
+                  <label className="field field-wide">
+                    <span>Mix preset used</span>
+                    <select
+                      value={form.mixPresetId}
+                      disabled={Boolean(busy) || !selectedProduct?.isActive}
+                      onChange={(event) => setForm({ ...form, mixPresetId: event.target.value })}
+                    >
+                      <option value="">No preset / manual batch</option>
+                      {!draftMixReady && <option value={form.mixPresetId}>{mixById.get(form.mixPresetId.toLocaleLowerCase())?.name ?? form.mixPresetId} (unavailable)</option>}
+                      {compatibleMixes.map((preset) => (
+                        <option key={preset.id} value={preset.id}>{preset.name}</option>
+                      ))}
+                    </select>
+                    <small>{draftMixReady ? 'Optional reference. Actual material quantities below remain authoritative.' : 'This copied preset is unavailable. Select an active compatible preset or a manual batch.'}</small>
+                  </label>
+                </div>
+              </section>
+
+              <section className="yield-form-section" aria-labelledby="yield-materials-heading">
+                <div className="yield-section-heading">
+                  <span className="yield-section-number">2</span>
+                  <div>
+                    <h3 id="yield-materials-heading">Materials actually consumed</h3>
+                    <p>Use measured batch consumption, including material lost to rejects, spills, or process waste.</p>
+                  </div>
+                  <span className="yield-line-count">{completeMaterialInputs}/{form.materialInputs.length} complete</span>
+                </div>
+                <div className="yield-inputs">
+                  {form.materialInputs.map((input, index) => (
+                    <div className="yield-input-row" key={input.key}>
+                      <span className="yield-line-index" aria-hidden="true">{index + 1}</span>
+                      <label className="field yield-material-field">
+                        <span>Material {index + 1}</span>
+                        <select
+                          aria-label={`Yield material ${index + 1}`}
+                          value={input.materialId}
+                          disabled={Boolean(busy) || !selectedProduct?.isActive}
+                          onChange={(event) => changeMaterial(input.key, event.target.value)}
+                        >
+                          <option value="">Select material</option>
+                          {input.materialId && !activeMaterials.some((material) => material.id === input.materialId) && (
+                            <option value={input.materialId}>{materialById.get(input.materialId.toLocaleLowerCase())?.name ?? input.materialId} (unavailable)</option>
+                          )}
+                          {activeMaterials.map((material) => (
+                            <option key={material.id} value={material.id}>{material.name} · {material.baseUnit}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="field yield-quantity-field">
+                        <span>Quantity used</span>
+                        <input
+                          aria-label={`Yield quantity ${index + 1}`}
+                          type="number"
+                          min="0.000001"
+                          step="any"
+                          value={input.quantity}
+                          disabled={Boolean(busy) || !selectedProduct?.isActive}
+                          onChange={(event) => updateMaterialInput(input.key, { quantity: event.target.value })}
+                          placeholder="quantity"
+                        />
+                      </label>
+                      <label className="field yield-unit-field">
+                        <span>Unit</span>
+                        <select
+                          aria-label={`Yield unit ${index + 1}`}
+                          value={input.unit}
+                          disabled={Boolean(busy) || !selectedProduct?.isActive || !input.materialId}
+                          onChange={(event) => updateMaterialInput(input.key, { unit: event.target.value as InputUnit })}
+                        >
+                          {unitOptions(input.materialId).map((unit) => <option key={unit} value={unit}>{unit}</option>)}
+                        </select>
+                      </label>
+                      <button
+                        type="button"
+                        className="text-button danger"
+                        aria-label={`Remove yield material ${index + 1}`}
+                        disabled={Boolean(busy) || !selectedProduct?.isActive || form.materialInputs.length === 1}
+                        onClick={() => removeMaterialInput(input.key)}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  className="button button-quiet add-line-button"
+                  disabled={Boolean(busy) || !selectedProduct?.isActive}
+                  onClick={addMaterialInput}
+                >
+                  + Add material
+                </button>
+              </section>
+
+              <section className="yield-form-section" aria-labelledby="yield-outcome-heading">
+                <div className="yield-section-heading">
+                  <span className="yield-section-number">3</span>
+                  <div>
+                    <h3 id="yield-outcome-heading">Batch outcome</h3>
+                    <p>Count saleable pieces separately from rejected pieces so the learned requirement reflects real yield.</p>
+                  </div>
+                </div>
+                <div className="form-grid yield-outcome-grid">
+                  <label className="field">
+                    <span>Good pieces</span>
+                    <input
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={form.goodPieces}
+                      disabled={Boolean(busy) || !selectedProduct?.isActive}
+                      onChange={(event) => setForm({ ...form, goodPieces: event.target.value })}
+                    />
+                  </label>
+                  <label className="field">
+                    <span>Rejected pieces</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={form.rejectedPieces}
+                      disabled={Boolean(busy) || !selectedProduct?.isActive}
+                      onChange={(event) => setForm({ ...form, rejectedPieces: event.target.value })}
+                    />
+                  </label>
+                </div>
+              </section>
+
+              <details className="yield-notes-details">
+                <summary>Optional batch notes</summary>
+                <label className="field">
+                  <span>Notes</span>
+                  <textarea
+                    value={form.notes}
+                    disabled={Boolean(busy) || !selectedProduct?.isActive}
+                    onChange={(event) => setForm({ ...form, notes: event.target.value })}
+                    placeholder="Mold, curing time, spills, batch observation..."
+                  />
+                </label>
+              </details>
+
+              <div className="yield-form-actions">
+                <button
+                  type="button"
+                  className="button button-quiet"
+                  disabled={Boolean(busy) || !selectedProduct?.isActive}
+                  onClick={() => requestDraftAction({ kind: 'reset' })}
+                >
+                  Reset sample
+                </button>
+                <button className="button button-primary" type="submit" disabled={Boolean(busy) || !draftReady}>
+                  {busy === 'save' ? 'Recording sample...' : 'Record yield sample'}
+                </button>
+              </div>
+              {selectedProduct && !selectedProduct.isActive && (
+                <div className="feedback">Archived products keep their history, but new yield evidence cannot be recorded.</div>
+              )}
+              {feedback && (
+                <div
+                  className={`feedback feedback-${feedback.type}`}
+                  role={feedback.type === 'error' ? 'alert' : 'status'}
+                >
+                  {feedback.message}
+                </div>
+              )}
+            </form>
+            </section>
+
+            <section className="yield-history-stack yield-learning-column" aria-labelledby="yield-learning-column-heading">
+              <div className="yield-column-heading">
+                <span className="yield-column-label">SAVED RESULTS</span>
+                <h2 id="yield-learning-column-heading">Effective learning</h2>
+                <p>Review learned requirements from recorded samples. Editing the batch draft does not change these saved results.</p>
+              </div>
+              <section className="panel effective-yield-card" aria-label="Effective yield learning">
+                <div className="panel-heading">
+                  <div>
+                    <p className="panel-kicker">EFFECTIVE LEARNING</p>
+                    <h2>{effective ? `Sample ${effective.sample.id}` : 'No effective sample'}</h2>
+                  </div>
+                  {effective && (
+                    <span className="status-pill status-active">
+                      {effective.selectionMode === 'preferred' ? 'Preferred effective' : 'Effective'}
+                    </span>
+                  )}
+                </div>
+                <p className="yield-notice">{effectiveNotice}</p>
+                {effective?.preferredSampleId && (
+                  <div className="yield-preference-actions">
+                    <button
+                      type="button"
+                      className="button button-quiet"
+                      disabled={Boolean(busy)}
+                      onClick={() => void clearPreferredYield()}
+                    >
+                      {busy === 'preference' ? 'Updating selection…' : 'Use latest valid automatically'}
+                    </button>
+                  </div>
+                )}
+                {effective && (
+                  <>
+                    <div className="yield-effective-meta">
+                      <span>Recorded {formatDate(effective.sample.recordedAt)}</span>
+                      <span>{effective.learning.materialRequirements.length} learned material requirement{effective.learning.materialRequirements.length === 1 ? '' : 's'}</span>
+                    </div>
+                    <div className="yield-metrics">
+                      <div><span>Good</span><strong>{effective.learning.goodPieces}</strong></div>
+                      <div><span>Rejected</span><strong>{effective.learning.rejectedPieces}</strong></div>
+                      <div><span>Good yield</span><strong>{effectiveGoodYield === null ? '—' : `${formatNumber(effectiveGoodYield * 100, 2)}%`}</strong></div>
+                      <div><span>Defect rate</span><strong>{formatNumber(effective.learning.defectRate * 100, 2)}%</strong></div>
+                    </div>
+                    <div className="learned-requirements-heading">
+                      <strong>Material required per good piece</strong>
+                      <span>Derived from this effective batch</span>
+                    </div>
+                    <div className="learned-requirements">
+                      {effective.learning.materialRequirements.map((requirement) => (
+                        <div key={requirement.materialId}>
+                          <span>{materialById.get(requirement.materialId.toLocaleLowerCase())?.name ?? requirement.materialId}</span>
+                          <strong>{formatNumber(requirement.baseQuantityPerGoodPiece)} {requirement.baseUnit} / good piece</strong>
+                          <small>{requirement.conversionSource}{requirement.calibrationId ? ` · ${requirement.calibrationId}` : ''}</small>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </section>
+
+              <section className="panel material-list yield-history-panel" aria-label="Yield history">
+                <div className="panel-heading list-heading yield-history-heading-row">
+                  <div>
+                    <p className="panel-kicker">IMMUTABLE HISTORY</p>
+                    <h2>Recorded batches</h2>
+                    <p className="yield-history-subtitle">Compare outcomes, reuse a previous setup for a new batch, or correct evidence deliberately.</p>
+                  </div>
+                  <div className="material-count"><strong>{history.length}</strong><span>samples</span></div>
+                </div>
+
+                <div className="yield-history-toolbar">
+                  <label className="field yield-history-search">
+                    <span>Search history</span>
+                    <input
+                      aria-label="Search yield history"
+                      type="search"
+                      value={historyQuery}
+                      onChange={(event) => setHistoryQuery(event.target.value)}
+                      placeholder="Sample, material, mix, notes…"
+                    />
+                  </label>
+                  <label className="field yield-history-outcome">
+                    <span>Outcome</span>
+                    <select
+                      aria-label="Filter yield history by outcome"
+                      value={historyOutcome}
+                      onChange={(event) => setHistoryOutcome(event.target.value as YieldOutcomeFilter)}
+                    >
+                      <option value="all">All outcomes</option>
+                      <option value="clean">Zero rejects ({historySnapshot.cleanBatches})</option>
+                      <option value="with-rejects">With rejects ({historySnapshot.batchesWithRejects})</option>
+                    </select>
+                  </label>
+                  <label className="field yield-history-sort">
+                    <span>Sort</span>
+                    <select
+                      aria-label="Sort yield history"
+                      value={historySort}
+                      onChange={(event) => setHistorySort(event.target.value as YieldHistorySort)}
+                    >
+                      <option value="newest">Newest first</option>
+                      <option value="oldest">Oldest first</option>
+                    </select>
+                  </label>
+                  {historyFiltered && (
+                    <button type="button" className="button button-quiet yield-clear-history" onClick={clearHistoryFilters}>
+                      Clear filters
+                    </button>
+                  )}
+                </div>
+
+                {historyError ? (
+                  <div className="yield-history-error" role="alert">
+                    <strong>Yield history unavailable</strong>
+                    <span>{historyError}</span>
+                    <button type="button" className="button button-quiet" onClick={() => void loadHistory(selectedProductId)}>
+                      Retry history
+                    </button>
+                  </div>
+                ) : (
+                  <div className="yield-history-list">
+                    {historyLoading ? (
+                      <div className="empty-state"><p>Loading yield history…</p></div>
+                    ) : history.length === 0 ? (
+                      <div className="empty-state">
+                        <div className="empty-icon" aria-hidden="true"><AppIcon name="history" size={28} /></div>
+                        <h3>No yield history yet</h3>
+                        <p>Record a real sample batch to start learning material consumption per good piece.</p>
+                      </div>
+                    ) : visibleHistory.length === 0 ? (
+                      <div className="empty-state">
+                        <div className="empty-icon" aria-hidden="true"><AppIcon name="search" size={28} /></div>
+                        <h3>No matching batches</h3>
+                        <p>Try a different sample ID, material, mix preset, outcome, date, or note.</p>
+                        <button type="button" className="button button-quiet" onClick={clearHistoryFilters}>Clear history filters</button>
+                      </div>
+                    ) : visibleHistory.map((sample) => {
+                      const sampleIsEffective = sample.id === effectiveId;
+                      const sampleIsPreferred = effective?.preferredSampleId === sample.id;
+                      const skippedInvalid = skippedIds.has(sample.id);
+                      return (
+                        <article
+                          className={`yield-history-item ${sampleIsEffective ? 'effective-history-item' : ''}`}
+                          key={sample.id}
+                          aria-label={`Yield sample ${sample.id}`}
+                        >
+                          <div className="yield-history-heading">
+                            <div>
+                              <strong>{sample.id}</strong>
+                              <span>{formatDate(sample.recordedAt)}</span>
+                            </div>
+                            <div className="history-badges">
+                              {sampleIsPreferred && <span className="status-pill status-active">Preferred</span>}
+                              {sampleIsEffective && !sampleIsPreferred && <span className="status-pill status-active">Effective</span>}
+                              {skippedInvalid && <span className="status-pill status-warning">Skipped invalid</span>}
+                              <span className={`status-pill ${sample.rejectedPieces === 0 ? 'yield-clean-badge' : 'yield-reject-badge'}`}>
+                                {sample.rejectedPieces === 0 ? 'Zero rejects' : `${sample.rejectedPieces} rejected`}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="history-summary history-summary-grid">
+                            <span><small>Good pieces</small><strong>{sample.goodPieces}</strong></span>
+                            <span><small>Good yield</small><strong>{formatNumber((1 - defectRate(sample)) * 100, 2)}%</strong></span>
+                            <span><small>Defect rate</small><strong>{formatNumber(defectRate(sample) * 100, 2)}%</strong></span>
+                            <span><small>Mix</small><strong>{sample.mixPresetId ? (mixById.get(sample.mixPresetId.toLocaleLowerCase())?.name ?? sample.mixPresetId) : 'Manual batch'}</strong></span>
+                          </div>
+                          <details className="history-evidence-details">
+                            <summary>Evidence details · {sample.materialInputs.length} material{sample.materialInputs.length === 1 ? '' : 's'}</summary>
+                            <div className="history-materials">
+                              {sample.materialInputs.map((input, index) => (
+                                <span key={`${input.materialId}-${index}`}>
+                                  {materialById.get(input.materialId.toLocaleLowerCase())?.name ?? input.materialId}: {formatNumber(input.quantity)} {input.unit}
+                                </span>
+                              ))}
+                            </div>
+                            {sample.notes && <p className="history-notes">{sample.notes}</p>}
+                          </details>
+                          <div className="history-actions yield-history-actions">
+                            <button
+                              type="button"
+                              className="button button-quiet"
+                              disabled={Boolean(busy)}
+                              onClick={() => void preferSample(sample)}
+                            >
+                              {sampleIsPreferred ? 'Preferred yield' : 'Use as preferred yield'}
+                            </button>
+                            <button
+                              type="button"
+                              className="button button-quiet"
+                              disabled={Boolean(busy) || !selectedProduct?.isActive}
+                              onClick={() => requestDraftAction({ kind: 'copy', sample })}
+                            >
+                              Use as new draft
+                            </button>
+                            {pendingDeleteId === sample.id ? (
+                              <div className="yield-delete-confirm" role="group" aria-label={`Confirm deletion of ${sample.id}`}>
+                                <span>Delete this evidence as a correction?</span>
+                                <button type="button" className="text-button" disabled={Boolean(busy)} onClick={() => setPendingDeleteId(null)}>Keep sample</button>
+                                <button type="button" className="text-button danger" disabled={Boolean(busy)} onClick={() => void deleteSample(sample)}>Confirm correction delete</button>
+                              </div>
+                            ) : (
+                              <button type="button" className="text-button danger" disabled={Boolean(busy)} onClick={() => setPendingDeleteId(sample.id)}>
+                                Delete as correction
+                              </button>
+                            )}
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+                )}
+                <div className="list-footer yield-history-footer">
+                  <span>
+                    {historyFiltered
+                      ? `Showing ${visibleHistory.length} of ${history.length} samples`
+                      : 'Samples are immutable evidence; deletion requires explicit correction confirmation.'}
+                  </span>
+                  <span>{effectiveId ? `${effective?.selectionMode === 'preferred' ? 'Preferred effective' : 'Effective'}: ${effectiveId}` : 'No effective sample'}</span>
+                </div>
+              </section>
+            </section>
+          </div>
+        </>
+      )}
+    </section>
+  );
+}

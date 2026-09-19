@@ -1,0 +1,168 @@
+/* Loaded after workspace styles so shared breakpoints behave consistently. */
+input, select, textarea { min-width: 0; }
+.materials-workspace :where(section, article, form, fieldset, div, label, details, li) { min-width: 0; }
+.calibration-table .cost-detail { white-space: normal; overflow-wrap: anywhere; }
+.product-stock-card { overflow-wrap: anywhere; }
+.nav-item { flex-shrink: 0; }
+.workbook-tools-close-row { display: flex; justify-content: flex-end; margin-bottom: 12px; }
+.app-shell :is(button, summary, a):focus-visible { outline: 3px solid #866439; outline-offset: 3px; }
+
+/* Coarse pointers include tablets and touch laptops wider than the phone layout. */
+@media (max-width: 760px), (pointer: coarse) {
+  .app-shell button, .app-shell summary, .app-shell .source-link,
+  .app-shell .materials-workspace :is(button, summary) {
+    min-height: 44px;
+    min-width: 44px;
+    touch-action: manipulation;
+  }
+  .app-shell .production-capacity-action { min-height: 44px; }
+  .app-shell :is(input, select, textarea) { font-size: 16px; }
+  .app-shell input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+  .app-shell select { min-height: 44px; }
+  .category-checkboxes label, .production-toggle, .product-label-options label { min-height: 44px; }
+  .app-shell :is(.yield-product-search-input-wrap, .production-product-search-input-wrap) input { padding-right: 56px; }
+}
+
+@media (max-width: 1180px) {
+  .app-header { flex-wrap: wrap; position: static; }
+  .app-header-actions { flex: 1 1 100%; }
+  .phase-nav { flex: 1; }
+  .material-form, .pricing-editor-panel { position: static; }
+  .yield-form { max-height: none; }
+  .products-filters, .stock-filters { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .production-detail-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 760px) {
+  .app-shell { overflow-wrap: anywhere; }
+  /* Let the document scroll instead of keeping a tall mobile header over forms. */
+  .app-header { position: static; padding: 16px 12px; backdrop-filter: none; }
+  .brand-lockup { min-width: 0; }
+  .app-header-actions { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .phase-nav { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); overflow: visible; }
+  .nav-item { padding: 10px 4px; font-size: .85rem; }
+  .workbook-tools { min-width: 0; }
+  .workbook-tools-trigger { width: 100%; grid-template-columns: auto minmax(0, 1fr) auto; }
+  .workbook-tools-trigger-copy { display: grid; }
+  .workbook-tools-chevron { display: block; }
+  .workbook-tools-popover {
+    position: static;
+    width: 100%;
+    max-height: none;
+    overflow: visible;
+    margin-top: 10px;
+    padding: 12px;
+    box-shadow: none;
+  }
+  .workbook-tools-current-file { min-width: 0; }
+  .workbook-tools-popover :is(.workbook-import-panel, .workbook-export-panel, .workbook-persistence-status) {
+    min-width: 0;
+    padding: 14px;
+  }
+  .workbook-tools-popover :is(.workbook-import-actions, .workbook-export-actions) { flex-direction: column; }
+  .workbook-selection { grid-template-columns: minmax(0, 1fr); }
+  .workbook-selection strong { white-space: normal; overflow-wrap: anywhere; }
+  .workbook-recovery-panel { padding: 12px; }
+  .workbook-tools-popover :where(div, span, strong, section) { min-width: 0; }
+
+  /* Intrinsic text and form-control widths must not expand grid tracks. */
+  .materials-workspace { padding-bottom: max(40px, env(safe-area-inset-bottom)); }
+  .app-shell button { white-space: normal; }
+  .app-shell .source-link { display: inline-flex; align-items: center; }
+  .panel-heading { flex-wrap: wrap; }
+  .panel-heading > *, .page-heading-row > * { min-width: 0; max-width: 100%; }
+  .material-count { flex-wrap: wrap; }
+  .session-badge { flex-shrink: 1; border-radius: 14px; }
+  .cost-detail, .row-actions { white-space: normal; }
+  .products-filters, .stock-filters { grid-template-columns: minmax(0, 1fr); }
+
+  /* Keep one semantic table and one set of actions at every viewport width. */
+  .app-shell .table-wrap { min-height: 0; padding: 12px; background: #faf7f1; }
+  .app-shell .responsive-table { display: block; width: 100%; min-width: 0; }
+  .app-shell .responsive-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .app-shell .responsive-table tbody { display: grid; gap: 12px; }
+  .app-shell .responsive-table tbody tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    border: 1px solid #ded6c9;
+    border-radius: 14px;
+    background: #fffdf8;
+    overflow: hidden;
+  }
+  .app-shell .responsive-table td,
+  .app-shell .responsive-table td:first-child {
+    position: static;
+    display: block;
+    min-width: 0;
+    padding: 12px;
+    white-space: normal;
+    background: transparent;
+  }
+  .app-shell .responsive-table td:first-child {
+    grid-column: 1 / -1;
+    background: #f3eee5;
+  }
+  .app-shell .responsive-table td::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 6px;
+    color: #71675a;
+    font-size: .7rem;
+    font-weight: 750;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+  .app-shell .responsive-table td[data-label="Actions"] { grid-column: 1 / -1; }
+  .app-shell .responsive-table .material-inventory-actions { display: flex; flex-wrap: wrap; }
+  .app-shell .responsive-table details { max-width: none; }
+  .app-shell .responsive-table .limiting-row { border-color: #b77e43; }
+  .app-shell .responsive-table .effective-row { border-color: #9b7e53; }
+
+  .product-stock-card { flex-direction: column; }
+  .product-card-facts > div { flex-wrap: wrap; gap: 4px 12px; }
+  .product-card-facts dd { text-align: left; }
+  .composition-tree-line > span:last-child { min-width: 0; }
+  .composition-tree-list { padding-left: 6px; }
+  .composition-tree-list .composition-tree-list { padding-left: 0; border-left: 1px solid #ded6c9; }
+  .production-view-nav { flex-wrap: wrap; }
+  .production-view-nav button { min-width: 0; }
+  .production-unit-summary, .production-feasibility-metrics, .yield-history-heading,
+  .yield-history-footer, .pricing-summary-row { flex-wrap: wrap; }
+  .history-badges { justify-content: flex-start; }
+  .yield-input-row input { grid-column: 2; }
+  .yield-product-context :is(strong, small) { white-space: normal; }
+  .production-workspace .production-toggle,
+  .stock-shortfall, .stock-covered, .stock-check { white-space: normal; }
+  .production-workspace .nested-cost-row { margin-left: min(calc(var(--nested-depth, 0) * 6px), 18px); }
+  .pricing-trace-summary-values { flex-wrap: wrap; }
+  .pricing-component-trace-list.nested { padding-left: 4px; }
+  .pricing-component-trace-list.nested .pricing-component-trace-list.nested { padding-left: 0; }
+}
+
+@media (max-width: 420px) {
+  .app-shell .responsive-table tbody tr { grid-template-columns: minmax(0, 1fr); }
+  .material-workshop-overview, .products-overview { grid-template-columns: minmax(0, 1fr); }
+  .products-overview article { padding: 16px; }
+  .products-overview small { display: block; }
+  .products-workspace :is(.composition-parent-panel, .component-summary-panel, .composition-preview-panel),
+  .material-form, .pricing-editor-panel { padding: 16px; }
+  .material-supplier-details { padding: 12px; }
+  .material-supplier-details > summary > span { display: block; margin-left: 0; }
+  .product-catalog-toolbar { align-items: stretch; flex-direction: column; }
+  .production-feasibility-metrics { flex-direction: column; gap: 12px; }
+  .workbook-tools-popover { padding: 8px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  input, select, textarea { transition: none; }
+}

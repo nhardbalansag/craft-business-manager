@@ -1,0 +1,397 @@
+.app-shell-with-drawer {
+  min-height: 100vh;
+  background: #f4f1ea;
+}
+
+.app-drawer {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 40;
+  width: 264px;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  gap: 20px;
+  padding: 20px 16px 16px;
+  border-right: 1px solid #d8d1c4;
+  background: rgba(255, 253, 248, .98);
+  box-shadow: 10px 0 34px rgba(55, 45, 32, .045);
+  backdrop-filter: blur(14px);
+  transition: transform .2s ease, visibility .2s ease;
+}
+
+.app-drawer-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 4px 18px;
+  border-bottom: 1px solid #e5ded2;
+}
+
+.app-drawer .brand-lockup {
+  min-width: 0;
+  align-items: flex-start;
+}
+
+.app-drawer .brand-lockup > div:last-child {
+  min-width: 0;
+}
+
+.app-drawer .brand-lockup strong,
+.app-drawer .brand-lockup span {
+  overflow-wrap: anywhere;
+}
+
+.app-drawer-section-label {
+  padding: 0 10px;
+  color: #988b7b;
+  font-size: .68rem;
+  font-weight: 850;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+}
+
+.app-drawer-nav.phase-nav {
+  flex: 0 0 auto;
+  width: 100%;
+  display: grid;
+  gap: 5px;
+  overflow: visible;
+}
+
+.app-drawer-nav .nav-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 11px 12px;
+  border: 1px solid transparent;
+  border-radius: 13px;
+  text-align: left;
+  color: #655e55;
+  background: transparent;
+  transition: background .15s ease, border-color .15s ease, color .15s ease, transform .15s ease;
+}
+
+.app-drawer-nav .nav-item:hover:not(:disabled) {
+  border-color: #e2d8ca;
+  background: #f6f0e7;
+  color: #342f29;
+  transform: translateX(2px);
+}
+
+.app-drawer-nav .nav-item.active {
+  border-color: #d8c7b1;
+  background: #ebe1d3;
+  color: #27231e;
+  box-shadow: inset 3px 0 0 #806444;
+}
+
+.app-drawer-nav .nav-item:focus-visible,
+.app-sidebar-toggle:focus-visible,
+.app-drawer-toggle:focus-visible,
+.app-drawer-close:focus-visible {
+  outline: 3px solid #866439;
+  outline-offset: 2px;
+}
+
+.app-drawer-workbook {
+  flex-shrink: 0;
+  margin-top: auto;
+  display: grid;
+  gap: 8px;
+  padding-top: 16px;
+  border-top: 1px solid #e5ded2;
+}
+
+.app-drawer .workbook-tools {
+  width: 100%;
+}
+
+.app-drawer .workbook-tools-trigger {
+  width: 100%;
+  min-width: 0;
+}
+
+.workbook-tools-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+}
+
+.workbook-tools-overlay[hidden] {
+  display: none;
+}
+
+.workbook-tools-backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: rgba(38, 32, 26, .42);
+  backdrop-filter: blur(3px);
+  cursor: default;
+}
+
+.workbook-tools-dialog {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  bottom: 14px;
+  left: auto;
+  z-index: 1;
+  width: min(980px, calc(100vw - 304px));
+  max-height: none;
+  overflow: auto;
+  padding: 20px;
+  border-radius: 24px;
+  box-shadow: 0 28px 90px rgba(37, 30, 23, .3);
+  animation: workbook-tools-enter .18s ease-out;
+}
+
+@keyframes workbook-tools-enter {
+  from {
+    opacity: 0;
+    transform: translateX(14px) scale(.992);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+.workbook-tools-dialog .workbook-tools-close-row {
+  position: sticky;
+  top: -20px;
+  z-index: 3;
+  display: flex;
+  justify-content: flex-end;
+  margin: -8px -8px 8px;
+  padding: 8px;
+  background: linear-gradient(to bottom, #f8f4ed 72%, rgba(248, 244, 237, 0));
+}
+
+.workbook-tools-dialog .workbook-tools-close-row .button {
+  border: 1px solid #d8cfc2;
+  box-shadow: 0 4px 14px rgba(55, 45, 32, .08);
+}
+
+.workbook-tools-dialog .workbook-tools-popover-heading {
+  margin-top: 2px;
+}
+
+.workbook-tools-dialog .workbook-persistence-status,
+.workbook-tools-dialog .workbook-import-panel,
+.workbook-tools-dialog .public-google-sheets-panel,
+.workbook-tools-dialog .workbook-export-panel {
+  width: 100%;
+  margin: 0;
+}
+
+.workbook-tools-action-stack {
+  display: grid;
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.app-content {
+  min-width: 0;
+  min-height: 100vh;
+  margin-left: 264px;
+  transition: margin-left .2s ease;
+}
+
+.app-sidebar-toggle {
+  position: fixed;
+  top: 20px;
+  left: 264px;
+  z-index: 55;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid #d7cebf;
+  border-radius: 999px;
+  background: #fffdf8;
+  color: #554b40;
+  box-shadow: 0 7px 20px rgba(55, 45, 32, .12);
+  transform: translateX(-50%);
+  transition: left .2s ease, transform .2s ease, background .15s ease, box-shadow .15s ease;
+}
+
+.app-sidebar-toggle:hover {
+  background: #f6efe5;
+  box-shadow: 0 9px 24px rgba(55, 45, 32, .16);
+}
+
+.app-sidebar-toggle span {
+  font-size: 1.55rem;
+  line-height: 1;
+  transform: translateY(-1px);
+}
+
+.app-shell-with-drawer.is-sidebar-hidden .app-drawer {
+  transform: translateX(-102%);
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.app-shell-with-drawer.is-sidebar-hidden .app-content {
+  margin-left: 0;
+}
+
+.app-shell-with-drawer.is-sidebar-hidden .app-sidebar-toggle {
+  left: 14px;
+  transform: none;
+}
+
+.app-shell-with-drawer.is-sidebar-hidden .workbook-tools-dialog {
+  width: min(980px, calc(100vw - 28px));
+}
+
+.app-drawer-toggle,
+.app-drawer-close,
+.app-drawer-backdrop {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .app-content,
+  .app-shell-with-drawer.is-sidebar-hidden .app-content {
+    margin-left: 0;
+    padding-top: 66px;
+  }
+
+  .app-sidebar-toggle {
+    display: none;
+  }
+
+  .app-drawer,
+  .app-shell-with-drawer.is-sidebar-hidden .app-drawer {
+    z-index: 70;
+    width: min(320px, calc(100vw - 48px));
+    transform: translateX(-102%);
+    visibility: visible;
+    pointer-events: auto;
+    box-shadow: 18px 0 50px rgba(37, 30, 23, .2);
+    transition: transform .2s ease;
+  }
+
+  .app-shell-with-drawer.is-drawer-open .app-drawer,
+  .app-shell-with-drawer.is-sidebar-hidden.is-drawer-open .app-drawer {
+    transform: translateX(0);
+  }
+
+  .app-drawer-toggle {
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    z-index: 65;
+    min-height: 42px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border: 1px solid #d7cebf;
+    border-radius: 12px;
+    background: rgba(255, 253, 248, .97);
+    color: #3d362e;
+    box-shadow: 0 8px 24px rgba(55, 45, 32, .09);
+    backdrop-filter: blur(10px);
+  }
+
+  .app-drawer-toggle span {
+    font-size: 1.15rem;
+    line-height: 1;
+  }
+
+  .app-drawer-toggle strong {
+    font-size: .78rem;
+  }
+
+  .app-shell-with-drawer.is-drawer-open .app-drawer-toggle {
+    visibility: hidden;
+  }
+
+  .app-drawer-close {
+    flex: 0 0 auto;
+    width: 36px;
+    height: 36px;
+    display: grid;
+    place-items: center;
+    border: 1px solid #ded4c6;
+    border-radius: 10px;
+    background: #f7f1e8;
+    color: #554b40;
+    font-size: 1.2rem;
+  }
+
+  .app-drawer-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    display: block;
+    border: 0;
+    border-radius: 0;
+    background: rgba(39, 33, 27, .38);
+    cursor: default;
+  }
+
+  .workbook-tools-dialog,
+  .app-shell-with-drawer.is-sidebar-hidden .workbook-tools-dialog {
+    top: 10px;
+    right: 10px;
+    bottom: 10px;
+    width: calc(100vw - 20px);
+    max-height: none;
+    border-radius: 20px;
+  }
+
+  .workbook-tools-dialog .workbook-tools-popover-heading {
+    display: grid;
+  }
+
+  .workbook-tools-dialog .workbook-tools-current-file {
+    min-width: 0;
+    max-width: none;
+  }
+}
+
+@media (max-width: 520px) {
+  .app-drawer,
+  .app-shell-with-drawer.is-sidebar-hidden .app-drawer {
+    width: calc(100vw - 20px);
+    padding: 16px 12px 12px;
+  }
+
+  .app-drawer .brand-lockup span {
+    font-size: .7rem;
+  }
+
+  .app-drawer-nav .nav-item {
+    padding: 9px 10px;
+  }
+
+  .workbook-tools-dialog,
+  .app-shell-with-drawer.is-sidebar-hidden .workbook-tools-dialog {
+    top: 6px;
+    right: 6px;
+    bottom: 6px;
+    width: calc(100vw - 12px);
+    padding: 14px;
+    border-radius: 16px;
+  }
+
+  .workbook-tools-dialog .workbook-tools-close-row {
+    top: -14px;
+    margin: -4px -4px 6px;
+    padding: 6px 4px;
+  }
+}

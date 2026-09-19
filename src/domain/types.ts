@@ -1,81 +1,45 @@
-export type BaseUnit = 'g' | 'mL' | 'pc';
-export type InputUnit = BaseUnit | 'kg' | 'L' | 'cup';
-export type ProductCategory = 'paintable-art' | 'candle-pot' | 'candle';
-export type RatioBasis = 'weight' | 'volume';
-export type PricingMethod = 'profit-amount' | 'markup-percent' | 'margin-percent';
+import type { FixedRecipeItem } from './fixedRecipeItems';
+import type { MaterialCalibrationEvidence } from './materialCalibration';
+import type { Material } from './materials';
+import type { MixPreset, RatioBasis } from './mixPresets';
+import type { ProductComponent } from './productComponents';
+import type { ProductFinancialProfile } from './productFinancialProfile';
+import type { ProductStock } from './productStock';
+import type { Product, ProductCategory } from './products';
+import type { YieldSample } from './yieldSamples';
 
-export interface Material {
-  id: string;
-  name: string;
-  group: string;
-  baseUnit: BaseUnit;
-  purchaseQuantity: number;
-  purchaseUnit: InputUnit;
-  baseUnitsPerPurchaseUnit: number;
-  packageCost: number;
-  onHandBaseQuantity: number;
-  gramsPerCup?: number;
-  vendor?: string;
-  notes?: string;
-}
+export type { FixedRecipeItem, FixedRecipeItemRole } from './fixedRecipeItems';
+export type { MaterialCalibrationEvidence } from './materialCalibration';
+export type { Material } from './materials';
+export type { MixPreset, RatioBasis } from './mixPresets';
+export type {
+  ProductComponent,
+  ProductComponentRole,
+  ProductComponentSourceType,
+  ProductComponentSourceType as ProductComponentSource,
+} from './productComponents';
+export type { ProductFinancialProfile } from './productFinancialProfile';
+export type { ProductStock } from './productStock';
+export type { PricingMethod, PricingPolicy } from './pricing';
+export type { Product, ProductCategory } from './products';
+export type { YieldSample, YieldSampleMaterialInput } from './yieldSamples';
+export type { BaseUnit, InputUnit } from './units';
 
-export interface MixPreset {
-  id: string;
-  name: string;
-  category: ProductCategory;
-  basis: RatioBasis;
-  primaryMaterialId: string;
-  secondaryMaterialId?: string;
-  primaryParts: number;
-  secondaryParts: number;
-}
-
-export interface MoldYieldSample {
-  id: string;
-  productId: string;
-  primaryMaterialId: string;
-  primaryBaseQuantityUsed: number;
-  goodPieces: number;
-  rejectedPieces?: number;
-  recordedAt: string;
-}
-
-export interface ProductRecipeItem {
-  materialId: string;
-  baseQuantityPerProduct: number;
-  purpose?: string;
-}
-
-export type ProductComponentSource = 'material' | 'product';
-
-export interface ProductComponent {
-  id: string;
-  sourceType: ProductComponentSource;
-  sourceId: string;
-  quantityPerProduct: number;
-  role: 'vessel' | 'molded-component' | 'decoration' | 'packaging' | 'other';
-}
-
-export interface PricingPolicy {
-  method: PricingMethod;
-  value: number;
-}
-
-export interface Product {
-  id: string;
-  name: string;
-  category: ProductCategory;
-  mixPresetId?: string;
-  safetyWasteRate: number;
-  recipeItems: ProductRecipeItem[];
-  components: ProductComponent[];
-  pricing: PricingPolicy;
-}
-
+/**
+ * Complete authoritative business source snapshot used by the persistence boundary.
+ *
+ * Derived costing, yield-learning, production, capacity, and pricing results are
+ * intentionally excluded and are recalculated from these source collections.
+ */
 export interface BusinessDataset {
   schemaVersion: number;
   materials: Material[];
+  materialCalibrations: MaterialCalibrationEvidence[];
   mixPresets: MixPreset[];
   products: Product[];
-  moldYieldSamples: MoldYieldSample[];
+  yieldSamples: YieldSample[];
+  recipeItems: FixedRecipeItem[];
+  productComponents: ProductComponent[];
+  productStocks: ProductStock[];
+  productFinancialProfiles: ProductFinancialProfile[];
 }
