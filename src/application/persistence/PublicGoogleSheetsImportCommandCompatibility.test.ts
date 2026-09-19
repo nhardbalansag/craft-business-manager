@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createEmptyBusinessDataset } from '../../domain/businessDataset';
 import { extendLegacyBusinessDataset } from '../../domain/physicalBusinessDataset';
+import type { PhysicalBusinessDatasetV3 } from '../../domain/physicalBusinessDatasetV3';
 import { createPhysicalBusinessDatasetWorkbookDocument } from '../../storage/physicalBusinessDatasetWorkbook';
 import { importPhysicalBusinessDatasetV3FromXlsx } from '../../storage/physicalBusinessDatasetV3Workbook';
 import { SheetJsWorkbookCodec } from '../../storage/sheetJsWorkbookCodec';
@@ -146,13 +147,7 @@ describe('TP5F public Google Sheets workbook compatibility', () => {
       }),
     );
 
-    let importedDataset:
-      | ReturnType<
-          typeof importPhysicalBusinessDatasetV3FromXlsx
-        > extends { ok: true; dataset: infer Dataset }
-        ? Dataset
-        : never
-      | undefined;
+    let importedDataset: PhysicalBusinessDatasetV3 | undefined;
 
     const importAndApplyWorkbook = vi.fn(
       async (receivedBytes: Uint8Array): Promise<PersistenceWorkbookApplyResult> => {
