@@ -154,6 +154,48 @@ function moldRows(
     }));
 }
 
+const LEGACY_PRE_PREFERRED_PHYSICAL_PRODUCTS_COLUMNS = [
+  'id',
+  'name',
+  'category',
+  'mixPresetId',
+  'safetyWasteRate',
+  'notes',
+  'isActive',
+] as const;
+
+function normalizePrePreferredPhysicalProductsSheet(
+  candidate: WorkbookNeutralSheet,
+): WorkbookNeutralSheet {
+  if (candidate.name !== 'Products') return candidate;
+
+  const isRecognizedLegacyShape =
+    candidate.columns.length ===
+      LEGACY_PRE_PREFERRED_PHYSICAL_PRODUCTS_COLUMNS.length &&
+    candidate.columns.every(
+      (column, index) =>
+        column === LEGACY_PRE_PREFERRED_PHYSICAL_PRODUCTS_COLUMNS[index],
+    );
+
+  if (!isRecognizedLegacyShape) return candidate;
+
+  const mixPresetIndex = candidate.columns.indexOf('mixPresetId');
+  const insertAt = mixPresetIndex + 1;
+
+  return {
+    ...candidate,
+    columns: [
+      ...candidate.columns.slice(0, insertAt),
+      'preferredYieldSampleId',
+      ...candidate.columns.slice(insertAt),
+    ],
+    rows: candidate.rows.map((row) => ({
+      ...row,
+      preferredYieldSampleId: undefined,
+    })),
+  };
+}
+
 function migratePhysicalWorkbookV2ToV3(
   document: WorkbookNeutralDocument,
 ): WorkbookNeutralDocument {
@@ -184,6 +226,10 @@ function migratePhysicalWorkbookV2ToV3(
         candidate.name !== PHYSICAL_V3_MOLDS_SHEET_NAME,
     )
     .map((candidate) => {
+      if (candidate.name === 'Products') {
+        return normalizePrePreferredPhysicalProductsSheet(candidate);
+      }
+
       if (candidate.name !== '_Meta') return candidate;
 
       return {
