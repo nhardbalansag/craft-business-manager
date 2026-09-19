@@ -1,8 +1,18 @@
+import type { BusinessDatasetV2 } from '../../domain/businessDatasetV2';
+import {
+  extendBusinessDatasetV2,
+  toBusinessDatasetV2,
+  type PhysicalBusinessDatasetV3,
+} from '../../domain/physicalBusinessDatasetV3';
 import type { BusinessDataset } from '../../domain/types';
 import {
   toLegacyBusinessDataset,
   type PhysicalBusinessDataset,
 } from '../../domain/physicalBusinessDataset';
+import {
+  exportBusinessDatasetV2ToXlsx,
+  importBusinessDatasetV2FromXlsx,
+} from '../../storage/businessDatasetV2Workbook';
 import {
   exportBusinessDatasetToXlsx,
   type WorkbookExportMetadata,
@@ -15,6 +25,11 @@ import {
   exportPhysicalBusinessDatasetToXlsx,
   importPhysicalBusinessDatasetFromXlsx,
 } from '../../storage/physicalBusinessDatasetWorkbook';
+import {
+  exportPhysicalBusinessDatasetV3ToXlsx,
+  importPhysicalBusinessDatasetV3FromXlsx,
+  type PhysicalBusinessDatasetV3WorkbookImportResult,
+} from '../../storage/physicalBusinessDatasetV3Workbook';
 import type { WorkbookBinaryInput, WorkbookCodec } from '../../storage/workbookCodec';
 import {
   cloneWorkbookBytes,
@@ -24,11 +39,11 @@ import {
 } from '../../storage/WorkbookTransport';
 import {
   PersistenceLifecycleOperationalError,
+  type PersistenceDatasetHydrationIssue,
   type PersistenceLifecycleRejected,
 } from './PersistenceLifecycle';
 import {
   DatasetHydrationError,
-  type DatasetHydrationResult,
 } from './ValidatedAtomicDatasetHydrationService';
 
 export type PersistenceClock = () => Date;
@@ -36,8 +51,10 @@ export type PersistenceClock = () => Date;
 export interface PersistenceCoordinatorOptions {
   readonly clock?: PersistenceClock;
   readonly applicationVersion?: string;
-  /** Explicit override for workbook v2 physical-identification persistence. */
+  /** Explicit override for physical-identification persistence. */
   readonly physicalIdentification?: boolean;
+  /** Explicit override for BusinessDataset-v2 / workbook-v3 tier persistence. */
+  readonly tieredPricing?: boolean;
 }
 
 export interface PersistenceWorkbookExported {
@@ -62,13 +79,27 @@ export type PersistenceWorkbookApplyResult =
   | PersistenceWorkbookHydrated
   | PersistenceLifecycleRejected;
 
+type PersistableDataset =
+  | BusinessDataset
+  | PhysicalBusinessDataset
+  | BusinessDatasetV2
+  | PhysicalBusinessDatasetV3;
+
 interface SnapshotSource {
   readonly physicalIdentification?: boolean;
-  snapshot(): Promise<BusinessDataset | PhysicalBusinessDataset>;
+  readonly tieredPricing?: boolean;
+  snapshot(): Promise<PersistableDataset>;
 }
 
+type HydrationResult =
+  | { readonly status: 'hydrated' }
+  | {
+      readonly status: 'rejected';
+      readonly issues: readonly PersistenceDatasetHydrationIssue[];
+    };
+
 interface HydrationTarget {
-  hydrate(candidate: unknown): Promise<DatasetHydrationResult>;
+  hydrate(candidate: unknown): Promise<HydrationResult>;
 }
 
 interface PreparedWorkbookExport {
@@ -80,15 +111,84 @@ function systemClock(): Date {
   return new Date();
 }
 
-function isPhysicalDataset(dataset: BusinessDataset | PhysicalBusinessDataset): dataset is PhysicalBusinessDataset {
-  return 'storageLocations' in dataset && 'molds' in dataset;
+function isPhysicalDataset(
+  dataset: PersistableDataset,
+): dataset is PhysicalBusinessDataset {
+  return (
+    'storageLocations' in dataset &&
+    'molds' in dataset &&
+    !('productPriceTiers' in dataset)
+  );
 }
 
-function hasPhysicalSourceRecords(dataset: PhysicalBusinessDataset): boolean {
+function isBusinessDatasetV2(
+  dataset: PersistableDataset,
+): dataset is BusinessDatasetV2 {
+  return (
+    'productPriceTiers' in dataset &&
+    !('storageLocations' in dataset) &&
+    dataset.schemaVersion === 2
+  );
+}
+
+function isPhysicalDatasetV3(
+  dataset: PersistableDataset,
+): dataset is PhysicalBusinessDatasetV3 {
+  return (
+    'productPriceTiers' in dataset &&
+    'storageLocations' in dataset &&
+    'molds' in dataset &&
+    dataset.schemaVersion === 3
+  );
+}
+
+function hasPhysicalSourceRecords(
+  dataset: PhysicalBusinessDataset | PhysicalBusinessDatasetV3,
+): boolean {
   return dataset.storageLocations.length > 0 || dataset.molds.length > 0;
 }
 
-function hydrationOperationalError(error: unknown): PersistenceLifecycleOperationalError {
+function sourceVersionFromIssues(
+  result:
+    | ReturnType<typeof importBusinessDatasetV2FromXlsx>
+    | PhysicalBusinessDatasetV3WorkbookImportResult,
+): { workbookFormatVersion: number; datasetSchemaVersion: number } | undefined {
+  if (result.ok) return undefined;
+  return result.issues.find((issue) => issue.sourceVersion !== undefined)
+    ?.sourceVersion;
+}
+
+function importTieredPhysicalOrCore(
+  bytes: WorkbookBinaryInput,
+  codec: WorkbookCodec,
+): PhysicalBusinessDatasetV3WorkbookImportResult {
+  const core = importBusinessDatasetV2FromXlsx(bytes, codec);
+  if (core.ok) {
+    return {
+      ok: true,
+      dataset: extendBusinessDatasetV2(core.dataset),
+      metadata: core.metadata,
+    };
+  }
+
+  const physical = importPhysicalBusinessDatasetV3FromXlsx(bytes, codec);
+  if (physical.ok) return physical;
+
+  const version =
+    sourceVersionFromIssues(physical) ?? sourceVersionFromIssues(core);
+  const isPhysicalVersion =
+    version !== undefined &&
+    ((version.workbookFormatVersion === 2 &&
+      version.datasetSchemaVersion === 2) ||
+      (version.workbookFormatVersion === 3 &&
+        version.datasetSchemaVersion === 3));
+
+  return isPhysicalVersion ? physical : core;
+}
+
+function hydrationOperationalError(
+  error: unknown,
+): PersistenceLifecycleOperationalError {
   if (error instanceof DatasetHydrationError) {
     if (error.code === 'SNAPSHOT_FAILED') {
       return new PersistenceLifecycleOperationalError(
@@ -127,15 +227,16 @@ function hydrationOperationalError(error: unknown): PersistenceLifecycleOperatio
 /**
  * Application-level persistence lifecycle coordinator.
  *
- * Legacy callers remain on the proven Phase 5 workbook-v1 contract by default.
- * A PhysicalSourceSnapshotService advertises physical-identification capability. The
- * real app keeps emitting v1 while no physical records exist, then automatically moves
- * to v2 once a StorageLocation or Mold must be persisted. Imports accept both versions.
+ * Legacy callers retain the proven Phase 5 v1/v2 persistence behavior by default.
+ * Tier-aware snapshot services advertise tieredPricing=true and move the live path to
+ * core workbook v3 / dataset v2 or physical workbook v3 / dataset v3 while retaining
+ * legacy import compatibility.
  */
 export class PersistenceCoordinator {
   private readonly clock: PersistenceClock;
   private readonly applicationVersion?: string;
   private readonly physicalIdentification: boolean;
+  private readonly tieredPricing: boolean;
 
   constructor(
     private readonly snapshotService: SnapshotSource,
@@ -146,7 +247,11 @@ export class PersistenceCoordinator {
     this.clock = options.clock ?? systemClock;
     this.applicationVersion = options.applicationVersion;
     this.physicalIdentification =
-      options.physicalIdentification ?? snapshotService.physicalIdentification ?? false;
+      options.physicalIdentification ??
+      snapshotService.physicalIdentification ??
+      false;
+    this.tieredPricing =
+      options.tieredPricing ?? snapshotService.tieredPricing ?? false;
   }
 
   async exportCurrentWorkbook(): Promise<PersistenceWorkbookExported> {
@@ -166,7 +271,10 @@ export class PersistenceCoordinator {
 
     let receipt: WorkbookSaveReceipt;
     try {
-      receipt = await transport.saveWorkbook(cloneWorkbookBytes(prepared.bytes), options);
+      receipt = await transport.saveWorkbook(
+        cloneWorkbookBytes(prepared.bytes),
+        options,
+      );
     } catch (error) {
       throw new PersistenceLifecycleOperationalError(
         'transport-save',
@@ -189,9 +297,16 @@ export class PersistenceCoordinator {
   ): Promise<PersistenceWorkbookApplyResult> {
     let imported;
     try {
-      imported = this.physicalIdentification
-        ? importPhysicalBusinessDatasetFromXlsx(cloneWorkbookBytes(bytes), this.codec)
-        : importBusinessDatasetFromXlsx(cloneWorkbookBytes(bytes), this.codec);
+      const ownedBytes = cloneWorkbookBytes(bytes);
+      if (this.tieredPricing) {
+        imported = this.physicalIdentification
+          ? importTieredPhysicalOrCore(ownedBytes, this.codec)
+          : importBusinessDatasetV2FromXlsx(ownedBytes, this.codec);
+      } else {
+        imported = this.physicalIdentification
+          ? importPhysicalBusinessDatasetFromXlsx(ownedBytes, this.codec)
+          : importBusinessDatasetFromXlsx(ownedBytes, this.codec);
+      }
     } catch (error) {
       throw new PersistenceLifecycleOperationalError(
         'import',
@@ -209,7 +324,7 @@ export class PersistenceCoordinator {
       };
     }
 
-    let hydration;
+    let hydration: HydrationResult;
     try {
       hydration = await this.hydrationService.hydrate(imported.dataset);
     } catch (error) {
@@ -249,7 +364,7 @@ export class PersistenceCoordinator {
   }
 
   private async prepareCurrentWorkbookExport(): Promise<PreparedWorkbookExport> {
-    let dataset: BusinessDataset | PhysicalBusinessDataset;
+    let dataset: PersistableDataset;
     try {
       dataset = await this.snapshotService.snapshot();
     } catch (error) {
@@ -269,17 +384,64 @@ export class PersistenceCoordinator {
           : { applicationVersion: this.applicationVersion }),
       };
 
-      if (this.physicalIdentification && !isPhysicalDataset(dataset)) {
-        throw new Error('Physical-identification persistence requires a physical source snapshot.');
-      }
-
       let bytes: Uint8Array;
-      if (this.physicalIdentification && isPhysicalDataset(dataset)) {
+
+      if (this.tieredPricing) {
+        if (this.physicalIdentification) {
+          if (!isPhysicalDatasetV3(dataset)) {
+            throw new Error(
+              'Tiered physical persistence requires a PhysicalBusinessDataset v3 source snapshot.',
+            );
+          }
+
+          bytes = hasPhysicalSourceRecords(dataset)
+            ? exportPhysicalBusinessDatasetV3ToXlsx(
+                dataset,
+                metadata,
+                this.codec,
+              )
+            : exportBusinessDatasetV2ToXlsx(
+                toBusinessDatasetV2(dataset),
+                metadata,
+                this.codec,
+              );
+        } else {
+          if (!isBusinessDatasetV2(dataset)) {
+            throw new Error(
+              'Tiered core persistence requires a BusinessDataset v2 source snapshot.',
+            );
+          }
+
+          bytes = exportBusinessDatasetV2ToXlsx(
+            dataset,
+            metadata,
+            this.codec,
+          );
+        }
+      } else if (this.physicalIdentification) {
+        if (!isPhysicalDataset(dataset)) {
+          throw new Error(
+            'Physical-identification persistence requires a physical source snapshot.',
+          );
+        }
+
         bytes = hasPhysicalSourceRecords(dataset)
-          ? exportPhysicalBusinessDatasetToXlsx(dataset, metadata, this.codec)
-          : exportBusinessDatasetToXlsx(toLegacyBusinessDataset(dataset), metadata, this.codec);
+          ? exportPhysicalBusinessDatasetToXlsx(
+              dataset,
+              metadata,
+              this.codec,
+            )
+          : exportBusinessDatasetToXlsx(
+              toLegacyBusinessDataset(dataset),
+              metadata,
+              this.codec,
+            );
       } else {
-        bytes = exportBusinessDatasetToXlsx(dataset as BusinessDataset, metadata, this.codec);
+        bytes = exportBusinessDatasetToXlsx(
+          dataset as BusinessDataset,
+          metadata,
+          this.codec,
+        );
       }
 
       return {
