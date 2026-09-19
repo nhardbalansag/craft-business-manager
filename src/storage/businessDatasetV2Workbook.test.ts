@@ -100,7 +100,13 @@ function mutableDocument(): {
 } {
   return structuredClone(
     createBusinessDatasetV2WorkbookDocument(datasetFixture(), METADATA),
-  );
+  ) as unknown as {
+    sheets: Array<{
+      name: string;
+      columns: string[];
+      rows: Array<Record<string, unknown>>;
+    }>;
+  };
 }
 
 describe('BusinessDataset v2 core workbook v3', () => {
