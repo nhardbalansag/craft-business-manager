@@ -246,7 +246,7 @@ Phase 5.6B verified:
 
 # Tiered Pricing Enhancement — ACTIVE
 
-Status: **TP3 COMPLETE / TP4 NEXT**
+Status: **TP4 COMPLETE / TP5A NEXT**
 
 Master audit and compatibility plan:
 
@@ -275,15 +275,22 @@ TP3 — Tier Economics Engine                                       COMPLETE
     TP3A — Pure Tier Economics Formulas                           COMPLETE
     TP3B — ProductPriceTierQuoteService                           COMPLETE
     TP3C — Default-Price Comparison + Below-Cost Diagnostics      COMPLETE
-TP4 — Default Pricing Compatibility Layer                         NEXT / NOT STARTED
-TP5 — Workbook / Dataset Persistence & Migration                  NOT STARTED
+TP4 — Default Pricing Compatibility Layer                         COMPLETE
+TP5 — Workbook / Dataset Persistence & Migration                  NEXT / NOT STARTED
+    TP5A — BusinessDataset v2 Source Collection                   NEXT / NOT STARTED
+    TP5B — Core Workbook v3 Sheet / Export / Import               NOT STARTED
+    TP5C — Core v1/v2 Migration Chain                             NOT STARTED
+    TP5D — Physical Workbook v3 / Dataset-v3 Migration            NOT STARTED
+    TP5E — Legacy Pre-Preferred Physical-v2 Regression            NOT STARTED
+    TP5F — Google Sheets Import Compatibility                     NOT STARTED
+    TP5G — Atomic Hydration / Rollback / Recovery Completion Gate NOT STARTED
 TP6 — Pricing UI                                                  NOT STARTED
 TP7 — Pricing Quote Integration                                   NOT STARTED
 TP8 — Quantity-Aware Tier Resolution                              NOT STARTED
 TP9 — Integrated Validation & Completion Gate                     NOT STARTED
 ```
 
-TP3 is complete. Do not start TP4 automatically from the TP3 completion gate.
+TP4 is complete. Do not start TP5A automatically from the TP4 completion gate.
 
 ---
 
@@ -371,7 +378,7 @@ Phase 7 scope should be revisited after the desktop/native persistence workflow 
 ## Current Next Action
 
 ```text
-TP4 — Default Pricing Compatibility Layer
+TP5A — BusinessDataset v2 Source Collection
 NEXT / NOT STARTED
 ```
 
