@@ -335,7 +335,13 @@ describe('TP5D physical workbook v3 / dataset v3 migration', () => {
   });
 
   it('fails closed when a physical v2 workbook collides with the reserved ProductPriceTiers sheet', () => {
-    const source = structuredClone(physicalV2Document()) as WorkbookNeutralDocument;
+    const source = structuredClone(physicalV2Document()) as unknown as {
+      sheets: Array<{
+        name: string;
+        columns: string[];
+        rows: Array<Record<string, unknown>>;
+      }>;
+    };
     source.sheets.push({
       name: PRODUCT_PRICE_TIERS_SHEET_NAME,
       columns: ['unexpected'],
