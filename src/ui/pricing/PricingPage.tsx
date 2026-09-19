@@ -2,11 +2,13 @@ import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 're
 import {
   productFinancialProfileService,
   productPriceTierQuoteService,
+  productPriceTierService,
   productPricingQuoteService,
   productService,
 } from '../../application/session';
 import type { ProductPricingQuoteResult } from '../../application/pricing/ProductPricingQuoteService';
 import type { ProductPriceTierQuoteResult } from '../../application/productPriceTiers/ProductPriceTierQuoteService';
+import type { ProductPriceTier } from '../../domain/productPriceTiers';
 import type { ProductFinancialProfile } from '../../domain/productFinancialProfile';
 import {
   PRODUCT_CATEGORY_RULES,
@@ -14,6 +16,10 @@ import {
 } from '../../domain/products';
 import { ProductPricingQuotePanel } from './ProductPricingQuotePanel';
 import { ProductPriceTierCatalogPanel } from './ProductPriceTierCatalogPanel';
+import {
+  ProductPriceTierEditorPanel,
+  type ProductPriceTierEditorValue,
+} from './ProductPriceTierEditorPanel';
 import {
   createEmptyProductFinancialProfileForm,
   pricingValueHelp,
@@ -104,6 +110,12 @@ export function PricingPage() {
   const [tierQuote, setTierQuote] = useState<ProductPriceTierQuoteResult | null>(null);
   const [tierQuoteLoading, setTierQuoteLoading] = useState(false);
   const [tierQuoteError, setTierQuoteError] = useState<string | null>(null);
+  const [tierEditorOpen, setTierEditorOpen] = useState(false);
+  const [editingTier, setEditingTier] = useState<ProductPriceTier | null>(null);
+  const [tierSaving, setTierSaving] = useState(false);
+  const [archivingTierId, setArchivingTierId] = useState<string | null>(null);
+  const [tierMutationError, setTierMutationError] = useState<string | null>(null);
+  const [tierMutationFeedback, setTierMutationFeedback] = useState<string | null>(null);
   const quoteRequestVersion = useRef(0);
   const tierQuoteRequestVersion = useRef(0);
 
@@ -269,6 +281,10 @@ export function PricingPage() {
       ),
     );
     setFeedback(null);
+    setTierEditorOpen(false);
+    setEditingTier(null);
+    setTierMutationError(null);
+    setTierMutationFeedback(null);
   }
 
   function updatePricingMethod(pricingMethod: PricingMethodSelection) {
@@ -314,6 +330,88 @@ export function PricingPage() {
       setFeedback({ type: 'error', message: errorMessage(error) });
     } finally {
       setSaving(false);
+    }
+  }
+
+
+  function startCreateTier() {
+    if (!selectedProduct?.isActive) return;
+    setEditingTier(null);
+    setTierMutationError(null);
+    setTierMutationFeedback(null);
+    setTierEditorOpen(true);
+  }
+
+  function startEditTier(tier: ProductPriceTier) {
+    setEditingTier(tier);
+    setTierMutationError(null);
+    setTierMutationFeedback(null);
+    setTierEditorOpen(true);
+  }
+
+  function closeTierEditor() {
+    if (tierSaving) return;
+    setTierEditorOpen(false);
+    setEditingTier(null);
+    setTierMutationError(null);
+  }
+
+  async function submitTier(value: ProductPriceTierEditorValue) {
+    if (!selectedProduct) return;
+
+    setTierSaving(true);
+    setTierMutationError(null);
+    setTierMutationFeedback(null);
+    try {
+      const saved = editingTier
+        ? await productPriceTierService.updateTier(editingTier.id, {
+            productId: selectedProduct.id,
+            ...value,
+            isActive: editingTier.isActive,
+          })
+        : await productPriceTierService.createTier({
+            productId: selectedProduct.id,
+            ...value,
+            isActive: true,
+          });
+
+      setTierEditorOpen(false);
+      setEditingTier(null);
+      setTierMutationFeedback(
+        editingTier
+          ? `Price tier ${saved.name} updated.`
+          : `Price tier ${saved.name} created as ${saved.id}.`,
+      );
+      await loadTierQuote(selectedProduct.id);
+    } catch (error) {
+      setTierMutationError(
+        error instanceof Error ? error.message : 'The price tier could not be saved.',
+      );
+    } finally {
+      setTierSaving(false);
+    }
+  }
+
+  async function archiveTier(tier: ProductPriceTier) {
+    if (!selectedProduct) return;
+
+    setArchivingTierId(tier.id);
+    setTierMutationError(null);
+    setTierMutationFeedback(null);
+    try {
+      const archived = await productPriceTierService.archiveTier(tier.id);
+      if (editingTier?.id === archived.id) {
+        setTierEditorOpen(false);
+        setEditingTier(null);
+      }
+      setTierMutationFeedback(`Price tier ${archived.name} archived.`);
+      await loadTierQuote(selectedProduct.id);
+    } catch (error) {
+      setTierMutationError(
+        error instanceof Error ? error.message : 'The price tier could not be archived.',
+      );
+    } finally {
+      setArchivingTierId(null);
     }
   }
 
@@ -653,6 +751,27 @@ export function PricingPage() {
         onRefresh={selectedProduct ? () => void loadQuote(selectedProduct.id) : undefined}
       />
 
+      {tierMutationFeedback && (
+        <div className="feedback feedback-success tier-mutation-feedback" role="status">
+          {tierMutationFeedback}
+        </div>
+      )}
+      {tierMutationError && !tierEditorOpen && (
+        <div className="feedback feedback-error tier-mutation-feedback" role="status">
+          {tierMutationError}
+        </div>
+      )}
+
+      <ProductPriceTierEditorPanel
+        product={selectedProduct}
+        tier={editingTier}
+        open={tierEditorOpen}
+        saving={tierSaving}
+        error={tierMutationError}
+        onSubmit={submitTier}
+        onCancel={closeTierEditor}
+      />
+
       <ProductPriceTierCatalogPanel
         productName={selectedProduct?.name ?? null}
         quote={tierQuote}
@@ -660,6 +779,10 @@ export function PricingPage() {
         error={tierQuoteError}
         hasUnsavedChanges={formDirty}
         onRefresh={selectedProduct ? () => void loadTierQuote(selectedProduct.id) : undefined}
+        onCreateTier={selectedProduct?.isActive ? startCreateTier : undefined}
+        onEditTier={startEditTier}
+        onArchiveTier={archiveTier}
+        archivingTierId={archivingTierId}
       />
     </section>
   );

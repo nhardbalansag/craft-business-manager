@@ -835,8 +835,20 @@ Recommended split:
 - catalog contains no Create/Edit/Archive mutation controls
 - no automatic tier selection is introduced
 
-#### TP6B — Create/edit/archive tier form — NEXT / NOT STARTED
-#### TP6C — Package/bulk/custom UX and warnings
+#### TP6B — Create/edit/archive tier form — COMPLETE
+- Pricing workspace can create a tier for the currently selected active Product
+- normal creation delegates stable TIER-#### allocation to ProductPriceTierService
+- edit keeps the tier ID stable and keeps Product assignment fixed to the selected Product
+- generic source fields cover name, kind, price basis, price amount, units per offer, minimum order quantity, additional cost per offer, and notes
+- application/domain validation remains authoritative; UI does not duplicate pricing rules
+- active tiers can be archived through ProductPriceTierService
+- archived tiers remain visible and editable for historical correction
+- archived Products do not expose normal tier creation
+- tier economics refresh after successful create/edit/archive
+- no restore control or automatic tier selection is introduced
+- package/bulk/custom specialized guidance and warnings remain deferred to TP6C
+
+#### TP6C — Package/bulk/custom UX and warnings — NEXT / NOT STARTED
 #### TP6D — Responsive/accessibility regression
 
 ### TP7 — Pricing Quote Integration
@@ -968,8 +980,8 @@ All conditions are satisfied by this audit.
 
 ## 16. Exact Next Task
 
-**TP6B — Create / Edit / Archive Tier Form — NEXT / NOT STARTED**
+**TP6C — Package / Bulk / Custom UX + Warnings — NEXT / NOT STARTED**
 
-TP6A is complete. The Pricing workspace now exposes a read-only Product price-tier catalog backed by ProductPriceTierQuoteService, including saved source terms, authoritative economics, Default / Single comparison, archived tiers, and existing readiness diagnostics.
+TP6B is complete. The Pricing workspace now creates, edits, and archives Product price tiers through ProductPriceTierService while preserving stable IDs, existing Default / Single pricing, and the read-only economics catalog.
 
-Tier mutation remains deliberately deferred. Stop after TP6A. Do not start TP6B automatically.
+Specialized package/bulk/custom assistance remains deliberately deferred. Stop after TP6B. Do not start TP6C automatically.
