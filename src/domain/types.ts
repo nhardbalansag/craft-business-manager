@@ -19,6 +19,11 @@ export type {
   ProductComponentSourceType as ProductComponentSource,
 } from './productComponents';
 export type { ProductFinancialProfile } from './productFinancialProfile';
+export type {
+  ProductPriceTier,
+  ProductPriceTierKind,
+  ProductPriceTierPriceBasis,
+} from './productPriceTiers';
 export type { ProductStock } from './productStock';
 export type { PricingMethod, PricingPolicy } from './pricing';
 export type { Product, ProductCategory } from './products';

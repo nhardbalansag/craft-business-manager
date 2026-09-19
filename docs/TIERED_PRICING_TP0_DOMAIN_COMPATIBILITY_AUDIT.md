@@ -644,11 +644,14 @@ No production behavior changes.
 
 Recommended split:
 
-#### TP1A — Domain Contract & Validation
+#### TP1A — Domain Contract & Validation — COMPLETE
 - `ProductPriceTier`
-- enums/types
+- Package / Bulk / Custom enums
+- per-unit / per-offer basis enums
 - normalization/clone
-- validation/error codes
+- typed validation/error codes
+- package quantity coherence
+- zero/negative/non-finite source-value coverage
 - unit tests
 
 #### TP1B — Stable Tier ID Foundation
@@ -834,8 +837,8 @@ All conditions are satisfied by this audit.
 
 ## 16. Exact Next Task
 
-**TP1A — Product Price Tier Domain Contract & Validation — NEXT / NOT STARTED**
+**TP1B — Stable Tier ID Foundation — NEXT / NOT STARTED**
 
-TP1A must implement domain types/validation/tests only.
+TP1A is complete. TP1B must reuse the shared `nextSequentialId` helper for normal `TIER-####` allocation and prove compatibility with legacy/custom explicit tier IDs.
 
 Do not start repository/application services, persistence migration, UI, or tier economics automatically.
