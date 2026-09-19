@@ -766,8 +766,21 @@ Minimum subphases:
 - reserved `ProductPriceTiers` collision in a legacy workbook fails closed
 - v3 importer is compatibility-aware while the existing legacy application importer remains callable until TP5G
 
-#### TP5D — Physical workbook v3/dataset-v3 migration — NEXT / NOT STARTED
-#### TP5E — Legacy pre-Preferred physical-v2 regression
+#### TP5D — Physical workbook v3/dataset-v3 migration — COMPLETE
+- explicit `PhysicalBusinessDatasetV3` contract
+- physical workbook v3 / dataset-v3 target
+- canonical core v3 sheets plus StorageLocations and Molds
+- ProductPriceTiers persists alongside physical identification sources
+- explicit physical v2/dataset-2 -> v3/dataset-3 migration edge
+- current physical v2 core records are preserved
+- StorageLocations and Molds are preserved
+- legacy physical v2 receives an empty ProductPriceTiers collection
+- ProductFinancialProfiles remain unchanged; no tier inference from old prices
+- current physical v3 round-trips through real XLSX bytes
+- reserved ProductPriceTiers collision fails closed
+- pre-Preferred physical-v2 regression remains intentionally deferred to TP5E
+
+#### TP5E — Legacy pre-Preferred physical-v2 regression — NEXT / NOT STARTED
 #### TP5F — Google Sheets import compatibility
 #### TP5G — Atomic hydration/rollback/recovery completion gate
 
@@ -909,8 +922,8 @@ All conditions are satisfied by this audit.
 
 ## 16. Exact Next Task
 
-**TP5D — Physical Workbook v3 / Dataset-v3 Migration — NEXT / NOT STARTED**
+**TP5E — Legacy Pre-Preferred Physical-v2 Regression — NEXT / NOT STARTED**
 
-TP5C is complete with the explicit core v1/v2 -> v3 migration chain. Existing Default / Single financial profiles remain unchanged and legacy workbooks receive an empty ProductPriceTiers collection rather than inferred tiers.
+TP5D is complete with an explicit physical workbook v3 / dataset-v3 target and a current physical v2/dataset-2 migration that preserves core records, StorageLocations, Molds, and Default / Single pricing while adding an empty ProductPriceTiers collection.
 
-The existing legacy application importer remains available until the live persistence/hydration completion work in TP5G. Stop after TP5C. Do not start TP5D automatically.
+The oldest recognized pre-Preferred physical-v2 workbook shape remains deliberately deferred to TP5E. Stop after TP5D. Do not start TP5E automatically.
