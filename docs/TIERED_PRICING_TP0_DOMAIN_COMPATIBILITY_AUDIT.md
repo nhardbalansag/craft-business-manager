@@ -689,8 +689,16 @@ Recommended split:
 
 Recommended split:
 
-#### TP3A — Pure tier economics formulas
-#### TP3B — ProductPriceTierQuoteService
+#### TP3A — Pure tier economics formulas — COMPLETE
+- authoritative fully loaded unit cost × offer quantity
+- additional offer-cost handling
+- per-unit and per-offer selling-price normalization
+- profit per offer and effective profit per unit
+- effective markup / margin with zero-denominator null semantics
+- full precision with no domain monetary rounding
+- below-cost values remain valid economics inputs
+
+#### TP3B — ProductPriceTierQuoteService — NEXT / NOT STARTED
 #### TP3C — Default-price comparison + below-cost diagnostics
 
 ### TP4 — Default Pricing Compatibility Layer
@@ -852,8 +860,8 @@ All conditions are satisfied by this audit.
 
 ## 16. Exact Next Task
 
-**TP3A — Pure Tier Economics Formulas — NEXT / NOT STARTED**
+**TP3B — ProductPriceTierQuoteService — NEXT / NOT STARTED**
 
-TP2 is complete. TP2C exposes the shared Product price tier repository/service through the application session and proves the shared create/read/archive/restore path without crossing into dataset/workbook persistence.
+TP3A is complete with full-precision pure offer economics for per-unit and per-offer tiers, including zero-denominator semantics and below-cost-compatible negative profit values.
 
-Stop after TP2. Do not start TP3A, persistence migration, UI, or quote integration automatically.
+Stop after TP3A. Do not start TP3B, default-price comparison, persistence migration, or UI automatically.
