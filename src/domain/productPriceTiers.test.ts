@@ -5,6 +5,7 @@ import {
   isProductPriceTierPriceBasis,
   normalizeProductPriceTier,
   nextProductPriceTierId,
+  nextProductPriceTierId,
   PRODUCT_PRICE_TIER_KINDS,
   PRODUCT_PRICE_TIER_PRICE_BASES,
   ProductPriceTierError,
@@ -27,6 +28,32 @@ function tier(overrides: Partial<ProductPriceTier> = {}): ProductPriceTier {
     ...overrides,
   };
 }
+
+describe('ProductPriceTier stable IDs', () => {
+  it('uses the TIER-0001 convention when no numeric tier IDs exist', () => {
+    const existingIds = ['WHOLESALE-OLD', 'TIER-EVENT', 'CUSTOM-0007'];
+
+    expect(nextProductPriceTierId(existingIds)).toBe('TIER-0001');
+    expect(existingIds).toEqual(['WHOLESALE-OLD', 'TIER-EVENT', 'CUSTOM-0007']);
+  });
+
+  it('continues after the highest numeric TIER identifier while ignoring legacy/custom IDs', () => {
+    expect(
+      nextProductPriceTierId([
+        'TIER-0002',
+        'tier-0010',
+        'TIER-PREMIUM',
+        'WHOLESALE-0042',
+        'CUSTOM-EVENT',
+      ]),
+    ).toBe('TIER-0011');
+  });
+
+  it('keeps explicit legacy/custom tier IDs valid at the domain boundary', () => {
+    expect(() => validateProductPriceTierContract(tier({ id: 'WHOLESALE-OLD' }))).not.toThrow();
+    expect(() => validateProductPriceTierContract(tier({ id: 'tier-event-vip' }))).not.toThrow();
+  });
+});
 
 describe('ProductPriceTier contract', () => {
   it('exposes only the planned tier kinds and price bases', () => {
