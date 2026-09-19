@@ -246,7 +246,7 @@ Phase 5.6B verified:
 
 # Tiered Pricing Enhancement — ACTIVE
 
-Status: **TP2B COMPLETE / TP2C NEXT**
+Status: **TP2 COMPLETE / TP3A NEXT**
 
 Master audit and compatibility plan:
 
@@ -267,11 +267,14 @@ TP0 — Tiered Pricing Domain & Compatibility Audit                 COMPLETE
 TP1 — Product Price Tier Domain Foundation                       COMPLETE
     TP1A — Product Price Tier Domain Contract & Validation        COMPLETE
     TP1B — Stable Tier ID Foundation                              COMPLETE
-TP2 — Repository & Application Services                           IN PROGRESS
+TP2 — Repository & Application Services                           COMPLETE
     TP2A — Repository Contract + In-Memory Implementation         COMPLETE
     TP2B — ProductPriceTierService CRUD / Archive / Reference     COMPLETE
-    TP2C — Session Wiring + Service Regressions                    NEXT / NOT STARTED
-TP3 — Tier Economics Engine                                       NOT STARTED
+    TP2C — Session Wiring + Service Regressions                    COMPLETE
+TP3 — Tier Economics Engine                                       NEXT / NOT STARTED
+    TP3A — Pure Tier Economics Formulas                           NEXT / NOT STARTED
+    TP3B — ProductPriceTierQuoteService                           NOT STARTED
+    TP3C — Default-Price Comparison + Below-Cost Diagnostics      NOT STARTED
 TP4 — Default Pricing Compatibility Layer                         NOT STARTED
 TP5 — Workbook / Dataset Persistence & Migration                  NOT STARTED
 TP6 — Pricing UI                                                  NOT STARTED
@@ -280,7 +283,7 @@ TP8 — Quantity-Aware Tier Resolution                              NOT STARTED
 TP9 — Integrated Validation & Completion Gate                     NOT STARTED
 ```
 
-TP2B is complete. Do not start TP2C automatically from the TP2B completion gate.
+TP2 is complete. Do not start TP3 automatically from the TP2 completion gate.
 
 ---
 
@@ -368,7 +371,7 @@ Phase 7 scope should be revisited after the desktop/native persistence workflow 
 ## Current Next Action
 
 ```text
-TP2C — Session Wiring + Service Regressions
+TP3A — Pure Tier Economics Formulas
 NEXT / NOT STARTED
 ```
 
