@@ -246,7 +246,7 @@ Phase 5.6B verified:
 
 # Tiered Pricing Enhancement — ACTIVE
 
-Status: **TP2A COMPLETE / TP2B NEXT**
+Status: **TP2B COMPLETE / TP2C NEXT**
 
 Master audit and compatibility plan:
 
@@ -269,8 +269,8 @@ TP1 — Product Price Tier Domain Foundation                       COMPLETE
     TP1B — Stable Tier ID Foundation                              COMPLETE
 TP2 — Repository & Application Services                           IN PROGRESS
     TP2A — Repository Contract + In-Memory Implementation         COMPLETE
-    TP2B — ProductPriceTierService CRUD / Archive / Reference     NEXT / NOT STARTED
-    TP2C — Session Wiring + Service Regressions                    NOT STARTED
+    TP2B — ProductPriceTierService CRUD / Archive / Reference     COMPLETE
+    TP2C — Session Wiring + Service Regressions                    NEXT / NOT STARTED
 TP3 — Tier Economics Engine                                       NOT STARTED
 TP4 — Default Pricing Compatibility Layer                         NOT STARTED
 TP5 — Workbook / Dataset Persistence & Migration                  NOT STARTED
@@ -280,7 +280,7 @@ TP8 — Quantity-Aware Tier Resolution                              NOT STARTED
 TP9 — Integrated Validation & Completion Gate                     NOT STARTED
 ```
 
-TP2A is complete. Do not start TP2B automatically from the TP2A completion gate.
+TP2B is complete. Do not start TP2C automatically from the TP2B completion gate.
 
 ---
 
@@ -368,7 +368,7 @@ Phase 7 scope should be revisited after the desktop/native persistence workflow 
 ## Current Next Action
 
 ```text
-TP2B — ProductPriceTierService CRUD / Archive / Reference Rules
+TP2C — Session Wiring + Service Regressions
 NEXT / NOT STARTED
 ```
 
