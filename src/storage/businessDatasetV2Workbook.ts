@@ -473,7 +473,7 @@ export function validateBusinessDatasetV2WorkbookSchema(
     ];
   }
 
-  const document = input as WorkbookNeutralDocument;
+  const document = input as unknown as WorkbookNeutralDocument;
   const issues: BusinessDatasetWorkbookImportIssue[] = [];
 
   const names = document.sheets.map((sheet) => sheet.name);
