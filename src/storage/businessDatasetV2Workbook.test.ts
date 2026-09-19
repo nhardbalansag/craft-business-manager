@@ -175,11 +175,16 @@ describe('BusinessDataset v2 core workbook v3', () => {
       exportedAt: METADATA.exportedAt,
       applicationVersion: METADATA.applicationVersion,
     });
-    expect(result.dataset).toEqual(source);
-    expect(result.dataset.productPriceTiers[1]?.priceAmount).toBe(500.125);
-    expect(result.dataset.productPriceTiers[1]?.additionalCostPerOffer).toBe(
-      25.5,
+    expect(
+      createBusinessDatasetV2WorkbookDocument(result.dataset, METADATA),
+    ).toEqual(
+      createBusinessDatasetV2WorkbookDocument(source, METADATA),
     );
+    const custom = result.dataset.productPriceTiers.find(
+      (tier) => tier.id === 'TIER-Z',
+    );
+    expect(custom?.priceAmount).toBe(500.125);
+    expect(custom?.additionalCostPerOffer).toBe(25.5);
   });
 
   it('round-trips an empty ProductPriceTiers collection without synthesizing tiers', () => {
