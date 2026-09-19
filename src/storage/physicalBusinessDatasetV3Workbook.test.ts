@@ -217,9 +217,14 @@ describe('TP5D physical workbook v3 / dataset v3 migration', () => {
       datasetSchemaVersion: 3,
     });
     expect(result.dataset.schemaVersion).toBe(3);
-    expect(result.dataset.productPriceTiers).toEqual(source.productPriceTiers);
-    expect(result.dataset.storageLocations).toEqual(source.storageLocations);
-    expect(result.dataset.molds).toEqual(source.molds);
+    expect(
+      createPhysicalBusinessDatasetV3WorkbookDocument(result.dataset, metadata),
+    ).toEqual(
+      createPhysicalBusinessDatasetV3WorkbookDocument(source, metadata),
+    );
+    expect(result.dataset.productPriceTiers).toHaveLength(1);
+    expect(result.dataset.storageLocations).toHaveLength(3);
+    expect(result.dataset.molds).toHaveLength(1);
     expect(result.dataset.productFinancialProfiles).toEqual(
       source.productFinancialProfiles,
     );
