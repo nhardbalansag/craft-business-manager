@@ -792,8 +792,19 @@ Minimum subphases:
 - unknown/incomplete legacy Products column shapes remain fail-closed
 - reserved ProductPriceTiers collisions remain fail-closed
 
-#### TP5F — Google Sheets import compatibility — NEXT / NOT STARTED
-#### TP5G — Atomic hydration/rollback/recovery completion gate
+#### TP5F — Google Sheets import compatibility — COMPLETE
+- public Google Sheets remains transport-only and adds no separate migration algorithm
+- Published-to-the-web XLSX bytes are forwarded unchanged to the shared importAndApplyWorkbook boundary
+- real published-snapshot regression uses the oldest recognized pre-Preferred physical-v2 shape
+- physical-v2/dataset-2 snapshot migrates through the existing physical-v3 importer
+- Product records and notes remain unchanged
+- ProductFinancialProfiles / Default / Single pricing remain unchanged
+- StorageLocations and Molds remain unchanged
+- ProductPriceTiers becomes an empty authoritative collection
+- Preferred Yield remains undefined for pre-Preferred records
+- no live hydration/session cutover is introduced before TP5G
+
+#### TP5G — Atomic hydration/rollback/recovery completion gate — NEXT / NOT STARTED
 
 ### TP6 — Pricing UI
 
@@ -933,8 +944,8 @@ All conditions are satisfied by this audit.
 
 ## 16. Exact Next Task
 
-**TP5F — Google Sheets Import Compatibility — NEXT / NOT STARTED**
+**TP5G — Atomic Hydration / Rollback / Recovery Completion Gate — NEXT / NOT STARTED**
 
-TP5E is complete with regression proof that the oldest recognized pre-Preferred physical-v2 Products shape still normalizes through the PR #250 compatibility rule and migrates to physical v3/dataset-v3 without changing existing records or Default / Single pricing. ProductPriceTiers remains empty for legacy data.
+TP5F is complete with a real public-Google-Sheets transport regression proving that an old published physical-v2 XLSX snapshot reaches the shared import boundary unchanged and migrates through the existing physical-v3 compatibility path. No Google-specific migration algorithm was added.
 
-Stop after TP5E. Do not start TP5F automatically.
+Live tier-aware snapshot, hydration, rollback, repository replacement, and PersistenceCoordinator cutover remain deliberately deferred to TP5G. Stop after TP5F. Do not start TP5G automatically.

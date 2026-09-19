@@ -246,7 +246,7 @@ Phase 5.6B verified:
 
 # Tiered Pricing Enhancement — ACTIVE
 
-Status: **TP5E COMPLETE / TP5F NEXT**
+Status: **TP5F COMPLETE / TP5G NEXT**
 
 Master audit and compatibility plan:
 
@@ -282,15 +282,15 @@ TP5 — Workbook / Dataset Persistence & Migration                  IN PROGRESS
     TP5C — Core v1/v2 Migration Chain                             COMPLETE
     TP5D — Physical Workbook v3 / Dataset-v3 Migration            COMPLETE
     TP5E — Legacy Pre-Preferred Physical-v2 Regression            COMPLETE
-    TP5F — Google Sheets Import Compatibility                     NEXT / NOT STARTED
-    TP5G — Atomic Hydration / Rollback / Recovery Completion Gate NOT STARTED
+    TP5F — Google Sheets Import Compatibility                     COMPLETE
+    TP5G — Atomic Hydration / Rollback / Recovery Completion Gate NEXT / NOT STARTED
 TP6 — Pricing UI                                                  NOT STARTED
 TP7 — Pricing Quote Integration                                   NOT STARTED
 TP8 — Quantity-Aware Tier Resolution                              NOT STARTED
 TP9 — Integrated Validation & Completion Gate                     NOT STARTED
 ```
 
-TP5E is complete. Do not start TP5F automatically from the TP5E completion gate.
+TP5F is complete. Do not start TP5G automatically from the TP5F completion gate.
 
 ---
 
@@ -378,7 +378,7 @@ Phase 7 scope should be revisited after the desktop/native persistence workflow 
 ## Current Next Action
 
 ```text
-TP5F — Google Sheets Import Compatibility
+TP5G — Atomic Hydration / Rollback / Recovery Completion Gate
 NEXT / NOT STARTED
 ```
 
