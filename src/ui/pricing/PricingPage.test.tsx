@@ -29,6 +29,7 @@ beforeEach(async () => {
     session.yieldSampleRepository.replaceAll([]),
     session.calibrationRepository.replaceAll([]),
     session.productFinancialProfileRepository.replaceAll([]),
+    session.productPriceTierRepository.replaceAll([]),
   ]);
   container = document.createElement('div');
   document.body.append(container);
@@ -193,4 +194,40 @@ describe('Pricing workspace UI/UX', () => {
     await act(async () => refresh!.click());
     expect(quoteSpy.mock.calls.length).toBeGreaterThanOrEqual(2);
   });
+  it('loads the selected Product tier catalog through the authoritative tier quote service without mutation controls', async () => {
+    await seed();
+    await session.productPriceTierRepository.replaceAll([
+      {
+        id: 'TIER-0001',
+        productId: 'ART-001',
+        name: 'Bulk 20+',
+        kind: 'bulk',
+        priceBasis: 'per-unit',
+        priceAmount: 40,
+        unitsPerOffer: 1,
+        minimumOrderQuantity: 20,
+        additionalCostPerOffer: 0,
+        notes: 'Read-only TP6A source',
+        isActive: true,
+      },
+    ]);
+    const tierQuoteSpy = vi.spyOn(
+      session.productPriceTierQuoteService,
+      'quoteProduct',
+    );
+
+    await mount();
+    await act(async () => Promise.resolve());
+
+    const catalog = container.querySelector('[aria-label="Tier pricing catalog"]');
+    expect(catalog).not.toBeNull();
+    expect(catalog?.textContent).toContain('Bulk 20+');
+    expect(catalog?.textContent).toContain('Read-only TP6A source');
+    expect(catalog?.textContent).toContain('Authoritative tier economics are unavailable');
+    expect(tierQuoteSpy).toHaveBeenCalledWith('ART-001');
+    expect(catalog?.textContent).not.toContain('Create tier');
+    expect(catalog?.textContent).not.toContain('Edit tier');
+    expect(catalog?.textContent).not.toContain('Archive tier');
+  });
+
 });
