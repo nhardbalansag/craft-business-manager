@@ -4,6 +4,7 @@ import {
   isProductPriceTierKind,
   isProductPriceTierPriceBasis,
   normalizeProductPriceTier,
+  nextProductPriceTierId,
   PRODUCT_PRICE_TIER_KINDS,
   PRODUCT_PRICE_TIER_PRICE_BASES,
   ProductPriceTierError,
@@ -40,6 +41,30 @@ describe('ProductPriceTier contract', () => {
     expect(isProductPriceTierPriceBasis('per-unit')).toBe(true);
     expect(isProductPriceTierPriceBasis('per-offer')).toBe(true);
     expect(isProductPriceTierPriceBasis('fixed')).toBe(false);
+  });
+
+  it('allocates TIER-0001 when only legacy/custom explicit IDs exist', () => {
+    const existingIds = ['WHOLESALE', 'TIER-CUSTOM', 'LEGACY-PRICE-7'];
+
+    expect(nextProductPriceTierId(existingIds)).toBe('TIER-0001');
+    expect(existingIds).toEqual(['WHOLESALE', 'TIER-CUSTOM', 'LEGACY-PRICE-7']);
+  });
+
+  it('continues after the highest matching numeric tier ID across mixed IDs', () => {
+    expect(
+      nextProductPriceTierId([
+        'TIER-0002',
+        'tier-0010',
+        'TIER-CUSTOM',
+        'WHOLESALE-2026',
+        'TIER-0007',
+      ]),
+    ).toBe('TIER-0011');
+  });
+
+  it('allows explicit legacy/custom tier IDs at the domain contract boundary', () => {
+    expect(() => validateProductPriceTierContract(tier({ id: 'EVENT-PARTNER-PRICE' }))).not.toThrow();
+    expect(() => validateProductPriceTierContract(tier({ id: 'tier-custom-alpha' }))).not.toThrow();
   });
 
   it('accepts a per-unit bulk tier', () => {
