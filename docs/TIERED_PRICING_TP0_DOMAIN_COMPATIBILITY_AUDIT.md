@@ -679,7 +679,11 @@ Recommended split:
 - relationship moves require an existing active Product
 - typed application errors and service regressions
 
-#### TP2C — Session wiring + service regressions — NEXT / NOT STARTED
+#### TP2C — Session wiring + service regressions — COMPLETE
+- shared `productPriceTierRepository` session instance
+- shared `productPriceTierService` wired to the authoritative Product repository
+- shared-session create/read/archive/restore regression
+- no persistence/dataset wiring introduced
 
 ### TP3 — Tier Economics Engine
 
@@ -848,8 +852,8 @@ All conditions are satisfied by this audit.
 
 ## 16. Exact Next Task
 
-**TP2C — Session Wiring + Service Regressions — NEXT / NOT STARTED**
+**TP3A — Pure Tier Economics Formulas — NEXT / NOT STARTED**
 
-TP2B is complete with automatic normal-creation IDs, Product relationship guards, historical archived-Product compatibility, CRUD-style update/get/list operations, archive/restore behavior, and focused service regressions.
+TP2 is complete. TP2C exposes the shared Product price tier repository/service through the application session and proves the shared create/read/archive/restore path without crossing into dataset/workbook persistence.
 
-Stop after TP2B. Do not start TP2C, persistence migration, UI, or tier economics automatically.
+Stop after TP2. Do not start TP3A, persistence migration, UI, or quote integration automatically.
