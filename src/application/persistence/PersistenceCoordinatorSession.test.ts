@@ -1,15 +1,23 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { createEmptyBusinessDataset } from '../../domain/businessDataset';
+import { createEmptyBusinessDatasetV2 } from '../../domain/businessDatasetV2';
+import { extendBusinessDatasetV2 } from '../../domain/physicalBusinessDatasetV3';
 import {
   persistenceCoordinator,
+  physicalDatasetHydrationServiceV3,
+  productPriceTierService,
   productStockService,
   validatedAtomicDatasetHydrationService,
 } from '../session';
 import { PersistenceCoordinator } from './PersistenceCoordinator';
 
 afterEach(async () => {
-  const result = await validatedAtomicDatasetHydrationService.hydrate(createEmptyBusinessDataset());
-  if (result.status !== 'hydrated') throw new Error('session cleanup hydration was rejected');
+  const result = await physicalDatasetHydrationServiceV3.hydrate(
+    extendBusinessDatasetV2(createEmptyBusinessDatasetV2()),
+  );
+  if (result.status !== 'hydrated') {
+    throw new Error('tier-aware session cleanup hydration was rejected');
+  }
 });
 
 describe('Phase 5.3C3 shared session coordinator', () => {
@@ -46,4 +54,57 @@ describe('Phase 5.3C3 shared session coordinator', () => {
       onHandQuantity: 0,
     });
   });
+  it('round-trips ProductPriceTiers through the shared live persistence coordinator', async () => {
+    const core = createEmptyBusinessDatasetV2();
+    core.products.push({
+      id: 'session-tier-product',
+      name: 'Session Tier Product',
+      category: 'paintable-art',
+      safetyWasteRate: 0,
+      isActive: true,
+    });
+    core.productPriceTiers.push({
+      id: 'TIER-SESSION-0001',
+      productId: 'session-tier-product',
+      name: 'Session Bulk',
+      kind: 'bulk',
+      priceBasis: 'per-unit',
+      priceAmount: 45,
+      unitsPerOffer: 1,
+      minimumOrderQuantity: 10,
+      additionalCostPerOffer: 0,
+      isActive: true,
+    });
+
+    expect(
+      await physicalDatasetHydrationServiceV3.hydrate(
+        extendBusinessDatasetV2(core),
+      ),
+    ).toEqual({ status: 'hydrated' });
+
+    const exported = await persistenceCoordinator.exportCurrentWorkbook();
+
+    expect(
+      await physicalDatasetHydrationServiceV3.hydrate(
+        extendBusinessDatasetV2(createEmptyBusinessDatasetV2()),
+      ),
+    ).toEqual({ status: 'hydrated' });
+    expect(await productPriceTierService.listTiers()).toEqual([]);
+
+    const restored = await persistenceCoordinator.importAndApplyWorkbook(
+      exported.bytes,
+    );
+
+    expect(restored).toMatchObject({
+      status: 'hydrated',
+      metadata: {
+        workbookFormatVersion: 3,
+        datasetSchemaVersion: 2,
+      },
+    });
+    expect(await productPriceTierService.getTier('tier-session-0001')).toEqual(
+      core.productPriceTiers[0],
+    );
+  });
+
 });
