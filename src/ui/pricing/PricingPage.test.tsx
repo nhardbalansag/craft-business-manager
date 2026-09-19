@@ -194,7 +194,7 @@ describe('Pricing workspace UI/UX', () => {
     await act(async () => refresh!.click());
     expect(quoteSpy.mock.calls.length).toBeGreaterThanOrEqual(2);
   });
-  it('loads the selected Product tier catalog through the authoritative tier quote service without mutation controls', async () => {
+  it('loads the selected Product tier catalog through the authoritative tier quote service with TP6B source actions', async () => {
     await seed();
     await session.productPriceTierRepository.replaceAll([
       {
@@ -225,9 +225,106 @@ describe('Pricing workspace UI/UX', () => {
     expect(catalog?.textContent).toContain('Read-only TP6A source');
     expect(catalog?.textContent).toContain('Authoritative tier economics are unavailable');
     expect(tierQuoteSpy).toHaveBeenCalledWith('ART-001');
-    expect(catalog?.textContent).not.toContain('Create tier');
-    expect(catalog?.textContent).not.toContain('Edit tier');
-    expect(catalog?.textContent).not.toContain('Archive tier');
+    expect(catalog?.textContent).toContain('Create tier');
+    expect(catalog?.textContent).toContain('Edit tier');
+    expect(catalog?.textContent).toContain('Archive tier');
+    expect(catalog?.textContent).not.toContain('Restore tier');
+  });
+
+  it('creates, edits, and archives a tier through the Pricing workspace while keeping the stable tier ID', async () => {
+    await seed();
+    await mount();
+    await act(async () => Promise.resolve());
+
+    await click('Create tier');
+
+    const tierForm = container.querySelector<HTMLFormElement>(
+      '[aria-label="Price tier editor"]',
+    );
+    expect(tierForm).not.toBeNull();
+
+    await fill(field('Tier name', tierForm!), 'Bulk 20+');
+    await fill(field('Tier kind', tierForm!), 'bulk');
+    await fill(field('Price basis', tierForm!), 'per-unit');
+    await fill(field('Price amount', tierForm!), '40');
+    await fill(field('Units per offer', tierForm!), '1');
+    await fill(field('Minimum order quantity', tierForm!), '20');
+    await fill(field('Additional cost per offer', tierForm!), '0');
+    await fill(field('Notes', tierForm!), 'Wholesale counter price');
+
+    await act(async () => {
+      tierForm!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const created = await session.productPriceTierService.listTiersByProduct('ART-001');
+    expect(created).toHaveLength(1);
+    expect(created[0]).toMatchObject({
+      id: 'TIER-0001',
+      name: 'Bulk 20+',
+      priceAmount: 40,
+      minimumOrderQuantity: 20,
+      notes: 'Wholesale counter price',
+      isActive: true,
+    });
+    expect(container.textContent).toContain('created as TIER-0001');
+
+    await click('Edit tier Bulk 20+');
+    const editForm = container.querySelector<HTMLFormElement>(
+      '[aria-label="Price tier editor"]',
+    )!;
+    expect(editForm.textContent).toContain('TIER-0001');
+    await fill(field('Tier name', editForm), 'Bulk 25+');
+    await fill(field('Price amount', editForm), '38');
+    await fill(field('Minimum order quantity', editForm), '25');
+
+    await act(async () => {
+      editForm.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const updated = await session.productPriceTierService.getTier('TIER-0001');
+    expect(updated).toMatchObject({
+      id: 'TIER-0001',
+      name: 'Bulk 25+',
+      priceAmount: 38,
+      minimumOrderQuantity: 25,
+      isActive: true,
+    });
+    expect(container.textContent).toContain('Price tier Bulk 25+ updated');
+
+    await click('Archive tier Bulk 25+');
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(await session.productPriceTierService.getTier('TIER-0001')).toMatchObject({
+      id: 'TIER-0001',
+      isActive: false,
+    });
+    expect(container.textContent).toContain('Price tier Bulk 25+ archived');
+    expect(
+      container.querySelector('[aria-label="Price tier Bulk 25+"]')?.textContent,
+    ).toContain('Archived');
+    expect(container.textContent).not.toContain('Restore tier');
+  });
+
+  it('does not expose Create tier for an archived selected Product', async () => {
+    await session.productRepository.replaceAll([{ ...product, isActive: false }]);
+
+    await mount();
+    await act(async () => Promise.resolve());
+
+    const catalog = container.querySelector('[aria-label="Tier pricing catalog"]');
+    expect(catalog).not.toBeNull();
+    expect(
+      Array.from(catalog!.querySelectorAll('button')).some(
+        (button) => button.textContent?.trim() === 'Create tier',
+      ),
+    ).toBe(false);
   });
 
 });
