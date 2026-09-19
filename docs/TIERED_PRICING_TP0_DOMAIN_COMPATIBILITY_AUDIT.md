@@ -671,8 +671,15 @@ Recommended split:
 - defensive-cloning, case-insensitive in-memory implementation
 - repository regressions for normal and legacy/custom IDs
 
-#### TP2B — ProductPriceTierService CRUD/archive/list/reference rules — NEXT / NOT STARTED
-#### TP2C — Session wiring + service regressions — NOT STARTED
+#### TP2B — ProductPriceTierService CRUD/archive/list/reference rules — COMPLETE
+- normal creation allocates global `TIER-####` IDs
+- Product existence and archived-Product creation rules
+- historical archived-Product tier records remain loadable/correctable
+- update, get, list/filter/search, archive, and guarded restore
+- relationship moves require an existing active Product
+- typed application errors and service regressions
+
+#### TP2C — Session wiring + service regressions — NEXT / NOT STARTED
 
 ### TP3 — Tier Economics Engine
 
@@ -841,8 +848,8 @@ All conditions are satisfied by this audit.
 
 ## 16. Exact Next Task
 
-**TP2B — ProductPriceTierService CRUD / Archive / List / Reference Rules — NEXT / NOT STARTED**
+**TP2C — Session Wiring + Service Regressions — NEXT / NOT STARTED**
 
-TP2A is complete with the repository contract, in-memory implementation, defensive cloning, normalized identity lookup, and mixed legacy/custom ID compatibility coverage.
+TP2B is complete with automatic normal-creation IDs, Product relationship guards, historical archived-Product compatibility, CRUD-style update/get/list operations, archive/restore behavior, and focused service regressions.
 
-Stop after TP2A. Do not start TP2B, session wiring, persistence migration, UI, or tier economics automatically.
+Stop after TP2B. Do not start TP2C, persistence migration, UI, or tier economics automatically.
