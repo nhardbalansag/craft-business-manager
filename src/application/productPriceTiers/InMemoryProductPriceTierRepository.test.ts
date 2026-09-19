@@ -82,4 +82,30 @@ describe('InMemoryProductPriceTierRepository', () => {
     expect((await repository.findById('wholesale-old'))?.id).toBe('WHOLESALE-OLD');
     expect((await repository.findById('tier-event-vip'))?.id).toBe('TIER-EVENT-VIP');
   });
+  it('atomically replaces the complete tier collection with defensive clones', async () => {
+    const repository = new InMemoryProductPriceTierRepository([
+      tier({ id: 'TIER-OLD', name: 'Old tier' }),
+    ]);
+    const next = tier({
+      id: 'TIER-NEW',
+      name: 'New package',
+      kind: 'package',
+      priceBasis: 'per-offer',
+      priceAmount: 250,
+      unitsPerOffer: 5,
+      minimumOrderQuantity: 5,
+    });
+
+    await repository.replaceAll([next]);
+
+    expect(await repository.findById('TIER-OLD')).toBeNull();
+    expect(await repository.findById('tier-new')).toEqual(next);
+
+    next.name = 'caller mutation';
+    expect((await repository.findById('TIER-NEW'))?.name).toBe('New package');
+
+    await repository.replaceAll([]);
+    expect(await repository.list()).toEqual([]);
+  });
+
 });
