@@ -32,6 +32,7 @@ import { ProductComponentService } from './productComponents/ProductComponentSer
 import { InMemoryProductFinancialProfileRepository } from './productFinancialProfiles/InMemoryProductFinancialProfileRepository';
 import { ProductFinancialProfileService } from './productFinancialProfiles/ProductFinancialProfileService';
 import { InMemoryProductPriceTierRepository } from './productPriceTiers/InMemoryProductPriceTierRepository';
+import { ProductPriceTierQuoteService } from './productPriceTiers/ProductPriceTierQuoteService';
 import { ProductPriceTierService } from './productPriceTiers/ProductPriceTierService';
 import { InMemoryProductRepository } from './products/InMemoryProductRepository';
 import { ProductService } from './products/ProductService';
@@ -254,6 +255,10 @@ export const fullyLoadedProductUnitCostService = new FullyLoadedProductUnitCostS
   materialBackedComponentCostService,
   recursiveFullyLoadedProductComponentCostService,
   productFinancialProfileService,
+);
+export const productPriceTierQuoteService = new ProductPriceTierQuoteService(
+  fullyLoadedProductUnitCostService,
+  productPriceTierService,
 );
 export const physicalPlannedBatchProductionCostService =
   new PhysicalPlannedBatchProductionCostService(

@@ -1,17 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import {
+  productPriceTierQuoteService,
   productPriceTierRepository,
   productPriceTierService,
   productRepository,
   productService,
 } from '../session';
 import { InMemoryProductPriceTierRepository } from './InMemoryProductPriceTierRepository';
+import { ProductPriceTierQuoteService } from './ProductPriceTierQuoteService';
 import { ProductPriceTierService } from './ProductPriceTierService';
 
 describe('TP2C shared Product price tier session wiring', () => {
   it('exposes the shared repository/service over the authoritative Product repository', () => {
     expect(productPriceTierRepository).toBeInstanceOf(InMemoryProductPriceTierRepository);
     expect(productPriceTierService).toBeInstanceOf(ProductPriceTierService);
+    expect(productPriceTierQuoteService).toBeInstanceOf(ProductPriceTierQuoteService);
     expect(productRepository).toBeDefined();
     expect(productService).toBeDefined();
   });
