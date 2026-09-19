@@ -698,8 +698,16 @@ Recommended split:
 - full precision with no domain monetary rounding
 - below-cost values remain valid economics inputs
 
-#### TP3B — ProductPriceTierQuoteService — NEXT / NOT STARTED
-#### TP3C — Default-price comparison + below-cost diagnostics
+#### TP3B — ProductPriceTierQuoteService — COMPLETE
+- orchestrates authoritative fully loaded unit cost with Product price tiers
+- ready/partial/not-ready quote states
+- computes TP3A economics only from ready authoritative cost
+- preserves archived tiers as historical/inactive quote records
+- fail-closed Product/tier identity consistency checks
+- shared application-session wiring
+- no Default / Single comparison or below-cost warning yet
+
+#### TP3C — Default-price comparison + below-cost diagnostics — NEXT / NOT STARTED
 
 ### TP4 — Default Pricing Compatibility Layer
 
@@ -860,8 +868,8 @@ All conditions are satisfied by this audit.
 
 ## 16. Exact Next Task
 
-**TP3B — ProductPriceTierQuoteService — NEXT / NOT STARTED**
+**TP3C — Default-Price Comparison + Below-Cost Diagnostics — NEXT / NOT STARTED**
 
-TP3A is complete with full-precision pure offer economics for per-unit and per-offer tiers, including zero-denominator semantics and below-cost-compatible negative profit values.
+TP3B is complete with tier quote orchestration over the authoritative fully loaded unit cost, readiness propagation, historical inactive-tier visibility, fail-closed identity validation, and shared session wiring.
 
-Stop after TP3A. Do not start TP3B, default-price comparison, persistence migration, or UI automatically.
+Stop after TP3B. Do not start TP3C, persistence migration, UI, or quantity-aware selection automatically.
