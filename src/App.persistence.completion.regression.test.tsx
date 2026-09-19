@@ -11,18 +11,19 @@ import { BrowserWorkbookImportCommand } from './application/persistence/BrowserW
 import { PersistenceLifecycleOperationalError } from './application/persistence/PersistenceLifecycle';
 import * as session from './application/session';
 import { createEmptyBusinessDataset } from './domain/businessDataset';
+import { BUSINESS_DATASET_V2_SCHEMA_VERSION } from './domain/businessDatasetV2';
 import type { BusinessDataset } from './domain/types';
 import {
   createBusinessDatasetWorkbookDocument,
   exportBusinessDatasetToXlsx,
 } from './storage/businessDatasetWorkbookExport';
-import { importBusinessDatasetFromXlsx } from './storage/businessDatasetWorkbookImport';
+import {
+  CORE_WORKBOOK_V3_FORMAT_VERSION,
+  importBusinessDatasetV2FromXlsx,
+} from './storage/businessDatasetV2Workbook';
 import { DEFAULT_WORKBOOK_RESOURCE_LIMITS } from './storage/workbookResourceLimits';
 import { SheetJsWorkbookCodec } from './storage/sheetJsWorkbookCodec';
-import {
-  CURRENT_WORKBOOK_FORMAT_VERSION,
-  type WorkbookNeutralDocument,
-} from './storage/workbookSchema';
+import type { WorkbookNeutralDocument } from './storage/workbookSchema';
 
 const codec = new SheetJsWorkbookCodec();
 const metadata = { exportedAt: '2026-09-17T01:45:00.000Z' } as const;
@@ -104,7 +105,11 @@ function futureVersionBytes(): Uint8Array {
   return codec.encode(mapSheet(document, '_Meta', (sheet) => ({
     ...sheet,
     rows: sheet.rows.map((row, index) => index === 0
-      ? { ...row, workbookFormatVersion: CURRENT_WORKBOOK_FORMAT_VERSION + 1 }
+      ? {
+          ...row,
+          workbookFormatVersion: CORE_WORKBOOK_V3_FORMAT_VERSION + 1,
+          datasetSchemaVersion: BUSINESS_DATASET_V2_SCHEMA_VERSION + 1,
+        }
       : row),
   })));
 }
@@ -259,10 +264,15 @@ describe('Phase 5.5C3 persistence UX regression and Phase 5.5 completion gate', 
     expect(capture.dispatches).toHaveLength(1);
     expect(capture.revoked).toEqual(['blob:phase-5-5c3-1']);
 
-    const exported = importBusinessDatasetFromXlsx(capture.bytes[0]!, codec);
+    const exported = importBusinessDatasetV2FromXlsx(capture.bytes[0]!, codec);
     expect(exported.ok).toBe(true);
     if (!exported.ok) throw new Error('Expected completion-gate export to re-import.');
-    expect(exported.dataset).toEqual(incoming);
+    expect(exported.dataset.productPriceTiers).toEqual([]);
+    expect({
+      ...exported.dataset,
+      schemaVersion: incoming.schemaVersion,
+      productPriceTiers: undefined,
+    }).toMatchObject(incoming);
     expect(await session.completeSourceSnapshotService.snapshot()).toEqual(incoming);
   });
 
