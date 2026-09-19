@@ -95,13 +95,20 @@ function migrateCoreWorkbookV2ToV3(
   document: WorkbookNeutralDocument,
 ): WorkbookNeutralDocument {
   const migrated = cloneWorkbookNeutralDocument(document);
-  const withoutTierSheet = migrated.sheets.filter(
-    (sheet) => sheet.name !== PRODUCT_PRICE_TIERS_SHEET_NAME,
-  );
+
+  if (
+    migrated.sheets.some(
+      (sheet) => sheet.name === PRODUCT_PRICE_TIERS_SHEET_NAME,
+    )
+  ) {
+    throw new Error(
+      `Legacy core workbook already contains reserved sheet ${PRODUCT_PRICE_TIERS_SHEET_NAME}.`,
+    );
+  }
 
   return {
     sheets: [
-      ...withoutTierSheet.map((sheet) => {
+      ...migrated.sheets.map((sheet) => {
         if (sheet.name !== '_Meta') return sheet;
 
         return {
