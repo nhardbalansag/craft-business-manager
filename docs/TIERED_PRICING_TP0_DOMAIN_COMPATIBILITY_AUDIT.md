@@ -804,7 +804,20 @@ Minimum subphases:
 - Preferred Yield remains undefined for pre-Preferred records
 - no live hydration/session cutover is introduced before TP5G
 
-#### TP5G — Atomic hydration/rollback/recovery completion gate — NEXT / NOT STARTED
+#### TP5G — Atomic hydration/rollback/recovery completion gate — COMPLETE
+- ProductPriceTier repository supports complete defensive collection replacement
+- BusinessDataset v2 source snapshot includes deterministic ProductPriceTiers
+- BusinessDataset v2 atomic hydration replaces all ten authoritative core collections
+- failed tier replacement restores the previous base collections and previous tiers
+- failed tier rollback surfaces the distinct ROLLBACK_FAILED outcome
+- PhysicalBusinessDataset v3 snapshot includes core tiers plus StorageLocations and Molds
+- physical v3 hydration restores the previous core+tier state when a later physical replacement fails
+- PersistenceCoordinator supports tier-aware core v3/dataset-v2 and physical v3/dataset-v3 modes
+- live tier-aware coordinator retains legacy core and physical import migration compatibility
+- core v3 is emitted when no physical records exist; physical v3 is emitted when StorageLocations or Molds exist
+- importing an old workbook clears ProductPriceTiers rather than synthesizing tiers from Default / Single pricing
+- application session is cut over to the tier-aware snapshot/hydration graph
+- shared-session regression proves exported tiers return to the same ProductPriceTierService repository — NEXT / NOT STARTED
 
 ### TP6 — Pricing UI
 
@@ -944,8 +957,8 @@ All conditions are satisfied by this audit.
 
 ## 16. Exact Next Task
 
-**TP5G — Atomic Hydration / Rollback / Recovery Completion Gate — NEXT / NOT STARTED**
+**TP6A — Tier Catalog / Read-Only Economics — NEXT / NOT STARTED**
 
-TP5F is complete with a real public-Google-Sheets transport regression proving that an old published physical-v2 XLSX snapshot reaches the shared import boundary unchanged and migrates through the existing physical-v3 compatibility path. No Google-specific migration algorithm was added.
+TP5 is complete. The live persistence graph now snapshots, exports, imports, hydrates, and rolls back ProductPriceTiers atomically with the existing authoritative business sources. Core/physical legacy workbook and Google Sheets compatibility remain preserved through the v3 migration paths.
 
-Live tier-aware snapshot, hydration, rollback, repository replacement, and PersistenceCoordinator cutover remain deliberately deferred to TP5G. Stop after TP5F. Do not start TP5G automatically.
+Stop after TP5G. Do not start TP6A automatically.

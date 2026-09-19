@@ -8,10 +8,14 @@ import { MixPresetService } from './mixPresets/MixPresetService';
 import { InMemoryMoldRepository } from './molds/InMemoryMoldRepository';
 import { MoldService } from './molds/MoldService';
 import { CompleteSourceSnapshotService } from './persistence/CompleteSourceSnapshotService';
+import { CompleteSourceSnapshotServiceV2 } from './persistence/CompleteSourceSnapshotServiceV2';
 import { PersistenceCoordinator } from './persistence/PersistenceCoordinator';
 import { PhysicalDatasetHydrationService } from './persistence/PhysicalDatasetHydrationService';
+import { PhysicalDatasetHydrationServiceV3 } from './persistence/PhysicalDatasetHydrationServiceV3';
 import { PhysicalSourceSnapshotService } from './persistence/PhysicalSourceSnapshotService';
+import { PhysicalSourceSnapshotServiceV3 } from './persistence/PhysicalSourceSnapshotServiceV3';
 import { ValidatedAtomicDatasetHydrationService } from './persistence/ValidatedAtomicDatasetHydrationService';
+import { ValidatedAtomicDatasetHydrationServiceV2 } from './persistence/ValidatedAtomicDatasetHydrationServiceV2';
 import { FullyLoadedProductUnitCostService } from './productCosts/FullyLoadedProductUnitCostService';
 import { RecursiveFullyLoadedProductComponentCostService } from './productCosts/RecursiveFullyLoadedProductComponentCostService';
 import { WasteAdjustedDirectMaterialCostService } from './productCosts/WasteAdjustedDirectMaterialCostService';
@@ -106,10 +110,45 @@ export const physicalDatasetHydrationService = new PhysicalDatasetHydrationServi
   moldRepository,
 );
 
+export const completeSourceSnapshotServiceV2 = new CompleteSourceSnapshotServiceV2(
+  completeSourceSnapshotService,
+  productPriceTierRepository,
+);
+
+export const validatedAtomicDatasetHydrationServiceV2 =
+  new ValidatedAtomicDatasetHydrationServiceV2(
+    {
+      materials: materialRepository,
+      calibrations: calibrationRepository,
+      mixPresets: mixPresetRepository,
+      products: productRepository,
+      yieldSamples: yieldSampleRepository,
+      recipeItems: fixedRecipeItemRepository,
+      productComponents: productComponentRepository,
+      productStocks: productStockRepository,
+      productFinancialProfiles: productFinancialProfileRepository,
+      productPriceTiers: productPriceTierRepository,
+    },
+    completeSourceSnapshotServiceV2,
+  );
+
+export const physicalSourceSnapshotServiceV3 = new PhysicalSourceSnapshotServiceV3(
+  completeSourceSnapshotServiceV2,
+  storageLocationRepository,
+  moldRepository,
+);
+
+export const physicalDatasetHydrationServiceV3 = new PhysicalDatasetHydrationServiceV3(
+  validatedAtomicDatasetHydrationServiceV2,
+  physicalSourceSnapshotServiceV3,
+  storageLocationRepository,
+  moldRepository,
+);
+
 const persistenceWorkbookCodec = new SheetJsWorkbookCodec();
 export const persistenceCoordinator = new PersistenceCoordinator(
-  physicalSourceSnapshotService,
-  physicalDatasetHydrationService,
+  physicalSourceSnapshotServiceV3,
+  physicalDatasetHydrationServiceV3,
   persistenceWorkbookCodec,
 );
 

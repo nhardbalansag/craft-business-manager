@@ -1,12 +1,15 @@
 import type { ProductPriceTier } from '../../domain/productPriceTiers';
 import { cloneProductPriceTier } from '../../domain/productPriceTiers';
+import type { CollectionReplacementPort } from '../persistence/CollectionReplacementPort';
 import type { ProductPriceTierRepository } from './ProductPriceTierRepository';
 
 function key(id: string): string {
   return id.trim().toLowerCase();
 }
 
-export class InMemoryProductPriceTierRepository implements ProductPriceTierRepository {
+export class InMemoryProductPriceTierRepository
+  implements ProductPriceTierRepository, CollectionReplacementPort<ProductPriceTier>
+{
   private tiers = new Map<string, ProductPriceTier>();
 
   constructor(seed: ProductPriceTier[] = []) {
@@ -30,5 +33,13 @@ export class InMemoryProductPriceTierRepository implements ProductPriceTierRepos
 
   async replace(tier: ProductPriceTier): Promise<void> {
     this.tiers.set(key(tier.id), cloneProductPriceTier(tier));
+  }
+
+  async replaceAll(records: readonly ProductPriceTier[]): Promise<void> {
+    const next = new Map<string, ProductPriceTier>();
+    for (const tier of records) {
+      next.set(key(tier.id), cloneProductPriceTier(tier));
+    }
+    this.tiers = next;
   }
 }
