@@ -654,11 +654,11 @@ Recommended split:
 - zero/negative/non-finite source-value coverage
 - unit tests
 
-#### TP1B — Stable Tier ID Foundation
-- reuse `nextSequentialId`
+#### TP1B — Stable Tier ID Foundation — COMPLETE
+- reuses `nextSequentialId` through `nextProductPriceTierId`
 - `TIER-0001` normal creation convention
 - legacy/custom explicit IDs remain accepted at lower boundaries
-- tests for mixed old/custom/new IDs
+- mixed old/custom/new ID regressions added
 
 Stop after TP1. Do not start TP2 automatically.
 
@@ -837,8 +837,8 @@ All conditions are satisfied by this audit.
 
 ## 16. Exact Next Task
 
-**TP1B — Stable Tier ID Foundation — NEXT / NOT STARTED**
+**TP2 — Repository & Application Services — NEXT / NOT STARTED**
 
-TP1A is complete. TP1B must reuse the shared `nextSequentialId` helper for normal `TIER-####` allocation and prove compatibility with legacy/custom explicit tier IDs.
+TP1 is complete. TP1B now reuses the shared `nextSequentialId` helper for normal `TIER-####` allocation and preserves compatibility with legacy/custom explicit tier IDs.
 
-Do not start repository/application services, persistence migration, UI, or tier economics automatically.
+Stop after TP1B. Do not start TP2, persistence migration, UI, or tier economics automatically.
