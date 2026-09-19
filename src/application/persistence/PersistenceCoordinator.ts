@@ -148,20 +148,29 @@ function hasPhysicalSourceRecords(
   return dataset.storageLocations.length > 0 || dataset.molds.length > 0;
 }
 
-function sourceVersionFromIssues(
-  result:
-    | ReturnType<typeof importBusinessDatasetV2FromXlsx>
-    | PhysicalBusinessDatasetV3WorkbookImportResult,
-): { workbookFormatVersion: number; datasetSchemaVersion: number } | undefined {
-  if (result.ok) return undefined;
-  return result.issues.find((issue) => issue.sourceVersion !== undefined)
-    ?.sourceVersion;
+function workbookHasPhysicalSheets(
+  bytes: WorkbookBinaryInput,
+  codec: WorkbookCodec,
+): boolean {
+  try {
+    const document = codec.decode(bytes);
+    const names = new Set(document.sheets.map((sheet) => sheet.name));
+    return names.has('StorageLocations') || names.has('Molds');
+  } catch {
+    return false;
+  }
 }
 
 function importTieredPhysicalOrCore(
   bytes: WorkbookBinaryInput,
   codec: WorkbookCodec,
 ): PhysicalBusinessDatasetV3WorkbookImportResult {
+  const physicalShape = workbookHasPhysicalSheets(bytes, codec);
+
+  if (physicalShape) {
+    return importPhysicalBusinessDatasetV3FromXlsx(bytes, codec);
+  }
+
   const core = importBusinessDatasetV2FromXlsx(bytes, codec);
   if (core.ok) {
     return {
@@ -171,19 +180,7 @@ function importTieredPhysicalOrCore(
     };
   }
 
-  const physical = importPhysicalBusinessDatasetV3FromXlsx(bytes, codec);
-  if (physical.ok) return physical;
-
-  const version =
-    sourceVersionFromIssues(physical) ?? sourceVersionFromIssues(core);
-  const isPhysicalVersion =
-    version !== undefined &&
-    ((version.workbookFormatVersion === 2 &&
-      version.datasetSchemaVersion === 2) ||
-      (version.workbookFormatVersion === 3 &&
-        version.datasetSchemaVersion === 3));
-
-  return isPhysicalVersion ? physical : core;
+  return core;
 }
 
 function hydrationOperationalError(
