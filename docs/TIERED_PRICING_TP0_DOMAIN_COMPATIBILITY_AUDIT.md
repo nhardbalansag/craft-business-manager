@@ -666,9 +666,13 @@ Stop after TP1. Do not start TP2 automatically.
 
 Recommended split:
 
-#### TP2A — Repository contract + in-memory implementation
-#### TP2B — ProductPriceTierService CRUD/archive/list/reference rules
-#### TP2C — Session wiring + service regressions
+#### TP2A — Repository contract + in-memory implementation — COMPLETE
+- `ProductPriceTierRepository` contract
+- defensive-cloning, case-insensitive in-memory implementation
+- repository regressions for normal and legacy/custom IDs
+
+#### TP2B — ProductPriceTierService CRUD/archive/list/reference rules — NEXT / NOT STARTED
+#### TP2C — Session wiring + service regressions — NOT STARTED
 
 ### TP3 — Tier Economics Engine
 
@@ -837,8 +841,8 @@ All conditions are satisfied by this audit.
 
 ## 16. Exact Next Task
 
-**TP2 — Repository & Application Services — NEXT / NOT STARTED**
+**TP2B — ProductPriceTierService CRUD / Archive / List / Reference Rules — NEXT / NOT STARTED**
 
-TP1 is complete. TP1B now reuses the shared `nextSequentialId` helper for normal `TIER-####` allocation and preserves compatibility with legacy/custom explicit tier IDs.
+TP2A is complete with the repository contract, in-memory implementation, defensive cloning, normalized identity lookup, and mixed legacy/custom ID compatibility coverage.
 
-Stop after TP1B. Do not start TP2, persistence migration, UI, or tier economics automatically.
+Stop after TP2A. Do not start TP2B, session wiring, persistence migration, UI, or tier economics automatically.
