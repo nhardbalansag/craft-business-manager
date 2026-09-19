@@ -756,6 +756,11 @@ export function PricingPage() {
           {tierMutationFeedback}
         </div>
       )}
+      {tierMutationError && !tierEditorOpen && (
+        <div className="feedback feedback-error tier-mutation-feedback" role="status">
+          {tierMutationError}
+        </div>
+      )}
 
       <ProductPriceTierEditorPanel
         product={selectedProduct}
