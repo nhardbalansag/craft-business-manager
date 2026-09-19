@@ -733,8 +733,18 @@ This is a high-risk phase and should be split further before implementation.
 
 Minimum subphases:
 
-#### TP5A — BusinessDataset v2 source collection
-#### TP5B — Core workbook v3 sheet/export/import
+#### TP5A — BusinessDataset v2 source collection — COMPLETE
+- explicit schema v2 domain contract
+- tenth authoritative source collection: `productPriceTiers`
+- canonical empty v2 dataset
+- completeness, defensive clone, and normalization boundary
+- tier row/domain validation
+- globally unique trim-aware tier IDs
+- Product reference validation while preserving archived-Product history
+- existing v1 BusinessDataset validation guarantees reused unchanged
+- v1 workbook/physical formats deliberately remain untouched until TP5B–TP5D
+
+#### TP5B — Core workbook v3 sheet/export/import — NEXT / NOT STARTED
 #### TP5C — Core v1/v2 migration chain
 #### TP5D — Physical workbook v3/dataset-v3 migration
 #### TP5E — Legacy pre-Preferred physical-v2 regression
@@ -879,8 +889,8 @@ All conditions are satisfied by this audit.
 
 ## 16. Exact Next Task
 
-**TP5A — BusinessDataset v2 Source Collection — NEXT / NOT STARTED**
+**TP5B — Core Workbook v3 Sheet / Export / Import — NEXT / NOT STARTED**
 
-TP4 is complete with explicit regression proof that tier records are additive: ProductPricingQuote retains Default / Single semantics and ExpectedBatchFinancials continues using the Default / Single selling price through TP7.
+TP5A is complete with an explicit BusinessDataset v2 source contract containing ProductPriceTiers plus completeness, cloning, normalization, domain validation, duplicate identity validation, and Product reference validation.
 
-TP5 remains a high-risk persistence/migration phase and is already split into TP5A–TP5G. Stop after TP4. Do not start TP5A automatically.
+The current v1 workbook and physical-v2 adapters are deliberately unchanged in TP5A so no format version is silently reused. Stop after TP5A. Do not start TP5B automatically.
