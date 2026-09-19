@@ -5,7 +5,6 @@ import {
   isProductPriceTierPriceBasis,
   normalizeProductPriceTier,
   nextProductPriceTierId,
-  nextProductPriceTierId,
   PRODUCT_PRICE_TIER_KINDS,
   PRODUCT_PRICE_TIER_PRICE_BASES,
   ProductPriceTierError,
