@@ -823,8 +823,19 @@ Minimum subphases:
 
 Recommended split:
 
-#### TP6A — Tier catalog/read-only economics
-#### TP6B — Create/edit/archive tier form
+#### TP6A — Tier catalog/read-only economics — COMPLETE
+- selected Product loads ProductPriceTierQuoteService alongside the existing Default / Single quote
+- read-only catalog includes active and archived tier source records
+- catalog exposes source price basis, price amount, units per offer, minimum order quantity, and additional cost per offer
+- ready lines expose offer cost, offer selling price, effective unit price, profit per offer/unit, markup, and margin
+- Default / Single equivalent comparison is displayed when authoritative comparison evidence is ready
+- unresolved cost/default evidence remains explicit rather than substituted
+- existing below-cost/readiness diagnostics are surfaced without adding new pricing formulas
+- unsaved financial-profile edits are explicitly excluded from authoritative tier economics
+- catalog contains no Create/Edit/Archive mutation controls
+- no automatic tier selection is introduced
+
+#### TP6B — Create/edit/archive tier form — NEXT / NOT STARTED
 #### TP6C — Package/bulk/custom UX and warnings
 #### TP6D — Responsive/accessibility regression
 
@@ -957,8 +968,8 @@ All conditions are satisfied by this audit.
 
 ## 16. Exact Next Task
 
-**TP6A — Tier Catalog / Read-Only Economics — NEXT / NOT STARTED**
+**TP6B — Create / Edit / Archive Tier Form — NEXT / NOT STARTED**
 
-TP5 is complete. The live persistence graph now snapshots, exports, imports, hydrates, and rolls back ProductPriceTiers atomically with the existing authoritative business sources. Core/physical legacy workbook and Google Sheets compatibility remain preserved through the v3 migration paths.
+TP6A is complete. The Pricing workspace now exposes a read-only Product price-tier catalog backed by ProductPriceTierQuoteService, including saved source terms, authoritative economics, Default / Single comparison, archived tiers, and existing readiness diagnostics.
 
-Stop after TP5G. Do not start TP6A automatically.
+Tier mutation remains deliberately deferred. Stop after TP6A. Do not start TP6B automatically.
