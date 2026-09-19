@@ -4,9 +4,13 @@ import {
   CURRENT_BUSINESS_DATASET_SCHEMA_VERSION,
 } from '../../domain/businessDataset';
 import type { BusinessDataset } from '../../domain/types';
+import {
+  CORE_WORKBOOK_V3_CANONICAL_SHEET_NAMES,
+  PRODUCT_PRICE_TIERS_SHEET_NAME,
+  PRODUCT_PRICE_TIERS_WORKBOOK_COLUMNS,
+} from '../../storage/businessDatasetV2Workbook';
 import { SheetJsWorkbookCodec } from '../../storage/sheetJsWorkbookCodec';
 import {
-  CANONICAL_WORKBOOK_SHEET_NAMES,
   WORKBOOK_SHEETS,
   type WorkbookNeutralDocument,
 } from '../../storage/workbookSchema';
@@ -341,8 +345,12 @@ describe('Phase 5.6A1 source round-trip fidelity and deterministic workbook sema
     await hydrate(reverseTopLevelInsertionOrder(fixture));
     const second = codec.decode((await persistenceCoordinator.exportCurrentWorkbook()).bytes);
 
-    expect(first.sheets.map((sheet) => sheet.name)).toEqual(CANONICAL_WORKBOOK_SHEET_NAMES);
-    expect(second.sheets.map((sheet) => sheet.name)).toEqual(CANONICAL_WORKBOOK_SHEET_NAMES);
+    expect(first.sheets.map((sheet) => sheet.name)).toEqual(
+      CORE_WORKBOOK_V3_CANONICAL_SHEET_NAMES,
+    );
+    expect(second.sheets.map((sheet) => sheet.name)).toEqual(
+      CORE_WORKBOOK_V3_CANONICAL_SHEET_NAMES,
+    );
 
     for (const contract of WORKBOOK_SHEETS) {
       const firstSheet = first.sheets.find((sheet) => sheet.name === contract.name);
@@ -352,6 +360,13 @@ describe('Phase 5.6A1 source round-trip fidelity and deterministic workbook sema
       expect(firstSheet?.columns).toEqual(expectedColumns);
       expect(secondSheet?.columns).toEqual(expectedColumns);
     }
+
+    expect(
+      first.sheets.find((sheet) => sheet.name === PRODUCT_PRICE_TIERS_SHEET_NAME)?.columns,
+    ).toEqual(PRODUCT_PRICE_TIERS_WORKBOOK_COLUMNS);
+    expect(
+      second.sheets.find((sheet) => sheet.name === PRODUCT_PRICE_TIERS_SHEET_NAME)?.columns,
+    ).toEqual(PRODUCT_PRICE_TIERS_WORKBOOK_COLUMNS);
 
     expect(withoutVariableExportMetadata(second)).toEqual(
       withoutVariableExportMetadata(first),
