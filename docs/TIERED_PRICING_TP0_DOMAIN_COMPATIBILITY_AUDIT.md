@@ -780,8 +780,19 @@ Minimum subphases:
 - reserved ProductPriceTiers collision fails closed
 - pre-Preferred physical-v2 regression remains intentionally deferred to TP5E
 
-#### TP5E — Legacy pre-Preferred physical-v2 regression — NEXT / NOT STARTED
-#### TP5F — Google Sheets import compatibility
+#### TP5E — Legacy pre-Preferred physical-v2 regression — COMPLETE
+- retains PR #250 recognition of the exact seven-column legacy Products shape
+- inserts preferredYieldSampleId immediately after mixPresetId in memory
+- migrated Preferred Yield values remain undefined; no historical evidence is invented
+- real XLSX pre-Preferred physical-v2 -> physical-v3 regression
+- Product records and notes remain unchanged
+- ProductFinancialProfiles / Default / Single pricing remain unchanged
+- StorageLocations and Molds remain unchanged
+- ProductPriceTiers becomes an empty authoritative collection
+- unknown/incomplete legacy Products column shapes remain fail-closed
+- reserved ProductPriceTiers collisions remain fail-closed
+
+#### TP5F — Google Sheets import compatibility — NEXT / NOT STARTED
 #### TP5G — Atomic hydration/rollback/recovery completion gate
 
 ### TP6 — Pricing UI
@@ -922,8 +933,8 @@ All conditions are satisfied by this audit.
 
 ## 16. Exact Next Task
 
-**TP5E — Legacy Pre-Preferred Physical-v2 Regression — NEXT / NOT STARTED**
+**TP5F — Google Sheets Import Compatibility — NEXT / NOT STARTED**
 
-TP5D is complete with an explicit physical workbook v3 / dataset-v3 target and a current physical v2/dataset-2 migration that preserves core records, StorageLocations, Molds, and Default / Single pricing while adding an empty ProductPriceTiers collection.
+TP5E is complete with regression proof that the oldest recognized pre-Preferred physical-v2 Products shape still normalizes through the PR #250 compatibility rule and migrates to physical v3/dataset-v3 without changing existing records or Default / Single pricing. ProductPriceTiers remains empty for legacy data.
 
-The oldest recognized pre-Preferred physical-v2 workbook shape remains deliberately deferred to TP5E. Stop after TP5D. Do not start TP5E automatically.
+Stop after TP5E. Do not start TP5F automatically.
