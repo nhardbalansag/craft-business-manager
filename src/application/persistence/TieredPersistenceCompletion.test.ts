@@ -230,7 +230,6 @@ describe('TP5G atomic tier-aware persistence completion gate', () => {
     );
 
     await expectHydrated(harness.hydrationV3.hydrate(source));
-    const canonicalSource = await harness.snapshotV3.snapshot();
     const exported = await harness.coordinator.exportCurrentWorkbook();
     const document = codec.decode(exported.bytes);
 
@@ -267,6 +266,7 @@ describe('TP5G atomic tier-aware persistence completion gate', () => {
     const source = physicalDataset('PROD-PHYS', 'TIER-PHYS', 55);
 
     await expectHydrated(harness.hydrationV3.hydrate(source));
+    const canonicalSource = await harness.snapshotV3.snapshot();
     const exported = await harness.coordinator.exportCurrentWorkbook();
     const document = codec.decode(exported.bytes);
 
