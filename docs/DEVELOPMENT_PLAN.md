@@ -246,7 +246,7 @@ Phase 5.6B verified:
 
 # Tiered Pricing Enhancement — ACTIVE
 
-Status: **TP1A COMPLETE / TP1B NEXT**
+Status: **TP1 COMPLETE / TP2 NEXT**
 
 Master audit and compatibility plan:
 
@@ -264,10 +264,10 @@ Task map:
 
 ```text
 TP0 — Tiered Pricing Domain & Compatibility Audit                 COMPLETE
-TP1 — Product Price Tier Domain Foundation                       IN PROGRESS
+TP1 — Product Price Tier Domain Foundation                       COMPLETE
     TP1A — Product Price Tier Domain Contract & Validation        COMPLETE
-    TP1B — Stable Tier ID Foundation                              NEXT / NOT STARTED
-TP2 — Repository & Application Services                           NOT STARTED
+    TP1B — Stable Tier ID Foundation                              COMPLETE
+TP2 — Repository & Application Services                           NEXT / NOT STARTED
 TP3 — Tier Economics Engine                                       NOT STARTED
 TP4 — Default Pricing Compatibility Layer                         NOT STARTED
 TP5 — Workbook / Dataset Persistence & Migration                  NOT STARTED
@@ -277,7 +277,7 @@ TP8 — Quantity-Aware Tier Resolution                              NOT STARTED
 TP9 — Integrated Validation & Completion Gate                     NOT STARTED
 ```
 
-Do not start TP2, persistence, UI, or quantity-aware tier selection automatically from TP1B.
+TP1 is complete. Stop here after TP1B; do not start TP2 automatically.
 
 ---
 
@@ -365,7 +365,7 @@ Phase 7 scope should be revisited after the desktop/native persistence workflow 
 ## Current Next Action
 
 ```text
-TP1B — Stable Tier ID Foundation
+TP2 — Repository & Application Services
 NEXT / NOT STARTED
 ```
 

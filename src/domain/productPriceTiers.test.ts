@@ -4,6 +4,7 @@ import {
   isProductPriceTierKind,
   isProductPriceTierPriceBasis,
   normalizeProductPriceTier,
+  nextProductPriceTierId,
   PRODUCT_PRICE_TIER_KINDS,
   PRODUCT_PRICE_TIER_PRICE_BASES,
   ProductPriceTierError,
@@ -27,6 +28,32 @@ function tier(overrides: Partial<ProductPriceTier> = {}): ProductPriceTier {
   };
 }
 
+describe('ProductPriceTier stable IDs', () => {
+  it('uses the TIER-0001 convention when no numeric tier IDs exist', () => {
+    const existingIds = ['WHOLESALE-OLD', 'TIER-EVENT', 'CUSTOM-0007'];
+
+    expect(nextProductPriceTierId(existingIds)).toBe('TIER-0001');
+    expect(existingIds).toEqual(['WHOLESALE-OLD', 'TIER-EVENT', 'CUSTOM-0007']);
+  });
+
+  it('continues after the highest numeric TIER identifier while ignoring legacy/custom IDs', () => {
+    expect(
+      nextProductPriceTierId([
+        'TIER-0002',
+        'tier-0010',
+        'TIER-PREMIUM',
+        'WHOLESALE-0042',
+        'CUSTOM-EVENT',
+      ]),
+    ).toBe('TIER-0011');
+  });
+
+  it('keeps explicit legacy/custom tier IDs valid at the domain boundary', () => {
+    expect(() => validateProductPriceTierContract(tier({ id: 'WHOLESALE-OLD' }))).not.toThrow();
+    expect(() => validateProductPriceTierContract(tier({ id: 'tier-event-vip' }))).not.toThrow();
+  });
+});
+
 describe('ProductPriceTier contract', () => {
   it('exposes only the planned tier kinds and price bases', () => {
     expect(PRODUCT_PRICE_TIER_KINDS).toEqual(['package', 'bulk', 'custom']);
@@ -40,6 +67,30 @@ describe('ProductPriceTier contract', () => {
     expect(isProductPriceTierPriceBasis('per-unit')).toBe(true);
     expect(isProductPriceTierPriceBasis('per-offer')).toBe(true);
     expect(isProductPriceTierPriceBasis('fixed')).toBe(false);
+  });
+
+  it('allocates TIER-0001 when only legacy/custom explicit IDs exist', () => {
+    const existingIds = ['WHOLESALE', 'TIER-CUSTOM', 'LEGACY-PRICE-7'];
+
+    expect(nextProductPriceTierId(existingIds)).toBe('TIER-0001');
+    expect(existingIds).toEqual(['WHOLESALE', 'TIER-CUSTOM', 'LEGACY-PRICE-7']);
+  });
+
+  it('continues after the highest matching numeric tier ID across mixed IDs', () => {
+    expect(
+      nextProductPriceTierId([
+        'TIER-0002',
+        'tier-0010',
+        'TIER-CUSTOM',
+        'WHOLESALE-2026',
+        'TIER-0007',
+      ]),
+    ).toBe('TIER-0011');
+  });
+
+  it('allows explicit legacy/custom tier IDs at the domain contract boundary', () => {
+    expect(() => validateProductPriceTierContract(tier({ id: 'EVENT-PARTNER-PRICE' }))).not.toThrow();
+    expect(() => validateProductPriceTierContract(tier({ id: 'tier-custom-alpha' }))).not.toThrow();
   });
 
   it('accepts a per-unit bulk tier', () => {

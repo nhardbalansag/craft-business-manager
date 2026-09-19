@@ -1,3 +1,5 @@
+import { nextSequentialId } from './identifiers';
+
 export const PRODUCT_PRICE_TIER_KINDS = ['package', 'bulk', 'custom'] as const;
 export type ProductPriceTierKind = (typeof PRODUCT_PRICE_TIER_KINDS)[number];
 
@@ -85,6 +87,16 @@ export function isProductPriceTierPriceBasis(
 
 export function cloneProductPriceTier(tier: ProductPriceTier): ProductPriceTier {
   return { ...tier };
+}
+
+/**
+ * Allocates the normal stable identifier used when creating a new price tier.
+ *
+ * Explicit legacy/custom IDs remain valid source identities at lower domain boundaries;
+ * only matching TIER-<number> IDs participate in the automatic sequence.
+ */
+export function nextProductPriceTierId(existingIds: readonly string[]): string {
+  return nextSequentialId(existingIds, 'TIER');
 }
 
 /**
