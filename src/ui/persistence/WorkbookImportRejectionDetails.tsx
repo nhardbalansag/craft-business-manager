@@ -1,5 +1,7 @@
-import type { BusinessDatasetValidationIssue } from '../../domain/businessDatasetValidation';
-import type { PersistenceLifecycleRejected } from '../../application/persistence/PersistenceLifecycle';
+import type {
+  PersistenceDatasetHydrationIssue,
+  PersistenceLifecycleRejected,
+} from '../../application/persistence/PersistenceLifecycle';
 import type {
   BusinessDatasetWorkbookImportIssue,
   BusinessDatasetWorkbookImportIssueStage,
@@ -66,7 +68,7 @@ function importIssueLocation(issue: Readonly<BusinessDatasetWorkbookImportIssue>
   return parts;
 }
 
-function hydrationIssueLocation(issue: Readonly<BusinessDatasetValidationIssue>): string[] {
+function hydrationIssueLocation(issue: Readonly<PersistenceDatasetHydrationIssue>): string[] {
   const parts: string[] = [];
   if (issue.collection !== undefined) parts.push(`Collection ${issue.collection}`);
   if (issue.index !== undefined) parts.push(`Record ${issue.index}`);
@@ -100,7 +102,7 @@ function RawImportIssue({ issue }: { readonly issue: Readonly<BusinessDatasetWor
   );
 }
 
-function RawHydrationIssue({ issue }: { readonly issue: Readonly<BusinessDatasetValidationIssue> }) {
+function RawHydrationIssue({ issue }: { readonly issue: Readonly<PersistenceDatasetHydrationIssue> }) {
   const location = hydrationIssueLocation(issue);
   return (
     <li className="workbook-recovery-issue">
