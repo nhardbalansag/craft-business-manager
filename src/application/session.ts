@@ -31,6 +31,8 @@ import { ProductBackedComponentCostService } from './productComponents/ProductBa
 import { ProductComponentService } from './productComponents/ProductComponentService';
 import { InMemoryProductFinancialProfileRepository } from './productFinancialProfiles/InMemoryProductFinancialProfileRepository';
 import { ProductFinancialProfileService } from './productFinancialProfiles/ProductFinancialProfileService';
+import { InMemoryProductPriceTierRepository } from './productPriceTiers/InMemoryProductPriceTierRepository';
+import { ProductPriceTierService } from './productPriceTiers/ProductPriceTierService';
 import { InMemoryProductRepository } from './products/InMemoryProductRepository';
 import { ProductService } from './products/ProductService';
 import { InMemoryProductStockRepository } from './productStocks/InMemoryProductStockRepository';
@@ -56,6 +58,7 @@ export const productRepository = new InMemoryProductRepository();
 export const productComponentRepository = new InMemoryProductComponentRepository();
 export const productStockRepository = new InMemoryProductStockRepository();
 export const productFinancialProfileRepository = new InMemoryProductFinancialProfileRepository();
+export const productPriceTierRepository = new InMemoryProductPriceTierRepository();
 export const yieldSampleRepository = new InMemoryYieldSampleRepository();
 export const fixedRecipeItemRepository = new InMemoryFixedRecipeItemRepository();
 export const storageLocationRepository = new InMemoryStorageLocationRepository();
@@ -126,6 +129,10 @@ export const productStockService = new ProductStockService(
 );
 export const productFinancialProfileService = new ProductFinancialProfileService(
   productFinancialProfileRepository,
+  productRepository,
+);
+export const productPriceTierService = new ProductPriceTierService(
+  productPriceTierRepository,
   productRepository,
 );
 export const moldService = new MoldService(
