@@ -1,16 +1,19 @@
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   productFinancialProfileService,
+  productPriceTierQuoteService,
   productPricingQuoteService,
   productService,
 } from '../../application/session';
 import type { ProductPricingQuoteResult } from '../../application/pricing/ProductPricingQuoteService';
+import type { ProductPriceTierQuoteResult } from '../../application/productPriceTiers/ProductPriceTierQuoteService';
 import type { ProductFinancialProfile } from '../../domain/productFinancialProfile';
 import {
   PRODUCT_CATEGORY_RULES,
   type Product,
 } from '../../domain/products';
 import { ProductPricingQuotePanel } from './ProductPricingQuotePanel';
+import { ProductPriceTierCatalogPanel } from './ProductPriceTierCatalogPanel';
 import {
   createEmptyProductFinancialProfileForm,
   pricingValueHelp,
@@ -41,6 +44,12 @@ function quoteErrorMessage(error: unknown): string {
   return error instanceof Error
     ? error.message
     : 'The authoritative unit-economics quote could not be loaded.';
+}
+
+function tierQuoteErrorMessage(error: unknown): string {
+  return error instanceof Error
+    ? error.message
+    : 'The saved price-tier economics could not be loaded.';
 }
 
 function upsertProfileList(
@@ -92,7 +101,11 @@ export function PricingPage() {
   const [quote, setQuote] = useState<ProductPricingQuoteResult | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [quoteError, setQuoteError] = useState<string | null>(null);
+  const [tierQuote, setTierQuote] = useState<ProductPriceTierQuoteResult | null>(null);
+  const [tierQuoteLoading, setTierQuoteLoading] = useState(false);
+  const [tierQuoteError, setTierQuoteError] = useState<string | null>(null);
   const quoteRequestVersion = useRef(0);
+  const tierQuoteRequestVersion = useRef(0);
 
   const loadQuote = useCallback(async (productId: string) => {
     const requestVersion = ++quoteRequestVersion.current;
@@ -112,6 +125,28 @@ export function PricingPage() {
     } finally {
       if (requestVersion === quoteRequestVersion.current) {
         setQuoteLoading(false);
+      }
+    }
+  }, []);
+
+  const loadTierQuote = useCallback(async (productId: string) => {
+    const requestVersion = ++tierQuoteRequestVersion.current;
+    setTierQuoteLoading(true);
+    setTierQuoteError(null);
+    setTierQuote(null);
+
+    try {
+      const nextQuote = await productPriceTierQuoteService.quoteProduct(productId);
+      if (requestVersion === tierQuoteRequestVersion.current) {
+        setTierQuote(nextQuote);
+      }
+    } catch (error) {
+      if (requestVersion === tierQuoteRequestVersion.current) {
+        setTierQuoteError(tierQuoteErrorMessage(error));
+      }
+    } finally {
+      if (requestVersion === tierQuoteRequestVersion.current) {
+        setTierQuoteLoading(false);
       }
     }
   }, []);
@@ -156,14 +191,19 @@ export function PricingPage() {
   useEffect(() => {
     if (selectedProductId === null) {
       quoteRequestVersion.current += 1;
+      tierQuoteRequestVersion.current += 1;
       setQuote(null);
       setQuoteLoading(false);
       setQuoteError(null);
+      setTierQuote(null);
+      setTierQuoteLoading(false);
+      setTierQuoteError(null);
       return;
     }
 
     void loadQuote(selectedProductId);
-  }, [loadQuote, selectedProductId]);
+    void loadTierQuote(selectedProductId);
+  }, [loadQuote, loadTierQuote, selectedProductId]);
 
   const profileByProductId = useMemo(
     () => new Map(profiles.map((profile) => [comparable(profile.productId), profile])),
@@ -215,9 +255,13 @@ export function PricingPage() {
 
   function selectProduct(product: Product) {
     quoteRequestVersion.current += 1;
+    tierQuoteRequestVersion.current += 1;
     setQuote(null);
     setQuoteError(null);
     setQuoteLoading(true);
+    setTierQuote(null);
+    setTierQuoteError(null);
+    setTierQuoteLoading(true);
     setSelectedProductId(product.id);
     setForm(
       productFinancialProfileToForm(
@@ -262,7 +306,10 @@ export function PricingPage() {
         type: 'success',
         message: `Financial profile saved for ${selectedProduct.name}.`,
       });
-      await loadQuote(selectedProduct.id);
+      await Promise.all([
+        loadQuote(selectedProduct.id),
+        loadTierQuote(selectedProduct.id),
+      ]);
     } catch (error) {
       setFeedback({ type: 'error', message: errorMessage(error) });
     } finally {
@@ -604,6 +651,15 @@ export function PricingPage() {
         error={quoteError}
         hasUnsavedChanges={formDirty}
         onRefresh={selectedProduct ? () => void loadQuote(selectedProduct.id) : undefined}
+      />
+
+      <ProductPriceTierCatalogPanel
+        productName={selectedProduct?.name ?? null}
+        quote={tierQuote}
+        loading={tierQuoteLoading}
+        error={tierQuoteError}
+        hasUnsavedChanges={formDirty}
+        onRefresh={selectedProduct ? () => void loadTierQuote(selectedProduct.id) : undefined}
       />
     </section>
   );

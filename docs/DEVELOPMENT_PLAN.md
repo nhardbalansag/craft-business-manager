@@ -246,7 +246,7 @@ Phase 5.6B verified:
 
 # Tiered Pricing Enhancement — ACTIVE
 
-Status: **TP5G COMPLETE / TP6A NEXT**
+Status: **TP6A COMPLETE / TP6B NEXT**
 
 Master audit and compatibility plan:
 
@@ -284,9 +284,9 @@ TP5 — Workbook / Dataset Persistence & Migration                  IN PROGRESS
     TP5E — Legacy Pre-Preferred Physical-v2 Regression            COMPLETE
     TP5F — Google Sheets Import Compatibility                     COMPLETE
     TP5G — Atomic Hydration / Rollback / Recovery Completion Gate COMPLETE
-TP6 — Pricing UI                                                  NOT STARTED
-    TP6A — Tier Catalog / Read-Only Economics                     NEXT / NOT STARTED
-    TP6B — Create / Edit / Archive Tier Form                      NOT STARTED
+TP6 — Pricing UI                                                  IN PROGRESS
+    TP6A — Tier Catalog / Read-Only Economics                     COMPLETE
+    TP6B — Create / Edit / Archive Tier Form                      NEXT / NOT STARTED
     TP6C — Package / Bulk / Custom UX + Warnings                  NOT STARTED
     TP6D — Responsive / Accessibility Regression                  NOT STARTED
 TP7 — Pricing Quote Integration                                   NOT STARTED
@@ -294,7 +294,7 @@ TP8 — Quantity-Aware Tier Resolution                              NOT STARTED
 TP9 — Integrated Validation & Completion Gate                     NOT STARTED
 ```
 
-TP5G is complete. Do not start TP6A automatically from the TP5G completion gate.
+TP6A is complete. Do not start TP6B automatically from the TP6A completion gate.
 
 ---
 
@@ -382,7 +382,7 @@ Phase 7 scope should be revisited after the desktop/native persistence workflow 
 ## Current Next Action
 
 ```text
-TP6A — Tier Catalog / Read-Only Economics
+TP6B — Create / Edit / Archive Tier Form
 NEXT / NOT STARTED
 ```
 

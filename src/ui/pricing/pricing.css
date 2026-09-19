@@ -620,3 +620,268 @@
   .pricing-editor-badges,
   .pricing-quote-heading-actions { justify-content: flex-start; }
 }
+
+
+/* TP6A — read-only Product price tier catalog */
+
+.tier-catalog-section {
+  display: grid;
+  gap: 18px;
+  margin-top: 28px;
+  padding-top: 28px;
+  border-top: 1px solid #d8d1c4;
+}
+
+.tier-catalog-heading h2 {
+  margin: 5px 0 7px;
+  font-size: 1.75rem;
+  letter-spacing: -.035em;
+}
+
+.tier-catalog-heading p:not(.panel-kicker) {
+  margin: 0;
+  max-width: 790px;
+  color: #70685f;
+  line-height: 1.55;
+}
+
+.tier-catalog-summary {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.tier-catalog-metric {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  min-width: 0;
+}
+
+.tier-catalog-summary > .tier-catalog-metric,
+.tier-catalog-source-grid > .tier-catalog-metric,
+.tier-catalog-economics-grid > .tier-catalog-metric {
+  padding: 12px;
+  border: 1px solid #e3ddd4;
+  border-radius: 12px;
+  background: #fffdf9;
+}
+
+.tier-catalog-metric > span {
+  color: #8b8176;
+  font-size: .67rem;
+  font-weight: 850;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
+.tier-catalog-metric > strong {
+  color: #302b25;
+  font-size: .88rem;
+  overflow-wrap: anywhere;
+}
+
+.tier-catalog-metric > small {
+  color: #958a7f;
+  font-size: .7rem;
+  line-height: 1.35;
+}
+
+.tier-catalog-list {
+  display: grid;
+  gap: 14px;
+}
+
+.tier-catalog-card {
+  display: grid;
+  gap: 15px;
+  padding: 20px;
+  border: 1px solid #ddd5ca;
+  border-radius: 16px;
+  background: #fffdf9;
+  box-shadow: 0 8px 24px rgba(77, 59, 40, .045);
+}
+
+.tier-catalog-card.archived {
+  background: #faf8f4;
+  border-style: dashed;
+}
+
+.tier-catalog-card-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: flex-start;
+}
+
+.tier-catalog-title-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tier-catalog-title-line h3 {
+  margin: 0;
+  color: #322d27;
+  font-size: 1.08rem;
+}
+
+.tier-catalog-card-heading p {
+  margin: 5px 0 0;
+  color: #81776c;
+  font-size: .75rem;
+  line-height: 1.4;
+}
+
+.tier-catalog-source-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.tier-catalog-economics-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+  padding-top: 2px;
+}
+
+.tier-catalog-economics-grid > .tier-catalog-metric {
+  background: #f8f5ef;
+}
+
+.tier-catalog-comparison {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  padding: 11px;
+  border: 1px solid #ded8ce;
+  border-radius: 12px;
+  background: #f5f2ec;
+}
+
+.tier-catalog-comparison > div {
+  display: grid;
+  gap: 3px;
+}
+
+.tier-catalog-comparison span {
+  color: #83796e;
+  font-size: .69rem;
+  font-weight: 800;
+}
+
+.tier-catalog-comparison strong {
+  color: #403930;
+  font-size: .82rem;
+}
+
+.tier-catalog-unavailable,
+.tier-catalog-notes {
+  margin: 0;
+  padding: 11px 12px;
+  border-radius: 10px;
+  background: #f7f3ed;
+  color: #786f65;
+  font-size: .76rem;
+  line-height: 1.48;
+}
+
+.tier-catalog-unavailable {
+  border: 1px dashed #d7cec1;
+}
+
+.tier-catalog-notes strong {
+  color: #574f46;
+}
+
+.tier-catalog-diagnostics {
+  display: grid;
+  gap: 8px;
+}
+
+.tier-catalog-warning,
+.tier-catalog-issues {
+  padding: 11px 12px;
+  border-radius: 11px;
+  font-size: .76rem;
+  line-height: 1.45;
+}
+
+.tier-catalog-warning {
+  border: 1px solid #ead7b7;
+  background: #fff8e9;
+  color: #785d35;
+}
+
+.tier-catalog-warning strong { color: #654b27; }
+
+.tier-catalog-issues {
+  border: 1px solid #e4d0cc;
+  background: #fff2ef;
+  color: #82463d;
+}
+
+.tier-catalog-issues strong { color: #6e3932; }
+
+.tier-catalog-warning ul,
+.tier-catalog-issues ul,
+.tier-catalog-top-level-issues ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+
+.tier-catalog-empty,
+.tier-catalog-top-level-issues {
+  padding: 20px;
+}
+
+.tier-catalog-empty {
+  display: grid;
+  gap: 5px;
+  color: #776e64;
+}
+
+.tier-catalog-empty strong {
+  color: #4c443b;
+}
+
+.tier-catalog-empty span {
+  font-size: .8rem;
+  line-height: 1.5;
+}
+
+.tier-catalog-top-level-issues .panel-heading {
+  margin-bottom: 11px;
+}
+
+.tier-catalog-top-level-issues h3 {
+  margin: 5px 0 0;
+  font-size: 1.15rem;
+}
+
+.tier-catalog-top-level-issues ul {
+  color: #756b61;
+  font-size: .78rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 1220px) {
+  .tier-catalog-summary { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .tier-catalog-economics-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+@media (max-width: 900px) {
+  .tier-catalog-source-grid,
+  .tier-catalog-economics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 760px) {
+  .tier-catalog-card-heading,
+  .tier-catalog-heading { flex-direction: column; }
+  .tier-catalog-summary,
+  .tier-catalog-source-grid,
+  .tier-catalog-economics-grid,
+  .tier-catalog-comparison { grid-template-columns: 1fr; }
+}
