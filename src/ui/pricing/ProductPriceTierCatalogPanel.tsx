@@ -4,6 +4,7 @@ import type {
   ProductPriceTierQuoteStatus,
 } from '../../application/productPriceTiers/ProductPriceTierQuoteService';
 import type {
+  ProductPriceTier,
   ProductPriceTierKind,
   ProductPriceTierPriceBasis,
 } from '../../domain/productPriceTiers';
@@ -16,6 +17,10 @@ interface ProductPriceTierCatalogPanelProps {
   error: string | null;
   hasUnsavedChanges?: boolean;
   onRefresh?: () => void;
+  onCreateTier?: () => void;
+  onEditTier?: (tier: ProductPriceTier) => void;
+  onArchiveTier?: (tier: ProductPriceTier) => void;
+  archivingTierId?: string | null;
 }
 
 function titleCase(value: string): string {
@@ -68,7 +73,17 @@ function Metric({
   );
 }
 
-function TierCard({ line }: { line: ProductPriceTierQuoteLine }) {
+function TierCard({
+  line,
+  onEditTier,
+  onArchiveTier,
+  archivingTierId,
+}: {
+  line: ProductPriceTierQuoteLine;
+  onEditTier?: (tier: ProductPriceTier) => void;
+  onArchiveTier?: (tier: ProductPriceTier) => void;
+  archivingTierId?: string | null;
+}) {
   const economics = line.economics;
   const comparison = line.defaultComparison;
 
@@ -90,9 +105,37 @@ function TierCard({ line }: { line: ProductPriceTierQuoteLine }) {
             <span> · {kindLabel(line.tier.kind)} · {basisLabel(line.tier.priceBasis)}</span>
           </p>
         </div>
-        <span className={`pricing-readiness-pill status-${line.status}`}>
-          {readinessLabel(line.status)}
-        </span>
+        <div className="tier-catalog-card-heading-actions">
+          <span className={`pricing-readiness-pill status-${line.status}`}>
+            {readinessLabel(line.status)}
+          </span>
+          {(onEditTier || (line.tier.isActive && onArchiveTier)) && (
+            <div className="tier-catalog-card-actions">
+              {onEditTier && (
+                <button
+                  className="button button-secondary tier-catalog-action-button"
+                  type="button"
+                  onClick={() => onEditTier(line.tier)}
+                  disabled={archivingTierId === line.tier.id}
+                  aria-label={`Edit tier ${line.tier.name}`}
+                >
+                  Edit tier
+                </button>
+              )}
+              {line.tier.isActive && onArchiveTier && (
+                <button
+                  className="text-button danger"
+                  type="button"
+                  onClick={() => onArchiveTier(line.tier)}
+                  disabled={archivingTierId === line.tier.id}
+                  aria-label={`Archive tier ${line.tier.name}`}
+                >
+                  {archivingTierId === line.tier.id ? 'Archiving…' : 'Archive tier'}
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="tier-catalog-source-grid" aria-label={`${line.tier.name} source terms`}>
@@ -176,6 +219,10 @@ export function ProductPriceTierCatalogPanel({
   error,
   hasUnsavedChanges = false,
   onRefresh,
+  onCreateTier,
+  onEditTier,
+  onArchiveTier,
+  archivingTierId = null,
 }: ProductPriceTierCatalogPanelProps) {
   const activeCount = quote?.tiers.filter((line) => line.tier.isActive).length ?? 0;
   const archivedCount = quote?.tiers.filter((line) => !line.tier.isActive).length ?? 0;
@@ -211,6 +258,16 @@ export function ProductPriceTierCatalogPanel({
               disabled={loading}
             >
               {error ? 'Retry tier economics' : loading ? 'Refreshing…' : 'Refresh tier economics'}
+            </button>
+          )}
+          {onCreateTier && (
+            <button
+              className="button button-primary pricing-refresh-button"
+              type="button"
+              onClick={onCreateTier}
+              disabled={loading}
+            >
+              Create tier
             </button>
           )}
         </div>
@@ -255,13 +312,19 @@ export function ProductPriceTierCatalogPanel({
         <div className="panel tier-catalog-empty">
           <strong>No price tiers saved for {productName ?? quote.productName}.</strong>
           <span>
-            Default / Single pricing continues to work exactly as before. Tier creation and editing are intentionally outside this read-only phase.
+            Default / Single pricing continues to work exactly as before. Create a tier when this Product needs an additional Package, Bulk, or Custom selling option.
           </span>
         </div>
       ) : (
         <div className="tier-catalog-list">
           {quote.tiers.map((line) => (
-            <TierCard key={line.tier.id} line={line} />
+            <TierCard
+              key={line.tier.id}
+              line={line}
+              onEditTier={onEditTier}
+              onArchiveTier={onArchiveTier}
+              archivingTierId={archivingTierId}
+            />
           ))}
         </div>
       )}
