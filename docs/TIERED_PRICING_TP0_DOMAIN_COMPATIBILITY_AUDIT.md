@@ -755,8 +755,18 @@ Minimum subphases:
 - binary and neutral workbook resource-limit guards
 - existing v2/v1 workbook path remains intact until TP5C promotes v3 through migration compatibility
 
-#### TP5C — Core v1/v2 migration chain — NEXT / NOT STARTED
-#### TP5D — Physical workbook v3/dataset-v3 migration
+#### TP5C — Core v1/v2 migration chain — COMPLETE
+- explicit v1/dataset-1 -> v2/dataset-1 -> v3/dataset-2 chain
+- reuses the existing Preferred Yield v1 -> v2 migration
+- v2 -> v3 updates only authoritative metadata and appends empty `ProductPriceTiers`
+- existing sheets and source rows are retained
+- existing `ProductFinancialProfiles` remain unchanged; no old price is converted into tiers
+- real XLSX regression coverage for both v1 and v2 inputs
+- already-current v3 workbooks remain unmigrated and preserve tier rows
+- reserved `ProductPriceTiers` collision in a legacy workbook fails closed
+- v3 importer is compatibility-aware while the existing legacy application importer remains callable until TP5G
+
+#### TP5D — Physical workbook v3/dataset-v3 migration — NEXT / NOT STARTED
 #### TP5E — Legacy pre-Preferred physical-v2 regression
 #### TP5F — Google Sheets import compatibility
 #### TP5G — Atomic hydration/rollback/recovery completion gate
@@ -899,8 +909,8 @@ All conditions are satisfied by this audit.
 
 ## 16. Exact Next Task
 
-**TP5C — Core v1/v2 Migration Chain — NEXT / NOT STARTED**
+**TP5D — Physical Workbook v3 / Dataset-v3 Migration — NEXT / NOT STARTED**
 
-TP5B is complete with an explicit core workbook v3 / dataset-v2 path, including the canonical ProductPriceTiers sheet, export/import reconstruction, real XLSX round-trip, schema guards, and resource limits.
+TP5C is complete with the explicit core v1/v2 -> v3 migration chain. Existing Default / Single financial profiles remain unchanged and legacy workbooks receive an empty ProductPriceTiers collection rather than inferred tiers.
 
-The existing production v2/v1 compatibility path remains intact until TP5C registers and validates the required migrations into the v3 target. Stop after TP5B. Do not start TP5C automatically.
+The existing legacy application importer remains available until the live persistence/hydration completion work in TP5G. Stop after TP5C. Do not start TP5D automatically.

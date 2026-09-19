@@ -27,6 +27,17 @@ import {
   type WorkbookCodec,
 } from './workbookCodec';
 import {
+  PRODUCTION_WORKBOOK_MIGRATION_STEPS,
+  WorkbookMigrationRegistry,
+  cloneWorkbookNeutralDocument,
+  type WorkbookMigrationStep,
+  type WorkbookVersionKey,
+} from './workbookCompatibility';
+import {
+  prepareWorkbookForCurrentImport,
+  type WorkbookCurrentImportPreparationIssue,
+} from './workbookImportCompatibility';
+import {
   createWorkbookResourceLimits,
   validateNeutralWorkbookResourceLimits,
   validateWorkbookBinaryResourceLimit,
@@ -43,6 +54,10 @@ import {
 } from './workbookSchema';
 
 export const CORE_WORKBOOK_V3_FORMAT_VERSION = 3 as const;
+export const CORE_WORKBOOK_V3_VERSION_KEY: WorkbookVersionKey = Object.freeze({
+  workbookFormatVersion: CORE_WORKBOOK_V3_FORMAT_VERSION,
+  datasetSchemaVersion: BUSINESS_DATASET_V2_SCHEMA_VERSION,
+});
 export const PRODUCT_PRICE_TIERS_SHEET_NAME = 'ProductPriceTiers' as const;
 
 export const PRODUCT_PRICE_TIERS_WORKBOOK_COLUMNS = [
@@ -75,6 +90,61 @@ export const CORE_WORKBOOK_V3_CANONICAL_SHEET_NAMES = [
   'ProductFinancialProfiles',
   PRODUCT_PRICE_TIERS_SHEET_NAME,
 ] as const;
+
+function migrateCoreWorkbookV2ToV3(
+  document: WorkbookNeutralDocument,
+): WorkbookNeutralDocument {
+  const migrated = cloneWorkbookNeutralDocument(document);
+
+  if (
+    migrated.sheets.some(
+      (sheet) => sheet.name === PRODUCT_PRICE_TIERS_SHEET_NAME,
+    )
+  ) {
+    throw new Error(
+      `Legacy core workbook already contains reserved sheet ${PRODUCT_PRICE_TIERS_SHEET_NAME}.`,
+    );
+  }
+
+  return {
+    sheets: [
+      ...migrated.sheets.map((sheet) => {
+        if (sheet.name !== '_Meta') return sheet;
+
+        return {
+          ...sheet,
+          rows: sheet.rows.map((row, index) =>
+            index === 0
+              ? {
+                  ...row,
+                  workbookFormatVersion: CORE_WORKBOOK_V3_FORMAT_VERSION,
+                  datasetSchemaVersion: BUSINESS_DATASET_V2_SCHEMA_VERSION,
+                }
+              : row,
+          ),
+        };
+      }),
+      {
+        name: PRODUCT_PRICE_TIERS_SHEET_NAME,
+        columns: [...PRODUCT_PRICE_TIERS_WORKBOOK_COLUMNS],
+        rows: [],
+      },
+    ],
+  };
+}
+
+export const CORE_WORKBOOK_V3_MIGRATION_STEPS: readonly WorkbookMigrationStep[] = [
+  ...PRODUCTION_WORKBOOK_MIGRATION_STEPS,
+  {
+    from: { workbookFormatVersion: 2, datasetSchemaVersion: 1 },
+    to: CORE_WORKBOOK_V3_VERSION_KEY,
+    migrate: migrateCoreWorkbookV2ToV3,
+  },
+];
+
+export const coreWorkbookV3MigrationRegistry = new WorkbookMigrationRegistry(
+  CORE_WORKBOOK_V3_MIGRATION_STEPS,
+);
 
 export type BusinessDatasetV2WorkbookImportResult =
   | {
@@ -700,6 +770,36 @@ function datasetIssues(
   }));
 }
 
+function preparationIssues(
+  issues: readonly WorkbookCurrentImportPreparationIssue[],
+): BusinessDatasetWorkbookImportIssue[] {
+  return issues.map((issue) => {
+    const hasMetaLocation =
+      issue.stage === 'preflight' &&
+      issue.code !== 'INVALID_DOCUMENT' &&
+      issue.code !== 'MISSING_META_SHEET';
+
+    return {
+      stage: issue.stage === 'migration' ? 'migration' : 'compatibility',
+      code: issue.code,
+      message: issue.message,
+      sheetName: hasMetaLocation ? '_Meta' : undefined,
+      rowIndex: hasMetaLocation ? 0 : undefined,
+      excelRow: hasMetaLocation ? 2 : undefined,
+      path:
+        issue.stepIndex === undefined
+          ? undefined
+          : `migration[${issue.stepIndex}]`,
+      input: issue.input,
+      compatibilityStatus: issue.compatibilityStatus,
+      sourceVersion: issue.sourceVersion,
+      targetVersion: issue.targetVersion,
+      stepIndex: issue.stepIndex,
+      causeValue: issue.causeValue,
+    };
+  });
+}
+
 export function reconstructBusinessDatasetV2FromWorkbook(
   document: WorkbookNeutralDocument,
 ): BusinessDatasetV2WorkbookImportResult {
@@ -801,5 +901,14 @@ export function importBusinessDatasetV2FromXlsx(
     return { ok: false, issues: resourceIssues(neutralIssues) };
   }
 
-  return reconstructBusinessDatasetV2FromWorkbook(document);
+  const prepared = prepareWorkbookForCurrentImport(
+    document,
+    coreWorkbookV3MigrationRegistry,
+    CORE_WORKBOOK_V3_VERSION_KEY,
+  );
+  if (!prepared.ok) {
+    return { ok: false, issues: preparationIssues(prepared.issues) };
+  }
+
+  return reconstructBusinessDatasetV2FromWorkbook(prepared.document);
 }
