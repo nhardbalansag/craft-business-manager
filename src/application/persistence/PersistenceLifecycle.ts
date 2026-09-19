@@ -56,6 +56,10 @@ export interface PersistenceDatasetHydrationIssue {
   readonly code: string;
   readonly message: string;
   readonly path: string;
+  readonly collection?: string;
+  readonly index?: number;
+  readonly entityId?: string;
+  readonly field?: string;
 }
 
 /** Defensive result shape if hydration rejects a candidate before writes. */
