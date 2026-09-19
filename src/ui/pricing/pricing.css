@@ -885,3 +885,105 @@
   .tier-catalog-economics-grid,
   .tier-catalog-comparison { grid-template-columns: 1fr; }
 }
+
+
+/* TP6B — Product price tier source editor */
+
+.tier-editor-panel {
+  display: grid;
+  gap: 16px;
+  margin-top: 28px;
+  padding: 22px;
+}
+
+.tier-editor-heading {
+  align-items: flex-start;
+}
+
+.tier-editor-heading h3 {
+  margin: 5px 0 6px;
+  font-size: 1.3rem;
+  letter-spacing: -.02em;
+}
+
+.tier-editor-heading p:not(.panel-kicker) {
+  margin: 0;
+  color: #786f65;
+  font-size: .8rem;
+  line-height: 1.5;
+}
+
+.tier-editor-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 16px;
+}
+
+.tier-editor-source-note {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: center;
+  padding: 11px 13px;
+  border: 1px solid #e1d9cd;
+  border-radius: 11px;
+  background: #faf7f1;
+  color: #776d62;
+  font-size: .75rem;
+}
+
+.tier-editor-source-note strong {
+  color: #4b433a;
+}
+
+.tier-editor-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.tier-mutation-feedback {
+  margin-top: 28px;
+}
+
+.tier-catalog-card-heading-actions {
+  display: grid;
+  justify-items: end;
+  gap: 9px;
+}
+
+.tier-catalog-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.tier-catalog-action-button {
+  min-height: auto;
+  padding: 7px 10px;
+  font-size: .74rem;
+}
+
+@media (max-width: 760px) {
+  .tier-editor-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tier-editor-source-note,
+  .tier-editor-actions,
+  .tier-catalog-card-actions {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .tier-editor-actions .button,
+  .tier-catalog-card-actions .button {
+    width: 100%;
+  }
+
+  .tier-catalog-card-heading-actions {
+    justify-items: start;
+  }
+}
