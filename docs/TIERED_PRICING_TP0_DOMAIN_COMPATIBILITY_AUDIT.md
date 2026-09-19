@@ -707,7 +707,16 @@ Recommended split:
 - shared application-session wiring
 - no Default / Single comparison or below-cost warning yet
 
-#### TP3C — Default-price comparison + below-cost diagnostics — NEXT / NOT STARTED
+#### TP3C — Default-price comparison + below-cost diagnostics — COMPLETE
+- consumes existing Default / Single quote as additive comparison evidence
+- default-equivalent offer price
+- discount amount and discount rate vs Default / Single
+- negative discount preserved when a tier is more expensive than Default
+- null discount rate when the Default equivalent denominator is zero
+- explicit below-cost flag and `BELOW_COST` warning
+- ready tier economics remain available when Default comparison is partial/not-ready
+- mismatched or invalid ready Default evidence fails closed
+- existing `ProductPricingQuoteService` semantics remain unchanged
 
 ### TP4 — Default Pricing Compatibility Layer
 
@@ -868,8 +877,8 @@ All conditions are satisfied by this audit.
 
 ## 16. Exact Next Task
 
-**TP3C — Default-Price Comparison + Below-Cost Diagnostics — NEXT / NOT STARTED**
+**TP4 — Default Pricing Compatibility Layer — NEXT / NOT STARTED**
 
-TP3B is complete with tier quote orchestration over the authoritative fully loaded unit cost, readiness propagation, historical inactive-tier visibility, fail-closed identity validation, and shared session wiring.
+TP3 is complete. TP3C adds Default / Single comparison and explicit below-cost diagnostics to tier quotes without modifying the existing Default / Single pricing service semantics.
 
-Stop after TP3B. Do not start TP3C, persistence migration, UI, or quantity-aware selection automatically.
+Stop after TP3. Do not start TP4, persistence migration, UI, or quantity-aware selection automatically.

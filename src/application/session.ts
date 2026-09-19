@@ -256,10 +256,6 @@ export const fullyLoadedProductUnitCostService = new FullyLoadedProductUnitCostS
   recursiveFullyLoadedProductComponentCostService,
   productFinancialProfileService,
 );
-export const productPriceTierQuoteService = new ProductPriceTierQuoteService(
-  fullyLoadedProductUnitCostService,
-  productPriceTierService,
-);
 export const physicalPlannedBatchProductionCostService =
   new PhysicalPlannedBatchProductionCostService(
     productionRequirementService,
@@ -276,6 +272,11 @@ export const productPricingQuoteService = new ProductPricingQuoteService(
   fullyLoadedProductUnitCostService,
   productFinancialProfileService,
   profitMarkupMarginMetricsService,
+);
+export const productPriceTierQuoteService = new ProductPriceTierQuoteService(
+  fullyLoadedProductUnitCostService,
+  productPriceTierService,
+  productPricingQuoteService,
 );
 export const expectedBatchFinancialsService = new ExpectedBatchFinancialsService(
   productPricingQuoteService,

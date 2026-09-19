@@ -7,6 +7,8 @@ import {
 import {
   ProductPriceTierQuoteService,
   ProductPriceTierQuoteServiceError,
+  type ProductPriceTierDefaultPricingEvidence,
+  type ProductPriceTierDefaultPricingProvider,
   type ProductPriceTierQuoteCostProvider,
   type ProductPriceTierQuoteTierProvider,
 } from './ProductPriceTierQuoteService';
@@ -66,6 +68,11 @@ function tier(overrides: Partial<ProductPriceTier> = {}): ProductPriceTier {
 function setup(
   costResult: FullyLoadedProductUnitCostResult,
   tiers: ProductPriceTier[],
+  defaultQuote: ProductPriceTierDefaultPricingEvidence = {
+    productId: 'PROD-A',
+    status: 'ready',
+    sellingPrice: 50,
+  },
 ) {
   const costs: ProductPriceTierQuoteCostProvider = {
     async costProduct() {
@@ -78,7 +85,13 @@ function setup(
     },
   };
 
-  return new ProductPriceTierQuoteService(costs, tierProvider);
+  const defaultPricing: ProductPriceTierDefaultPricingProvider = {
+    async quoteProduct() {
+      return defaultQuote;
+    },
+  };
+
+  return new ProductPriceTierQuoteService(costs, tierProvider, defaultPricing);
 }
 
 describe('ProductPriceTierQuoteService', () => {
@@ -149,7 +162,7 @@ describe('ProductPriceTierQuoteService', () => {
     expect(result.tiers[0]?.economics?.profitPerOffer).toBe(5);
   });
 
-  it('keeps below-cost tiers mathematically ready without adding TP3C diagnostics', async () => {
+  it('marks below-cost tiers explicitly without rejecting valid tier economics', async () => {
     const service = setup(cost('ready'), [tier({ priceAmount: 20 })]);
 
     const result = await service.quoteProduct('PROD-A');
@@ -158,9 +171,146 @@ describe('ProductPriceTierQuoteService', () => {
     expect(line.status).toBe('ready');
     expect(line.economics?.profitPerOffer).toBe(-10);
     expect(line.economics?.effectiveMarkup).toBeCloseTo(-1 / 3, 12);
+    expect(line.belowCost).toBe(true);
+    expect(line.warnings).toEqual([
+      expect.objectContaining({ code: 'BELOW_COST', tierId: 'TIER-0001' }),
+    ]);
     expect(line.issues).toEqual([]);
-    expect('belowCost' in line).toBe(false);
-    expect('discountAmountVsDefault' in (line.economics ?? {})).toBe(false);
+    expect(line.defaultComparison).toMatchObject({
+      defaultSellingPrice: 50,
+      defaultEquivalentOfferPrice: 50,
+      discountAmountVsDefault: 30,
+      discountRateVsDefault: 0.6,
+    });
+  });
+
+
+  it('compares a package offer with the Default / Single equivalent at full precision', async () => {
+    const service = setup(
+      cost('ready'),
+      [
+        tier({
+          id: 'TIER-PACK',
+          name: 'Package 6',
+          kind: 'package',
+          priceBasis: 'per-offer',
+          priceAmount: 270,
+          unitsPerOffer: 6,
+          minimumOrderQuantity: 6,
+          additionalCostPerOffer: 20,
+        }),
+      ],
+      { productId: 'PROD-A', status: 'ready', sellingPrice: 50 },
+    );
+
+    const line = (await service.quoteProduct('PROD-A')).tiers[0]!;
+
+    expect(line.status).toBe('ready');
+    expect(line.defaultComparison).toEqual({
+      defaultSellingPrice: 50,
+      defaultEquivalentOfferPrice: 300,
+      discountAmountVsDefault: 30,
+      discountRateVsDefault: 0.1,
+    });
+    expect(line.belowCost).toBe(false);
+    expect(line.warnings).toEqual([]);
+  });
+
+  it('preserves negative discount when a tier is more expensive than Default / Single', async () => {
+    const line = (
+      await setup(
+        cost('ready'),
+        [tier({ priceAmount: 60 })],
+        { productId: 'PROD-A', status: 'ready', sellingPrice: 50 },
+      ).quoteProduct('PROD-A')
+    ).tiers[0]!;
+
+    expect(line.defaultComparison).toMatchObject({
+      defaultEquivalentOfferPrice: 50,
+      discountAmountVsDefault: -10,
+      discountRateVsDefault: -0.2,
+    });
+  });
+
+  it('uses null discount rate when the Default / Single equivalent price is zero', async () => {
+    const line = (
+      await setup(
+        cost('ready'),
+        [tier({ priceAmount: 0 })],
+        { productId: 'PROD-A', status: 'ready', sellingPrice: 0 },
+      ).quoteProduct('PROD-A')
+    ).tiers[0]!;
+
+    expect(line.defaultComparison).toEqual({
+      defaultSellingPrice: 0,
+      defaultEquivalentOfferPrice: 0,
+      discountAmountVsDefault: 0,
+      discountRateVsDefault: null,
+    });
+    expect(line.belowCost).toBe(true);
+  });
+
+  it('keeps ready tier economics but marks comparison partial when Default / Single is partial', async () => {
+    const result = await setup(
+      cost('ready'),
+      [tier()],
+      { productId: 'PROD-A', status: 'partial', sellingPrice: null },
+    ).quoteProduct('PROD-A');
+
+    expect(result.status).toBe('partial');
+    expect(result.defaultPricingStatus).toBe('partial');
+    expect(result.defaultSellingPrice).toBeNull();
+    expect(result.tiers[0]?.status).toBe('partial');
+    expect(result.tiers[0]?.economics).not.toBeNull();
+    expect(result.tiers[0]?.defaultComparison).toBeNull();
+    expect(result.tiers[0]?.issues).toMatchObject([
+      { code: 'DEFAULT_QUOTE_PARTIAL', tierId: 'TIER-0001' },
+    ]);
+  });
+
+  it('keeps ready tier economics but marks comparison partial when Default / Single is not ready', async () => {
+    const result = await setup(
+      cost('ready'),
+      [tier()],
+      { productId: 'PROD-A', status: 'not-ready', sellingPrice: null },
+    ).quoteProduct('PROD-A');
+
+    expect(result.status).toBe('partial');
+    expect(result.tiers[0]?.status).toBe('partial');
+    expect(result.tiers[0]?.economics).not.toBeNull();
+    expect(result.tiers[0]?.defaultComparison).toBeNull();
+    expect(result.tiers[0]?.issues[0]?.code).toBe('DEFAULT_QUOTE_NOT_READY');
+  });
+
+  it('fails closed when Default / Single pricing evidence belongs to another Product', async () => {
+    const result = await setup(
+      cost('ready'),
+      [tier()],
+      { productId: 'OTHER', status: 'ready', sellingPrice: 50 },
+    ).quoteProduct('PROD-A');
+
+    expect(result.status).toBe('not-ready');
+    expect(result.issues.map((issue) => issue.code)).toContain(
+      'DEFAULT_QUOTE_PRODUCT_MISMATCH',
+    );
+    expect(result.tiers[0]?.economics).not.toBeNull();
+    expect(result.tiers[0]?.defaultComparison).toBeNull();
+    expect(result.tiers[0]?.status).toBe('not-ready');
+  });
+
+  it('fails closed when a ready Default / Single quote has an invalid selling price', async () => {
+    const result = await setup(
+      cost('ready'),
+      [tier()],
+      { productId: 'PROD-A', status: 'ready', sellingPrice: -1 },
+    ).quoteProduct('PROD-A');
+
+    expect(result.status).toBe('not-ready');
+    expect(result.issues.map((issue) => issue.code)).toContain(
+      'DEFAULT_SELLING_PRICE_INVALID',
+    );
+    expect(result.tiers[0]?.economics).not.toBeNull();
+    expect(result.tiers[0]?.defaultComparison).toBeNull();
   });
 
   it('returns partial tier quotes when authoritative cost is partial', async () => {
@@ -277,7 +427,12 @@ describe('ProductPriceTierQuoteService', () => {
         return [];
       },
     };
-    const service = new ProductPriceTierQuoteService(costs, tiers);
+    const defaultPricing: ProductPriceTierDefaultPricingProvider = {
+      async quoteProduct(productId) {
+        return { productId, status: 'not-ready', sellingPrice: null };
+      },
+    };
+    const service = new ProductPriceTierQuoteService(costs, tiers, defaultPricing);
 
     await expect(service.quoteProduct('missing')).rejects.toBeInstanceOf(
       ProductPriceTierQuoteServiceError,
