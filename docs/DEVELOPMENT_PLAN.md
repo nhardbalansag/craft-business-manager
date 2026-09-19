@@ -40,16 +40,17 @@ Historical child completion records remain authoritative for their individual co
 
 ## Current Repository Milestone
 
-Latest green planning baseline before Phase 6 implementation:
+Current verified integration baseline before the Tiered Pricing enhancement:
 
 ```text
-develop  7336f7fad57410a8e9888344c240590bae20f59f
-CI       35182152823 — SUCCESS
-Physical Identification & Storage Foundation — COMPLETE
-Phase 6 scope/decomposition review — IN DOCUMENTATION REVIEW
+develop  e2057a063544f56088177e8211e03b96c21ef7e1
+CI       35432387049 — SUCCESS
+Preferred Yield enhancement — COMPLETE
+Legacy physical workbook Preferred Yield compatibility fix — COMPLETE
+Tiered Pricing TP0 audit — ACTIVE
 ```
 
-The completed physical-identification foundation now extends persisted source truth with Mold and Storage Location records while preserving Phase 5 persistence boundaries. Phase 6 must build the native desktop boundary on top of those contracts rather than replace them.
+The completed physical-identification and Preferred Yield work extends persisted source truth while preserving Phase 5 persistence boundaries. Tiered Pricing is an intervening business-domain enhancement requested before Phase 6 implementation. Phase 6 remains scoped but must not be started automatically while the Tiered Pricing task chain is active.
 
 ---
 
@@ -243,6 +244,43 @@ Phase 5.6B verified:
 
 ---
 
+# Tiered Pricing Enhancement — ACTIVE
+
+Status: **TP0 COMPLETE / TP1A NEXT**
+
+Master audit and compatibility plan:
+
+`docs/TIERED_PRICING_TP0_DOMAIN_COMPATIBILITY_AUDIT.md`
+
+Purpose:
+
+- preserve the existing Product financial profile and Default / Single selling-price behavior;
+- add one-to-many Package / Bulk / Custom pricing as a separate authoritative source collection;
+- calculate independent tier profit, markup, margin, discount, and below-cost diagnostics;
+- preserve existing XLSX / Google Sheets / physical workbook records through explicit migration;
+- avoid silently changing Production revenue calculations until quantity-aware tier selection is implemented explicitly.
+
+Task map:
+
+```text
+TP0 — Tiered Pricing Domain & Compatibility Audit                 COMPLETE
+TP1 — Product Price Tier Domain Foundation                       NEXT
+    TP1A — Product Price Tier Domain Contract & Validation        NEXT / NOT STARTED
+    TP1B — Stable Tier ID Foundation                              NOT STARTED
+TP2 — Repository & Application Services                           NOT STARTED
+TP3 — Tier Economics Engine                                       NOT STARTED
+TP4 — Default Pricing Compatibility Layer                         NOT STARTED
+TP5 — Workbook / Dataset Persistence & Migration                  NOT STARTED
+TP6 — Pricing UI                                                  NOT STARTED
+TP7 — Pricing Quote Integration                                   NOT STARTED
+TP8 — Quantity-Aware Tier Resolution                              NOT STARTED
+TP9 — Integrated Validation & Completion Gate                     NOT STARTED
+```
+
+Do not start TP2, persistence, UI, or quantity-aware tier selection automatically from TP1A.
+
+---
+
 # Phase 6 — Tauri Desktop Integration
 
 Status: **SCOPED / IMPLEMENTATION NOT STARTED**
@@ -327,8 +365,8 @@ Phase 7 scope should be revisited after the desktop/native persistence workflow 
 ## Current Next Action
 
 ```text
-6.1A — Tauri v2 Project Scaffold & Dev/Build Scripts
+TP1A — Product Price Tier Domain Contract & Validation
 NEXT / NOT STARTED
 ```
 
-Phase 6 implementation may begin only after this scope plan is merged and its exact post-merge `develop` CI is green.
+Tiered Pricing is the active intervening enhancement. Phase 6.1A remains scoped and pending, but must not begin automatically until the Tiered Pricing chain is completed or explicitly reprioritized.
