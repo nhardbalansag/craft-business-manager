@@ -744,8 +744,18 @@ Minimum subphases:
 - existing v1 BusinessDataset validation guarantees reused unchanged
 - v1 workbook/physical formats deliberately remain untouched until TP5B–TP5D
 
-#### TP5B — Core workbook v3 sheet/export/import — NEXT / NOT STARTED
-#### TP5C — Core v1/v2 migration chain
+#### TP5B — Core workbook v3 sheet/export/import — COMPLETE
+- explicit core workbook format v3 / dataset schema v2 contract
+- canonical `ProductPriceTiers` sheet with 11 source columns
+- deterministic tier row ordering
+- full-precision numeric export
+- real XLSX v3 round-trip
+- schema rejection for missing sheet, invalid column order, invalid enum tokens, and formula cells
+- reconstructed tier dataset passes BusinessDataset v2 integrity validation
+- binary and neutral workbook resource-limit guards
+- existing v2/v1 workbook path remains intact until TP5C promotes v3 through migration compatibility
+
+#### TP5C — Core v1/v2 migration chain — NEXT / NOT STARTED
 #### TP5D — Physical workbook v3/dataset-v3 migration
 #### TP5E — Legacy pre-Preferred physical-v2 regression
 #### TP5F — Google Sheets import compatibility
@@ -889,8 +899,8 @@ All conditions are satisfied by this audit.
 
 ## 16. Exact Next Task
 
-**TP5B — Core Workbook v3 Sheet / Export / Import — NEXT / NOT STARTED**
+**TP5C — Core v1/v2 Migration Chain — NEXT / NOT STARTED**
 
-TP5A is complete with an explicit BusinessDataset v2 source contract containing ProductPriceTiers plus completeness, cloning, normalization, domain validation, duplicate identity validation, and Product reference validation.
+TP5B is complete with an explicit core workbook v3 / dataset-v2 path, including the canonical ProductPriceTiers sheet, export/import reconstruction, real XLSX round-trip, schema guards, and resource limits.
 
-The current v1 workbook and physical-v2 adapters are deliberately unchanged in TP5A so no format version is silently reused. Stop after TP5A. Do not start TP5B automatically.
+The existing production v2/v1 compatibility path remains intact until TP5C registers and validates the required migrations into the v3 target. Stop after TP5B. Do not start TP5C automatically.
