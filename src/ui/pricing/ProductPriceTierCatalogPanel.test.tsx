@@ -227,4 +227,54 @@ describe('TP6A ProductPriceTierCatalogPanel', () => {
       'Unsaved financial changes are not included in tier economics.',
     );
   });
+  it('exposes TP6B create/edit/archive callbacks only when mutation actions are supplied', async () => {
+    const onCreateTier = vi.fn();
+    const onEditTier = vi.fn();
+    const onArchiveTier = vi.fn();
+    const source = quote();
+
+    await act(async () => {
+      root.render(
+        <ProductPriceTierCatalogPanel
+          productName="Paintable Star"
+          quote={source}
+          loading={false}
+          error={null}
+          onCreateTier={onCreateTier}
+          onEditTier={onEditTier}
+          onArchiveTier={onArchiveTier}
+        />,
+      );
+    });
+
+    const buttons = Array.from(container.querySelectorAll('button'));
+    const create = buttons.find((button) => button.textContent?.trim() === 'Create tier');
+    const editActive = buttons.find(
+      (button) => button.getAttribute('aria-label') === 'Edit tier Bulk 20+',
+    );
+    const archiveActive = buttons.find(
+      (button) => button.getAttribute('aria-label') === 'Archive tier Bulk 20+',
+    );
+    const editArchived = buttons.find(
+      (button) => button.getAttribute('aria-label') === 'Edit tier Old Event Price',
+    );
+    const archiveArchived = buttons.find(
+      (button) => button.getAttribute('aria-label') === 'Archive tier Old Event Price',
+    );
+
+    expect(create).toBeDefined();
+    expect(editActive).toBeDefined();
+    expect(archiveActive).toBeDefined();
+    expect(editArchived).toBeDefined();
+    expect(archiveArchived).toBeUndefined();
+
+    await act(async () => create!.click());
+    await act(async () => editActive!.click());
+    await act(async () => archiveActive!.click());
+
+    expect(onCreateTier).toHaveBeenCalledOnce();
+    expect(onEditTier).toHaveBeenCalledWith(source.tiers[0]!.tier);
+    expect(onArchiveTier).toHaveBeenCalledWith(source.tiers[0]!.tier);
+  });
+
 });
