@@ -246,7 +246,7 @@ Phase 5.6B verified:
 
 # Tiered Pricing Enhancement — ACTIVE
 
-Status: **TP3A COMPLETE / TP3B NEXT**
+Status: **TP3B COMPLETE / TP3C NEXT**
 
 Master audit and compatibility plan:
 
@@ -273,8 +273,8 @@ TP2 — Repository & Application Services                           COMPLETE
     TP2C — Session Wiring + Service Regressions                    COMPLETE
 TP3 — Tier Economics Engine                                       IN PROGRESS
     TP3A — Pure Tier Economics Formulas                           COMPLETE
-    TP3B — ProductPriceTierQuoteService                           NEXT / NOT STARTED
-    TP3C — Default-Price Comparison + Below-Cost Diagnostics      NOT STARTED
+    TP3B — ProductPriceTierQuoteService                           COMPLETE
+    TP3C — Default-Price Comparison + Below-Cost Diagnostics      NEXT / NOT STARTED
 TP4 — Default Pricing Compatibility Layer                         NOT STARTED
 TP5 — Workbook / Dataset Persistence & Migration                  NOT STARTED
 TP6 — Pricing UI                                                  NOT STARTED
@@ -283,7 +283,7 @@ TP8 — Quantity-Aware Tier Resolution                              NOT STARTED
 TP9 — Integrated Validation & Completion Gate                     NOT STARTED
 ```
 
-TP3A is complete. Do not start TP3B automatically from the TP3A completion gate.
+TP3B is complete. Do not start TP3C automatically from the TP3B completion gate.
 
 ---
 
@@ -371,7 +371,7 @@ Phase 7 scope should be revisited after the desktop/native persistence workflow 
 ## Current Next Action
 
 ```text
-TP3B — ProductPriceTierQuoteService
+TP3C — Default-Price Comparison + Below-Cost Diagnostics
 NEXT / NOT STARTED
 ```
 
