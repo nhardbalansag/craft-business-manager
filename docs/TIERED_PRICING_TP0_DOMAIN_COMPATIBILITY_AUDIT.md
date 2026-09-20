@@ -908,16 +908,22 @@ Authoritative decision record:
 - below-cost tiers remain manually selectable only with their warning preserved
 - Production remains on Default / Single unless a future separately scoped boundary receives explicit selected-tier evidence
 
-#### TP8B — Quantity Eligibility Domain Contract — NEXT / NOT STARTED
-- pure quantity validation
-- active/archive eligibility
-- minimum-order threshold checks
-- per-unit eligibility
-- per-offer exact-divisibility checks
-- deterministic eligibility diagnostics
-- no tier selection
+#### TP8B — Quantity Eligibility Domain Contract — COMPLETE
+- adds pure `evaluateProductPriceTierQuantityEligibility`
+- validates resolved-pricing quantity as finite, whole, and greater than zero
+- reuses the authoritative ProductPriceTier source validator rather than repairing invalid source data
+- archived tiers are structurally ineligible for new resolved pricing
+- minimum-order thresholds are evaluated in finished Product units
+- per-unit tiers require only the minimum threshold because source validation already enforces unitsPerOffer = 1
+- per-offer tiers require exact quantity divisibility by unitsPerOffer
+- non-divisible package quantities remain ineligible; no mixed remainder is synthesized
+- kind does not override price-basis quantity arithmetic
+- Custom tiers use the same structural eligibility rules without any automatic-selection behavior
+- eligible results expose exact whole offerCount for later TP8C pricing resolution
+- ineligible results expose deterministic typed diagnostics and null offerCount
+- no price comparison, economics lookup, ranking, or tier selection is introduced
 
-#### TP8C — Explicit Tier Resolution Service — NOT STARTED
+#### TP8C — Explicit Tier Resolution Service — NEXT / NOT STARTED
 - no selected tier ID means Default / Single
 - explicit tier ID resolves only that tier
 - fail closed for missing/inactive/ineligible/unready selected tiers
@@ -1049,8 +1055,8 @@ All conditions are satisfied by this audit.
 
 ## 16. Exact Next Task
 
-**TP8B — Quantity Eligibility Domain Contract — NEXT / NOT STARTED**
+**TP8C — Explicit Tier Resolution Service — NEXT / NOT STARTED**
 
-TP8A is complete. Quantity-aware selection semantics are now fixed by `docs/TIERED_PRICING_TP8_QUANTITY_AWARE_SELECTION_SEMANTICS.md`: Default / Single remains the fallback, tiers require explicit selection, per-offer quantities require exact divisibility, overlapping tiers are not ranked, and cheapest-tier auto-selection is prohibited.
+TP8B is complete. The domain now determines only structural quantity eligibility: valid positive whole-unit quantities, active tiers, minimum thresholds, and exact per-offer divisibility. It does not compare prices or choose a tier.
 
-Proceed next only with TP8B. Stop after the TP8A decision gate. Do not start TP8C automatically.
+Proceed next only with TP8C. Stop after the TP8B completion gate. Do not start TP8D automatically.
