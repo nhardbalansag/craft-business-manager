@@ -277,4 +277,46 @@ describe('TP6A ProductPriceTierCatalogPanel', () => {
     expect(onArchiveTier).toHaveBeenCalledWith(source.tiers[0]!.tier);
   });
 
+  it('exposes semantic headings, busy state, and named tier diagnostics', async () => {
+    const source = quote();
+
+    await act(async () => {
+      root.render(
+        <ProductPriceTierCatalogPanel
+          productName="Paintable Star"
+          quote={source}
+          loading={false}
+          error={null}
+          onEditTier={vi.fn()}
+          onArchiveTier={vi.fn()}
+        />,
+      );
+    });
+
+    const catalog = container.querySelector<HTMLElement>('[aria-label="Tier pricing catalog"]')!;
+    expect(catalog.getAttribute('aria-labelledby')).toBe('tier-pricing-catalog-heading');
+    expect(catalog.getAttribute('aria-busy')).toBe('false');
+    expect(container.querySelector('#tier-pricing-catalog-heading')?.textContent).toBe(
+      'Price tier catalog',
+    );
+
+    const bulkCard = container.querySelector<HTMLElement>('[aria-label="Price tier Bulk 20+"]')!;
+    const bulkHeadingId = bulkCard.getAttribute('aria-labelledby');
+    expect(bulkHeadingId).toBe('price-tier-TIER-0001-heading');
+    expect(container.querySelector(`#${bulkHeadingId}`)?.textContent).toBe('Bulk 20+');
+
+    const warning = container.querySelector<HTMLElement>(
+      '[aria-label="Pricing warnings for Old Event Price"]',
+    );
+    expect(warning?.getAttribute('role')).toBe('status');
+
+    const editButton = container.querySelector<HTMLButtonElement>(
+      '[aria-label="Edit tier Bulk 20+"]',
+    );
+    const archiveButton = container.querySelector<HTMLButtonElement>(
+      '[aria-label="Archive tier Bulk 20+"]',
+    );
+    expect(editButton?.type).toBe('button');
+    expect(archiveButton?.type).toBe('button');
+  });
 });
