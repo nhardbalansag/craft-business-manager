@@ -246,7 +246,7 @@ Phase 5.6B verified:
 
 # Tiered Pricing Enhancement — ACTIVE
 
-Status: **TP6 COMPLETE / TP7 NEXT**
+Status: **TP7 COMPLETE / TP8 NEXT**
 
 Master audit and compatibility plan:
 
@@ -289,12 +289,12 @@ TP6 — Pricing UI                                                  COMPLETE
     TP6B — Create / Edit / Archive Tier Form                      COMPLETE
     TP6C — Package / Bulk / Custom UX + Warnings                  COMPLETE
     TP6D — Responsive / Accessibility Regression                  COMPLETE
-TP7 — Pricing Quote Integration                                   NEXT / NOT STARTED
-TP8 — Quantity-Aware Tier Resolution                              NOT STARTED
+TP7 — Pricing Quote Integration                                   COMPLETE
+TP8 — Quantity-Aware Tier Resolution                              NEXT / NOT STARTED
 TP9 — Integrated Validation & Completion Gate                     NOT STARTED
 ```
 
-TP6D is complete. Do not start TP7 automatically from the TP6 completion gate.
+TP7 is complete. Do not start TP8 automatically; TP8 requires its separate selection-semantics decision document first.
 
 ---
 
@@ -382,7 +382,7 @@ Phase 7 scope should be revisited after the desktop/native persistence workflow 
 ## Current Next Action
 
 ```text
-TP7 — Pricing Quote Integration
+TP8 — Quantity-Aware Tier Resolution
 NEXT / NOT STARTED
 ```
 
