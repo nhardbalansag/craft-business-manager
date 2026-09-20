@@ -150,4 +150,46 @@ describe('TP6C ProductPriceTierEditorPanel kind-aware UX', () => {
     expect(container.textContent).toContain('Custom · explicit special offer');
     expect(container.textContent).toContain('never selected automatically');
   });
+
+  it('associates tier guidance and validation with the relevant form controls', async () => {
+    await mount();
+
+    const form = container.querySelector<HTMLFormElement>('[aria-label="Price tier editor"]')!;
+    const titleId = form.getAttribute('aria-labelledby');
+    expect(titleId).toBe('price-tier-editor-title');
+    expect(container.querySelector(`#${titleId}`)?.textContent).toContain('Create price tier');
+
+    expect(field('Tier name').hasAttribute('required')).toBe(true);
+    expect(field('Price amount').hasAttribute('required')).toBe(true);
+    expect(field('Units per offer').getAttribute('aria-describedby')).toBe(
+      'price-tier-units-help',
+    );
+    expect(field('Minimum order quantity').getAttribute('aria-describedby')).toBe(
+      'price-tier-minimum-help',
+    );
+    expect(field('Additional cost per offer').getAttribute('aria-describedby')).toBe(
+      'price-tier-additional-cost-help',
+    );
+    expect(field('Tier kind').getAttribute('aria-describedby')).toBe(
+      'price-tier-kind-guidance',
+    );
+    expect(field('Price basis').getAttribute('aria-describedby')).toBe(
+      'price-tier-kind-guidance',
+    );
+
+    await fill(field('Tier kind'), 'package');
+    await fill(field('Units per offer'), '6');
+    await fill(field('Minimum order quantity'), '7');
+    await fill(field('Tier name'), 'Invalid Package');
+    await fill(field('Price amount'), '300');
+
+    const minimum = field('Minimum order quantity');
+    expect(minimum.getAttribute('aria-invalid')).toBe('true');
+    expect(minimum.getAttribute('aria-describedby')).toContain(
+      'price-tier-source-validation',
+    );
+    expect(
+      container.querySelector('#price-tier-source-validation')?.getAttribute('role'),
+    ).toBe('alert');
+  });
 });

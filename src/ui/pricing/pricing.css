@@ -1074,3 +1074,73 @@
     flex-direction: column;
   }
 }
+
+
+/* TP6D — tier pricing responsive/accessibility completion */
+
+.tier-editor-panel,
+.tier-catalog-section,
+.tier-catalog-card,
+.tier-catalog-card-heading > *,
+.tier-catalog-card-heading-actions,
+.tier-catalog-card-actions,
+.tier-catalog-source-grid,
+.tier-catalog-economics-grid,
+.tier-catalog-comparison {
+  min-width: 0;
+}
+
+.tier-editor-kind-guide,
+.tier-editor-advisory,
+.tier-editor-validation,
+.tier-editor-source-note,
+.tier-catalog-card,
+.tier-catalog-source-advisory,
+.tier-catalog-selection-note,
+.tier-catalog-warning,
+.tier-catalog-issues {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 760px) {
+  .tier-catalog-card-heading-actions,
+  .tier-catalog-card-actions {
+    width: 100%;
+  }
+
+  .tier-catalog-card-actions > button,
+  .tier-editor-actions > button {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .tier-catalog-card-heading-actions {
+    justify-items: stretch;
+  }
+
+  .tier-catalog-card-heading-actions .pricing-readiness-pill {
+    justify-self: start;
+  }
+
+  .tier-editor-source-note > *,
+  .tier-catalog-selection-note > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 420px) {
+  .tier-editor-panel,
+  .tier-catalog-card,
+  .tier-catalog-empty,
+  .tier-catalog-top-level-issues {
+    padding: 16px;
+  }
+
+  .tier-editor-kind-guide,
+  .tier-editor-advisory,
+  .tier-catalog-source-advisory,
+  .tier-catalog-selection-note {
+    padding: 10px 11px;
+  }
+}

@@ -201,6 +201,16 @@ export function ProductPriceTierEditorPanel({
   }, [form.kind, form.priceBasis, parsed.minimumOrderQuantity, parsed.unitsPerOffer]);
 
   const kindGuide = TIER_KIND_GUIDANCE[form.kind];
+  const editorTitleId = 'price-tier-editor-title';
+  const kindGuideId = 'price-tier-kind-guidance';
+  const unitsHelpId = 'price-tier-units-help';
+  const minimumHelpId = 'price-tier-minimum-help';
+  const additionalCostHelpId = 'price-tier-additional-cost-help';
+  const validationId = 'price-tier-source-validation';
+  const minimumRelationshipInvalid =
+    sourceValidationError?.toLowerCase().includes('minimum order quantity') ?? false;
+  const unitsRelationshipInvalid =
+    sourceValidationError?.toLowerCase().includes('units per offer') ?? false;
 
   const ready =
     product !== null &&
@@ -294,12 +304,14 @@ export function ProductPriceTierEditorPanel({
     <form
       className="panel tier-editor-panel"
       aria-label="Price tier editor"
+      aria-labelledby={editorTitleId}
+      aria-busy={saving}
       onSubmit={submit}
     >
       <div className="panel-heading tier-editor-heading">
         <div>
           <p className="panel-kicker">TIER SOURCE</p>
-          <h3>{tier ? `Edit ${tier.name}` : 'Create price tier'}</h3>
+          <h3 id={editorTitleId}>{tier ? `Edit ${tier.name}` : 'Create price tier'}</h3>
           <p>
             {tier
               ? `Editing ${tier.id}. The stable tier ID and Product relationship are preserved.`
@@ -316,25 +328,29 @@ export function ProductPriceTierEditorPanel({
       </div>
 
       {createBlocked && (
-        <div className="feedback feedback-error" role="status">
+        <div className="feedback feedback-error" role="alert">
           New price tiers cannot be created for an archived Product.
         </div>
       )}
 
       {error && (
-        <div className="feedback feedback-error" role="status">
+        <div className="feedback feedback-error" role="alert">
           {error}
         </div>
       )}
 
-      <div className="tier-editor-kind-guide" aria-label="Tier setup guidance">
+      <div
+        id={kindGuideId}
+        className="tier-editor-kind-guide"
+        aria-label="Tier setup guidance"
+      >
         <strong>{kindGuide.title}</strong>
         <span>{kindGuide.description}</span>
         <small>{kindGuide.recommendation}</small>
       </div>
 
       {specializedWarnings.length > 0 && (
-        <div className="tier-editor-advisory" role="status">
+        <div className="tier-editor-advisory" role="status" aria-live="polite">
           <strong>Review this {form.kind} setup</strong>
           <ul>
             {specializedWarnings.map((warning) => (
@@ -345,7 +361,11 @@ export function ProductPriceTierEditorPanel({
       )}
 
       {sourceValidationError && (
-        <div className="feedback feedback-error tier-editor-validation" role="status">
+        <div
+          id={validationId}
+          className="feedback feedback-error tier-editor-validation"
+          role="alert"
+        >
           <strong>Tier source needs attention.</strong> {sourceValidationError}
         </div>
       )}
@@ -355,6 +375,8 @@ export function ProductPriceTierEditorPanel({
           <span>Tier name</span>
           <input
             value={form.name}
+            required
+            aria-required="true"
             disabled={saving || createBlocked}
             onChange={(event) => setForm({ ...form, name: event.target.value })}
             placeholder="Bulk 20+"
@@ -365,6 +387,7 @@ export function ProductPriceTierEditorPanel({
           <span>Tier kind</span>
           <select
             value={form.kind}
+            aria-describedby={kindGuideId}
             disabled={saving || createBlocked}
             onChange={(event) =>
               changeKind(event.target.value as ProductPriceTier['kind'])
@@ -380,6 +403,7 @@ export function ProductPriceTierEditorPanel({
           <span>Price basis</span>
           <select
             value={form.priceBasis}
+            aria-describedby={kindGuideId}
             disabled={saving || createBlocked}
             onChange={(event) =>
               changePriceBasis(event.target.value as ProductPriceTier['priceBasis'])
@@ -398,6 +422,9 @@ export function ProductPriceTierEditorPanel({
             step="any"
             inputMode="decimal"
             value={form.priceAmount}
+            required
+            aria-required="true"
+            aria-invalid={form.priceAmount.trim() !== '' && parsed.priceAmount === null}
             disabled={saving || createBlocked}
             onChange={(event) => setForm({ ...form, priceAmount: event.target.value })}
           />
@@ -411,10 +438,19 @@ export function ProductPriceTierEditorPanel({
             step="1"
             inputMode="numeric"
             value={form.unitsPerOffer}
+            required
+            aria-required="true"
+            aria-invalid={
+              (form.unitsPerOffer.trim() !== '' && parsed.unitsPerOffer === null) ||
+              unitsRelationshipInvalid
+            }
+            aria-describedby={
+              unitsRelationshipInvalid ? `${unitsHelpId} ${validationId}` : unitsHelpId
+            }
             disabled={saving || createBlocked || form.priceBasis === 'per-unit'}
             onChange={(event) => changeUnitsPerOffer(event.target.value)}
           />
-          <small className="tier-editor-field-help">
+          <small id={unitsHelpId} className="tier-editor-field-help">
             {form.priceBasis === 'per-unit'
               ? 'Per-unit tiers always represent exactly 1 Product unit per offer.'
               : 'For packages or bundles, enter the number of Product units sold together.'}
@@ -429,12 +465,24 @@ export function ProductPriceTierEditorPanel({
             step="1"
             inputMode="numeric"
             value={form.minimumOrderQuantity}
+            required
+            aria-required="true"
+            aria-invalid={
+              (form.minimumOrderQuantity.trim() !== '' &&
+                parsed.minimumOrderQuantity === null) ||
+              minimumRelationshipInvalid
+            }
+            aria-describedby={
+              minimumRelationshipInvalid
+                ? `${minimumHelpId} ${validationId}`
+                : minimumHelpId
+            }
             disabled={saving || createBlocked}
             onChange={(event) =>
               setForm({ ...form, minimumOrderQuantity: event.target.value })
             }
           />
-          <small className="tier-editor-field-help">
+          <small id={minimumHelpId} className="tier-editor-field-help">
             {form.priceBasis === 'per-offer'
               ? 'Must cover at least one full offer and be a whole multiple of Units per offer.'
               : form.kind === 'bulk'
@@ -451,12 +499,19 @@ export function ProductPriceTierEditorPanel({
             step="any"
             inputMode="decimal"
             value={form.additionalCostPerOffer}
+            required
+            aria-required="true"
+            aria-invalid={
+              form.additionalCostPerOffer.trim() !== '' &&
+              parsed.additionalCostPerOffer === null
+            }
+            aria-describedby={additionalCostHelpId}
             disabled={saving || createBlocked}
             onChange={(event) =>
               setForm({ ...form, additionalCostPerOffer: event.target.value })
             }
           />
-          <small className="tier-editor-field-help">
+          <small id={additionalCostHelpId} className="tier-editor-field-help">
             Add packaging, ribbon, box, personalization, or other cost that applies once per offer.
           </small>
         </label>
