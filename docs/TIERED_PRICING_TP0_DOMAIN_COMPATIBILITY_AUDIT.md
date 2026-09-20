@@ -887,21 +887,61 @@ Recommended split:
 - no implicit Production/order tier selection is introduced
 - TP8 quantity-aware resolution remains unstarted
 
-### TP8 — Quantity-Aware Tier Resolution
+### TP8 — Quantity-Aware Tier Resolution — IN PROGRESS
 
-Do not begin until a separate decision document defines selection semantics.
+Authoritative decision record:
 
-Questions to resolve in TP8:
+`docs/TIERED_PRICING_TP8_QUANTITY_AWARE_SELECTION_SEMANTICS.md`
 
-- manual tier vs automatic tier
-- package divisibility
-- quantities that do not fit a package
-- overlapping eligible tiers
-- channel/customer-specific tiers
-- whether “cheapest” is ever allowed as an automatic choice
-- mixed package + single remainder behavior
+#### TP8A — Selection Semantics Decision — COMPLETE
+- Default / Single remains the default/fallback pricing source
+- quantity determines eligibility, not automatic business choice
+- tier pricing applies only through an explicitly supplied stable tier ID
+- active tiers only are selectable
+- per-unit tiers require quantity at or above the minimum
+- per-offer tiers additionally require exact divisibility by units per offer
+- mixed package + Default / Single remainder pricing is not supported
+- overlapping eligible tiers remain alternatives and are never auto-ranked
+- cheapest-tier automatic selection is prohibited
+- Custom tiers are always explicit/manual
+- customer/channel targeting is not inferred from names, notes, kind, or price
+- below-cost tiers remain manually selectable only with their warning preserved
+- Production remains on Default / Single unless a future separately scoped boundary receives explicit selected-tier evidence
 
-Default safety rule before TP8: **manual explicit tier selection only**.
+#### TP8B — Quantity Eligibility Domain Contract — NEXT / NOT STARTED
+- pure quantity validation
+- active/archive eligibility
+- minimum-order threshold checks
+- per-unit eligibility
+- per-offer exact-divisibility checks
+- deterministic eligibility diagnostics
+- no tier selection
+
+#### TP8C — Explicit Tier Resolution Service — NOT STARTED
+- no selected tier ID means Default / Single
+- explicit tier ID resolves only that tier
+- fail closed for missing/inactive/ineligible/unready selected tiers
+- compute resolved order selling-price totals
+- expose eligible alternatives without ranking
+- preserve warnings and diagnostics
+- no cheapest/automatic resolver
+
+#### TP8D — Pricing Workspace Quantity Preview / Manual Selection — NOT STARTED
+- quantity input
+- Default / Single selected by default
+- show eligible/ineligible tier alternatives
+- explicit manual tier choice
+- resolved order-price preview
+- no Production mutation
+
+#### TP8E — Regression & Completion Gate — NOT STARTED
+- prove Default fallback
+- prove thresholds/divisibility
+- prove no mixed remainder
+- prove overlaps do not auto-rank
+- prove Custom and archived rules
+- prove below-cost warning preservation
+- prove Production remains unchanged
 
 ### TP9 — Integrated Validation & Completion Gate
 
@@ -1009,8 +1049,8 @@ All conditions are satisfied by this audit.
 
 ## 16. Exact Next Task
 
-**TP8 — Quantity-Aware Tier Resolution — NEXT / NOT STARTED**
+**TP8B — Quantity Eligibility Domain Contract — NEXT / NOT STARTED**
 
-TP7 is complete. The Pricing workspace now consumes a single additive integrated quote containing the unchanged Default / Single quote plus nested Package / Bulk / Custom alternatives, while Production continues using Default / Single through the original ProductPricingQuoteService.
+TP8A is complete. Quantity-aware selection semantics are now fixed by `docs/TIERED_PRICING_TP8_QUANTITY_AWARE_SELECTION_SEMANTICS.md`: Default / Single remains the fallback, tiers require explicit selection, per-offer quantities require exact divisibility, overlapping tiers are not ranked, and cheapest-tier auto-selection is prohibited.
 
-TP8 must not begin until a separate decision document defines quantity-aware selection semantics. Stop after TP7. Do not start TP8 automatically.
+Proceed next only with TP8B. Stop after the TP8A decision gate. Do not start TP8C automatically.
