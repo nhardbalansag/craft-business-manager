@@ -1,7 +1,8 @@
-/// <reference types="vite/client" />
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import pricingCss from './pricing.css?inline';
-import responsiveCss from '../../responsive.css?inline';
+
+const pricingCss = readFileSync(new URL('./pricing.css', import.meta.url), 'utf8');
+const responsiveCss = readFileSync(new URL('../../responsive.css', import.meta.url), 'utf8');
 
 describe('TP6D tier pricing responsive regression', () => {
   it('retains the application-wide touch target and mobile input baseline', () => {
