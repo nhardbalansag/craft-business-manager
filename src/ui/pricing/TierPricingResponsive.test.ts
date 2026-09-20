@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 import { describe, expect, it } from 'vitest';
-import pricingCss from './pricing.css?raw';
-import responsiveCss from '../../responsive.css?raw';
+import pricingCss from './pricing.css?inline';
+import responsiveCss from '../../responsive.css?inline';
 
 describe('TP6D tier pricing responsive regression', () => {
   it('retains the application-wide touch target and mobile input baseline', () => {
