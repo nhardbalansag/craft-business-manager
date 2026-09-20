@@ -1,13 +1,11 @@
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   productFinancialProfileService,
-  productPriceTierQuoteService,
   productPriceTierService,
-  productPricingQuoteService,
+  productPricingQuoteIntegrationService,
   productService,
 } from '../../application/session';
-import type { ProductPricingQuoteResult } from '../../application/pricing/ProductPricingQuoteService';
-import type { ProductPriceTierQuoteResult } from '../../application/productPriceTiers/ProductPriceTierQuoteService';
+import type { IntegratedProductPricingQuoteResult } from '../../application/pricing/ProductPricingQuoteIntegrationService';
 import type { ProductPriceTier } from '../../domain/productPriceTiers';
 import type { ProductFinancialProfile } from '../../domain/productFinancialProfile';
 import {
@@ -50,12 +48,6 @@ function quoteErrorMessage(error: unknown): string {
   return error instanceof Error
     ? error.message
     : 'The authoritative unit-economics quote could not be loaded.';
-}
-
-function tierQuoteErrorMessage(error: unknown): string {
-  return error instanceof Error
-    ? error.message
-    : 'The saved price-tier economics could not be loaded.';
 }
 
 function upsertProfileList(
@@ -104,12 +96,9 @@ export function PricingPage() {
   const [workspaceError, setWorkspaceError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<Feedback>(null);
-  const [quote, setQuote] = useState<ProductPricingQuoteResult | null>(null);
+  const [quote, setQuote] = useState<IntegratedProductPricingQuoteResult | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [quoteError, setQuoteError] = useState<string | null>(null);
-  const [tierQuote, setTierQuote] = useState<ProductPriceTierQuoteResult | null>(null);
-  const [tierQuoteLoading, setTierQuoteLoading] = useState(false);
-  const [tierQuoteError, setTierQuoteError] = useState<string | null>(null);
   const [tierEditorOpen, setTierEditorOpen] = useState(false);
   const [editingTier, setEditingTier] = useState<ProductPriceTier | null>(null);
   const [tierSaving, setTierSaving] = useState(false);
@@ -117,7 +106,6 @@ export function PricingPage() {
   const [tierMutationError, setTierMutationError] = useState<string | null>(null);
   const [tierMutationFeedback, setTierMutationFeedback] = useState<string | null>(null);
   const quoteRequestVersion = useRef(0);
-  const tierQuoteRequestVersion = useRef(0);
 
   const loadQuote = useCallback(async (productId: string) => {
     const requestVersion = ++quoteRequestVersion.current;
@@ -126,7 +114,7 @@ export function PricingPage() {
     setQuote(null);
 
     try {
-      const nextQuote = await productPricingQuoteService.quoteProduct(productId);
+      const nextQuote = await productPricingQuoteIntegrationService.quoteProduct(productId);
       if (requestVersion === quoteRequestVersion.current) {
         setQuote(nextQuote);
       }
@@ -137,28 +125,6 @@ export function PricingPage() {
     } finally {
       if (requestVersion === quoteRequestVersion.current) {
         setQuoteLoading(false);
-      }
-    }
-  }, []);
-
-  const loadTierQuote = useCallback(async (productId: string) => {
-    const requestVersion = ++tierQuoteRequestVersion.current;
-    setTierQuoteLoading(true);
-    setTierQuoteError(null);
-    setTierQuote(null);
-
-    try {
-      const nextQuote = await productPriceTierQuoteService.quoteProduct(productId);
-      if (requestVersion === tierQuoteRequestVersion.current) {
-        setTierQuote(nextQuote);
-      }
-    } catch (error) {
-      if (requestVersion === tierQuoteRequestVersion.current) {
-        setTierQuoteError(tierQuoteErrorMessage(error));
-      }
-    } finally {
-      if (requestVersion === tierQuoteRequestVersion.current) {
-        setTierQuoteLoading(false);
       }
     }
   }, []);
@@ -203,19 +169,14 @@ export function PricingPage() {
   useEffect(() => {
     if (selectedProductId === null) {
       quoteRequestVersion.current += 1;
-      tierQuoteRequestVersion.current += 1;
       setQuote(null);
       setQuoteLoading(false);
       setQuoteError(null);
-      setTierQuote(null);
-      setTierQuoteLoading(false);
-      setTierQuoteError(null);
       return;
     }
 
     void loadQuote(selectedProductId);
-    void loadTierQuote(selectedProductId);
-  }, [loadQuote, loadTierQuote, selectedProductId]);
+  }, [loadQuote, selectedProductId]);
 
   const profileByProductId = useMemo(
     () => new Map(profiles.map((profile) => [comparable(profile.productId), profile])),
@@ -267,13 +228,9 @@ export function PricingPage() {
 
   function selectProduct(product: Product) {
     quoteRequestVersion.current += 1;
-    tierQuoteRequestVersion.current += 1;
     setQuote(null);
     setQuoteError(null);
     setQuoteLoading(true);
-    setTierQuote(null);
-    setTierQuoteError(null);
-    setTierQuoteLoading(true);
     setSelectedProductId(product.id);
     setForm(
       productFinancialProfileToForm(
@@ -322,10 +279,7 @@ export function PricingPage() {
         type: 'success',
         message: `Financial profile saved for ${selectedProduct.name}.`,
       });
-      await Promise.all([
-        loadQuote(selectedProduct.id),
-        loadTierQuote(selectedProduct.id),
-      ]);
+      await loadQuote(selectedProduct.id);
     } catch (error) {
       setFeedback({ type: 'error', message: errorMessage(error) });
     } finally {
@@ -382,7 +336,7 @@ export function PricingPage() {
           ? `Price tier ${saved.name} updated.`
           : `Price tier ${saved.name} created as ${saved.id}.`,
       );
-      await loadTierQuote(selectedProduct.id);
+      await loadQuote(selectedProduct.id);
     } catch (error) {
       setTierMutationError(
         error instanceof Error ? error.message : 'The price tier could not be saved.',
@@ -405,7 +359,7 @@ export function PricingPage() {
         setEditingTier(null);
       }
       setTierMutationFeedback(`Price tier ${archived.name} archived.`);
-      await loadTierQuote(selectedProduct.id);
+      await loadQuote(selectedProduct.id);
     } catch (error) {
       setTierMutationError(
         error instanceof Error ? error.message : 'The price tier could not be archived.',
@@ -774,11 +728,11 @@ export function PricingPage() {
 
       <ProductPriceTierCatalogPanel
         productName={selectedProduct?.name ?? null}
-        quote={tierQuote}
-        loading={tierQuoteLoading}
-        error={tierQuoteError}
+        quote={quote?.tierPricing ?? null}
+        loading={quoteLoading}
+        error={quote?.integrationIssues[0]?.message ?? quoteError}
         hasUnsavedChanges={formDirty}
-        onRefresh={selectedProduct ? () => void loadTierQuote(selectedProduct.id) : undefined}
+        onRefresh={selectedProduct ? () => void loadQuote(selectedProduct.id) : undefined}
         onCreateTier={selectedProduct?.isActive ? startCreateTier : undefined}
         onEditTier={startEditTier}
         onArchiveTier={archiveTier}
