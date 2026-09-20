@@ -87,6 +87,10 @@ function sourceSetupAdvisories(tier: ProductPriceTier): string[] {
   return advisories;
 }
 
+function safeDomId(value: string): string {
+  return value.replace(/[^A-Za-z0-9_-]/g, '-');
+}
+
 function sourcePriceLabel(line: ProductPriceTierQuoteLine): string {
   return line.tier.priceBasis === 'per-unit'
     ? `${formatPhp(line.tier.priceAmount)} / unit`
@@ -125,16 +129,18 @@ function TierCard({
   const economics = line.economics;
   const comparison = line.defaultComparison;
   const sourceAdvisories = sourceSetupAdvisories(line.tier);
+  const headingId = `price-tier-${safeDomId(line.tier.id)}-heading`;
 
   return (
     <article
       className={`tier-catalog-card ${line.tier.isActive ? '' : 'archived'}`}
       aria-label={`Price tier ${line.tier.name}`}
+      aria-labelledby={headingId}
     >
       <div className="tier-catalog-card-heading">
         <div>
           <div className="tier-catalog-title-line">
-            <h3>{line.tier.name}</h3>
+            <h3 id={headingId}>{line.tier.name}</h3>
             <span className={`status-pill ${line.tier.isActive ? 'status-active' : ''}`}>
               {line.tier.isActive ? 'Active' : 'Archived'}
             </span>
@@ -146,7 +152,10 @@ function TierCard({
           <p className="tier-catalog-kind-purpose">{kindPurpose(line.tier.kind)}</p>
         </div>
         <div className="tier-catalog-card-heading-actions">
-          <span className={`pricing-readiness-pill status-${line.status}`}>
+          <span
+            className={`pricing-readiness-pill status-${line.status}`}
+            aria-label={`${line.tier.name} pricing status: ${readinessLabel(line.status)}`}
+          >
             {readinessLabel(line.status)}
           </span>
           {(onEditTier || (line.tier.isActive && onArchiveTier)) && (
@@ -186,7 +195,11 @@ function TierCard({
       </div>
 
       {sourceAdvisories.length > 0 && (
-        <div className="tier-catalog-source-advisory" role="status">
+        <div
+          className="tier-catalog-source-advisory"
+          role="status"
+          aria-label={`Setup advisory for ${line.tier.name}`}
+        >
           <strong>Setup advisory</strong>
           <ul>
             {sourceAdvisories.map((advisory) => (
@@ -238,7 +251,11 @@ function TierCard({
       {(line.warnings.length > 0 || line.issues.length > 0) && (
         <div className="tier-catalog-diagnostics">
           {line.warnings.length > 0 && (
-            <div className="tier-catalog-warning" role="status">
+            <div
+              className="tier-catalog-warning"
+              role="status"
+              aria-label={`Pricing warnings for ${line.tier.name}`}
+            >
               <strong>Pricing warning</strong>
               <ul>
                 {line.warnings.map((warning) => (
@@ -279,12 +296,19 @@ export function ProductPriceTierCatalogPanel({
   const archivedCount = quote?.tiers.filter((line) => !line.tier.isActive).length ?? 0;
   const readyCount = quote?.tiers.filter((line) => line.status === 'ready').length ?? 0;
 
+  const catalogHeadingId = 'tier-pricing-catalog-heading';
+
   return (
-    <section className="tier-catalog-section" aria-label="Tier pricing catalog">
+    <section
+      className="tier-catalog-section"
+      aria-label="Tier pricing catalog"
+      aria-labelledby={catalogHeadingId}
+      aria-busy={loading}
+    >
       <div className="pricing-quote-heading tier-catalog-heading">
         <div>
           <p className="panel-kicker">TIER PRICING</p>
-          <h2>Price tier catalog</h2>
+          <h2 id={catalogHeadingId}>Price tier catalog</h2>
           <p>
             Read-only Package, Bulk, and Custom offer economics from the saved tier sources. Default / Single pricing remains separate and no tier is automatically selected for production or orders.
           </p>
@@ -339,7 +363,7 @@ export function ProductPriceTierCatalogPanel({
       )}
 
       {error && (
-        <div className="feedback feedback-error pricing-quote-feedback" role="status">
+        <div className="feedback feedback-error pricing-quote-feedback" role="alert">
           {error}
         </div>
       )}
