@@ -860,7 +860,19 @@ Recommended split:
 - catalog makes the pre-TP8 manual-selection safety boundary explicit
 - no automatic tier selection, Production revenue change, restore control, or TP7/TP8 behavior is introduced
 
-#### TP6D — Responsive/accessibility regression — NEXT / NOT STARTED
+#### TP6D — Responsive/accessibility regression — COMPLETE
+- tier editor form is programmatically named by its visible heading while retaining the existing stable aria-label hook
+- required source controls expose required state and invalid numeric/domain state to assistive technology
+- Package/Bulk/Custom setup guidance and field help are associated through aria-describedby
+- authoritative domain preflight errors use alert semantics and relevant quantity fields reference the error message
+- tier catalog and individual tier cards are programmatically named by visible headings
+- catalog loading state exposes aria-busy and failed quote refresh feedback uses alert semantics
+- pricing/setup diagnostic regions receive tier-specific accessible names
+- mobile tier editor/catalog containers explicitly allow intrinsic shrinking and long-text wrapping
+- mobile Edit/Archive and editor action controls expand to full-width touch-friendly rows
+- narrow-phone padding is reduced without removing information or changing source/economics behavior
+- responsive stylesheet regression preserves the existing 44px coarse-pointer touch-target baseline
+- no pricing formulas, tier selection, persistence, or TP7/TP8 behavior changed
 
 ### TP7 — Pricing Quote Integration
 
@@ -991,8 +1003,8 @@ All conditions are satisfied by this audit.
 
 ## 16. Exact Next Task
 
-**TP6D — Responsive / Accessibility Regression — NEXT / NOT STARTED**
+**TP7 — Pricing Quote Integration — NEXT / NOT STARTED**
 
-TP6C is complete. The Pricing workspace now provides Package/Bulk/Custom setup guidance, safe structural field adjustment, domain-backed source preflight, and explicit setup/manual-selection advisories without changing Default / Single pricing or introducing tier auto-selection.
+TP6 is complete. Tier pricing now includes the catalog, mutation workflow, Package/Bulk/Custom guidance, and responsive/accessibility regression while preserving Default / Single pricing and the manual-selection safety boundary.
 
-Responsive and accessibility regression remains deliberately deferred. Stop after TP6C. Do not start TP6D automatically.
+Pricing quote integration remains deliberately deferred. Stop after TP6. Do not start TP7 automatically.
