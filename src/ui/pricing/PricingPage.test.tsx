@@ -194,7 +194,7 @@ describe('Pricing workspace UI/UX', () => {
     await act(async () => refresh!.click());
     expect(quoteSpy.mock.calls.length).toBeGreaterThanOrEqual(2);
   });
-  it('loads the selected Product tier catalog through the authoritative tier quote service with TP6B source actions', async () => {
+  it('loads Default / Single and tier alternatives through the TP7 integrated quote boundary', async () => {
     await seed();
     await session.productPriceTierRepository.replaceAll([
       {
@@ -211,6 +211,10 @@ describe('Pricing workspace UI/UX', () => {
         isActive: true,
       },
     ]);
+    const integratedQuoteSpy = vi.spyOn(
+      session.productPricingQuoteIntegrationService,
+      'quoteProduct',
+    );
     const tierQuoteSpy = vi.spyOn(
       session.productPriceTierQuoteService,
       'quoteProduct',
@@ -224,7 +228,9 @@ describe('Pricing workspace UI/UX', () => {
     expect(catalog?.textContent).toContain('Bulk 20+');
     expect(catalog?.textContent).toContain('Read-only TP6A source');
     expect(catalog?.textContent).toContain('Authoritative tier economics are unavailable');
+    expect(integratedQuoteSpy).toHaveBeenCalledWith('ART-001');
     expect(tierQuoteSpy).toHaveBeenCalledWith('ART-001');
+    expect(container.querySelector('[aria-label="Pricing result summary"]')).not.toBeNull();
     expect(catalog?.textContent).toContain('Create tier');
     expect(catalog?.textContent).toContain('Edit tier');
     expect(catalog?.textContent).toContain('Archive tier');

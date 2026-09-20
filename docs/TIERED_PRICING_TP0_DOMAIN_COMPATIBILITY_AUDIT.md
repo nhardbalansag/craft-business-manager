@@ -874,12 +874,18 @@ Recommended split:
 - responsive stylesheet regression preserves the existing 44px coarse-pointer touch-target baseline
 - no pricing formulas, tier selection, persistence, or TP7/TP8 behavior changed
 
-### TP7 — Pricing Quote Integration
+### TP7 — Pricing Quote Integration — COMPLETE
 
-- additive tier quote exposure
-- keep existing quote fields backward compatible
-- show default + alternatives together
-- no implicit production/order selection yet
+- existing ProductPricingQuoteService remains unchanged and authoritative for Default / Single pricing
+- new ProductPricingQuoteIntegrationService wraps the Default / Single quote with additive nested tierPricing evidence
+- every existing ProductPricingQuote field retains its original top-level meaning
+- tier evidence is fail-closed on Product identity contradiction without invalidating a valid Default / Single quote
+- tier-provider failures remain additive integration issues so Default / Single pricing can still render
+- Pricing workspace now loads one integrated quote boundary and renders Default / Single plus Package / Bulk / Custom alternatives from that result
+- financial-profile and tier mutations refresh the same integrated quote
+- ExpectedBatchFinancials continues consuming ProductPricingQuoteService directly and therefore remains on Default / Single
+- no implicit Production/order tier selection is introduced
+- TP8 quantity-aware resolution remains unstarted
 
 ### TP8 — Quantity-Aware Tier Resolution
 
@@ -1003,8 +1009,8 @@ All conditions are satisfied by this audit.
 
 ## 16. Exact Next Task
 
-**TP7 — Pricing Quote Integration — NEXT / NOT STARTED**
+**TP8 — Quantity-Aware Tier Resolution — NEXT / NOT STARTED**
 
-TP6 is complete. Tier pricing now includes the catalog, mutation workflow, Package/Bulk/Custom guidance, and responsive/accessibility regression while preserving Default / Single pricing and the manual-selection safety boundary.
+TP7 is complete. The Pricing workspace now consumes a single additive integrated quote containing the unchanged Default / Single quote plus nested Package / Bulk / Custom alternatives, while Production continues using Default / Single through the original ProductPricingQuoteService.
 
-Pricing quote integration remains deliberately deferred. Stop after TP6. Do not start TP7 automatically.
+TP8 must not begin until a separate decision document defines quantity-aware selection semantics. Stop after TP7. Do not start TP8 automatically.
