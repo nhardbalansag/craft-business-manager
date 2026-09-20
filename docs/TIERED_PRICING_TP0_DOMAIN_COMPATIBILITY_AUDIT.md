@@ -848,8 +848,19 @@ Recommended split:
 - no restore control or automatic tier selection is introduced
 - package/bulk/custom specialized guidance and warnings remain deferred to TP6C
 
-#### TP6C — Package/bulk/custom UX and warnings — NEXT / NOT STARTED
-#### TP6D — Responsive/accessibility regression
+#### TP6C — Package/bulk/custom UX and warnings — COMPLETE
+- tier editor exposes kind-specific Package, Bulk, and Custom guidance
+- Package selection defaults structurally to per-offer semantics without inventing an offer quantity
+- Bulk selection defaults structurally to per-unit semantics and locks units per offer to 1
+- per-unit basis changes normalize units per offer to 1
+- per-offer offer-size changes keep the minimum quantity at a valid whole-offer multiple
+- editor preflight reuses the authoritative ProductPriceTier domain validator instead of duplicating source rules
+- package/bulk setup advisories flag valid-but-suspicious one-unit packages, quantity-1 bulk thresholds, and uncommon basis choices
+- catalog labels each tier by intent and repeats source setup advisories where applicable
+- catalog makes the pre-TP8 manual-selection safety boundary explicit
+- no automatic tier selection, Production revenue change, restore control, or TP7/TP8 behavior is introduced
+
+#### TP6D — Responsive/accessibility regression — NEXT / NOT STARTED
 
 ### TP7 — Pricing Quote Integration
 
@@ -980,8 +991,8 @@ All conditions are satisfied by this audit.
 
 ## 16. Exact Next Task
 
-**TP6C — Package / Bulk / Custom UX + Warnings — NEXT / NOT STARTED**
+**TP6D — Responsive / Accessibility Regression — NEXT / NOT STARTED**
 
-TP6B is complete. The Pricing workspace now creates, edits, and archives Product price tiers through ProductPriceTierService while preserving stable IDs, existing Default / Single pricing, and the read-only economics catalog.
+TP6C is complete. The Pricing workspace now provides Package/Bulk/Custom setup guidance, safe structural field adjustment, domain-backed source preflight, and explicit setup/manual-selection advisories without changing Default / Single pricing or introducing tier auto-selection.
 
-Specialized package/bulk/custom assistance remains deliberately deferred. Stop after TP6B. Do not start TP6C automatically.
+Responsive and accessibility regression remains deliberately deferred. Stop after TP6C. Do not start TP6D automatically.

@@ -49,6 +49,44 @@ function basisLabel(basis: ProductPriceTierPriceBasis): string {
   return basis === 'per-unit' ? 'Per unit' : 'Per offer';
 }
 
+function kindPurpose(kind: ProductPriceTierKind): string {
+  switch (kind) {
+    case 'package':
+      return 'Fixed bundle';
+    case 'bulk':
+      return 'Quantity threshold';
+    case 'custom':
+      return 'Explicit special offer';
+  }
+}
+
+function sourceSetupAdvisories(tier: ProductPriceTier): string[] {
+  const advisories: string[] = [];
+
+  if (tier.kind === 'package' && tier.priceBasis === 'per-unit') {
+    advisories.push(
+      'This Package is stored as a per-unit offer. Review whether the intended package price should instead be per offer.',
+    );
+  }
+  if (tier.kind === 'package' && tier.unitsPerOffer === 1) {
+    advisories.push(
+      'This Package contains one Product unit per offer; increase the offer size if it is intended to be a multi-piece bundle.',
+    );
+  }
+  if (tier.kind === 'bulk' && tier.priceBasis === 'per-offer') {
+    advisories.push(
+      'This Bulk tier is stored as a per-offer bundle rather than a per-unit threshold price.',
+    );
+  }
+  if (tier.kind === 'bulk' && tier.minimumOrderQuantity === 1) {
+    advisories.push(
+      'This Bulk tier starts at quantity 1, so it does not create a meaningful volume threshold.',
+    );
+  }
+
+  return advisories;
+}
+
 function sourcePriceLabel(line: ProductPriceTierQuoteLine): string {
   return line.tier.priceBasis === 'per-unit'
     ? `${formatPhp(line.tier.priceAmount)} / unit`
@@ -86,6 +124,7 @@ function TierCard({
 }) {
   const economics = line.economics;
   const comparison = line.defaultComparison;
+  const sourceAdvisories = sourceSetupAdvisories(line.tier);
 
   return (
     <article
@@ -104,6 +143,7 @@ function TierCard({
             <span className="material-id">{line.tier.id}</span>
             <span> · {kindLabel(line.tier.kind)} · {basisLabel(line.tier.priceBasis)}</span>
           </p>
+          <p className="tier-catalog-kind-purpose">{kindPurpose(line.tier.kind)}</p>
         </div>
         <div className="tier-catalog-card-heading-actions">
           <span className={`pricing-readiness-pill status-${line.status}`}>
@@ -144,6 +184,17 @@ function TierCard({
         <Metric label="Minimum order" value={`${line.tier.minimumOrderQuantity.toLocaleString('en-PH')} units`} />
         <Metric label="Extra cost / offer" value={formatPhp(line.tier.additionalCostPerOffer)} />
       </div>
+
+      {sourceAdvisories.length > 0 && (
+        <div className="tier-catalog-source-advisory" role="status">
+          <strong>Setup advisory</strong>
+          <ul>
+            {sourceAdvisories.map((advisory) => (
+              <li key={advisory}>{advisory}</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {economics ? (
         <>
@@ -271,6 +322,13 @@ export function ProductPriceTierCatalogPanel({
             </button>
           )}
         </div>
+      </div>
+
+      <div className="tier-catalog-selection-note" role="note">
+        <strong>Manual choice only.</strong>
+        <span>
+          Package, Bulk, and Custom tiers are saved alternatives. No tier is automatically applied to production, orders, or Default / Single projections in TP6.
+        </span>
       </div>
 
       {hasUnsavedChanges && (

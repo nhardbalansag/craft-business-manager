@@ -1,5 +1,9 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import type { ProductPriceTier } from '../../domain/productPriceTiers';
+import {
+  ProductPriceTierError,
+  validateProductPriceTierContract,
+  type ProductPriceTier,
+} from '../../domain/productPriceTiers';
 import type { Product } from '../../domain/products';
 
 export interface ProductPriceTierEditorValue {
@@ -73,6 +77,41 @@ function positiveInteger(value: string): number | null {
   return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
 }
 
+function alignMinimumToOfferSize(minimumValue: string, unitsValue: string): string {
+  const minimum = positiveInteger(minimumValue);
+  const units = positiveInteger(unitsValue);
+  if (minimum === null || units === null) return minimumValue;
+
+  return String(Math.max(units, Math.ceil(minimum / units) * units));
+}
+
+const TIER_KIND_GUIDANCE: Record<
+  ProductPriceTier['kind'],
+  { title: string; description: string; recommendation: string }
+> = {
+  package: {
+    title: 'Package · fixed bundle',
+    description:
+      'Use Package when several Product units are sold together as one named bundle or set.',
+    recommendation:
+      'Per-offer pricing is the clearest setup. Units per offer is the bundle size, and the minimum order must contain whole bundles.',
+  },
+  bulk: {
+    title: 'Bulk · quantity threshold',
+    description:
+      'Use Bulk when the selling price changes after the customer reaches a minimum quantity.',
+    recommendation:
+      'Per-unit pricing is the normal setup. Keep units per offer at 1 and use minimum order quantity as the volume threshold.',
+  },
+  custom: {
+    title: 'Custom · explicit special offer',
+    description:
+      'Use Custom for event, customer, channel, or one-off pricing that does not fit a standard package or bulk rule.',
+    recommendation:
+      'Choose per-unit or per-offer intentionally. Custom tiers remain explicit alternatives and are never selected automatically.',
+  },
+};
+
 export function ProductPriceTierEditorPanel({
   product,
   tier,
@@ -95,6 +134,74 @@ export function ProductPriceTierEditorPanel({
     additionalCostPerOffer: finiteNonNegative(form.additionalCostPerOffer),
   }), [form]);
 
+  const sourceValidationError = useMemo(() => {
+    if (
+      !product ||
+      !form.name.trim() ||
+      parsed.priceAmount === null ||
+      parsed.unitsPerOffer === null ||
+      parsed.minimumOrderQuantity === null ||
+      parsed.additionalCostPerOffer === null
+    ) {
+      return null;
+    }
+
+    try {
+      validateProductPriceTierContract({
+        id: tier?.id ?? 'TIER-DRAFT',
+        productId: product.id,
+        name: form.name,
+        kind: form.kind,
+        priceBasis: form.priceBasis,
+        priceAmount: parsed.priceAmount,
+        unitsPerOffer: parsed.unitsPerOffer,
+        minimumOrderQuantity: parsed.minimumOrderQuantity,
+        additionalCostPerOffer: parsed.additionalCostPerOffer,
+        notes: form.notes,
+        isActive: tier?.isActive ?? true,
+      });
+      return null;
+    } catch (validationError) {
+      return validationError instanceof ProductPriceTierError
+        ? validationError.message
+        : 'The tier source values are not valid.';
+    }
+  }, [form, parsed, product, tier]);
+
+  const specializedWarnings = useMemo(() => {
+    const warnings: string[] = [];
+
+    if (form.kind === 'package') {
+      if (form.priceBasis === 'per-unit') {
+        warnings.push(
+          'This Package is priced per unit. Use per-offer when the entered price is for the complete bundle.',
+        );
+      }
+      if (parsed.unitsPerOffer === 1) {
+        warnings.push(
+          'This Package currently contains one Product unit per offer. Increase Units per offer for a multi-piece bundle.',
+        );
+      }
+    }
+
+    if (form.kind === 'bulk') {
+      if (form.priceBasis === 'per-offer') {
+        warnings.push(
+          'This Bulk tier is priced per offer. Use per-unit when the entered price is the price of each piece after the threshold.',
+        );
+      }
+      if (parsed.minimumOrderQuantity === 1) {
+        warnings.push(
+          'This Bulk tier starts at quantity 1, so it does not yet create a meaningful volume threshold.',
+        );
+      }
+    }
+
+    return warnings;
+  }, [form.kind, form.priceBasis, parsed.minimumOrderQuantity, parsed.unitsPerOffer]);
+
+  const kindGuide = TIER_KIND_GUIDANCE[form.kind];
+
   const ready =
     product !== null &&
     product.isActive || tier !== null;
@@ -105,9 +212,65 @@ export function ProductPriceTierEditorPanel({
     parsed.priceAmount !== null &&
     parsed.unitsPerOffer !== null &&
     parsed.minimumOrderQuantity !== null &&
-    parsed.additionalCostPerOffer !== null;
+    parsed.additionalCostPerOffer !== null &&
+    sourceValidationError === null;
 
   if (!open) return null;
+
+  function changeKind(kind: ProductPriceTier['kind']) {
+    setForm((current) => {
+      if (kind === 'package') {
+        return {
+          ...current,
+          kind,
+          priceBasis: 'per-offer',
+          minimumOrderQuantity: alignMinimumToOfferSize(
+            current.minimumOrderQuantity,
+            current.unitsPerOffer,
+          ),
+        };
+      }
+
+      if (kind === 'bulk') {
+        return {
+          ...current,
+          kind,
+          priceBasis: 'per-unit',
+          unitsPerOffer: '1',
+        };
+      }
+
+      return { ...current, kind };
+    });
+  }
+
+  function changePriceBasis(priceBasis: ProductPriceTier['priceBasis']) {
+    setForm((current) => {
+      if (priceBasis === 'per-unit') {
+        return { ...current, priceBasis, unitsPerOffer: '1' };
+      }
+
+      return {
+        ...current,
+        priceBasis,
+        minimumOrderQuantity: alignMinimumToOfferSize(
+          current.minimumOrderQuantity,
+          current.unitsPerOffer,
+        ),
+      };
+    });
+  }
+
+  function changeUnitsPerOffer(unitsPerOffer: string) {
+    setForm((current) => ({
+      ...current,
+      unitsPerOffer,
+      minimumOrderQuantity:
+        current.priceBasis === 'per-offer'
+          ? alignMinimumToOfferSize(current.minimumOrderQuantity, unitsPerOffer)
+          : current.minimumOrderQuantity,
+    }));
+  }
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -164,6 +327,29 @@ export function ProductPriceTierEditorPanel({
         </div>
       )}
 
+      <div className="tier-editor-kind-guide" aria-label="Tier setup guidance">
+        <strong>{kindGuide.title}</strong>
+        <span>{kindGuide.description}</span>
+        <small>{kindGuide.recommendation}</small>
+      </div>
+
+      {specializedWarnings.length > 0 && (
+        <div className="tier-editor-advisory" role="status">
+          <strong>Review this {form.kind} setup</strong>
+          <ul>
+            {specializedWarnings.map((warning) => (
+              <li key={warning}>{warning}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {sourceValidationError && (
+        <div className="feedback feedback-error tier-editor-validation" role="status">
+          <strong>Tier source needs attention.</strong> {sourceValidationError}
+        </div>
+      )}
+
       <div className="tier-editor-grid">
         <label className="field field-wide">
           <span>Tier name</span>
@@ -181,7 +367,7 @@ export function ProductPriceTierEditorPanel({
             value={form.kind}
             disabled={saving || createBlocked}
             onChange={(event) =>
-              setForm({ ...form, kind: event.target.value as ProductPriceTier['kind'] })
+              changeKind(event.target.value as ProductPriceTier['kind'])
             }
           >
             <option value="package">Package</option>
@@ -196,10 +382,7 @@ export function ProductPriceTierEditorPanel({
             value={form.priceBasis}
             disabled={saving || createBlocked}
             onChange={(event) =>
-              setForm({
-                ...form,
-                priceBasis: event.target.value as ProductPriceTier['priceBasis'],
-              })
+              changePriceBasis(event.target.value as ProductPriceTier['priceBasis'])
             }
           >
             <option value="per-unit">Per unit</option>
@@ -228,9 +411,14 @@ export function ProductPriceTierEditorPanel({
             step="1"
             inputMode="numeric"
             value={form.unitsPerOffer}
-            disabled={saving || createBlocked}
-            onChange={(event) => setForm({ ...form, unitsPerOffer: event.target.value })}
+            disabled={saving || createBlocked || form.priceBasis === 'per-unit'}
+            onChange={(event) => changeUnitsPerOffer(event.target.value)}
           />
+          <small className="tier-editor-field-help">
+            {form.priceBasis === 'per-unit'
+              ? 'Per-unit tiers always represent exactly 1 Product unit per offer.'
+              : 'For packages or bundles, enter the number of Product units sold together.'}
+          </small>
         </label>
 
         <label className="field">
@@ -246,6 +434,13 @@ export function ProductPriceTierEditorPanel({
               setForm({ ...form, minimumOrderQuantity: event.target.value })
             }
           />
+          <small className="tier-editor-field-help">
+            {form.priceBasis === 'per-offer'
+              ? 'Must cover at least one full offer and be a whole multiple of Units per offer.'
+              : form.kind === 'bulk'
+                ? 'This is the quantity threshold where the Bulk price becomes available.'
+                : 'This is the minimum Product quantity required to use this tier.'}
+          </small>
         </label>
 
         <label className="field">
@@ -261,6 +456,9 @@ export function ProductPriceTierEditorPanel({
               setForm({ ...form, additionalCostPerOffer: event.target.value })
             }
           />
+          <small className="tier-editor-field-help">
+            Add packaging, ribbon, box, personalization, or other cost that applies once per offer.
+          </small>
         </label>
 
         <label className="field field-wide">
@@ -277,7 +475,7 @@ export function ProductPriceTierEditorPanel({
       <div className="tier-editor-source-note">
         <strong>{tier ? tier.id : 'ID generated on save'}</strong>
         <span>
-          Product: {product?.id ?? 'None selected'} · Validation is enforced by the authoritative ProductPriceTier service.
+          Product: {product?.id ?? 'None selected'} · Domain validation remains authoritative. Kind and basis changes only keep structural quantity fields coherent before save.
         </span>
       </div>
 
