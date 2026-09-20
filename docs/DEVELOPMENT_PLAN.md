@@ -246,7 +246,7 @@ Phase 5.6B verified:
 
 # Tiered Pricing Enhancement — ACTIVE
 
-Status: **TP7 COMPLETE / TP8 NEXT**
+Status: **TP8A COMPLETE / TP8B NEXT**
 
 Master audit and compatibility plan:
 
@@ -290,11 +290,16 @@ TP6 — Pricing UI                                                  COMPLETE
     TP6C — Package / Bulk / Custom UX + Warnings                  COMPLETE
     TP6D — Responsive / Accessibility Regression                  COMPLETE
 TP7 — Pricing Quote Integration                                   COMPLETE
-TP8 — Quantity-Aware Tier Resolution                              NEXT / NOT STARTED
+TP8 — Quantity-Aware Tier Resolution                              IN PROGRESS
+    TP8A — Selection Semantics Decision                           COMPLETE
+    TP8B — Quantity Eligibility Domain Contract                   NEXT / NOT STARTED
+    TP8C — Explicit Tier Resolution Service                       NOT STARTED
+    TP8D — Pricing Workspace Quantity Preview / Manual Selection  NOT STARTED
+    TP8E — Regression & Completion Gate                           NOT STARTED
 TP9 — Integrated Validation & Completion Gate                     NOT STARTED
 ```
 
-TP7 is complete. Do not start TP8 automatically; TP8 requires its separate selection-semantics decision document first.
+TP8A is complete. The selection-semantics decision is now authoritative. Proceed next only with TP8B — Quantity Eligibility Domain Contract; do not start TP8C automatically.
 
 ---
 
@@ -382,7 +387,7 @@ Phase 7 scope should be revisited after the desktop/native persistence workflow 
 ## Current Next Action
 
 ```text
-TP8 — Quantity-Aware Tier Resolution
+TP8B — Quantity Eligibility Domain Contract
 NEXT / NOT STARTED
 ```
 
