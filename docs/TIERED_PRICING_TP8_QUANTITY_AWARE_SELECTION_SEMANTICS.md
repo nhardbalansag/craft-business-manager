@@ -512,23 +512,30 @@ Deliverables:
 
 No production code.
 
-### TP8B — Quantity Eligibility Domain Contract — NEXT / NOT STARTED
+### TP8B — Quantity Eligibility Domain Contract — COMPLETE
 
-Implement pure quantity/eligibility types and functions only.
+Implemented as the pure domain boundary:
 
-Scope:
+`src/domain/productPriceTierQuantityEligibility.ts`
 
-- resolver quantity validation;
-- active/archive eligibility;
-- minimum threshold evaluation;
-- per-unit eligibility;
-- per-offer exact divisibility;
-- deterministic eligibility diagnostics;
-- unit tests.
+The contract:
 
-Do not select a tier automatically.
+- validates quantity as finite, integer, and greater than zero;
+- reuses `validateProductPriceTierContract` for source integrity;
+- rejects archived tiers for new resolution;
+- enforces minimum-order quantity;
+- treats per-unit tiers as whole-unit offers with no extra divisibility rule;
+- requires exact per-offer divisibility;
+- returns exact `offerCount` only for eligible quantities;
+- emits deterministic typed diagnostics for ineligible quantities;
+- does not inspect price, economics, discount, margin, or tier ranking;
+- does not select a tier.
 
-### TP8C — Explicit Tier Resolution Service — NOT STARTED
+Regression coverage lives in:
+
+`src/domain/productPriceTierQuantityEligibility.test.ts`
+
+### TP8C — Explicit Tier Resolution Service — NEXT / NOT STARTED
 
 Consume TP7 integrated quote evidence.
 
@@ -600,8 +607,8 @@ All conditions are satisfied by this document.
 ## 19. Exact Next Task
 
 ```text
-TP8B — Quantity Eligibility Domain Contract
+TP8C — Explicit Tier Resolution Service
 NEXT / NOT STARTED
 ```
 
-Do not start TP8C, TP8D, TP8E, TP9, or Phase 6 automatically.
+TP8B is complete. Do not start TP8D, TP8E, TP9, or Phase 6 automatically.
