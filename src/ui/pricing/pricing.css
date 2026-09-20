@@ -987,3 +987,90 @@
     justify-items: start;
   }
 }
+
+
+/* TP6C — Package / Bulk / Custom guidance and source warnings */
+
+.tier-editor-kind-guide {
+  display: grid;
+  gap: 4px;
+  padding: 13px 14px;
+  border: 1px solid #ddd5ca;
+  border-radius: 12px;
+  background: #faf7f1;
+}
+
+.tier-editor-kind-guide strong {
+  color: #4b433a;
+  font-size: .84rem;
+}
+
+.tier-editor-kind-guide span {
+  color: #71685f;
+  font-size: .78rem;
+  line-height: 1.45;
+}
+
+.tier-editor-kind-guide small,
+.tier-editor-field-help {
+  color: #8d8277;
+  font-size: .71rem;
+  line-height: 1.45;
+}
+
+.tier-editor-advisory,
+.tier-catalog-source-advisory,
+.tier-catalog-selection-note {
+  padding: 11px 13px;
+  border: 1px solid #ead7b7;
+  border-radius: 11px;
+  background: #fff8e9;
+  color: #78613e;
+  font-size: .76rem;
+  line-height: 1.45;
+}
+
+.tier-editor-advisory strong,
+.tier-catalog-source-advisory strong,
+.tier-catalog-selection-note strong {
+  color: #664f2c;
+}
+
+.tier-editor-advisory ul,
+.tier-catalog-source-advisory ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+
+.tier-editor-validation strong {
+  display: block;
+  margin-bottom: 2px;
+}
+
+.tier-editor-field-help {
+  display: block;
+  margin-top: 5px;
+}
+
+.tier-catalog-kind-purpose {
+  margin-top: 3px !important;
+  color: #9a8d7e !important;
+  font-size: .7rem !important;
+  font-weight: 800;
+}
+
+.tier-catalog-selection-note {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.tier-catalog-selection-note span {
+  color: #786f65;
+}
+
+@media (max-width: 760px) {
+  .tier-catalog-selection-note {
+    flex-direction: column;
+  }
+}
