@@ -923,16 +923,27 @@ Authoritative decision record:
 - ineligible results expose deterministic typed diagnostics and null offerCount
 - no price comparison, economics lookup, ranking, or tier selection is introduced
 
-#### TP8C — Explicit Tier Resolution Service — NEXT / NOT STARTED
-- no selected tier ID means Default / Single
-- explicit tier ID resolves only that tier
-- fail closed for missing/inactive/ineligible/unready selected tiers
-- compute resolved order selling-price totals
-- expose eligible alternatives without ranking
-- preserve warnings and diagnostics
-- no cheapest/automatic resolver
+#### TP8C — Explicit Tier Resolution Service — COMPLETE
+- adds ProductPriceResolutionService over the TP7 integrated quote boundary
+- reuses the TP8B resolved-pricing quantity validator and tier quantity-eligibility evaluator
+- omitted selectedTierId resolves Default / Single only
+- supplied selectedTierId resolves exactly that stable tier ID using trim/case-insensitive identity matching
+- invalid explicit tier selection never silently falls back to Default / Single or another tier
+- requested/integrated Product identity contradictions fail closed
+- explicit tier resolution fails closed when integrated tier pricing is unavailable or contradictory
+- archived, below-minimum, and non-divisible tiers remain structurally ineligible through TP8B
+- selected tier economics may resolve from a partial tier line only when the partial state is solely Default-comparison unavailability
+- contradictory/unavailable tier economics remain not-ready
+- per-unit totals use effective unit selling price × requested quantity
+- per-offer totals use offer selling price × exact whole offer count
+- eligible tier IDs preserve source order and are exposed as alternatives without ranking
+- below-cost warnings from an explicitly selected tier are preserved
+- result evidence is defensively cloned
+- application session exposes productPriceResolutionService
+- ExpectedBatchFinancials remains wired directly to ProductPricingQuoteService and is unchanged
+- no Pricing UI or Production mutation is introduced
 
-#### TP8D — Pricing Workspace Quantity Preview / Manual Selection — NOT STARTED
+#### TP8D — Pricing Workspace Quantity Preview / Manual Selection — NEXT / NOT STARTED
 - quantity input
 - Default / Single selected by default
 - show eligible/ineligible tier alternatives
@@ -1055,8 +1066,8 @@ All conditions are satisfied by this audit.
 
 ## 16. Exact Next Task
 
-**TP8C — Explicit Tier Resolution Service — NEXT / NOT STARTED**
+**TP8D — Pricing Workspace Quantity Preview / Manual Selection — NEXT / NOT STARTED**
 
-TP8B is complete. The domain now determines only structural quantity eligibility: valid positive whole-unit quantities, active tiers, minimum thresholds, and exact per-offer divisibility. It does not compare prices or choose a tier.
+TP8C is complete. The application now resolves Default / Single when no tier is selected and resolves exactly one explicitly selected, structurally eligible tier when supplied. Eligible alternatives remain unranked, below-cost warnings are preserved, and Production remains unchanged.
 
-Proceed next only with TP8C. Stop after the TP8B completion gate. Do not start TP8D automatically.
+Proceed next only with TP8D. Stop after the TP8C completion gate. Do not start TP8E automatically.
