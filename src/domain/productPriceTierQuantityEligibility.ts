@@ -3,10 +3,25 @@ import {
   type ProductPriceTier,
 } from './productPriceTiers';
 
-export type ProductPriceTierQuantityEligibilityIssueCode =
+export type ProductPriceResolutionQuantityIssueCode =
   | 'QUANTITY_NON_FINITE'
   | 'QUANTITY_NON_INTEGER'
-  | 'QUANTITY_NON_POSITIVE'
+  | 'QUANTITY_NON_POSITIVE';
+
+export interface ProductPriceResolutionQuantityIssue {
+  code: ProductPriceResolutionQuantityIssueCode;
+  message: string;
+  quantity: number;
+}
+
+export interface ProductPriceResolutionQuantityResult {
+  quantity: number;
+  valid: boolean;
+  issues: ProductPriceResolutionQuantityIssue[];
+}
+
+export type ProductPriceTierQuantityEligibilityIssueCode =
+  | ProductPriceResolutionQuantityIssueCode
   | 'TIER_INACTIVE'
   | 'QUANTITY_BELOW_MINIMUM'
   | 'QUANTITY_NOT_OFFER_MULTIPLE';
@@ -28,7 +43,60 @@ export interface ProductPriceTierQuantityEligibilityResult {
   issues: ProductPriceTierQuantityEligibilityIssue[];
 }
 
-function issue(
+function quantityIssue(
+  quantity: number,
+  code: ProductPriceResolutionQuantityIssueCode,
+  message: string,
+): ProductPriceResolutionQuantityIssue {
+  return { code, message, quantity };
+}
+
+/**
+ * TP8B shared resolved-pricing quantity validation.
+ *
+ * Order-pricing quantities are finished Product units and must be finite,
+ * whole, and greater than zero. This helper intentionally has no tier or
+ * pricing-source selection semantics so TP8C can reuse the exact TP8B rule.
+ */
+export function evaluateProductPriceResolutionQuantity(
+  quantity: number,
+): ProductPriceResolutionQuantityResult {
+  const issues: ProductPriceResolutionQuantityIssue[] = [];
+
+  if (!Number.isFinite(quantity)) {
+    issues.push(
+      quantityIssue(
+        quantity,
+        'QUANTITY_NON_FINITE',
+        'Resolved pricing quantity must be finite.',
+      ),
+    );
+  } else if (!Number.isInteger(quantity)) {
+    issues.push(
+      quantityIssue(
+        quantity,
+        'QUANTITY_NON_INTEGER',
+        'Resolved pricing quantity must be a whole finished-unit count.',
+      ),
+    );
+  } else if (quantity <= 0) {
+    issues.push(
+      quantityIssue(
+        quantity,
+        'QUANTITY_NON_POSITIVE',
+        'Resolved pricing quantity must be greater than zero.',
+      ),
+    );
+  }
+
+  return {
+    quantity,
+    valid: issues.length === 0,
+    issues: issues.map((candidate) => ({ ...candidate })),
+  };
+}
+
+function tierIssue(
   tier: ProductPriceTier,
   quantity: number,
   code: ProductPriceTierQuantityEligibilityIssueCode,
@@ -56,51 +124,31 @@ export function evaluateProductPriceTierQuantityEligibility(
 ): ProductPriceTierQuantityEligibilityResult {
   validateProductPriceTierContract(tier);
 
-  const issues: ProductPriceTierQuantityEligibilityIssue[] = [];
+  const quantityValidation = evaluateProductPriceResolutionQuantity(quantity);
 
-  if (!Number.isFinite(quantity)) {
-    issues.push(
-      issue(
-        tier,
-        quantity,
-        'QUANTITY_NON_FINITE',
-        'Resolved pricing quantity must be finite.',
-      ),
-    );
-  } else if (!Number.isInteger(quantity)) {
-    issues.push(
-      issue(
-        tier,
-        quantity,
-        'QUANTITY_NON_INTEGER',
-        'Resolved pricing quantity must be a whole finished-unit count.',
-      ),
-    );
-  } else if (quantity <= 0) {
-    issues.push(
-      issue(
-        tier,
-        quantity,
-        'QUANTITY_NON_POSITIVE',
-        'Resolved pricing quantity must be greater than zero.',
-      ),
-    );
-  }
-
-  if (issues.length > 0) {
+  if (!quantityValidation.valid) {
     return {
       productId: tier.productId,
       tierId: tier.id,
       quantity,
       eligible: false,
       offerCount: null,
-      issues,
+      issues: quantityValidation.issues.map((candidate) =>
+        tierIssue(
+          tier,
+          quantity,
+          candidate.code,
+          candidate.message,
+        ),
+      ),
     };
   }
 
+  const issues: ProductPriceTierQuantityEligibilityIssue[] = [];
+
   if (!tier.isActive) {
     issues.push(
-      issue(
+      tierIssue(
         tier,
         quantity,
         'TIER_INACTIVE',
@@ -111,7 +159,7 @@ export function evaluateProductPriceTierQuantityEligibility(
 
   if (quantity < tier.minimumOrderQuantity) {
     issues.push(
-      issue(
+      tierIssue(
         tier,
         quantity,
         'QUANTITY_BELOW_MINIMUM',
@@ -122,7 +170,7 @@ export function evaluateProductPriceTierQuantityEligibility(
 
   if (tier.priceBasis === 'per-offer' && quantity % tier.unitsPerOffer !== 0) {
     issues.push(
-      issue(
+      tierIssue(
         tier,
         quantity,
         'QUANTITY_NOT_OFFER_MULTIPLE',

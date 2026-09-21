@@ -42,6 +42,7 @@ import { InMemoryProductRepository } from './products/InMemoryProductRepository'
 import { ProductService } from './products/ProductService';
 import { InMemoryProductStockRepository } from './productStocks/InMemoryProductStockRepository';
 import { ProductStockService } from './productStocks/ProductStockService';
+import { ProductPriceResolutionService } from './pricing/ProductPriceResolutionService';
 import { ProductPricingQuoteIntegrationService } from './pricing/ProductPricingQuoteIntegrationService';
 import { ProductPricingQuoteService } from './pricing/ProductPricingQuoteService';
 import { ProfitMarkupMarginMetricsService } from './pricing/ProfitMarkupMarginMetricsService';
@@ -323,6 +324,9 @@ export const productPricingQuoteIntegrationService =
     productPricingQuoteService,
     productPriceTierQuoteService,
   );
+export const productPriceResolutionService = new ProductPriceResolutionService(
+  productPricingQuoteIntegrationService,
+);
 export const expectedBatchFinancialsService = new ExpectedBatchFinancialsService(
   productPricingQuoteService,
   physicalPlannedBatchProductionCostService,
