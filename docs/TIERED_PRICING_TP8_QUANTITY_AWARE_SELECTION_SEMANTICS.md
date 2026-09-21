@@ -535,22 +535,37 @@ Regression coverage lives in:
 
 `src/domain/productPriceTierQuantityEligibility.test.ts`
 
-### TP8C — Explicit Tier Resolution Service — NEXT / NOT STARTED
+### TP8C — Explicit Tier Resolution Service — COMPLETE
 
-Consume TP7 integrated quote evidence.
+Implemented as:
 
-Scope:
+`src/application/pricing/ProductPriceResolutionService.ts`
 
-- omitted tier ID resolves Default / Single;
-- explicit tier ID resolves only that tier;
-- selected-tier readiness checks;
-- order selling-price totals;
-- eligible alternative IDs;
-- preserved warnings/issues;
-- fail-closed selected-tier errors;
-- no cheapest/automatic selection.
+The service:
 
-### TP8D — Pricing Workspace Quantity Preview / Manual Selection — NOT STARTED
+- consumes one TP7 integrated pricing quote;
+- reuses TP8B quantity validation and structural tier eligibility;
+- resolves Default / Single when no tier ID is supplied;
+- resolves exactly the explicitly supplied stable tier ID otherwise;
+- never auto-ranks or auto-selects eligible tiers;
+- fails explicit selection closed for blank/missing/mismatched/ineligible/unresolvable tiers;
+- permits tier economics when the tier line is partial solely because Default comparison is unavailable;
+- computes per-unit and per-offer order totals according to this decision;
+- preserves selected-tier warnings, including BELOW_COST;
+- exposes structurally eligible tier IDs in source order as alternatives only;
+- returns defensive integrated/resolved evidence;
+- is wired into the shared application session;
+- does not modify ExpectedBatchFinancials or Production behavior.
+
+TP8C also exposes the shared TP8B quantity validator from
+`productPriceTierQuantityEligibility.ts` so Default / Single and explicit-tier
+resolution use the exact same positive whole-unit quantity rule.
+
+Regression coverage lives in:
+
+`src/application/pricing/ProductPriceResolutionService.test.ts`
+
+### TP8D — Pricing Workspace Quantity Preview / Manual Selection — NEXT / NOT STARTED
 
 Expose the resolver in the Pricing workspace.
 
@@ -607,8 +622,8 @@ All conditions are satisfied by this document.
 ## 19. Exact Next Task
 
 ```text
-TP8C — Explicit Tier Resolution Service
+TP8D — Pricing Workspace Quantity Preview / Manual Selection
 NEXT / NOT STARTED
 ```
 
-TP8B is complete. Do not start TP8D, TP8E, TP9, or Phase 6 automatically.
+TP8C is complete. Do not start TP8E, TP9, or Phase 6 automatically.
