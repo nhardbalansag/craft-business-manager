@@ -206,7 +206,7 @@ export function ProductPriceResolutionPanel({
 
         <fieldset
           className="pricing-resolution-sources"
-          disabled={!productName}
+          disabled={!productName || loading}
           aria-label="Pricing source selection"
         >
           <legend>Pricing source</legend>
@@ -340,7 +340,11 @@ export function ProductPriceResolutionPanel({
           <div className="pricing-resolution-metrics">
             <div>
               <span>Quantity</span>
-              <strong>{result.quantity.toLocaleString('en-PH')}</strong>
+              <strong>
+                {Number.isFinite(result.quantity)
+                  ? result.quantity.toLocaleString('en-PH')
+                  : '—'}
+              </strong>
               <small>Finished units</small>
             </div>
             <div>
