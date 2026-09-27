@@ -885,7 +885,7 @@ Recommended split:
 - financial-profile and tier mutations refresh the same integrated quote
 - ExpectedBatchFinancials continues consuming ProductPricingQuoteService directly and therefore remains on Default / Single
 - no implicit Production/order tier selection is introduced
-- TP8 quantity-aware resolution remains unstarted
+- TP7 itself introduces no quantity-aware selection; TP8 now layers explicit quantity-aware resolution and preview on top of this unchanged integration boundary
 
 ### TP8 — Quantity-Aware Tier Resolution — IN PROGRESS
 
@@ -943,15 +943,27 @@ Authoritative decision record:
 - ExpectedBatchFinancials remains wired directly to ProductPricingQuoteService and is unchanged
 - no Pricing UI or Production mutation is introduced
 
-#### TP8D — Pricing Workspace Quantity Preview / Manual Selection — NEXT / NOT STARTED
-- quantity input
-- Default / Single selected by default
-- show eligible/ineligible tier alternatives
-- explicit manual tier choice
-- resolved order-price preview
-- no Production mutation
+#### TP8D — Pricing Workspace Quantity Preview / Manual Selection — COMPLETE
+- adds a dedicated quantity-aware order-price preview section to the Pricing workspace
+- finished-unit quantity defaults to 1 and remains a positive whole-unit resolver input
+- Default / Single is the selected pricing source by default for every Product selection
+- ready Package / Bulk / Custom tiers are never auto-selected merely because quantity makes them eligible
+- saved tiers remain visible even when quantity-ineligible, archived, Product-mismatched, or economics-unready
+- quantity eligibility and price readiness are shown separately so structural eligibility is not confused with resolvable economics
+- per-offer non-divisibility and minimum-order failures remain visible with TP8B diagnostic messages
+- only manually selected ready tiers are sent to the TP8C resolver
+- resolved preview exposes quantity, offer count, effective unit selling price, and total order selling price
+- selected-tier BELOW_COST warnings remain visible in the preview
+- unsaved financial-profile edits are explicitly excluded until saved authoritative evidence refreshes
+- quote/resolution requests use independent race guards and stale resolution failures fail closed
+- Product changes reset quantity to 1 and pricing source to Default / Single
+- tier create/edit/archive and financial-profile saves refresh the integrated quote, which refreshes the quantity preview
+- the tier catalog note now points users to explicit manual preview selection instead of the older pre-TP8 boundary
+- responsive styles keep source choices and resolved metrics usable on narrow screens
+- application-wide coarse-pointer touch-target baseline remains intact
+- ExpectedBatchFinancials and Production wiring are unchanged
 
-#### TP8E — Regression & Completion Gate — NOT STARTED
+#### TP8E — Regression & Completion Gate — NEXT / NOT STARTED
 - prove Default fallback
 - prove thresholds/divisibility
 - prove no mixed remainder
@@ -1066,8 +1078,8 @@ All conditions are satisfied by this audit.
 
 ## 16. Exact Next Task
 
-**TP8D — Pricing Workspace Quantity Preview / Manual Selection — NEXT / NOT STARTED**
+**TP8E — Regression & Completion Gate — NEXT / NOT STARTED**
 
-TP8C is complete. The application now resolves Default / Single when no tier is selected and resolves exactly one explicitly selected, structurally eligible tier when supplied. Eligible alternatives remain unranked, below-cost warnings are preserved, and Production remains unchanged.
+TP8D is complete. The Pricing workspace now consumes TP8C for a Default-first quantity preview, keeps ineligible/unready tiers visible with diagnostics, permits only explicit ready-tier selection, and displays resolved totals and warnings without changing Production.
 
-Proceed next only with TP8D. Stop after the TP8C completion gate. Do not start TP8E automatically.
+Proceed next only with TP8E. Stop after the TP8D completion gate. Do not start TP9 automatically.
