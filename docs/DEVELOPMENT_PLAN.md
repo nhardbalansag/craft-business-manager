@@ -246,7 +246,7 @@ Phase 5.6B verified:
 
 # Tiered Pricing Enhancement — ACTIVE
 
-Status: **TP8C COMPLETE / TP8D NEXT**
+Status: **TP8D COMPLETE / TP8E NEXT**
 
 Master audit and compatibility plan:
 
@@ -294,12 +294,12 @@ TP8 — Quantity-Aware Tier Resolution                              IN PROGRESS
     TP8A — Selection Semantics Decision                           COMPLETE
     TP8B — Quantity Eligibility Domain Contract                   COMPLETE
     TP8C — Explicit Tier Resolution Service                       COMPLETE
-    TP8D — Pricing Workspace Quantity Preview / Manual Selection  NEXT / NOT STARTED
-    TP8E — Regression & Completion Gate                           NOT STARTED
+    TP8D — Pricing Workspace Quantity Preview / Manual Selection  COMPLETE
+    TP8E — Regression & Completion Gate                           NEXT / NOT STARTED
 TP9 — Integrated Validation & Completion Gate                     NOT STARTED
 ```
 
-TP8C is complete. Explicit pricing-source resolution now preserves Default / Single as the fallback and applies a tier only when its stable ID is explicitly supplied. Proceed next only with TP8D — Pricing Workspace Quantity Preview / Manual Selection; do not start TP8E automatically.
+TP8D is complete. The Pricing workspace now exposes quantity-aware preview and explicit manual tier selection while keeping Default / Single selected by default and Production unchanged. Proceed next only with TP8E — Regression & Completion Gate; do not start TP9 automatically.
 
 ---
 
@@ -387,7 +387,7 @@ Phase 7 scope should be revisited after the desktop/native persistence workflow 
 ## Current Next Action
 
 ```text
-TP8D — Pricing Workspace Quantity Preview / Manual Selection
+TP8E — Regression & Completion Gate
 NEXT / NOT STARTED
 ```
 
