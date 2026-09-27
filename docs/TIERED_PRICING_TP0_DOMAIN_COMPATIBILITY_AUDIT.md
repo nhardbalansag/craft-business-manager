@@ -980,25 +980,29 @@ Authoritative decision record:
 
 TP8 quantity-aware tier resolution is complete. Production remains unchanged unless a future separately scoped integration explicitly accepts selected-tier pricing evidence.
 
-### TP9 — Integrated Validation & Completion Gate
+### TP9 — Integrated Validation & Completion Gate — COMPLETE
 
-Must prove:
+Integrated completion evidence:
 
-- no-tier Product behaves exactly as before
-- Default / Single pricing remains unchanged
-- package economics correct
-- bulk economics correct
-- custom tier correct
-- below-cost tier warns
-- archived records survive
-- old core workbook imports
-- old physical workbook imports
-- pre-Preferred physical workbook imports
-- Google Sheets old snapshot imports
-- workbook round-trip retains tiers
-- rollback restores tiers
-- Production default financial projections remain unchanged unless TP8 explicitly opts into a tier
-- full application typecheck/tests/build green
+- adds `TieredPricingIntegratedValidationCompletion.test.ts`
+- hydrates a current dataset containing active Package, Bulk, and Custom tiers plus an archived tier
+- exports through the real PersistenceCoordinator and SheetJS workbook codec
+- clears live repositories, re-imports the exported workbook, and verifies the exact authoritative source snapshot is restored
+- proves Package economics before and after round-trip, including per-offer additional cost, profit, unit price, offer count, and total resolved price
+- proves Bulk economics and BELOW_COST warning survive round-trip unchanged
+- proves Custom tier economics and explicit selection survive round-trip unchanged
+- proves archived tier source evidence survives round-trip and remains ineligible for new resolved pricing
+- proves integrated Default / Single quote and default quantity resolution remain unchanged
+- proves ExpectedBatchFinancials remains on Default / Single before and after persistence round-trip
+- proves a no-tier Product continues on the unchanged Default / Single path
+- existing TP5C core v1/v2 migration regressions prove old core imports create no synthetic tiers and preserve Default / Single profiles
+- existing TP5D physical-v2 regressions prove storage/molds/default pricing survive migration with empty tiers
+- existing TP5E pre-Preferred physical-v2 regressions preserve the oldest recognized physical workbook shape without synthetic tiers
+- existing TP5F Google Sheets compatibility regression routes an old published physical-v2 XLSX through the same migration boundary
+- existing TP5G atomic persistence regressions prove current tier workbook round-trip and tier rollback restoration
+- full application typecheck/tests/build gate is required before merge
+
+All TP0–TP9 Tiered Pricing completion conditions are satisfied.
 
 ---
 
@@ -1086,8 +1090,8 @@ All conditions are satisfied by this audit.
 
 ## 16. Exact Next Task
 
-**TP9 — Integrated Validation & Completion Gate — NEXT / NOT STARTED**
+**6.1A — Tauri v2 Project Scaffold & Dev/Build Scripts — NEXT / NOT STARTED**
 
-TP8 is complete. Quantity-aware tier resolution is now implemented and cross-layer regression protected, while Production remains on Default / Single.
+Tiered Pricing is complete through TP9. Default / Single compatibility, tier economics, persistence/migration, explicit quantity resolution, UI preview, rollback, legacy import compatibility, and unchanged Production financial behavior are all regression protected.
 
-Proceed next only with TP9. Stop after the TP8 completion gate. Do not start Phase 6 automatically.
+Do not start 6.1A automatically from the TP9 completion gate.

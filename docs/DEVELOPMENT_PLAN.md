@@ -246,7 +246,7 @@ Phase 5.6B verified:
 
 # Tiered Pricing Enhancement — ACTIVE
 
-Status: **TP8 COMPLETE / TP9 NEXT**
+Status: **COMPLETE**
 
 Master audit and compatibility plan:
 
@@ -296,10 +296,10 @@ TP8 — Quantity-Aware Tier Resolution                              COMPLETE
     TP8C — Explicit Tier Resolution Service                       COMPLETE
     TP8D — Pricing Workspace Quantity Preview / Manual Selection  COMPLETE
     TP8E — Regression & Completion Gate                           COMPLETE
-TP9 — Integrated Validation & Completion Gate                     NEXT / NOT STARTED
+TP9 — Integrated Validation & Completion Gate                     COMPLETE
 ```
 
-TP8 is complete. TP8E now proves the full quantity-aware selection contract across real tier repository/service, integrated quote, resolver, and Production financial boundaries. Proceed next only with TP9 — Integrated Validation & Completion Gate; do not start Phase 6 automatically.
+Tiered Pricing is complete. TP9 now proves current tiered workbook round-trip fidelity across persisted sources, tier economics, explicit resolution, warnings/archive evidence, and unchanged Default / Single Production financials, while the existing TP5 compatibility regressions continue to protect legacy core/physical/Google Sheets imports and rollback.
 
 ---
 
@@ -387,8 +387,8 @@ Phase 7 scope should be revisited after the desktop/native persistence workflow 
 ## Current Next Action
 
 ```text
-TP9 — Integrated Validation & Completion Gate
+6.1A — Tauri v2 Project Scaffold & Dev/Build Scripts
 NEXT / NOT STARTED
 ```
 
-Tiered Pricing is the active intervening enhancement. Phase 6.1A remains scoped and pending, but must not begin automatically until the Tiered Pricing chain is completed or explicitly reprioritized.
+The Tiered Pricing enhancement is complete through TP9. Phase 6.1A is now the next planned task, but it has not been started by TP9.

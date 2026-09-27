@@ -640,11 +640,13 @@ All conditions are satisfied by this document.
 
 ---
 
-## 19. Exact Next Task
+## 19. Completion / Next Task
+
+TP8 is complete and TP9 has now closed the full Tiered Pricing enhancement through integrated persistence and application validation.
 
 ```text
-TP9 — Integrated Validation & Completion Gate
+6.1A — Tauri v2 Project Scaffold & Dev/Build Scripts
 NEXT / NOT STARTED
 ```
 
-TP8 is complete. Do not start Phase 6 automatically.
+Do not start Phase 6 automatically from this Tiered Pricing completion record.
