@@ -22,4 +22,15 @@ describe('TP6D tier pricing responsive regression', () => {
     expect(pricingCss).toContain('@media (max-width: 420px)');
     expect(pricingCss).toContain('.tier-catalog-card,');
   });
+
+  it('keeps the TP8D quantity preview selection and metrics usable on narrow screens', () => {
+    expect(pricingCss).toContain('/* TP8D — quantity-aware pricing preview / manual tier selection */');
+    expect(pricingCss).toContain('.pricing-resolution-controls {');
+    expect(pricingCss).toContain('.pricing-resolution-option {');
+    expect(pricingCss).toContain('.pricing-resolution-metrics {');
+    expect(pricingCss).toContain('@media (max-width: 1040px)');
+    expect(pricingCss).toContain('@media (max-width: 760px)');
+    expect(pricingCss).toContain('.pricing-resolution-option-meta,');
+    expect(pricingCss).toContain('grid-template-columns: 1fr;');
+  });
 });
