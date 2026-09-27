@@ -597,24 +597,29 @@ Regression coverage includes:
 
 No Production mutation is introduced.
 
-### TP8E — Regression & Completion Gate — NEXT / NOT STARTED
+### TP8E — Regression & Completion Gate — COMPLETE
 
-Must prove:
+Implemented as the cross-layer regression:
 
-- omitted tier selection preserves Default / Single;
-- quantity below minimum cannot select the tier;
-- per-unit threshold eligibility;
-- exact package divisibility;
-- non-divisible package rejection;
-- no mixed remainder pricing;
-- overlapping tiers remain alternatives;
-- cheapest tier is not automatically chosen;
-- Custom tier never auto-selects;
-- archived tier cannot be selected;
-- below-cost warning survives explicit selection;
-- Product identity contradictions fail closed;
-- Production remains unchanged;
-- full typecheck/tests/build green.
+`src/application/pricing/TieredPricingQuantityResolutionCompletionGate.test.ts`
+
+The completion gate uses the real Product/tier repositories and TP2–TP8 service
+boundaries to prove:
+
+- omitted tier selection preserves Default / Single even with cheaper eligible alternatives;
+- overlapping eligible tiers remain unranked alternatives;
+- explicit selection resolves exactly the requested tier rather than the cheapest tier;
+- Custom tiers remain explicit/manual;
+- per-unit minimum thresholds reject below-minimum quantity and accept the exact threshold;
+- per-offer Package pricing requires exact divisibility;
+- non-divisible Package quantities produce no mixed Default remainder;
+- archived tiers cannot be selected for new resolved pricing;
+- below-cost active tiers remain explicitly selectable with BELOW_COST preserved;
+- contradictory Product identity evidence fails closed;
+- an explicit TP8 tier preview does not mutate ExpectedBatchFinancials, which remains on Default / Single;
+- the full repository typecheck/tests/build gate remains green.
+
+All TP8A–TP8E completion conditions are satisfied.
 
 ---
 
@@ -638,8 +643,8 @@ All conditions are satisfied by this document.
 ## 19. Exact Next Task
 
 ```text
-TP8E — Regression & Completion Gate
+TP9 — Integrated Validation & Completion Gate
 NEXT / NOT STARTED
 ```
 
-TP8D is complete. Do not start TP9 or Phase 6 automatically.
+TP8 is complete. Do not start Phase 6 automatically.

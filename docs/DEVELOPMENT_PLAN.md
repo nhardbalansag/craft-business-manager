@@ -246,7 +246,7 @@ Phase 5.6B verified:
 
 # Tiered Pricing Enhancement — ACTIVE
 
-Status: **TP8D COMPLETE / TP8E NEXT**
+Status: **TP8 COMPLETE / TP9 NEXT**
 
 Master audit and compatibility plan:
 
@@ -276,7 +276,7 @@ TP3 — Tier Economics Engine                                       COMPLETE
     TP3B — ProductPriceTierQuoteService                           COMPLETE
     TP3C — Default-Price Comparison + Below-Cost Diagnostics      COMPLETE
 TP4 — Default Pricing Compatibility Layer                         COMPLETE
-TP5 — Workbook / Dataset Persistence & Migration                  IN PROGRESS
+TP5 — Workbook / Dataset Persistence & Migration                  COMPLETE
     TP5A — BusinessDataset v2 Source Collection                   COMPLETE
     TP5B — Core Workbook v3 Sheet / Export / Import               COMPLETE
     TP5C — Core v1/v2 Migration Chain                             COMPLETE
@@ -290,16 +290,16 @@ TP6 — Pricing UI                                                  COMPLETE
     TP6C — Package / Bulk / Custom UX + Warnings                  COMPLETE
     TP6D — Responsive / Accessibility Regression                  COMPLETE
 TP7 — Pricing Quote Integration                                   COMPLETE
-TP8 — Quantity-Aware Tier Resolution                              IN PROGRESS
+TP8 — Quantity-Aware Tier Resolution                              COMPLETE
     TP8A — Selection Semantics Decision                           COMPLETE
     TP8B — Quantity Eligibility Domain Contract                   COMPLETE
     TP8C — Explicit Tier Resolution Service                       COMPLETE
     TP8D — Pricing Workspace Quantity Preview / Manual Selection  COMPLETE
-    TP8E — Regression & Completion Gate                           NEXT / NOT STARTED
-TP9 — Integrated Validation & Completion Gate                     NOT STARTED
+    TP8E — Regression & Completion Gate                           COMPLETE
+TP9 — Integrated Validation & Completion Gate                     NEXT / NOT STARTED
 ```
 
-TP8D is complete. The Pricing workspace now exposes quantity-aware preview and explicit manual tier selection while keeping Default / Single selected by default and Production unchanged. Proceed next only with TP8E — Regression & Completion Gate; do not start TP9 automatically.
+TP8 is complete. TP8E now proves the full quantity-aware selection contract across real tier repository/service, integrated quote, resolver, and Production financial boundaries. Proceed next only with TP9 — Integrated Validation & Completion Gate; do not start Phase 6 automatically.
 
 ---
 
@@ -387,7 +387,7 @@ Phase 7 scope should be revisited after the desktop/native persistence workflow 
 ## Current Next Action
 
 ```text
-TP8E — Regression & Completion Gate
+TP9 — Integrated Validation & Completion Gate
 NEXT / NOT STARTED
 ```
 

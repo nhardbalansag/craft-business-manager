@@ -887,7 +887,7 @@ Recommended split:
 - no implicit Production/order tier selection is introduced
 - TP7 itself introduces no quantity-aware selection; TP8 now layers explicit quantity-aware resolution and preview on top of this unchanged integration boundary
 
-### TP8 — Quantity-Aware Tier Resolution — IN PROGRESS
+### TP8 — Quantity-Aware Tier Resolution — COMPLETE
 
 Authoritative decision record:
 
@@ -963,14 +963,22 @@ Authoritative decision record:
 - application-wide coarse-pointer touch-target baseline remains intact
 - ExpectedBatchFinancials and Production wiring are unchanged
 
-#### TP8E — Regression & Completion Gate — NEXT / NOT STARTED
-- prove Default fallback
-- prove thresholds/divisibility
-- prove no mixed remainder
-- prove overlaps do not auto-rank
-- prove Custom and archived rules
-- prove below-cost warning preservation
-- prove Production remains unchanged
+#### TP8E — Regression & Completion Gate — COMPLETE
+- adds `TieredPricingQuantityResolutionCompletionGate.test.ts` as the cross-layer TP8 completion proof
+- uses the real in-memory Product/tier repositories, ProductPriceTierService, ProductPriceTierQuoteService, ProductPricingQuoteIntegrationService, ProductPriceResolutionService, and ExpectedBatchFinancialsService boundaries
+- proves omitted tier selection stays on Default / Single even when multiple cheaper eligible tiers exist
+- proves overlapping eligible tiers remain alternatives and a non-cheapest tier resolves when explicitly selected
+- proves an eligible Custom tier never auto-selects and resolves only when its stable tier ID is explicitly supplied
+- proves per-unit minimum thresholds reject below-minimum quantity and accept the exact threshold
+- proves per-offer Package resolution requires complete offers and calculates exact offer count/order total
+- proves non-divisible Package quantity fails closed with no mixed Default remainder
+- proves archived tiers are ineligible for new resolved pricing
+- proves an active below-cost tier remains manually resolvable and preserves the BELOW_COST warning
+- proves contradictory Product identity evidence fails closed with no resolved selling price
+- proves explicit TP8 preview resolution does not alter ExpectedBatchFinancials Default / Single revenue, selling price, profit, or pricing quote
+- full branch typecheck/tests/build gate is required before merge
+
+TP8 quantity-aware tier resolution is complete. Production remains unchanged unless a future separately scoped integration explicitly accepts selected-tier pricing evidence.
 
 ### TP9 — Integrated Validation & Completion Gate
 
@@ -1078,8 +1086,8 @@ All conditions are satisfied by this audit.
 
 ## 16. Exact Next Task
 
-**TP8E — Regression & Completion Gate — NEXT / NOT STARTED**
+**TP9 — Integrated Validation & Completion Gate — NEXT / NOT STARTED**
 
-TP8D is complete. The Pricing workspace now consumes TP8C for a Default-first quantity preview, keeps ineligible/unready tiers visible with diagnostics, permits only explicit ready-tier selection, and displays resolved totals and warnings without changing Production.
+TP8 is complete. Quantity-aware tier resolution is now implemented and cross-layer regression protected, while Production remains on Default / Single.
 
-Proceed next only with TP8E. Stop after the TP8D completion gate. Do not start TP9 automatically.
+Proceed next only with TP9. Stop after the TP8 completion gate. Do not start Phase 6 automatically.
