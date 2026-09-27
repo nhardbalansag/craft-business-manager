@@ -163,6 +163,7 @@ export function PricingPage() {
         }
       } catch (error) {
         if (requestVersion === resolutionRequestVersion.current) {
+          setResolution(null);
           setResolutionError(
             error instanceof Error
               ? error.message
@@ -792,7 +793,7 @@ export function PricingPage() {
         selectedTierId={selectedTierId}
         result={resolution}
         loading={resolutionLoading || quoteLoading}
-        error={resolutionError}
+        error={resolutionError ?? quoteError}
         hasUnsavedChanges={formDirty}
         onQuantityChange={setResolutionQuantity}
         onSelectPricingSource={setSelectedTierId}
