@@ -351,7 +351,7 @@ export function ProductPriceTierCatalogPanel({
       <div className="tier-catalog-selection-note" role="note">
         <strong>Manual choice only.</strong>
         <span>
-          Package, Bulk, and Custom tiers are saved alternatives. No tier is automatically applied to production, orders, or Default / Single projections in TP6.
+          Package, Bulk, and Custom tiers are saved alternatives. The quantity-aware preview applies one only when you explicitly select a ready tier; Production projections remain on Default / Single.
         </span>
       </div>
 
