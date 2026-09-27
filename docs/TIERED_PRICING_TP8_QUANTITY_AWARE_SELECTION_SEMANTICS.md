@@ -565,23 +565,39 @@ Regression coverage lives in:
 
 `src/application/pricing/ProductPriceResolutionService.test.ts`
 
-### TP8D — Pricing Workspace Quantity Preview / Manual Selection — NEXT / NOT STARTED
+### TP8D — Pricing Workspace Quantity Preview / Manual Selection — COMPLETE
 
-Expose the resolver in the Pricing workspace.
+Implemented through:
 
-Scope:
+- `src/ui/pricing/ProductPriceResolutionPanel.tsx`;
+- `src/ui/pricing/PricingPage.tsx`;
+- `src/ui/pricing/pricing.css`.
 
-- quantity input;
-- Default / Single as default selected source;
-- eligible/ineligible alternative visibility;
-- explicit tier selection;
-- exact-divisibility messaging;
-- resolved total price preview;
-- below-cost warning retention.
+The Pricing workspace now:
 
-No Production mutation.
+- initializes each Product preview at quantity 1 with Default / Single selected;
+- uses TP8C for every saved-evidence quantity preview;
+- never auto-selects a Package, Bulk, or Custom tier;
+- shows saved tier alternatives even when unavailable;
+- separates TP8B quantity eligibility from authoritative tier-economics readiness;
+- displays minimum-order and exact per-offer divisibility diagnostics;
+- allows explicit manual selection only for a quantity-eligible, economically resolvable tier;
+- shows resolved quantity, offer count, effective unit selling price, and total selling price;
+- preserves selected-tier warnings such as BELOW_COST;
+- clearly states that the preview does not mutate Production projections;
+- resets to Default / Single when the user selects another Product;
+- refreshes from saved authoritative evidence after financial-profile or tier mutations;
+- keeps quantity/source controls and result metrics responsive on narrow screens.
 
-### TP8E — Regression & Completion Gate — NOT STARTED
+Regression coverage includes:
+
+- `src/ui/pricing/ProductPriceResolutionPanel.test.tsx`;
+- the TP8D PricingPage integration regression;
+- `src/ui/pricing/TierPricingResponsive.test.ts`.
+
+No Production mutation is introduced.
+
+### TP8E — Regression & Completion Gate — NEXT / NOT STARTED
 
 Must prove:
 
@@ -622,8 +638,8 @@ All conditions are satisfied by this document.
 ## 19. Exact Next Task
 
 ```text
-TP8D — Pricing Workspace Quantity Preview / Manual Selection
+TP8E — Regression & Completion Gate
 NEXT / NOT STARTED
 ```
 
-TP8C is complete. Do not start TP8E, TP9, or Phase 6 automatically.
+TP8D is complete. Do not start TP9 or Phase 6 automatically.

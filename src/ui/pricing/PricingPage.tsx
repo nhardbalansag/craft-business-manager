@@ -1,10 +1,12 @@
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   productFinancialProfileService,
+  productPriceResolutionService,
   productPriceTierService,
   productPricingQuoteIntegrationService,
   productService,
 } from '../../application/session';
+import type { ProductPriceResolutionResult } from '../../application/pricing/ProductPriceResolutionService';
 import type { IntegratedProductPricingQuoteResult } from '../../application/pricing/ProductPricingQuoteIntegrationService';
 import type { ProductPriceTier } from '../../domain/productPriceTiers';
 import type { ProductFinancialProfile } from '../../domain/productFinancialProfile';
@@ -12,6 +14,7 @@ import {
   PRODUCT_CATEGORY_RULES,
   type Product,
 } from '../../domain/products';
+import { ProductPriceResolutionPanel } from './ProductPriceResolutionPanel';
 import { ProductPricingQuotePanel } from './ProductPricingQuotePanel';
 import { ProductPriceTierCatalogPanel } from './ProductPriceTierCatalogPanel';
 import {
@@ -99,6 +102,11 @@ export function PricingPage() {
   const [quote, setQuote] = useState<IntegratedProductPricingQuoteResult | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [quoteError, setQuoteError] = useState<string | null>(null);
+  const [resolutionQuantity, setResolutionQuantity] = useState('1');
+  const [selectedTierId, setSelectedTierId] = useState<string | null>(null);
+  const [resolution, setResolution] = useState<ProductPriceResolutionResult | null>(null);
+  const [resolutionLoading, setResolutionLoading] = useState(false);
+  const [resolutionError, setResolutionError] = useState<string | null>(null);
   const [tierEditorOpen, setTierEditorOpen] = useState(false);
   const [editingTier, setEditingTier] = useState<ProductPriceTier | null>(null);
   const [tierSaving, setTierSaving] = useState(false);
@@ -106,6 +114,7 @@ export function PricingPage() {
   const [tierMutationError, setTierMutationError] = useState<string | null>(null);
   const [tierMutationFeedback, setTierMutationFeedback] = useState<string | null>(null);
   const quoteRequestVersion = useRef(0);
+  const resolutionRequestVersion = useRef(0);
 
   const loadQuote = useCallback(async (productId: string) => {
     const requestVersion = ++quoteRequestVersion.current;
@@ -128,6 +137,47 @@ export function PricingPage() {
       }
     }
   }, []);
+
+  const loadResolution = useCallback(
+    async (
+      productId: string,
+      quantityValue: string,
+      tierId: string | null,
+    ) => {
+      const requestVersion = ++resolutionRequestVersion.current;
+      setResolutionLoading(true);
+      setResolutionError(null);
+
+      const quantity = quantityValue.trim()
+        ? Number(quantityValue)
+        : Number.NaN;
+
+      try {
+        const nextResolution = await productPriceResolutionService.resolve({
+          productId,
+          quantity,
+          ...(tierId === null ? {} : { selectedTierId: tierId }),
+        });
+        if (requestVersion === resolutionRequestVersion.current) {
+          setResolution(nextResolution);
+        }
+      } catch (error) {
+        if (requestVersion === resolutionRequestVersion.current) {
+          setResolution(null);
+          setResolutionError(
+            error instanceof Error
+              ? error.message
+              : 'The quantity-aware pricing preview could not be resolved.',
+          );
+        }
+      } finally {
+        if (requestVersion === resolutionRequestVersion.current) {
+          setResolutionLoading(false);
+        }
+      }
+    },
+    [],
+  );
 
   const loadWorkspace = useCallback(async () => {
     setLoading(true);
@@ -157,6 +207,10 @@ export function PricingPage() {
       setProfiles([]);
       setSelectedProductId(null);
       setForm(createEmptyProductFinancialProfileForm());
+      resolutionRequestVersion.current += 1;
+      setResolution(null);
+      setResolutionLoading(false);
+      setResolutionError(null);
     } finally {
       setLoading(false);
     }
@@ -169,14 +223,36 @@ export function PricingPage() {
   useEffect(() => {
     if (selectedProductId === null) {
       quoteRequestVersion.current += 1;
+      resolutionRequestVersion.current += 1;
       setQuote(null);
       setQuoteLoading(false);
       setQuoteError(null);
+      setResolution(null);
+      setResolutionLoading(false);
+      setResolutionError(null);
       return;
     }
 
     void loadQuote(selectedProductId);
   }, [loadQuote, selectedProductId]);
+
+  useEffect(() => {
+    if (selectedProductId === null || quote === null) {
+      return;
+    }
+
+    void loadResolution(
+      selectedProductId,
+      resolutionQuantity,
+      selectedTierId,
+    );
+  }, [
+    loadResolution,
+    quote,
+    resolutionQuantity,
+    selectedProductId,
+    selectedTierId,
+  ]);
 
   const profileByProductId = useMemo(
     () => new Map(profiles.map((profile) => [comparable(profile.productId), profile])),
@@ -228,9 +304,15 @@ export function PricingPage() {
 
   function selectProduct(product: Product) {
     quoteRequestVersion.current += 1;
+    resolutionRequestVersion.current += 1;
     setQuote(null);
     setQuoteError(null);
     setQuoteLoading(true);
+    setResolutionQuantity('1');
+    setSelectedTierId(null);
+    setResolution(null);
+    setResolutionLoading(false);
+    setResolutionError(null);
     setSelectedProductId(product.id);
     setForm(
       productFinancialProfileToForm(
@@ -703,6 +785,28 @@ export function PricingPage() {
         error={quoteError}
         hasUnsavedChanges={formDirty}
         onRefresh={selectedProduct ? () => void loadQuote(selectedProduct.id) : undefined}
+      />
+
+      <ProductPriceResolutionPanel
+        productName={selectedProduct?.name ?? null}
+        quantity={resolutionQuantity}
+        selectedTierId={selectedTierId}
+        result={resolution}
+        loading={resolutionLoading || quoteLoading}
+        error={resolutionError ?? quoteError}
+        hasUnsavedChanges={formDirty}
+        onQuantityChange={setResolutionQuantity}
+        onSelectPricingSource={setSelectedTierId}
+        onRefresh={
+          selectedProduct && quote
+            ? () =>
+                void loadResolution(
+                  selectedProduct.id,
+                  resolutionQuantity,
+                  selectedTierId,
+                )
+            : undefined
+        }
       />
 
       {tierMutationFeedback && (

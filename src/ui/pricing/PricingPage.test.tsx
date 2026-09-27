@@ -3,6 +3,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as session from '../../application/session';
+import type { ProductPriceResolutionResult } from '../../application/pricing/ProductPriceResolutionService';
 import type { Product } from '../../domain/products';
 import { PricingPage } from './PricingPage';
 
@@ -49,6 +50,108 @@ async function seed() {
 
 async function mount() {
   await act(async () => root.render(<PricingPage />));
+}
+
+function resolutionFixture(
+  quantity: number,
+  selectedTierId?: string,
+): ProductPriceResolutionResult {
+  const tier = {
+    tier: {
+      id: 'TIER-0001',
+      productId: 'ART-001',
+      name: 'Bulk 20+',
+      kind: 'bulk' as const,
+      priceBasis: 'per-unit' as const,
+      priceAmount: 40,
+      unitsPerOffer: 1,
+      minimumOrderQuantity: 20,
+      additionalCostPerOffer: 0,
+      isActive: true,
+    },
+    status: 'ready' as const,
+    economics: {
+      fullyLoadedUnitCost: 30,
+      unitsPerOffer: 1,
+      baseOfferCost: 30,
+      additionalCostPerOffer: 0,
+      totalOfferCost: 30,
+      offerSellingPrice: 40,
+      effectiveUnitSellingPrice: 40,
+      profitPerOffer: 10,
+      effectiveProfitPerUnit: 10,
+      effectiveMarkup: 1 / 3,
+      effectiveMargin: 0.25,
+    },
+    defaultComparison: null,
+    belowCost: false,
+    warnings: [],
+    issues: [],
+  };
+
+  const eligible = Number.isInteger(quantity) && quantity >= 20;
+  const explicit = selectedTierId === 'TIER-0001' && eligible;
+
+  return {
+    productId: 'ART-001',
+    productName: 'Paintable Star',
+    productIsActive: true,
+    quantity,
+    mode: selectedTierId === undefined ? 'default' : 'explicit-tier',
+    selectedTierId: selectedTierId ?? null,
+    status: selectedTierId !== undefined && !explicit ? 'not-ready' : 'ready',
+    offerCount: explicit ? quantity : selectedTierId === undefined ? quantity : null,
+    unitSellingPrice: explicit ? 40 : selectedTierId === undefined ? 70 : null,
+    totalSellingPrice: explicit
+      ? 40 * quantity
+      : selectedTierId === undefined
+        ? 70 * quantity
+        : null,
+    integratedQuote: {
+      productId: 'ART-001',
+      productName: 'Paintable Star',
+      productIsActive: true,
+      status: 'ready',
+      sellingPrice: 70,
+      tierPricing: {
+        productId: 'ART-001',
+        productName: 'Paintable Star',
+        productIsActive: true,
+        tiers: [tier],
+        issues: [],
+      },
+      integrationIssues: [],
+    },
+    selectedTier: explicit ? tier : null,
+    eligibleTierIds: eligible ? ['TIER-0001'] : [],
+    tierEligibility: [{
+      tierId: 'TIER-0001',
+      productId: 'ART-001',
+      productMatches: true,
+      eligible,
+      offerCount: eligible ? quantity : null,
+      issues: eligible
+        ? []
+        : [{
+            code: 'QUANTITY_BELOW_MINIMUM',
+            message: `Quantity ${quantity} is below the minimum order quantity of 20 for tier TIER-0001.`,
+            productId: 'ART-001',
+            tierId: 'TIER-0001',
+            quantity,
+          }],
+    }],
+    warnings: [],
+    issues:
+      selectedTierId !== undefined && !explicit
+        ? [{
+            code: 'SELECTED_TIER_INELIGIBLE',
+            message: `Selected tier TIER-0001 is not eligible for quantity ${quantity}.`,
+            productId: 'ART-001',
+            quantity,
+            tierId: 'TIER-0001',
+          }]
+        : [],
+  } as unknown as ProductPriceResolutionResult;
 }
 
 function form() {
@@ -331,6 +434,70 @@ describe('Pricing workspace UI/UX', () => {
         (button) => button.textContent?.trim() === 'Create tier',
       ),
     ).toBe(false);
+  });
+
+  it('resolves Default first, then manually previews a quantity-eligible tier through TP8C', async () => {
+    await seed();
+    const resolveSpy = vi
+      .spyOn(session.productPriceResolutionService, 'resolve')
+      .mockImplementation(async (request) =>
+        resolutionFixture(request.quantity, request.selectedTierId),
+      );
+
+    await mount();
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const preview = container.querySelector<HTMLElement>(
+      '.pricing-resolution-section',
+    );
+    expect(preview).not.toBeNull();
+
+    const defaultRadio = preview!.querySelector<HTMLInputElement>(
+      'input[value="default"]',
+    )!;
+    expect(defaultRadio.checked).toBe(true);
+    expect(preview!.textContent).toContain('Default / Single');
+    expect(preview!.textContent).toContain('PHP 70.00');
+
+    const quantity = field('Order quantity', preview!);
+    await fill(quantity, '20');
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(resolveSpy).toHaveBeenCalledWith({
+      productId: 'ART-001',
+      quantity: 20,
+    });
+
+    const tierRadio = preview!.querySelector<HTMLInputElement>(
+      'input[value="TIER-0001"]',
+    )!;
+    expect(tierRadio.disabled).toBe(false);
+
+    await act(async () => tierRadio.click());
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(resolveSpy).toHaveBeenCalledWith({
+      productId: 'ART-001',
+      quantity: 20,
+      selectedTierId: 'TIER-0001',
+    });
+    expect(
+      container.querySelector('[aria-label="Resolved order pricing preview"]')
+        ?.textContent,
+    ).toContain('PHP 800.00');
+    expect(preview!.textContent).toContain(
+      'Production projections continue to use Default / Single pricing',
+    );
   });
 
 });
