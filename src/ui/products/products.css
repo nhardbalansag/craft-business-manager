@@ -387,3 +387,131 @@
   .composition-tree-list { padding-left: 8px; }
   .product-stock-card { align-items: flex-start; }
 }
+
+
+/* Product Catalog table view */
+
+.product-catalog-table-wrap {
+  overflow-x: auto;
+  border: 1px solid #e0d8cb;
+  border-radius: 14px;
+  background: #fffefa;
+}
+
+.product-catalog-table {
+  width: 100%;
+  min-width: 1080px;
+  border-collapse: collapse;
+}
+
+.product-catalog-table th,
+.product-catalog-table td {
+  padding: 13px 14px;
+  border-bottom: 1px solid #ece5da;
+  vertical-align: middle;
+  text-align: left;
+  font-size: .79rem;
+}
+
+.product-catalog-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #f7f2ea;
+  color: #6b645a;
+  font-size: .7rem;
+  font-weight: 850;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  white-space: nowrap;
+}
+
+.product-catalog-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.product-catalog-table tbody tr:hover {
+  background: #fcf8f1;
+}
+
+.product-catalog-table tbody tr.is-editing {
+  background: #fff8e9;
+  box-shadow: inset 3px 0 0 #9b7e53;
+}
+
+.product-table-identity {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 220px;
+}
+
+.product-table-identity > span:last-child {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.product-table-identity strong {
+  color: #342f29;
+  font-size: .83rem;
+  overflow-wrap: anywhere;
+}
+
+.product-table-identity .material-id {
+  color: #7b7062;
+  font-size: .7rem;
+}
+
+.product-catalog-table .product-category-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  flex: 0 0 auto;
+}
+
+.product-table-notes {
+  display: block;
+  max-width: 240px;
+  color: #6b645a;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.product-table-actions-heading {
+  min-width: 300px;
+}
+
+.product-table-actions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+  min-width: 290px;
+}
+
+.product-table-actions .button,
+.product-table-actions .text-button {
+  min-height: 34px;
+  padding: 7px 10px;
+  font-size: .72rem;
+}
+
+@media (max-width: 760px) {
+  .product-density-control {
+    width: 100%;
+  }
+
+  .product-density-control button {
+    flex: 1 1 0;
+  }
+
+  .product-catalog-table {
+    min-width: 980px;
+  }
+
+  .product-catalog-table th,
+  .product-catalog-table td {
+    padding: 11px 12px;
+  }
+}
