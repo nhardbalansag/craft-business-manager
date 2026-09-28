@@ -230,6 +230,46 @@ describe('product workshop interactions', () => {
     expect(field('Product ID').value).toBe('ALPHA');
   });
 
+  it('shows the Product Catalog as a table without losing filters or catalog actions', async () => {
+    await seed();
+    await mount();
+
+    await click('Table');
+
+    const tableWrap = catalog().querySelector<HTMLElement>(
+      '[aria-label="Product catalog table"]',
+    );
+    expect(tableWrap).not.toBeNull();
+
+    const table = tableWrap!.querySelector('table')!;
+    expect(
+      Array.from(table.querySelectorAll('thead th')).map((cell) =>
+        cell.textContent?.trim(),
+      ),
+    ).toEqual([
+      'Product',
+      'Category',
+      'Mix preset',
+      'Material reserve',
+      'Status',
+      'Notes',
+      'Actions',
+    ]);
+    expect(table.querySelectorAll('tbody tr')).toHaveLength(2);
+    expect(table.textContent).toContain('Alpha candle');
+    expect(table.textContent).toContain('Signature blend');
+    expect(table.textContent).toContain('5%');
+    expect(table.textContent).toContain('Beta star');
+
+    await fill(catalog().querySelector<HTMLInputElement>('input[type="search"]')!, 'Alpha');
+    expect(table.querySelectorAll('tbody tr')).toHaveLength(1);
+    expect(table.textContent).toContain('Alpha candle');
+    expect(table.textContent).not.toContain('Beta star');
+
+    await click('Components for Alpha candle', table);
+    expect(container.querySelector<HTMLSelectElement>('.composition-parent-panel select')?.value).toBe('ALPHA');
+  });
+
   it('creates the first product from the guided form with a correct reserve rate', async () => {
     await mount();
     expect(catalog().textContent).toContain('Make room for your first creation');
