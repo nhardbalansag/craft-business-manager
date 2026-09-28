@@ -328,7 +328,12 @@ describe('Pricing workspace UI/UX', () => {
 
     await mount();
 
-    expect(container.querySelector('[role="alert"]')?.textContent).toContain('Pricing workspace unavailable');
+    expect(
+      container.querySelector('[aria-label="Selected pricing Product"]')?.textContent,
+    ).toContain('Pricing workspace unavailable');
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain(
+      'Product catalog failed',
+    );
     expect(container.textContent).not.toContain('Create a Product first');
 
     await click('Retry loading');
