@@ -129,8 +129,8 @@ describe('React workspace smoke validation', () => {
     expect(html).toContain('Choose the product');
     expect(html).toContain('Set financial inputs');
     expect(html).toContain('Review saved unit economics');
-    expect(html).toContain('PRODUCT CATALOG');
-    expect(html).toContain('Search Products');
+    expect(html).toContain('Open Product Catalog');
+    expect(html).not.toContain('Search Products');
     expect(html).toContain('Labor cost per unit (PHP)');
     expect(html).toContain('Overhead cost per unit (PHP)');
     expect(html).toContain('Pricing method');

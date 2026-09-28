@@ -95,6 +95,7 @@ export function PricingPage() {
   );
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<ActiveFilter>('active');
+  const [productCatalogOpen, setProductCatalogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [workspaceError, setWorkspaceError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -115,6 +116,8 @@ export function PricingPage() {
   const [tierMutationFeedback, setTierMutationFeedback] = useState<string | null>(null);
   const quoteRequestVersion = useRef(0);
   const resolutionRequestVersion = useRef(0);
+  const productCatalogTriggerRef = useRef<HTMLButtonElement>(null);
+  const productCatalogCloseRef = useRef<HTMLButtonElement>(null);
 
   const loadQuote = useCallback(async (productId: string) => {
     const requestVersion = ++quoteRequestVersion.current;
@@ -221,6 +224,28 @@ export function PricingPage() {
   }, [loadWorkspace]);
 
   useEffect(() => {
+    if (!productCatalogOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setProductCatalogOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    productCatalogCloseRef.current?.focus();
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+      productCatalogTriggerRef.current?.focus();
+    };
+  }, [productCatalogOpen]);
+
+  useEffect(() => {
     if (selectedProductId === null) {
       quoteRequestVersion.current += 1;
       resolutionRequestVersion.current += 1;
@@ -324,6 +349,15 @@ export function PricingPage() {
     setEditingTier(null);
     setTierMutationError(null);
     setTierMutationFeedback(null);
+    setProductCatalogOpen(false);
+  }
+
+  function openProductCatalog() {
+    setProductCatalogOpen(true);
+  }
+
+  function closeProductCatalog() {
+    setProductCatalogOpen(false);
   }
 
   function updatePricingMethod(pricingMethod: PricingMethodSelection) {
@@ -496,102 +530,65 @@ export function PricingPage() {
         <div><span>Need setup</span><strong>{unconfiguredCount}</strong><small>No financial profile yet</small></div>
       </div>
 
-      <div className="pricing-layout">
-        <section className="panel pricing-catalog-panel" aria-label="Product financial profile catalog">
-          <div className="panel-heading pricing-panel-heading">
-            <div>
-              <p className="panel-kicker">PRODUCT CATALOG</p>
-              <h2>Select a Product</h2>
-            </div>
-            <div className="material-count"><strong>{visibleProducts.length}</strong><span>shown</span></div>
-          </div>
-
-          <div className="pricing-filters">
-            <label className="field search-field">
-              <span>Search Products</span>
-              <input
-                type="search"
-                aria-label="Search pricing products"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Name or Product ID"
-              />
-            </label>
-            <label className="field">
-              <span>Status</span>
-              <select
-                aria-label="Filter pricing products by status"
-                value={statusFilter}
-                onChange={(event) => setStatusFilter(event.target.value as ActiveFilter)}
-              >
-                <option value="active">Active</option>
-                <option value="archived">Archived</option>
-                <option value="all">All</option>
-              </select>
-            </label>
-          </div>
-
+      <section className="panel pricing-product-selector" aria-label="Selected pricing Product">
+        <div className="pricing-product-selector-copy">
+          <p className="panel-kicker">SELECTED PRODUCT</p>
           {loading ? (
-            <div className="empty-state compact-pricing-empty">
-              <div className="empty-icon" aria-hidden="true"><AppIcon name="pricing" size={28} /></div>
-              <h3>Loading pricing workspace</h3>
+            <>
+              <h2>Loading pricing workspace</h2>
               <p>Reading Product identities and current financial profile source records.</p>
-            </div>
+            </>
           ) : workspaceError ? (
-            <div className="empty-state compact-pricing-empty" role="alert">
-              <div className="empty-icon" aria-hidden="true"><AppIcon name="alert" size={28} /></div>
-              <h3>Pricing workspace unavailable</h3>
-              <p>{workspaceError}</p>
-              <button className="button button-secondary" type="button" onClick={() => void loadWorkspace()}>
-                Retry loading
-              </button>
-            </div>
-          ) : products.length === 0 ? (
-            <div className="empty-state compact-pricing-empty">
-              <div className="empty-icon" aria-hidden="true"><AppIcon name="plus-circle" size={28} /></div>
-              <h3>Create a Product first</h3>
-              <p>The Pricing workspace needs a Product identity before financial configuration or unit economics can be inspected.</p>
-            </div>
-          ) : visibleProducts.length === 0 ? (
-            <div className="empty-state compact-pricing-empty">
-              <div className="empty-icon" aria-hidden="true"><AppIcon name="search" size={28} /></div>
-              <h3>No Products match this view</h3>
-              <p>Change the search or status filter. Archived Products remain available under Archived or All.</p>
-            </div>
+            <>
+              <h2>Pricing workspace unavailable</h2>
+              <p role="alert">{workspaceError}</p>
+            </>
+          ) : selectedProduct ? (
+            <>
+              <div className="pricing-product-selector-title">
+                <h2>{selectedProduct.name}</h2>
+                <span className={`status-pill ${selectedProduct.isActive ? 'status-active' : ''}`}>
+                  {selectedProduct.isActive ? 'Active' : 'Archived'}
+                </span>
+              </div>
+              <p>
+                {selectedProduct.id} · {PRODUCT_CATEGORY_RULES[selectedProduct.category].label}
+                {' · '}
+                {selectedProfile ? 'Financial profile saved' : 'Financial profile needs setup'}
+              </p>
+            </>
           ) : (
-            <div className="pricing-product-list">
-              {visibleProducts.map((product) => {
-                const profile = profileByProductId.get(comparable(product.id));
-                const selected = product.id === selectedProductId;
-                return (
-                  <button
-                    key={product.id}
-                    type="button"
-                    className={`pricing-product-card ${selected ? 'selected' : ''}`}
-                    aria-pressed={selected}
-                    aria-label={`Price ${product.name}`}
-                    onClick={() => selectProduct(product)}
-                  >
-                    <span className="pricing-product-main">
-                      <span className="pricing-product-heading">
-                        <strong>{product.name}</strong>
-                        <span className={`status-pill ${product.isActive ? 'status-active' : ''}`}>
-                          {product.isActive ? 'Active' : 'Archived'}
-                        </span>
-                      </span>
-                      <span className="material-id">{product.id}</span>
-                      <small>{PRODUCT_CATEGORY_RULES[product.category].label}</small>
-                    </span>
-                    <span className={`pricing-profile-pill ${profile ? 'configured' : 'missing'}`}>
-                      {profile ? 'Profile saved' : 'Needs setup'}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+            <>
+              <h2>No Product selected</h2>
+              <p>
+                {products.length === 0
+                  ? 'Create a Product first, then return here to configure pricing.'
+                  : 'Open the Product Catalog to choose which Product you want to price.'}
+              </p>
+            </>
           )}
-        </section>
+        </div>
+        <div className="pricing-product-selector-actions">
+          {workspaceError && (
+            <button className="button button-secondary" type="button" onClick={() => void loadWorkspace()}>
+              Retry loading
+            </button>
+          )}
+          <button
+            ref={productCatalogTriggerRef}
+            className="button button-primary"
+            type="button"
+            onClick={openProductCatalog}
+            aria-haspopup="dialog"
+            aria-expanded={productCatalogOpen}
+          >
+            <AppIcon name="products" size={17} />
+            Open Product Catalog
+          </button>
+        </div>
+      </section>
 
+      <div className="pricing-layout pricing-layout-catalog-modal">
         <form className="panel pricing-editor-panel" aria-label="Pricing financial profile" onSubmit={submitProfile}>
           <div className="panel-heading pricing-editor-heading">
             <div>
@@ -777,6 +774,130 @@ export function PricingPage() {
           )}
         </form>
       </div>
+
+      {productCatalogOpen && (
+        <div
+          className="pricing-product-catalog-backdrop"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) closeProductCatalog();
+          }}
+        >
+          <section
+            className="panel pricing-product-catalog-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="pricing-product-catalog-title"
+          >
+            <div className="panel-heading pricing-panel-heading pricing-product-catalog-modal-heading">
+              <div>
+                <p className="panel-kicker">PRODUCT CATALOG</p>
+                <h2 id="pricing-product-catalog-title">Select a Product</h2>
+                <p>Choose the Product whose financial inputs and unit economics you want to review.</p>
+              </div>
+              <div className="pricing-product-catalog-modal-actions">
+                <div className="material-count"><strong>{visibleProducts.length}</strong><span>shown</span></div>
+                <button
+                  ref={productCatalogCloseRef}
+                  className="button button-secondary pricing-product-catalog-close"
+                  type="button"
+                  aria-label="Close Product Catalog"
+                  onClick={closeProductCatalog}
+                >
+                  <AppIcon name="close" size={17} />
+                  Close
+                </button>
+              </div>
+            </div>
+
+            <div className="pricing-filters">
+              <label className="field search-field">
+                <span>Search Products</span>
+                <input
+                  type="search"
+                  aria-label="Search pricing products"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Name or Product ID"
+                />
+              </label>
+              <label className="field">
+                <span>Status</span>
+                <select
+                  aria-label="Filter pricing products by status"
+                  value={statusFilter}
+                  onChange={(event) => setStatusFilter(event.target.value as ActiveFilter)}
+                >
+                  <option value="active">Active</option>
+                  <option value="archived">Archived</option>
+                  <option value="all">All</option>
+                </select>
+              </label>
+            </div>
+
+            <div className="pricing-product-catalog-modal-body">
+              {loading ? (
+                <div className="empty-state compact-pricing-empty">
+                  <div className="empty-icon" aria-hidden="true"><AppIcon name="pricing" size={28} /></div>
+                  <h3>Loading pricing workspace</h3>
+                  <p>Reading Product identities and current financial profile source records.</p>
+                </div>
+              ) : workspaceError ? (
+                <div className="empty-state compact-pricing-empty" role="alert">
+                  <div className="empty-icon" aria-hidden="true"><AppIcon name="alert" size={28} /></div>
+                  <h3>Pricing workspace unavailable</h3>
+                  <p>{workspaceError}</p>
+                  <button className="button button-secondary" type="button" onClick={() => void loadWorkspace()}>
+                    Retry loading
+                  </button>
+                </div>
+              ) : products.length === 0 ? (
+                <div className="empty-state compact-pricing-empty">
+                  <div className="empty-icon" aria-hidden="true"><AppIcon name="plus-circle" size={28} /></div>
+                  <h3>Create a Product first</h3>
+                  <p>The Pricing workspace needs a Product identity before financial configuration or unit economics can be inspected.</p>
+                </div>
+              ) : visibleProducts.length === 0 ? (
+                <div className="empty-state compact-pricing-empty">
+                  <div className="empty-icon" aria-hidden="true"><AppIcon name="search" size={28} /></div>
+                  <h3>No Products match this view</h3>
+                  <p>Change the search or status filter. Archived Products remain available under Archived or All.</p>
+                </div>
+              ) : (
+                <div className="pricing-product-list">
+                  {visibleProducts.map((product) => {
+                    const profile = profileByProductId.get(comparable(product.id));
+                    const selected = product.id === selectedProductId;
+                    return (
+                      <button
+                        key={product.id}
+                        type="button"
+                        className={`pricing-product-card ${selected ? 'selected' : ''}`}
+                        aria-pressed={selected}
+                        aria-label={`Price ${product.name}`}
+                        onClick={() => selectProduct(product)}
+                      >
+                        <span className="pricing-product-main">
+                          <span className="pricing-product-heading">
+                            <strong>{product.name}</strong>
+                            <span className={`status-pill ${product.isActive ? 'status-active' : ''}`}>
+                              {product.isActive ? 'Active' : 'Archived'}
+                            </span>
+                          </span>
+                          <span className="material-id">{product.id}</span>
+                          <small>{PRODUCT_CATEGORY_RULES[product.category].label}</small>
+                        </span>
+                        <span className={`pricing-profile-pill ${profile ? 'configured' : 'missing'}`}>
+                          {profile ? 'Profile saved' : 'Needs setup'}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </section>
+        </div>
+      )}
 
       <ProductPricingQuotePanel
         productName={selectedProduct?.name ?? null}
