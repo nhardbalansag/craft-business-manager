@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { MixPreset } from '../../domain/mixPresets';
 import { PRODUCT_CATEGORIES, PRODUCT_CATEGORY_RULES, type Product, type ProductCategory } from '../../domain/products';
 import { AppIcon } from '../icons/AppIcon';
@@ -48,6 +48,8 @@ export function ProductCatalog({
   const [status, setStatus] = useState<'active' | 'archived' | 'all'>('active');
   const [sort, setSort] = useState<'name' | 'category'>('name');
   const [density, setDensity] = useState<'cards' | 'compact' | 'table'>('cards');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<10 | 25 | 50>(10);
   const [labelProduct, setLabelProduct] = useState<Product | null>(null);
   const [localEditorIntent, setEditorIntent] = useState<ProductEditorIntent>(null);
   const editingProduct = products.find((product) => product.id === editingId);
@@ -78,6 +80,38 @@ export function ProductCatalog({
           a.id.localeCompare(b.id),
       ), [matchingProducts, category, sort]);
   const filtered = query !== '' || category !== 'all' || status !== 'active';
+  const totalPages = Math.max(1, Math.ceil(visible.length / pageSize));
+  const pageStart = (page - 1) * pageSize;
+  const paginatedVisible = visible.slice(pageStart, pageStart + pageSize);
+  const shownStart = visible.length === 0 ? 0 : pageStart + 1;
+  const shownEnd = Math.min(pageStart + pageSize, visible.length);
+  const paginationItems = useMemo(() => {
+    if (totalPages <= 7) {
+      return Array.from({ length: totalPages }, (_, index) => index + 1);
+    }
+
+    const pages = Array.from(
+      new Set([1, totalPages, page - 1, page, page + 1].filter((value) => value >= 1 && value <= totalPages)),
+    ).sort((left, right) => left - right);
+
+    const items: Array<number | 'ellipsis-left' | 'ellipsis-right'> = [];
+    pages.forEach((value, index) => {
+      const previous = pages[index - 1];
+      if (previous !== undefined && value - previous > 1) {
+        items.push(previous === 1 ? 'ellipsis-left' : 'ellipsis-right');
+      }
+      items.push(value);
+    });
+    return items;
+  }, [page, totalPages]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [query, category, status, sort, pageSize]);
+
+  useEffect(() => {
+    setPage((current) => Math.min(current, totalPages));
+  }, [totalPages]);
 
   function clearFilters() {
     setQuery('');
@@ -275,7 +309,7 @@ export function ProductCatalog({
                 </tr>
               </thead>
               <tbody>
-                {visible.map((product) => {
+                {paginatedVisible.map((product) => {
                   const mix = mixById.get(product.mixPresetId?.toLowerCase() ?? '');
                   return (
                     <tr
@@ -363,7 +397,7 @@ export function ProductCatalog({
           </div>
         ) : (
           <div className={`product-card-grid ${density === 'compact' ? 'is-compact' : ''}`}>
-            {visible.map((product) => {
+            {paginatedVisible.map((product) => {
               const mix = mixById.get(product.mixPresetId?.toLowerCase() ?? '');
               return (
                 <article
@@ -449,6 +483,68 @@ export function ProductCatalog({
               );
             })}
           </div>
+        )}
+
+        {!loading && !loadFailed && visible.length > 0 && (
+          <nav className="product-pagination" aria-label="Product catalog pagination">
+            <div className="product-pagination-summary" role="status" aria-live="polite">
+              Showing <strong>{shownStart}–{shownEnd}</strong> of <strong>{visible.length}</strong> products
+            </div>
+
+            <div className="product-pagination-pages">
+              <button
+                type="button"
+                className="button button-quiet"
+                disabled={page === 1}
+                aria-label="Previous product page"
+                onClick={() => setPage((current) => Math.max(1, current - 1))}
+              >
+                Previous
+              </button>
+
+              <div className="product-pagination-numbers" aria-label="Product pages">
+                {paginationItems.map((item) =>
+                  typeof item === 'number' ? (
+                    <button
+                      key={item}
+                      type="button"
+                      className="product-page-button"
+                      aria-label={`Product page ${item}`}
+                      aria-current={page === item ? 'page' : undefined}
+                      onClick={() => setPage(item)}
+                    >
+                      {item}
+                    </button>
+                  ) : (
+                    <span key={item} className="product-pagination-ellipsis" aria-hidden="true">…</span>
+                  ),
+                )}
+              </div>
+
+              <button
+                type="button"
+                className="button button-quiet"
+                disabled={page === totalPages}
+                aria-label="Next product page"
+                onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+              >
+                Next
+              </button>
+            </div>
+
+            <label className="field product-page-size">
+              <span>Products per page</span>
+              <select
+                aria-label="Products per page"
+                value={pageSize}
+                onChange={(event) => setPageSize(Number(event.target.value) as 10 | 25 | 50)}
+              >
+                <option value="10">10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+              </select>
+            </label>
+          </nav>
         )}
       </div>
 

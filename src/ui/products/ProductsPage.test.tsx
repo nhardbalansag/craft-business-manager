@@ -270,6 +270,82 @@ describe('product workshop interactions', () => {
     expect(container.querySelector<HTMLSelectElement>('.composition-parent-panel select')?.value).toBe('ALPHA');
   });
 
+  it('paginates the Product Catalog consistently across Cards, Compact, and Table layouts', async () => {
+    await seed();
+
+    for (let index = 3; index <= 13; index += 1) {
+      await session.productService.createProduct({
+        id: `PROD-${String(index).padStart(4, '0')}`,
+        name: `Catalog product ${String(index).padStart(2, '0')}`,
+        category: index % 2 === 0 ? 'candle' : 'paintable-art',
+        safetyWasteRate: index / 100,
+        isActive: true,
+      });
+    }
+
+    await mount();
+
+    expect(catalog().querySelectorAll('.product-catalog-card')).toHaveLength(10);
+    expect(
+      catalog().querySelector('[aria-label="Product catalog pagination"]')?.textContent,
+    ).toContain('Showing 1–10 of 13 products');
+    expect(
+      catalog().querySelector<HTMLButtonElement>('[aria-label="Previous product page"]')?.disabled,
+    ).toBe(true);
+    expect(
+      catalog().querySelector<HTMLButtonElement>('[aria-label="Next product page"]')?.disabled,
+    ).toBe(false);
+
+    await click('Next', catalog());
+
+    expect(catalog().querySelectorAll('.product-catalog-card')).toHaveLength(3);
+    expect(
+      catalog().querySelector('[aria-label="Product catalog pagination"]')?.textContent,
+    ).toContain('Showing 11–13 of 13 products');
+    expect(
+      catalog().querySelector('[aria-label="Product page 2"]')?.getAttribute('aria-current'),
+    ).toBe('page');
+
+    await click('Compact', catalog());
+    expect(catalog().querySelector('.product-card-grid.is-compact')).not.toBeNull();
+    expect(catalog().querySelectorAll('.product-catalog-card')).toHaveLength(3);
+
+    await click('Table', catalog());
+    expect(
+      catalog().querySelectorAll('[aria-label="Product catalog table"] tbody tr'),
+    ).toHaveLength(3);
+    expect(
+      catalog().querySelector('[aria-label="Product catalog pagination"]')?.textContent,
+    ).toContain('Showing 11–13 of 13 products');
+
+    await fill(
+      catalog().querySelector<HTMLSelectElement>('[aria-label="Products per page"]')!,
+      '25',
+    );
+
+    expect(
+      catalog().querySelectorAll('[aria-label="Product catalog table"] tbody tr'),
+    ).toHaveLength(13);
+    expect(
+      catalog().querySelector('[aria-label="Product catalog pagination"]')?.textContent,
+    ).toContain('Showing 1–13 of 13 products');
+    expect(
+      catalog().querySelector('[aria-label="Product page 1"]')?.getAttribute('aria-current'),
+    ).toBe('page');
+
+    await fill(
+      catalog().querySelector<HTMLInputElement>('input[type="search"]')!,
+      'Alpha candle',
+    );
+
+    expect(
+      catalog().querySelectorAll('[aria-label="Product catalog table"] tbody tr'),
+    ).toHaveLength(1);
+    expect(
+      catalog().querySelector('[aria-label="Product catalog pagination"]')?.textContent,
+    ).toContain('Showing 1–1 of 1 products');
+  });
+
   it('creates the first product from the guided form with a correct reserve rate', async () => {
     await mount();
     expect(catalog().textContent).toContain('Make room for your first creation');
