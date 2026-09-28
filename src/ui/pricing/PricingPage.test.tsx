@@ -208,6 +208,64 @@ describe('Pricing workspace UI/UX', () => {
     expect(container.textContent).toContain('Paintable Star');
   });
 
+  it('keeps Product Catalog hidden until opened as a modal and closes it after Product selection', async () => {
+    const secondProduct: Product = {
+      id: 'CND-002',
+      name: 'Event Candle',
+      category: 'candle',
+      safetyWasteRate: 0.03,
+      isActive: true,
+    };
+    await session.productRepository.replaceAll([product, secondProduct]);
+
+    await mount();
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(container.querySelector('[role="dialog"]')).toBeNull();
+    expect(container.textContent).toContain('Open Product Catalog');
+
+    await click('Open Product Catalog');
+
+    const dialog = container.querySelector<HTMLElement>('[role="dialog"]');
+    expect(dialog).not.toBeNull();
+    expect(dialog?.getAttribute('aria-modal')).toBe('true');
+    expect(dialog?.textContent).toContain('PRODUCT CATALOG');
+    expect(dialog?.textContent).toContain('Paintable Star');
+    expect(dialog?.textContent).toContain('Event Candle');
+    expect(dialog?.querySelector('[aria-label="Search pricing products"]')).not.toBeNull();
+    expect(dialog?.querySelector('[aria-label="Filter pricing products by status"]')).not.toBeNull();
+
+    await click('Price Event Candle', dialog!);
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(container.querySelector('[role="dialog"]')).toBeNull();
+    expect(form()?.textContent).toContain('Event Candle');
+    expect(container.querySelector('[aria-label="Selected pricing Product"]')?.textContent).toContain(
+      'CND-002',
+    );
+  });
+
+  it('closes the Product Catalog modal with Escape', async () => {
+    await seed();
+    await mount();
+    await act(async () => Promise.resolve());
+
+    await click('Open Product Catalog');
+    expect(container.querySelector('[role="dialog"]')).not.toBeNull();
+
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    });
+
+    expect(container.querySelector('[role="dialog"]')).toBeNull();
+  });
+
   it('previews draft inputs, marks unsaved changes, and saves canonical markup source values', async () => {
     await seed();
     await mount();
