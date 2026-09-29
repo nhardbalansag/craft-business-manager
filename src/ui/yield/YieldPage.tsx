@@ -85,6 +85,7 @@ function draftEvidenceKey(form: YieldFormState): string {
 
 type YieldHistorySort = 'newest' | 'oldest';
 type YieldOutcomeFilter = 'all' | 'clean' | 'with-rejects';
+const HISTORY_PAGE_SIZE = 5;
 
 type YieldHistoryMoldFormulaTrace = {
   moldId: string;
@@ -177,6 +178,7 @@ export function YieldPage() {
   const [historyQuery, setHistoryQuery] = useState('');
   const [historySort, setHistorySort] = useState<YieldHistorySort>('newest');
   const [historyOutcome, setHistoryOutcome] = useState<YieldOutcomeFilter>('all');
+  const [historyPage, setHistoryPage] = useState(1);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [form, setForm] = useState<YieldFormState>(() => emptyForm());
   const [draftBaseline, setDraftBaseline] = useState(() => draftKey(form));
@@ -188,11 +190,15 @@ export function YieldPage() {
   const mutationInFlight = useRef(false);
   const historyRequest = useRef(0);
   const draftWarning = useRef<HTMLDivElement>(null);
+  const batchHeading = useRef<HTMLHeadingElement>(null);
+  const learningHeading = useRef<HTMLHeadingElement>(null);
+  const historyHeading = useRef<HTMLHeadingElement>(null);
+  const actionFeedback = useRef<HTMLDivElement>(null);
   const draftDirty = draftKey(form) !== draftBaseline;
   const draftEvidenceDirty =
     draftEvidenceKey(form) !==
     draftEvidenceKey(JSON.parse(draftBaseline) as YieldFormState);
-  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string; location?: 'history' | 'learning' } | null>(null);
 
   const selectedProduct = useMemo(
     () => products.find((product) => product.id === selectedProductId) ?? null,
@@ -487,6 +493,49 @@ export function YieldPage() {
     mixById,
   ]);
 
+  const historyPageCount = Math.max(1, Math.ceil(visibleHistory.length / HISTORY_PAGE_SIZE));
+  const currentHistoryPage = Math.min(historyPage, historyPageCount);
+  const historyOffset = (currentHistoryPage - 1) * HISTORY_PAGE_SIZE;
+  const pagedHistory = visibleHistory.slice(historyOffset, historyOffset + HISTORY_PAGE_SIZE);
+
+  useEffect(() => {
+    setHistoryPage(1);
+    setPendingDeleteId(null);
+  }, [selectedProductId, historyQuery, historyOutcome, historySort]);
+
+  useEffect(() => {
+    if (!historyLoading && !historyError) {
+      setHistoryPage((page) => Math.min(page, historyPageCount));
+    }
+  }, [historyPageCount, historyLoading, historyError]);
+
+  function focusSection(heading: HTMLHeadingElement | null) {
+    heading?.focus({ preventScroll: true });
+    heading?.scrollIntoView?.({ block: 'start' });
+  }
+
+  function changeHistoryPage(page: number) {
+    setHistoryPage(page);
+    setPendingDeleteId(null);
+    focusSection(historyHeading.current);
+  }
+
+  function renderFeedback(location?: 'history' | 'learning') {
+    return feedback && feedback.location === location ? (
+      <div ref={actionFeedback} tabIndex={-1} className={`feedback feedback-${feedback.type}`} role={feedback.type === 'error' ? 'alert' : 'status'}>
+        {feedback.message}
+      </div>
+    ) : null;
+  }
+
+  useEffect(() => {
+    if (busy || historyLoading) return;
+    if (feedback?.location) {
+      actionFeedback.current?.focus({ preventScroll: true });
+    }
+    if (feedback) actionFeedback.current?.scrollIntoView?.({ block: 'nearest' });
+  }, [feedback, busy, historyLoading]);
+
   function unitOptions(materialId: string): InputUnit[] {
     const material = materialById.get(materialId.toLocaleLowerCase());
     if (!material) return [...SUPPORTED_UNITS];
@@ -637,6 +686,7 @@ export function YieldPage() {
     else if (action.kind === 'copy') useSampleAsDraft(action.sample);
     else if (action.kind === 'formula') useFormulaAsDraft(action.draft);
     else resetDraft();
+    if (action.kind !== 'product') focusSection(batchHeading.current);
   }
 
   function requestDraftAction(action: DraftAction) {
@@ -726,6 +776,8 @@ export function YieldPage() {
       }
 
       setKnownSampleIds((current) => current.includes(sampleId) ? current : [...current, sampleId]);
+      clearHistoryFilters();
+      setHistoryPage(1);
       replaceDraft(emptyForm(selectedProduct.mixPresetId ?? ''));
       setFeedback({ type: 'success', message: `Yield sample ${sampleId} recorded.` });
       await loadHistory(selectedProduct.id);
@@ -744,10 +796,10 @@ export function YieldPage() {
     setFeedback(null);
     try {
       await yieldHistoryService.setPreferred(selectedProduct.id, sample.id);
-      setFeedback({ type: 'success', message: `Yield sample ${sample.id} is now preferred for ${selectedProduct.name}.` });
+      setFeedback({ type: 'success', location: 'history', message: `Yield sample ${sample.id} is now preferred for ${selectedProduct.name}.` });
       await loadHistory(selectedProduct.id);
     } catch (error) {
-      setFeedback({ type: 'error', message: errorMessage(error) });
+      setFeedback({ type: 'error', location: 'history', message: errorMessage(error) });
     } finally {
       mutationInFlight.current = false;
       setBusy(null);
@@ -762,12 +814,12 @@ export function YieldPage() {
     try {
       const automatic = await yieldHistoryService.clearPreferred(selectedProduct.id);
       setFeedback({
-        type: 'success',
+        type: 'success', location: 'learning',
         message: `Automatic Yield selection restored. ${automatic.sample.id} is now effective.`,
       });
       await loadHistory(selectedProduct.id);
     } catch (error) {
-      setFeedback({ type: 'error', message: errorMessage(error) });
+      setFeedback({ type: 'error', location: 'learning', message: errorMessage(error) });
     } finally {
       mutationInFlight.current = false;
       setBusy(null);
@@ -789,10 +841,10 @@ export function YieldPage() {
       }
       await yieldHistoryService.deleteSample(sample.id);
       setPendingDeleteId(null);
-      setFeedback({ type: 'success', message: `Yield sample ${sample.id} deleted as a correction.` });
+      setFeedback({ type: 'success', location: 'history', message: `Yield sample ${sample.id} deleted as a correction.` });
       await loadHistory(sample.productId);
     } catch (error) {
-      setFeedback({ type: 'error', message: errorMessage(error) });
+      setFeedback({ type: 'error', location: 'history', message: errorMessage(error) });
     } finally {
       mutationInFlight.current = false;
       setBusy(null);
@@ -946,11 +998,17 @@ export function YieldPage() {
             </>}
           </section>
 
+          <nav className="yield-section-nav" aria-label="Yield sections">
+            <button type="button" className="button button-quiet" onClick={() => focusSection(batchHeading.current)}>Batch evidence</button>
+            <button type="button" className="button button-quiet" onClick={() => focusSection(learningHeading.current)}>Effective learning</button>
+            <button type="button" className="button button-quiet" onClick={() => focusSection(historyHeading.current)}>Recorded batches</button>
+          </nav>
+
           <div className="materials-layout yield-layout">
             <section className="yield-evidence-column" aria-labelledby="yield-evidence-column-heading">
               <div className="yield-column-heading">
                 <span className="yield-column-label">BATCH INPUT</span>
-                <h2 id="yield-evidence-column-heading">Batch evidence</h2>
+                <h2 ref={batchHeading} tabIndex={-1} id="yield-evidence-column-heading">Batch evidence</h2>
                 <p>Enter this batch's actual consumption and piece counts. Draft values become evidence when you record the sample.</p>
               </div>
 
@@ -965,6 +1023,7 @@ export function YieldPage() {
                 </span>
               </div>
 
+              {renderFeedback()}
               {pendingAction && (
                 <div className="yield-draft-confirm" role="alert" ref={draftWarning} tabIndex={-1}>
                   <strong>Keep your unsaved batch?</strong>
@@ -976,7 +1035,7 @@ export function YieldPage() {
       ? `Using the Mold Formula from ${pendingAction.draft.moldName} will replace the current draft.`
       : 'Resetting will clear your current draft.'}</p>
                   <div>
-                    <button type="button" className="button button-primary" disabled={Boolean(busy)} onClick={() => { setPendingAction(null); }}>Keep editing</button>
+                    <button type="button" className="button button-primary" disabled={Boolean(busy)} onClick={() => { setPendingAction(null); focusSection(batchHeading.current); }}>Keep editing</button>
                     <button type="button" className="button button-quiet" disabled={Boolean(busy)} onClick={() => performDraftAction(pendingAction)}>Discard draft and continue</button>
                   </div>
                 </div>
@@ -1240,21 +1299,13 @@ export function YieldPage() {
               {selectedProduct && !selectedProduct.isActive && (
                 <div className="feedback">Archived products keep their history, but new yield evidence cannot be recorded.</div>
               )}
-              {feedback && (
-                <div
-                  className={`feedback feedback-${feedback.type}`}
-                  role={feedback.type === 'error' ? 'alert' : 'status'}
-                >
-                  {feedback.message}
-                </div>
-              )}
             </form>
             </section>
 
             <section className="yield-history-stack yield-learning-column" aria-labelledby="yield-learning-column-heading">
               <div className="yield-column-heading">
                 <span className="yield-column-label">SAVED RESULTS</span>
-                <h2 id="yield-learning-column-heading">Effective learning</h2>
+                <h2 ref={learningHeading} tabIndex={-1} id="yield-learning-column-heading">Effective learning</h2>
                 <p>Review learned requirements from recorded samples. Editing the batch draft does not change these saved results.</p>
               </div>
               <section className="panel effective-yield-card" aria-label="Effective yield learning">
@@ -1269,6 +1320,7 @@ export function YieldPage() {
                     </span>
                   )}
                 </div>
+                {renderFeedback('learning')}
                 <p className="yield-notice">{effectiveNotice}</p>
                 {effective?.preferredSampleId && (
                   <div className="yield-preference-actions">
@@ -1315,11 +1367,13 @@ export function YieldPage() {
                 <div className="panel-heading list-heading yield-history-heading-row">
                   <div>
                     <p className="panel-kicker">IMMUTABLE HISTORY</p>
-                    <h2>Recorded batches</h2>
+                    <h2 ref={historyHeading} tabIndex={-1}>Recorded batches</h2>
                     <p className="yield-history-subtitle">Compare outcomes, reuse a previous setup for a new batch, or correct evidence deliberately.</p>
                   </div>
                   <div className="material-count"><strong>{history.length}</strong><span>samples</span></div>
                 </div>
+
+                {renderFeedback('history')}
 
                 <details
                   className="yield-history-legacy-compatibility"
@@ -1413,7 +1467,7 @@ export function YieldPage() {
                         <p>Try a different sample ID, material, recipe source, outcome, date, or note.</p>
                         <button type="button" className="button button-quiet" onClick={clearHistoryFilters}>Clear history filters</button>
                       </div>
-                    ) : visibleHistory.map((sample) => {
+                    ) : pagedHistory.map((sample) => {
                       const sampleIsEffective = sample.id === effectiveId;
                       const sampleIsPreferred = effective?.preferredSampleId === sample.id;
                       const skippedInvalid = skippedIds.has(sample.id);
@@ -1538,6 +1592,15 @@ export function YieldPage() {
                       );
                     })}
                   </div>
+                )}
+                {!historyLoading && !historyError && visibleHistory.length > 0 && (
+                  <nav className="yield-history-pagination" aria-label="Yield history pages">
+                    <span role="status">Batches {historyOffset + 1}–{historyOffset + pagedHistory.length} of {visibleHistory.length}{historyFiltered ? ' matching' : ''} · Page {currentHistoryPage} of {historyPageCount}</span>
+                    {historyPageCount > 1 && <div>
+                      <button type="button" className="button button-quiet" disabled={Boolean(busy) || currentHistoryPage === 1} onClick={() => changeHistoryPage(currentHistoryPage - 1)}>Previous page</button>
+                      <button type="button" className="button button-quiet" disabled={Boolean(busy) || currentHistoryPage === historyPageCount} onClick={() => changeHistoryPage(currentHistoryPage + 1)}>Next page</button>
+                    </div>}
+                  </nav>
                 )}
                 <div className="list-footer yield-history-footer">
                   <span>

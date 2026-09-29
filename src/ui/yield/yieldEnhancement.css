@@ -397,3 +397,56 @@
     grid-template-columns: 1fr;
   }
 }
+.yield-section-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid #dedbd2;
+  border-radius: 14px;
+  background: #faf9f5;
+}
+
+.yield-section-nav .button {
+  flex: 1 1 150px;
+  min-height: 44px;
+  white-space: normal;
+}
+
+.yield-workspace h2[tabindex],
+.yield-workspace .feedback {
+  scroll-margin-block: 24px;
+}
+
+.yield-workspace h2[tabindex]:focus-visible,
+.yield-workspace .feedback:focus-visible {
+  outline: 2px solid #65806a;
+  outline-offset: 5px;
+}
+
+.yield-history-pagination,
+.yield-history-pagination > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.yield-history-pagination {
+  justify-content: space-between;
+  padding-block: 16px;
+  border-top: 1px solid #dedbd2;
+  color: #635e54;
+  font-size: .82rem;
+}
+
+.yield-history-pagination .button {
+  min-height: 44px;
+}
+
+@media (max-width: 900px) {
+  .yield-workspace h2[tabindex],
+  .yield-workspace .feedback {
+    scroll-margin-block-start: 76px;
+  }
+}
