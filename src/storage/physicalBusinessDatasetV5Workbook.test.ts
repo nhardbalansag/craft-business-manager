@@ -148,6 +148,13 @@ function getSheet(document: WorkbookNeutralDocument, name: string) {
   return found;
 }
 
+function getMutableSheet(document: WorkbookNeutralDocument, name: string) {
+  return getSheet(document, name) as unknown as {
+    columns: string[];
+    rows: Array<Record<string, unknown>>;
+  };
+}
+
 describe('YRS2D physical workbook v5 / v4-to-v5 migration', () => {
   it('defines workbook/dataset v5 with provenance appended after physical v4', () => {
     const document = createPhysicalBusinessDatasetV5WorkbookDocument(
@@ -318,7 +325,7 @@ describe('YRS2D physical workbook v5 / v4-to-v5 migration', () => {
     const wrongColumns = structuredClone(
       createPhysicalBusinessDatasetV5WorkbookDocument(v5Dataset(), metadata),
     );
-    getSheet(
+    getMutableSheet(
       wrongColumns,
       YIELD_MOLD_FORMULA_SOURCES_SHEET_NAME,
     ).columns = ['yieldSampleId', 'moldId'];
@@ -338,7 +345,7 @@ describe('YRS2D physical workbook v5 / v4-to-v5 migration', () => {
     const blankIdentifier = structuredClone(
       createPhysicalBusinessDatasetV5WorkbookDocument(v5Dataset(), metadata),
     );
-    getSheet(
+    getMutableSheet(
       blankIdentifier,
       YIELD_MOLD_FORMULA_SOURCES_SHEET_NAME,
     ).rows[0].moldYieldProfileId = '   ';
@@ -363,7 +370,7 @@ describe('YRS2D physical workbook v5 / v4-to-v5 migration', () => {
     const document = structuredClone(
       createPhysicalBusinessDatasetV5WorkbookDocument(v5Dataset(), metadata),
     );
-    getSheet(
+    getMutableSheet(
       document,
       YIELD_MOLD_FORMULA_SOURCES_SHEET_NAME,
     ).rows[0].moldId = 'MOLD-MISSING';
