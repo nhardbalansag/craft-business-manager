@@ -73,7 +73,7 @@ describe('YRS3C YieldMoldFormulaMode', () => {
     expect(container.textContent).toContain(
       'No Mold Formula is attached to this draft yet.',
     );
-    expect(container.textContent).toContain('MOLD FORMULA ASSIST above');
+    expect(container.textContent).toContain('MOLD FORMULA ASSIST below');
     expect(container.textContent).toContain(
       'Actual batch evidence stays separate.',
     );
