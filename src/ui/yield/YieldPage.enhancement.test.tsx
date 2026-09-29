@@ -74,6 +74,9 @@ beforeEach(async () => {
     ]),
     session.calibrationRepository.replaceAll([]),
     session.productFinancialProfileRepository.replaceAll([]),
+    session.storageLocationRepository.replaceAll([]),
+    session.moldRepository.replaceAll([]),
+    session.plasterMoldYieldProfileRepository.replaceAll([]),
   ]);
   container = document.createElement('div');
   document.body.append(container);
