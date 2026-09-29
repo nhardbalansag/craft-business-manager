@@ -31,6 +31,7 @@ beforeEach(async () => {
     session.productFinancialProfileRepository.replaceAll([]),
     session.storageLocationRepository.replaceAll([]),
     session.moldRepository.replaceAll([]),
+    session.plasterMoldYieldProfileRepository.replaceAll([]),
   ]);
   container = document.createElement('div');
   document.body.append(container);
@@ -87,6 +88,7 @@ describe('ProductsWorkspacePage', () => {
     expect(container.textContent).toContain('Molds & storage');
     expect(container.textContent).toContain('Molds');
     expect(container.textContent).toContain('Storage');
+    expect(container.textContent).toContain('Plaster yield setup');
     expect(container.textContent).toContain('Dinosaur Toy');
   });
 });
