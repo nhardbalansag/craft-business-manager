@@ -9,6 +9,7 @@ import {
 } from '../../domain/yieldRecipeSource';
 import {
   cloneYieldSample,
+  YieldSampleContractError,
   type YieldSample,
 } from '../../domain/yieldSamples';
 import type { YieldSampleEvidenceService } from '../yieldSamples/YieldSampleEvidenceService';
@@ -70,14 +71,27 @@ export class YieldRecipeSourceRecordingError extends Error {
 function composeYieldSample(
   input: YieldRecipeSourceRecordingInput,
 ): YieldSample {
+  const {
+    mixPresetId: _unexpectedMixPresetId,
+    ...sampleWithoutPreset
+  } = input.sample as YieldSample;
+
   if (input.source.kind === 'mix-preset') {
+    if (!input.source.mixPresetId.trim()) {
+      throw new YieldSampleContractError(
+        'INVALID_MIX_PRESET_ID',
+        'Mix preset recipe source requires a nonblank Mix preset ID.',
+        input.source.mixPresetId,
+      );
+    }
+
     return {
-      ...input.sample,
+      ...sampleWithoutPreset,
       mixPresetId: input.source.mixPresetId,
     };
   }
 
-  return { ...input.sample };
+  return sampleWithoutPreset;
 }
 
 /**
