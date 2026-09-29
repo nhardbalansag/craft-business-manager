@@ -1,4 +1,5 @@
 import { cloneMold, validateMoldContract, type Mold } from '../../domain/molds';
+import type { PlasterMoldYieldProfileRelationshipGuard } from '../plasterMoldYieldProfiles/PlasterMoldYieldProfileRelationshipGuard';
 import type { ProductRepository } from '../products/ProductRepository';
 import type { StorageLocationRepository } from '../storageLocations/StorageLocationRepository';
 import type { MoldRepository } from './MoldRepository';
@@ -61,6 +62,7 @@ export class MoldService {
     private readonly repository: MoldRepository,
     private readonly productRepository: ProductRepository,
     private readonly storageLocationRepository: StorageLocationRepository,
+    private readonly plasterMoldYieldProfileRelationshipGuard?: PlasterMoldYieldProfileRelationshipGuard,
   ) {}
 
   async createMold(input: Mold): Promise<Mold> {
@@ -80,6 +82,9 @@ export class MoldService {
     const all = await this.repository.list();
     this.assertUnique(candidate, all, existing.id);
     await this.validateReferences(candidate);
+    if (existing.isActive && !candidate.isActive) {
+      await this.plasterMoldYieldProfileRelationshipGuard?.assertMoldCanArchive(existing.id);
+    }
     await this.repository.replace(candidate);
     return cloneMold(candidate);
   }
@@ -91,6 +96,7 @@ export class MoldService {
   async archiveMold(id: string): Promise<Mold> {
     const existing = await this.requireMold(id);
     if (!existing.isActive) return cloneMold(existing);
+    await this.plasterMoldYieldProfileRelationshipGuard?.assertMoldCanArchive(existing.id);
     const archived = { ...existing, isActive: false };
     await this.repository.replace(archived);
     return cloneMold(archived);
