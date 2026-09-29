@@ -213,6 +213,26 @@ describe('YRS2B YieldRecipeSourceRecordingService', () => {
     ).resolves.toBeNull();
   });
 
+  it('rejects a blank Mix preset source selection before writing evidence', async () => {
+    const { service, yieldRepository, sourceRepository } = setup();
+
+    await expect(
+      service.record({
+        sample: sample(),
+        source: {
+          kind: 'mix-preset',
+          mixPresetId: '   ',
+        },
+      }),
+    ).rejects.toMatchObject({
+      name: 'YieldSampleContractError',
+      code: 'INVALID_MIX_PRESET_ID',
+    });
+
+    await expect(yieldRepository.list()).resolves.toEqual([]);
+    await expect(sourceRepository.list()).resolves.toEqual([]);
+  });
+
   it('records Mix preset provenance through the existing YieldSample field', async () => {
     const { service, yieldRepository, sourceRepository } = setup();
 
@@ -334,8 +354,13 @@ describe('YRS2B YieldRecipeSourceRecordingService', () => {
   it('constructs source exclusivity by design instead of persisting two source types', async () => {
     const { service, yieldRepository } = setup();
 
+    const rogueSample = {
+      ...sample(),
+      mixPresetId: 'MIX-ROGUE',
+    } as YieldSample;
+
     await service.record({
-      sample: sample(),
+      sample: rogueSample,
       source: {
         kind: 'mold-formula',
         moldId: 'MOLD-001',
@@ -345,6 +370,24 @@ describe('YRS2B YieldRecipeSourceRecordingService', () => {
 
     const saved = await yieldRepository.findById('YLD-001');
     expect(saved?.mixPresetId).toBeUndefined();
+  });
+
+  it('also strips stray runtime MixPreset data in Manual mode', async () => {
+    const { service, yieldRepository } = setup();
+    const rogueSample = {
+      ...sample(),
+      mixPresetId: 'MIX-ROGUE',
+    } as YieldSample;
+
+    const result = await service.record({
+      sample: rogueSample,
+      source: { kind: 'manual' },
+    });
+
+    expect(result.recipeSource).toEqual({ kind: 'manual' });
+    expect(
+      (await yieldRepository.findById('YLD-001'))?.mixPresetId,
+    ).toBeUndefined();
   });
 
   it('rolls back both identities when provenance insert fails after writing', async () => {
