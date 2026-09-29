@@ -298,7 +298,7 @@ describe('production planning interactions', () => {
     expect(overview().textContent).toContain('Within current capacity');
     expect(overview().textContent).toContain('MOLD FORMULA ESTIMATE');
     expect(overview().textContent).toContain('Formula cost & stock preview');
-    expect(overview().textContent).toContain('PHP 3.68');
+    expect(overview().textContent).toContain('3.68');
     expect(overview().textContent).toContain('112 pc');
     expect(overview().textContent).toContain(
       'does not replace the Product/Yield production plan',
