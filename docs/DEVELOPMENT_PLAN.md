@@ -48,7 +48,7 @@ develop  f7a38edbe4a513ce767fd6e2b22148de1e1a2a17
 CI       36499932137 — SUCCESS
 Tiered Pricing TP0–TP9 — COMPLETE
 Plaster Mold Yield MY0 audit — COMPLETE
-MY1A Formula / Result Domain Contract — CURRENT IMPLEMENTATION
+MY1A Formula / Result Domain Contract — COMPLETE
 ```
 
 Tiered Pricing is complete. Plaster Mold Yield Automation is now the active intervening business-domain enhancement before Phase 6 implementation. Phase 6 remains scoped but must not be started automatically while the MY task chain is active.
@@ -306,7 +306,7 @@ Tiered Pricing is complete. TP9 now proves current tiered workbook round-trip fi
 
 # Plaster Mold Yield Automation — ACTIVE
 
-Status: **MY1A COMPLETE IN THIS CHANGE; MERGE GATE PENDING**
+Status: **MY1A COMPLETE**
 
 Purpose:
 
@@ -427,15 +427,8 @@ Phase 7 scope should be revisited after the desktop/native persistence workflow 
 ## Current Next Action
 
 ```text
-MY1A — Plaster Mold Formula / Result Domain Contract
-CURRENT — IMPLEMENTED ON FEATURE BRANCH, MERGE/POST-MERGE CI GATE PENDING
-```
-
-After MY1A is merged and post-merge `develop` CI is green, stop with:
-
-```text
 MY1B — Mold Yield Profile Source Contract
 NEXT / NOT STARTED
 ```
 
-Do not start MY1B automatically. Phase 6.1A remains pending until the Plaster Mold Yield Automation task chain no longer takes precedence.
+MY1A is complete. Do not start MY1B automatically; reassess the exact green `develop` baseline first. Phase 6.1A remains pending until the Plaster Mold Yield Automation task chain no longer takes precedence.
