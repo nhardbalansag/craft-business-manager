@@ -94,6 +94,14 @@ For Mix preset mode, the selected source ID is the only MixPreset provenance acc
 
 Blank Mix preset selection is rejected before any write.
 
+If corrupted/orphan Mold Formula provenance already reserves the same Yield Sample ID, Manual/Mix-preset recording fails closed with:
+
+```text
+EXISTING_MOLD_FORMULA_SOURCE
+```
+
+This prevents a retry from silently inheriting a different recipe source after a prior rollback failure.
+
 ## Two-Stage Preflight
 
 Before repository mutation:
