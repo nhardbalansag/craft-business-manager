@@ -24,9 +24,12 @@ import {
 } from '../../domain/units';
 import type { YieldSample } from '../../domain/yieldSamples';
 import { YieldProductSearchPicker } from './YieldProductSearchPicker';
+import { PlasterMoldYieldDraftAssist } from './PlasterMoldYieldDraftAssist';
+import type { PlasterMoldYieldDraft } from './plasterMoldYieldDraft';
 import { AppIcon } from '../icons/AppIcon';
 import './yield.css';
 import './yieldEnhancement.css';
+import './plasterMoldYieldDraftAssist.css';
 
 type YieldInputForm = {
   key: string;
@@ -45,7 +48,11 @@ type YieldFormState = {
   materialInputs: YieldInputForm[];
 };
 
-type DraftAction = { kind: 'product'; id: string } | { kind: 'copy'; sample: YieldSample } | { kind: 'reset' };
+type DraftAction =
+  | { kind: 'product'; id: string }
+  | { kind: 'copy'; sample: YieldSample }
+  | { kind: 'formula'; draft: PlasterMoldYieldDraft }
+  | { kind: 'reset' };
 
 function draftKey(form: YieldFormState): string {
   return JSON.stringify({ ...form, materialInputs: form.materialInputs.map(({ key: _key, ...input }) => input) });
@@ -128,6 +135,9 @@ export function YieldPage() {
   const [form, setForm] = useState<YieldFormState>(() => emptyForm());
   const [draftBaseline, setDraftBaseline] = useState(() => draftKey(form));
   const [pendingAction, setPendingAction] = useState<DraftAction | null>(null);
+  const [formulaDraftSource, setFormulaDraftSource] =
+    useState<PlasterMoldYieldDraft | null>(null);
+  const [formulaDraftConfirmed, setFormulaDraftConfirmed] = useState(false);
   const [busy, setBusy] = useState<'save' | 'delete' | 'preference' | null>(null);
   const mutationInFlight = useRef(false);
   const historyRequest = useRef(0);
@@ -178,13 +188,26 @@ export function YieldPage() {
   const draftMixReady = !form.mixPresetId || compatibleMixes.some((mix) => mix.id === form.mixPresetId);
   const generatedSampleId = useMemo(() => nextSequentialId(knownSampleIds, 'YLD'), [knownSampleIds]);
   const draftReferenceReady = Boolean(Number.isFinite(new Date(form.recordedAt).getTime()) && draftMixReady);
-  const draftMaterialsReady = form.materialInputs.length > 0 && completeMaterialInputs === form.materialInputs.length;
-  const draftReady = Boolean(selectedProduct?.isActive && draftReferenceReady && draftMaterialsReady && draftOutcomeReady);
+  const draftMaterialLinesReady =
+    form.materialInputs.length > 0 &&
+    completeMaterialInputs === form.materialInputs.length;
+  const draftFormulaEvidenceConfirmed =
+    formulaDraftSource === null || formulaDraftConfirmed;
+  const draftMaterialsReady =
+    draftMaterialLinesReady && draftFormulaEvidenceConfirmed;
+  const draftReady = Boolean(
+    selectedProduct?.isActive &&
+      draftReferenceReady &&
+      draftMaterialsReady &&
+      draftOutcomeReady,
+  );
 
   function replaceDraft(next: YieldFormState) {
     setForm(next);
     setDraftBaseline(draftKey(next));
     setPendingAction(null);
+    setFormulaDraftSource(null);
+    setFormulaDraftConfirmed(false);
   }
 
   useEffect(() => {
@@ -353,6 +376,7 @@ export function YieldPage() {
         input.key === key ? { ...input, ...changes } : input,
       ),
     }));
+    if (formulaDraftSource) setFormulaDraftConfirmed(false);
   }
 
   function changeMaterial(key: string, materialId: string) {
@@ -368,6 +392,7 @@ export function YieldPage() {
       ...current,
       materialInputs: [...current.materialInputs, newInput()],
     }));
+    if (formulaDraftSource) setFormulaDraftConfirmed(false);
   }
 
   function removeMaterialInput(key: string) {
@@ -375,6 +400,7 @@ export function YieldPage() {
       ...current,
       materialInputs: current.materialInputs.filter((input) => input.key !== key),
     }));
+    if (formulaDraftSource) setFormulaDraftConfirmed(false);
   }
 
   function resetDraft() {
@@ -384,6 +410,8 @@ export function YieldPage() {
 
   function useSampleAsDraft(sample: YieldSample) {
     if (!selectedProduct?.isActive) return;
+    setFormulaDraftSource(null);
+    setFormulaDraftConfirmed(false);
     setForm({
       id: '',
       mixPresetId: mixById.get(sample.mixPresetId?.toLocaleLowerCase() ?? '')?.id ?? sample.mixPresetId ?? '',
@@ -404,10 +432,39 @@ export function YieldPage() {
     });
   }
 
+  function useFormulaAsDraft(draft: PlasterMoldYieldDraft) {
+    if (!selectedProduct?.isActive) return;
+    setFormulaDraftSource(draft);
+    setFormulaDraftConfirmed(false);
+    setForm({
+      id: '',
+      mixPresetId: selectedProduct.mixPresetId ?? '',
+      goodPieces: '',
+      rejectedPieces: '',
+      recordedAt: localDateTimeValue(),
+      notes: '',
+      materialInputs: draft.materialInputs.map((input) => ({
+        ...newInput(input.unit),
+        materialId:
+          materialById.get(input.materialId.toLocaleLowerCase())?.id ??
+          input.materialId,
+        quantity: String(input.quantity),
+        unit: input.unit,
+      })),
+    });
+    setFeedback({
+      type: 'success',
+      message:
+        `Theoretical Mold Formula copied from ${draft.moldName} (${draft.moldId}) / ${draft.profileId}. ` +
+        'Measure the real batch, replace or confirm the copied material quantities, and enter actual good/rejected pieces before recording.',
+    });
+  }
+
   function performDraftAction(action: DraftAction) {
     setPendingAction(null);
     if (action.kind === 'product') setSelectedProductId(action.id);
     else if (action.kind === 'copy') useSampleAsDraft(action.sample);
+    else if (action.kind === 'formula') useFormulaAsDraft(action.draft);
     else resetDraft();
   }
 
@@ -679,6 +736,17 @@ export function YieldPage() {
                 <h2 id="yield-evidence-column-heading">Batch evidence</h2>
                 <p>Enter this batch's actual consumption and piece counts. Draft values become evidence when you record the sample.</p>
               </div>
+
+              {selectedProduct && (
+                <PlasterMoldYieldDraftAssist
+                  product={selectedProduct}
+                  disabled={Boolean(busy) || !selectedProduct.isActive}
+                  onUseDraft={(draft) =>
+                    requestDraftAction({ kind: 'formula', draft })
+                  }
+                />
+              )}
+
             <form className="panel material-form yield-form" aria-busy={Boolean(busy)} aria-label="Yield sample" onSubmit={submitSample}>
               <div className="panel-heading yield-form-heading">
                 <div>
@@ -693,7 +761,13 @@ export function YieldPage() {
               {pendingAction && (
                 <div className="yield-draft-confirm" role="alert" ref={draftWarning} tabIndex={-1}>
                   <strong>Keep your unsaved batch?</strong>
-                  <p>{pendingAction.kind === 'product' ? 'Switching products will replace the current draft.' : pendingAction.kind === 'copy' ? `Using ${pendingAction.sample.id} will replace the current draft.` : 'Resetting will clear your current draft.'}</p>
+                  <p>{pendingAction.kind === 'product'
+  ? 'Switching products will replace the current draft.'
+  : pendingAction.kind === 'copy'
+    ? `Using ${pendingAction.sample.id} will replace the current draft.`
+    : pendingAction.kind === 'formula'
+      ? `Using the Mold Formula from ${pendingAction.draft.moldName} will replace the current draft.`
+      : 'Resetting will clear your current draft.'}</p>
                   <div>
                     <button type="button" className="button button-primary" disabled={Boolean(busy)} onClick={() => { setPendingAction(null); }}>Keep editing</button>
                     <button type="button" className="button button-quiet" disabled={Boolean(busy)} onClick={() => performDraftAction(pendingAction)}>Discard draft and continue</button>
@@ -727,8 +801,37 @@ export function YieldPage() {
               <p className="yield-draft-help">
                 {draftReady
                   ? 'This draft has the minimum evidence needed to record the batch.'
-                  : 'Use a valid date, complete each active material line, and enter whole-piece counts. The Sample ID is assigned automatically.'}
+                  : formulaDraftSource && !formulaDraftConfirmed
+                    ? 'Formula-assisted material quantities must be measured or confirmed against the real batch before recording.'
+                    : 'Use a valid date, complete each active material line, and enter whole-piece counts. The Sample ID is assigned automatically.'}
               </p>
+
+              {formulaDraftSource && (
+                <div className="yield-formula-draft-guard" role="note">
+                  <div>
+                    <strong>
+                      Formula-assisted draft · {formulaDraftSource.moldName} ({formulaDraftSource.moldId})
+                    </strong>
+                    <p>
+                      Profile {formulaDraftSource.profileId} supplied theoretical material quantities only.
+                      Good/rejected pieces were intentionally left blank. Actual measurements remain authoritative.
+                    </p>
+                  </div>
+                  <label className="yield-formula-draft-confirmation">
+                    <input
+                      type="checkbox"
+                      checked={formulaDraftConfirmed}
+                      disabled={Boolean(busy) || !selectedProduct?.isActive}
+                      onChange={(event) =>
+                        setFormulaDraftConfirmed(event.target.checked)
+                      }
+                    />
+                    <span>
+                      I measured this real batch and replaced or confirmed the material quantities below against the actual consumption.
+                    </span>
+                  </label>
+                </div>
+              )}
 
               <section className="yield-form-section" aria-labelledby="yield-batch-reference-heading">
                 <div className="yield-section-heading">
