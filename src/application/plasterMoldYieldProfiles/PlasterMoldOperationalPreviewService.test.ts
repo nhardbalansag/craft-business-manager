@@ -117,7 +117,6 @@ describe('MY7 PlasterMoldOperationalPreviewService', () => {
         perPourGrams: 35,
         targetBatchGrams: 210,
         costPerGram: 0.02,
-        costPerPour: 0.7,
         normalizedOnHandGrams: 1000,
         completePourCapacity: 28,
         producedPieceCapacity: 112,
@@ -129,7 +128,6 @@ describe('MY7 PlasterMoldOperationalPreviewService', () => {
         perPourGrams: 26.25,
         targetBatchGrams: 157.5,
         costPerGram: 0.1,
-        costPerPour: 2.625,
         completePourCapacity: 38,
         isLimiting: false,
       }),
@@ -138,11 +136,19 @@ describe('MY7 PlasterMoldOperationalPreviewService', () => {
         perPourGrams: 1.75,
         targetBatchGrams: 10.5,
         costPerGram: 0.2,
-        costPerPour: 0.35,
         completePourCapacity: 571,
         isLimiting: false,
       }),
     ]);
+    expect(
+      result.materials.find((line) => line.role === 'water')?.costPerPour,
+    ).toBeCloseTo(0.7);
+    expect(
+      result.materials.find((line) => line.role === 'plaster')?.costPerPour,
+    ).toBeCloseTo(2.625);
+    expect(
+      result.materials.find((line) => line.role === 'glue')?.costPerPour,
+    ).toBeCloseTo(0.35);
     expect(result.limitingMaterialIds).toEqual(['MAT-WATER']);
   });
 
