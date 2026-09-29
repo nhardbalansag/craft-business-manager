@@ -79,12 +79,12 @@ export class YieldMoldFormulaSourceService {
   ) {}
 
   async prepareSourceForPendingYieldSample(
-    input: YieldMoldFormulaSource,
+    input: Omit<YieldMoldFormulaSource, 'yieldSampleId'>,
     pendingSample: YieldSample,
   ): Promise<YieldMoldFormulaSource> {
     let candidate = normalizeYieldMoldFormulaSource({
-      ...input,
       yieldSampleId: pendingSample.id,
+      ...input,
     });
     validateYieldMoldFormulaSourceContract(candidate);
 
@@ -115,16 +115,19 @@ export class YieldMoldFormulaSourceService {
   async createSource(
     input: YieldMoldFormulaSource,
   ): Promise<YieldMoldFormulaSource> {
+    const normalized = normalizeYieldMoldFormulaSource(input);
+    validateYieldMoldFormulaSourceContract(normalized);
+
     const existingSample = await this.yieldSamples.findById(
-      input.yieldSampleId,
+      normalized.yieldSampleId,
     );
 
     if (!existingSample) {
       throw new YieldMoldFormulaSourceApplicationError(
         'YIELD_SAMPLE_NOT_FOUND',
-        `Yield Sample not found: ${input.yieldSampleId.trim()}.`,
+        `Yield Sample not found: ${normalized.yieldSampleId}.`,
         {
-          yieldSampleId: input.yieldSampleId.trim(),
+          yieldSampleId: normalized.yieldSampleId,
           field: 'yieldSampleId',
         },
       );
@@ -132,7 +135,10 @@ export class YieldMoldFormulaSourceService {
 
     const candidate =
       await this.prepareSourceForPendingYieldSample(
-        input,
+        {
+          moldId: normalized.moldId,
+          moldYieldProfileId: normalized.moldYieldProfileId,
+        },
         existingSample,
       );
 
