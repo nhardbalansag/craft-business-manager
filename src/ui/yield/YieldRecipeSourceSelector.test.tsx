@@ -75,8 +75,12 @@ describe('YRS3A YieldRecipeSourceSelector', () => {
       ),
     );
 
-    expect(radio('mix-preset').disabled).toBe(true);
-    expect(radio('mold-formula').disabled).toBe(true);
-    expect(radio('manual').disabled).toBe(true);
+    const group = container.querySelector<HTMLFieldSetElement>(
+      '[aria-label="Recipe source"]',
+    )!;
+    expect(group.disabled).toBe(true);
+    expect(radio('mix-preset').matches(':disabled')).toBe(true);
+    expect(radio('mold-formula').matches(':disabled')).toBe(true);
+    expect(radio('manual').matches(':disabled')).toBe(true);
   });
 });
