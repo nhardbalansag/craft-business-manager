@@ -303,7 +303,7 @@ describe('Yield workspace UI/UX', () => {
     expect(container.textContent).toContain(
       'No Mold Formula is attached to this draft yet.',
     );
-    expect(container.textContent).toContain('MOLD FORMULA ASSIST below');
+    expect(container.textContent).toContain('Formula setup below');
     expect(
       container.querySelector('[aria-label="Mold Formula assistant"]'),
     ).not.toBeNull();

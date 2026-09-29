@@ -165,15 +165,32 @@ describe('MY6 Yield Workspace Mold Formula integration', () => {
   it('copies a theoretical formula into a draft without creating Yield evidence', async () => {
     await mount();
 
-    expect(container.textContent).not.toContain('MOLD FORMULA ASSIST');
+    expect(container.textContent).not.toContain('FORMULA SETUP');
     await selectMoldFormulaSource();
 
     expect(
       container.querySelector('[aria-label="Mold Formula assistant"]'),
     ).not.toBeNull();
-    expect(container.textContent).toContain('MOLD FORMULA ASSIST');
-    expect(container.textContent).toContain('Four Cavity Dino Mold');
-    expect(container.textContent).toContain('63 g');
+    expect(container.textContent).toContain('FORMULA SETUP');
+    expect(
+      container.querySelector('[aria-label="Formula source context"]')
+        ?.textContent,
+    ).toContain('Four Cavity Dino Mold');
+    expect(
+      container.querySelector('[aria-label="Formula source context"]')
+        ?.textContent,
+    ).toContain('PMYP-MY6');
+    const baselinePreview = container.querySelector<HTMLElement>(
+      '[aria-label="Theoretical Mold Formula preview"]',
+    )!;
+    expect(baselinePreview.textContent).toContain('One-pour baseline');
+    expect(baselinePreview.textContent).toContain('63 g');
+    const baselineCapacity = container.querySelector<HTMLElement>(
+      '[aria-label="Formula production capacity preview"]',
+    )!;
+    expect(baselineCapacity.textContent).toContain('Required pours1');
+    expect(baselineCapacity.textContent).toContain('Capacity4pieces');
+    expect(baselineCapacity.textContent).toContain('Extra capacity0pieces');
 
     await click('Use as Yield Sample Draft');
 
@@ -242,8 +259,18 @@ describe('MY6 Yield Workspace Mold Formula integration', () => {
     )!;
     await fill(planned, '21');
 
-    expect(container.textContent).toContain('378 g');
-    expect(container.textContent).toContain('6 pour(s) · capacity 24 · extra 3');
+    const preview = container.querySelector<HTMLElement>(
+      '[aria-label="Theoretical Mold Formula preview"]',
+    )!;
+    expect(preview.textContent).toContain('21 planned pieces');
+    expect(preview.textContent).toContain('378 g');
+
+    const capacity = container.querySelector<HTMLElement>(
+      '[aria-label="Formula production capacity preview"]',
+    )!;
+    expect(capacity.textContent).toContain('Required pours6');
+    expect(capacity.textContent).toContain('Capacity24pieces');
+    expect(capacity.textContent).toContain('Extra capacity3pieces');
 
     await click('Use as Yield Sample Draft');
 

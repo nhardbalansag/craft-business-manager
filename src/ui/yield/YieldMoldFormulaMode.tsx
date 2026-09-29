@@ -47,8 +47,8 @@ export function YieldMoldFormulaMode({
         <div className="yield-source-mode-state" role="note">
           <strong>No Mold Formula is attached to this draft yet.</strong>
           <span>
-            Use MOLD FORMULA ASSIST below to choose a saved Mold Formula and
-            copy its theoretical quantities into this batch draft.
+            Use Formula setup below to choose a saved Mold Formula, review its
+            theoretical production estimate, and copy it into this batch draft.
           </span>
         </div>
       ) : (

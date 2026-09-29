@@ -151,22 +151,31 @@ export function PlasterMoldYieldDraftAssist({
     };
   }, [plannedPieces, selectedMoldId]);
 
+  const selectedMold = selectedMoldId
+    ? eligibleMolds.find(
+        (mold) => comparable(mold.id) === comparable(selectedMoldId),
+      )
+    : undefined;
   const selectedProfile = selectedMoldId
     ? profileByMold.get(comparable(selectedMoldId))
     : undefined;
+  const requested = estimate?.formula.requestedQuantityEstimate;
+  const previewLabel = requested
+    ? `${requested.requestedQuantity} planned piece${requested.requestedQuantity === 1 ? '' : 's'}`
+    : 'One-pour baseline';
 
   return (
     <section
-      className="yield-formula-assist panel"
+      className="yield-formula-assist"
       aria-label="Mold Formula Yield draft assistant"
     >
       <div className="yield-formula-assist-heading">
         <div>
-          <p className="panel-kicker">MOLD FORMULA ASSIST</p>
-          <h3>Start from a theoretical plaster estimate</h3>
+          <p className="panel-kicker">FORMULA SETUP</p>
+          <h3>Choose a Mold Formula and production target</h3>
           <p>
-            Copy Water, Plaster, and Glue estimates into the batch form, then
-            replace or confirm them against the real measured consumption.
+            Planned pieces scale the theoretical Water, Plaster, and Glue
+            estimate before you copy it into the editable batch evidence.
           </p>
         </div>
         <span>Theoretical only</span>
@@ -206,7 +215,7 @@ export function PlasterMoldYieldDraftAssist({
                 ))}
               </select>
               <small>
-                Active profile: {selectedProfile?.id ?? '—'}
+                The saved profile defines the theoretical material formula.
               </small>
             </label>
 
@@ -223,9 +232,30 @@ export function PlasterMoldYieldDraftAssist({
                 placeholder="Optional"
               />
               <small>
-                Leave blank to copy one-pour quantities.
+                Leave blank for one pour; enter a target to scale required pours
+                and formula quantities.
               </small>
             </label>
+          </div>
+
+          <div
+            className="yield-formula-source-context"
+            aria-label="Formula source context"
+          >
+            <div>
+              <span>Mold</span>
+              <strong>{selectedMold?.name ?? '—'}</strong>
+              <small>{selectedMold?.id ?? '—'}</small>
+            </div>
+            <div>
+              <span>Profile</span>
+              <strong>{selectedProfile?.id ?? '—'}</strong>
+              <small>
+                {selectedProfile
+                  ? `${selectedProfile.piecesPerPour} piece${selectedProfile.piecesPerPour === 1 ? '' : 's'} per pour`
+                  : 'No saved profile'}
+              </small>
+            </div>
           </div>
 
           {estimateError ? (
@@ -233,14 +263,26 @@ export function PlasterMoldYieldDraftAssist({
               {estimateError}
             </div>
           ) : estimate ? (
-            <>
+            <div
+              className="yield-formula-preview"
+              aria-label="Theoretical Mold Formula preview"
+            >
+              <div className="yield-formula-preview-heading">
+                <div>
+                  <strong>Theoretical formula preview</strong>
+                  <span>
+                    Use this as planning guidance, then verify the real batch.
+                  </span>
+                </div>
+                <span>{previewLabel}</span>
+              </div>
+
               <div className="yield-formula-assist-metrics">
                 <div>
                   <span>Water</span>
                   <strong>
                     {formatGrams(
-                      estimate.formula.requestedQuantityEstimate?.totals
-                        .adjustedWaterGrams ??
+                      requested?.totals.adjustedWaterGrams ??
                         estimate.formula.perPour.adjustedWaterGrams,
                     )}
                   </strong>
@@ -249,8 +291,7 @@ export function PlasterMoldYieldDraftAssist({
                   <span>Plaster</span>
                   <strong>
                     {formatGrams(
-                      estimate.formula.requestedQuantityEstimate?.totals
-                        .plasterGrams ??
+                      requested?.totals.plasterGrams ??
                         estimate.formula.perPour.plasterGrams,
                     )}
                   </strong>
@@ -259,8 +300,7 @@ export function PlasterMoldYieldDraftAssist({
                   <span>Glue</span>
                   <strong>
                     {formatGrams(
-                      estimate.formula.requestedQuantityEstimate?.totals
-                        .glueGrams ??
+                      requested?.totals.glueGrams ??
                         estimate.formula.perPour.glueGrams,
                     )}
                   </strong>
@@ -269,20 +309,44 @@ export function PlasterMoldYieldDraftAssist({
                   <span>Total mix</span>
                   <strong>
                     {formatGrams(
-                      estimate.formula.requestedQuantityEstimate?.totals
-                        .totalMixtureGrams ??
+                      requested?.totals.totalMixtureGrams ??
                         estimate.formula.perPour.totalMixtureGrams,
                     )}
                   </strong>
                 </div>
               </div>
 
-              <div className="yield-formula-assist-capacity">
-                <span>
-                  {estimate.formula.requestedQuantityEstimate
-                    ? `${estimate.formula.requestedQuantityEstimate.requiredPours} pour(s) · capacity ${estimate.formula.requestedQuantityEstimate.producedCapacityPieces} · extra ${estimate.formula.requestedQuantityEstimate.extraCapacityPieces}`
-                    : `1 pour · capacity ${estimate.formula.piecesPerPour}`}
-                </span>
+              <div
+                className="yield-formula-capacity-preview"
+                aria-label="Formula production capacity preview"
+              >
+                <div>
+                  <span>Required pours</span>
+                  <strong>{requested?.requiredPours ?? 1}</strong>
+                </div>
+                <div>
+                  <span>Capacity</span>
+                  <strong>
+                    {requested?.producedCapacityPieces ??
+                      estimate.formula.piecesPerPour}
+                  </strong>
+                  <small>pieces</small>
+                </div>
+                <div>
+                  <span>Extra capacity</span>
+                  <strong>{requested?.extraCapacityPieces ?? 0}</strong>
+                  <small>pieces</small>
+                </div>
+              </div>
+
+              <div className="yield-formula-assist-action">
+                <div>
+                  <strong>Ready to use as a draft?</strong>
+                  <span>
+                    Copy these theoretical quantities into Materials actually
+                    consumed; they remain editable and are not evidence yet.
+                  </span>
+                </div>
                 <button
                   type="button"
                   className="button button-quiet"
@@ -299,7 +363,7 @@ export function PlasterMoldYieldDraftAssist({
                 This action does not record Yield evidence and does not set good
                 or rejected pieces. Actual batch measurements remain required.
               </p>
-            </>
+            </div>
           ) : (
             <div className="yield-formula-assist-state" role="status">
               Calculating saved Mold Formula…
