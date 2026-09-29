@@ -927,7 +927,7 @@ export function YieldPage() {
                 {draftReady
                   ? 'This draft has the minimum evidence needed to record the batch.'
                   : form.recipeSourceKind === 'mold-formula' && formulaDraftSource === null
-                    ? 'Choose a saved Mold Formula using the assistant above before recording this source type.'
+                    ? 'Choose a saved Mold Formula in the Mold Formula source area below before recording this source type.'
                     : formulaDraftSource && !formulaDraftConfirmed
                       ? 'Formula-assisted material quantities must be measured or confirmed against the real batch before recording.'
                       : form.recipeSourceKind === 'mix-preset' && !draftMixReady
