@@ -77,10 +77,14 @@ export class YieldMoldFormulaSourceService {
     private readonly profiles: PlasterMoldYieldProfileRepository,
   ) {}
 
-  async createSource(
+  async prepareSourceForPendingYieldSample(
     input: YieldMoldFormulaSource,
+    pendingSample: import('../../domain/yieldSamples').YieldSample,
   ): Promise<YieldMoldFormulaSource> {
-    let candidate = normalizeYieldMoldFormulaSource(input);
+    let candidate = normalizeYieldMoldFormulaSource({
+      ...input,
+      yieldSampleId: pendingSample.id,
+    });
     validateYieldMoldFormulaSourceContract(candidate);
 
     const existing = await this.repository.findByYieldSampleId(
@@ -99,8 +103,37 @@ export class YieldMoldFormulaSourceService {
       );
     }
 
-    candidate = await this.canonicalizeReferences(candidate);
-    await this.assertCreateReferences(candidate);
+    candidate = await this.canonicalizePendingReferences(
+      candidate,
+      pendingSample,
+    );
+    await this.assertCreateReferences(candidate, pendingSample);
+    return cloneYieldMoldFormulaSource(candidate);
+  }
+
+  async createSource(
+    input: YieldMoldFormulaSource,
+  ): Promise<YieldMoldFormulaSource> {
+    const existingSample = await this.yieldSamples.findById(
+      input.yieldSampleId,
+    );
+
+    if (!existingSample) {
+      throw new YieldMoldFormulaSourceApplicationError(
+        'YIELD_SAMPLE_NOT_FOUND',
+        `Yield Sample not found: ${input.yieldSampleId.trim()}.`,
+        {
+          yieldSampleId: input.yieldSampleId.trim(),
+          field: 'yieldSampleId',
+        },
+      );
+    }
+
+    const candidate =
+      await this.prepareSourceForPendingYieldSample(
+        input,
+        existingSample,
+      );
 
     await this.repository.insert(candidate);
     return cloneYieldMoldFormulaSource(candidate);
@@ -161,17 +194,17 @@ export class YieldMoldFormulaSourceService {
     );
   }
 
-  private async canonicalizeReferences(
+  private async canonicalizePendingReferences(
     source: YieldMoldFormulaSource,
+    pendingSample: import('../../domain/yieldSamples').YieldSample,
   ): Promise<YieldMoldFormulaSource> {
-    const [sample, mold, profile] = await Promise.all([
-      this.yieldSamples.findById(source.yieldSampleId),
+    const [mold, profile] = await Promise.all([
       this.molds.findById(source.moldId),
       this.profiles.findById(source.moldYieldProfileId),
     ]);
 
     return normalizeYieldMoldFormulaSource({
-      yieldSampleId: sample?.id ?? source.yieldSampleId,
+      yieldSampleId: pendingSample.id,
       moldId: mold?.id ?? source.moldId,
       moldYieldProfileId: profile?.id ?? source.moldYieldProfileId,
     });
@@ -179,6 +212,7 @@ export class YieldMoldFormulaSourceService {
 
   private async assertCreateReferences(
     candidate: YieldMoldFormulaSource,
+    pendingSample: import('../../domain/yieldSamples').YieldSample,
   ): Promise<void> {
     const [sources, yieldSamples, molds, profiles] = await Promise.all([
       this.repository.list(),
@@ -187,9 +221,17 @@ export class YieldMoldFormulaSourceService {
       this.profiles.list(),
     ]);
 
+    const pendingKey = comparable(pendingSample.id);
+    const proposedYieldSamples = [
+      ...yieldSamples.filter(
+        (sample) => comparable(sample.id) !== pendingKey,
+      ),
+      pendingSample,
+    ];
+
     const historical = validateYieldMoldFormulaSourceReferences({
       sources: [...sources, candidate],
-      yieldSamples,
+      yieldSamples: proposedYieldSamples,
       molds,
       profiles,
       mode: 'historical',
@@ -201,7 +243,7 @@ export class YieldMoldFormulaSourceService {
 
     const recording = validateYieldMoldFormulaSourceReferences({
       sources: [candidate],
-      yieldSamples,
+      yieldSamples: proposedYieldSamples,
       molds,
       profiles,
       mode: 'recording',
