@@ -56,7 +56,7 @@ afterEach(async () => {
   vi.unstubAllGlobals();
 });
 
-describe('YRS3C YieldMoldFormulaMode', () => {
+describe('YRS4C YieldMoldFormulaMode', () => {
   it('shows an explicit empty source state before a formula draft is attached', async () => {
     await act(async () =>
       root.render(
@@ -127,6 +127,67 @@ describe('YRS3C YieldMoldFormulaMode', () => {
     expect(assistant).not.toBeNull();
     expect(assistant.textContent).toContain('FORMULA SETUP');
     expect(container.textContent).toContain('Use Formula setup below');
+  });
+
+  it('integrates the real-batch confirmation only after a Formula draft is attached', async () => {
+    const onMeasurementConfirmationChange = vi.fn();
+
+    await act(async () =>
+      root.render(
+        <YieldMoldFormulaMode
+          draft={draft}
+          selectedProductId="PROD-DINO"
+          measurementConfirmed={false}
+          onMeasurementConfirmationChange={onMeasurementConfirmationChange}
+        />,
+      ),
+    );
+
+    const confirmation = container.querySelector<HTMLElement>(
+      '[aria-label="Actual measurement confirmation"]',
+    )!;
+    const checkbox = confirmation.querySelector<HTMLInputElement>(
+      'input[type="checkbox"]',
+    )!;
+
+    expect(confirmation).not.toBeNull();
+    expect(confirmation.textContent).toContain('Required');
+    expect(confirmation.textContent).toContain(
+      'Changing, adding, or removing any Material line resets this confirmation',
+    );
+    expect(checkbox.checked).toBe(false);
+
+    await act(async () => checkbox.click());
+
+    expect(onMeasurementConfirmationChange).toHaveBeenCalledOnce();
+    expect(onMeasurementConfirmationChange).toHaveBeenCalledWith(true);
+  });
+
+  it('shows confirmed state and disables confirmation for a mismatched Product source', async () => {
+    const onMeasurementConfirmationChange = vi.fn();
+
+    await act(async () =>
+      root.render(
+        <YieldMoldFormulaMode
+          draft={draft}
+          selectedProductId="PROD-OTHER"
+          measurementConfirmed={true}
+          onMeasurementConfirmationChange={onMeasurementConfirmationChange}
+        />,
+      ),
+    );
+
+    const confirmation = container.querySelector<HTMLElement>(
+      '[aria-label="Actual measurement confirmation"]',
+    )!;
+    const checkbox = confirmation.querySelector<HTMLInputElement>(
+      'input[type="checkbox"]',
+    )!;
+
+    expect(confirmation.textContent).toContain('Confirmed');
+    expect(confirmation.classList.contains('is-confirmed')).toBe(true);
+    expect(checkbox.checked).toBe(true);
+    expect(checkbox.disabled).toBe(true);
   });
 
   it('fails visibly if an attached formula belongs to another Product', async () => {
