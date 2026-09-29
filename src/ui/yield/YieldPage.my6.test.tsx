@@ -180,10 +180,17 @@ describe('MY6 Yield Workspace Mold Formula integration', () => {
       container.querySelector('[aria-label="Formula source context"]')
         ?.textContent,
     ).toContain('PMYP-MY6');
-    expect(
-      container.querySelector('[aria-label="Theoretical Mold Formula preview"]')
-        ?.textContent,
-    ).toContain('63 g');
+    const baselinePreview = container.querySelector<HTMLElement>(
+      '[aria-label="Theoretical Mold Formula preview"]',
+    )!;
+    expect(baselinePreview.textContent).toContain('One-pour baseline');
+    expect(baselinePreview.textContent).toContain('63 g');
+    const baselineCapacity = container.querySelector<HTMLElement>(
+      '[aria-label="Formula production capacity preview"]',
+    )!;
+    expect(baselineCapacity.textContent).toContain('Required pours1');
+    expect(baselineCapacity.textContent).toContain('Capacity4pieces');
+    expect(baselineCapacity.textContent).toContain('Extra capacity0pieces');
 
     await click('Use as Yield Sample Draft');
 
