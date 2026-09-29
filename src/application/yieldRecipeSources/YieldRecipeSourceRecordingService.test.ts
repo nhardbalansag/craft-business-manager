@@ -447,6 +447,33 @@ describe('YRS2B YieldRecipeSourceRecordingService', () => {
     ]);
   });
 
+  it('rejects Manual or Mix preset recording when orphan Mold Formula provenance already reserves the sample ID', async () => {
+    const sourceRepository =
+      new InMemoryYieldMoldFormulaSourceRepository([
+        {
+          yieldSampleId: 'YLD-001',
+          moldId: 'MOLD-001',
+          moldYieldProfileId: 'PMYP-001',
+        },
+      ]);
+    const { service, yieldRepository } = setup({
+      sourceRepository,
+    });
+
+    await expect(
+      service.record({
+        sample: sample(),
+        source: { kind: 'manual' },
+      }),
+    ).rejects.toMatchObject({
+      name: 'YieldRecipeSourceRecordingError',
+      code: 'EXISTING_MOLD_FORMULA_SOURCE',
+      sampleId: 'YLD-001',
+    });
+
+    await expect(yieldRepository.list()).resolves.toEqual([]);
+  });
+
   it('keeps the legacy direct evidence recording path available', async () => {
     const { evidence, yieldRepository, sourceRepository } = setup();
 
