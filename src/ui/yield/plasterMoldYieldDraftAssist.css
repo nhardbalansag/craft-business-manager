@@ -215,7 +215,7 @@
   background: var(--surface-soft, #f7f8fa);
 }
 
-.yield-formula-draft-guard {
+.yield-formula-measurement-confirmation {
   display: grid;
   gap: 10px;
   padding: 12px 13px;
@@ -224,15 +224,52 @@
   background: #fffaf1;
 }
 
-.yield-formula-draft-guard strong {
-  color: #5f4d31;
+.yield-formula-measurement-confirmation.is-confirmed {
+  border-color: #b9cbb6;
+  background: #f4f8f2;
 }
 
-.yield-formula-draft-guard p {
-  margin: 0;
+.yield-formula-measurement-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.yield-formula-measurement-heading > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.yield-formula-measurement-heading strong {
+  color: #5f4d31;
+  font-size: .78rem;
+}
+
+.yield-formula-measurement-heading > div > span,
+.yield-formula-measurement-confirmation > small {
   color: #75664f;
-  font-size: .75rem;
-  line-height: 1.5;
+  font-size: .7rem;
+  line-height: 1.45;
+}
+
+.yield-formula-measurement-heading > span {
+  flex: 0 0 auto;
+  padding: 4px 7px;
+  border-radius: 999px;
+  background: #f1e5c9;
+  color: #70582e;
+  font-size: .64rem;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.yield-formula-measurement-confirmation.is-confirmed
+  .yield-formula-measurement-heading > span {
+  background: #deeadb;
+  color: #4f684c;
 }
 
 .yield-formula-draft-confirmation {
@@ -256,7 +293,8 @@
 @media (max-width: 780px) {
   .yield-formula-assist-heading,
   .yield-formula-assist-action,
-  .yield-formula-preview-heading {
+  .yield-formula-preview-heading,
+  .yield-formula-measurement-heading {
     align-items: stretch;
     flex-direction: column;
   }
