@@ -37,6 +37,7 @@ export type {
   MoldFormulaYieldRecipeSource,
   MoldFormulaYieldRecipeSourceReference,
 } from './yieldRecipeSource';
+export type { YieldMoldFormulaSource } from './yieldMoldFormulaSource';
 export type { BaseUnit, InputUnit } from './units';
 
 /**
