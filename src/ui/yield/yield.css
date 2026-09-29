@@ -559,6 +559,80 @@
   gap: 12px;
 }
 
+.yield-recipe-source-selector {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.yield-recipe-source-selector > legend {
+  padding: 0;
+  color: var(--yield-ink);
+  font-size: .79rem;
+  font-weight: 760;
+}
+
+.yield-recipe-source-selector > p {
+  margin: 0;
+  color: var(--yield-muted);
+  font-size: .75rem;
+  line-height: 1.45;
+}
+
+.yield-recipe-source-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.yield-recipe-source-option {
+  min-width: 0;
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  padding: 11px;
+  border: 1px solid #ded6ca;
+  border-radius: 12px;
+  background: #fbf8f3;
+  cursor: pointer;
+}
+
+.yield-recipe-source-option.is-selected {
+  border-color: #b9a98e;
+  background: #f3ede3;
+  box-shadow: inset 0 0 0 1px #d4c6b1;
+}
+
+.yield-recipe-source-option input {
+  margin: 3px 0 0;
+  flex: 0 0 auto;
+}
+
+.yield-recipe-source-option > span {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.yield-recipe-source-option strong {
+  color: var(--yield-ink);
+  font-size: .78rem;
+}
+
+.yield-recipe-source-option small {
+  color: var(--yield-muted);
+  font-size: .68rem;
+  line-height: 1.4;
+}
+
+.yield-recipe-source-selector:disabled .yield-recipe-source-option {
+  cursor: not-allowed;
+  opacity: .62;
+}
+
 @media (max-width: 1180px) {
   .yield-product-bar {
     grid-template-columns: minmax(220px, 300px) minmax(0, 1fr);
@@ -580,6 +654,7 @@
 }
 
 @media (max-width: 760px) {
+  .yield-recipe-source-options { grid-template-columns: 1fr; }
   .yield-guide { grid-template-columns: 1fr; }
   .yield-product-bar { grid-template-columns: 1fr; align-items: stretch; }
   .yield-product-context { grid-template-columns: 1fr 1fr; }
