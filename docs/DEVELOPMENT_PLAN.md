@@ -50,14 +50,15 @@ Historical child completion records remain authoritative for their individual co
 
 ## Current Repository Milestone
 
-Verified YRS0 audit base:
+Verified YRS2A integration base:
 
 ```text
-develop  3a8e87469df35e0db939915f9dc942e99a7b33b7
-CI       36533479009 — SUCCESS
+develop  a9a3876b94360a632bca1e99ac60b5c6f6eb7ffc
+CI       36545345748 — SUCCESS
 Tiered Pricing TP0–TP9 — COMPLETE
 Plaster Mold Yield MY0–MY8 — COMPLETE
-YRS0 Domain & Compatibility Audit — COMPLETE IN THIS CHANGE
+YRS1 Recipe Source Domain Foundation — COMPLETE
+YRS2A Provenance Repository + Application Service — COMPLETE IN THIS CHANGE
 ```
 
 Tiered Pricing and Plaster Mold Yield Automation are complete. The Yield Recipe Source enhancement now takes precedence before the deferred Phase 6 implementation. Phase 6 remains scoped and must not be started automatically while the YRS task chain is active.
@@ -397,7 +398,7 @@ Plaster Mold Yield Automation is complete after MY8 merges and exact post-merge 
 
 # Yield Recipe Source Enhancement — ACTIVE
 
-Status: **YRS0 + YRS1 COMPLETE**
+Status: **YRS0 + YRS1 + YRS2A COMPLETE**
 
 Master audit:
 
@@ -452,9 +453,9 @@ YRS1 — Recipe Source Domain Foundation                COMPLETE
     YRS1B — Mold Formula Provenance Source Contract   COMPLETE
     YRS1C — Referential / Exclusivity Validation      COMPLETE
 
-YRS2 — Repository / Recording / Persistence           NEXT / NOT STARTED
-    YRS2A — Provenance Repository + Application Service  NEXT
-    YRS2B — Atomic Yield + Provenance Recording
+YRS2 — Repository / Recording / Persistence           IN PROGRESS
+    YRS2A — Provenance Repository + Application Service  COMPLETE
+    YRS2B — Atomic Yield + Provenance Recording        NEXT
     YRS2C — PhysicalBusinessDatasetV5
     YRS2D — Physical Workbook v5 + v4→v5 Migration
     YRS2E — Snapshot / Hydration / Google Sheets Compatibility
@@ -484,14 +485,17 @@ YRS1B adds the authoritative physical provenance source `YieldMoldFormulaSource`
 
 YRS1C completes the domain foundation with Yield/Mold/profile reference checks, MixPreset/Mold Formula exclusivity, Product ownership, profile/Mold ownership, one-source-per-Yield identity, and explicit historical-versus-recording active-source policy.
 
+YRS2A adds the shared provenance repository and immutable application service. New provenance creation canonicalizes current source identities, validates the entire proposed collection historically, validates the new candidate in recording mode, and exposes Manual / Mix preset / Mold formula read-side resolution without yet coordinating Yield evidence writes.
+
 Detailed YRS contracts:
 
 - `docs/YIELD_RECIPE_SOURCE_YRS0_DOMAIN_COMPATIBILITY_AUDIT.md`
 - `docs/YIELD_RECIPE_SOURCE_YRS1A_RESOLUTION_CONTRACT.md`
 - `docs/YIELD_RECIPE_SOURCE_YRS1B_PROVENANCE_SOURCE_CONTRACT.md`
 - `docs/YIELD_RECIPE_SOURCE_YRS1C_REFERENTIAL_VALIDATION.md`
+- `docs/YIELD_RECIPE_SOURCE_YRS2A_REPOSITORY_SERVICE.md`
 
-Do not start YRS2A until YRS1C is merged and exact post-merge `develop` CI is green.
+Do not start YRS2B until YRS2A is merged and exact post-merge `develop` CI is green.
 
 ---
 
@@ -579,8 +583,8 @@ Phase 7 scope should be revisited after the desktop/native persistence workflow 
 ## Current Next Action
 
 ```text
-YRS2A — Provenance Repository + Application Service
+YRS2B — Atomic Yield + Provenance Recording
 NEXT / NOT STARTED
 ```
 
-Tiered Pricing TP0–TP9, Plaster Mold Yield MY0–MY8, YRS0, and the complete YRS1 domain foundation are finished. Do not start YRS2A automatically; first verify the exact green post-YRS1C `develop` baseline. Phase 6.1A remains deferred until the Yield Recipe Source enhancement no longer takes precedence.
+Tiered Pricing TP0–TP9, Plaster Mold Yield MY0–MY8, YRS0, YRS1, and YRS2A are complete. Do not start YRS2B automatically; first verify the exact green post-YRS2A `develop` baseline. Phase 6.1A remains deferred until the Yield Recipe Source enhancement no longer takes precedence.

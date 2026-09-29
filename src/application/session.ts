@@ -63,6 +63,8 @@ import { InMemoryYieldSampleRepository } from './yieldSamples/InMemoryYieldSampl
 import { YieldHistoryService } from './yieldSamples/YieldHistoryService';
 import { YieldLearningService } from './yieldSamples/YieldLearningService';
 import { YieldSampleEvidenceService } from './yieldSamples/YieldSampleEvidenceService';
+import { InMemoryYieldMoldFormulaSourceRepository } from './yieldMoldFormulaSources/InMemoryYieldMoldFormulaSourceRepository';
+import { YieldMoldFormulaSourceService } from './yieldMoldFormulaSources/YieldMoldFormulaSourceService';
 
 export const materialRepository = new InMemoryMaterialRepository();
 export const calibrationRepository = new InMemoryCalibrationRepository();
@@ -78,6 +80,8 @@ export const storageLocationRepository = new InMemoryStorageLocationRepository()
 export const moldRepository = new InMemoryMoldRepository();
 export const plasterMoldYieldProfileRepository =
   new InMemoryPlasterMoldYieldProfileRepository();
+export const yieldMoldFormulaSourceRepository =
+  new InMemoryYieldMoldFormulaSourceRepository();
 
 export const completeSourceSnapshotService = new CompleteSourceSnapshotService({
   materials: materialRepository,
@@ -272,6 +276,13 @@ export const yieldSampleEvidenceService = new YieldSampleEvidenceService(
   mixPresetRepository,
   materialRepository,
 );
+export const yieldMoldFormulaSourceService =
+  new YieldMoldFormulaSourceService(
+    yieldMoldFormulaSourceRepository,
+    yieldSampleRepository,
+    moldRepository,
+    plasterMoldYieldProfileRepository,
+  );
 export const yieldLearningService = new YieldLearningService(
   yieldSampleRepository,
   materialRepository,
