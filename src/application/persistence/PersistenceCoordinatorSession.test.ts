@@ -2,9 +2,12 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { createEmptyBusinessDataset } from '../../domain/businessDataset';
 import { createEmptyBusinessDatasetV2 } from '../../domain/businessDatasetV2';
 import { extendBusinessDatasetV2 } from '../../domain/physicalBusinessDatasetV3';
+import { extendPhysicalBusinessDatasetV3 } from '../../domain/physicalBusinessDatasetV4';
 import {
   persistenceCoordinator,
   physicalDatasetHydrationServiceV3,
+  physicalDatasetHydrationServiceV4,
+  plasterMoldYieldProfileService,
   productPriceTierService,
   productStockService,
   validatedAtomicDatasetHydrationService,
@@ -12,11 +15,13 @@ import {
 import { PersistenceCoordinator } from './PersistenceCoordinator';
 
 afterEach(async () => {
-  const result = await physicalDatasetHydrationServiceV3.hydrate(
-    extendBusinessDatasetV2(createEmptyBusinessDatasetV2()),
+  const result = await physicalDatasetHydrationServiceV4.hydrate(
+    extendPhysicalBusinessDatasetV3(
+      extendBusinessDatasetV2(createEmptyBusinessDatasetV2()),
+    ),
   );
   if (result.status !== 'hydrated') {
-    throw new Error('tier-aware session cleanup hydration was rejected');
+    throw new Error('profile-aware session cleanup hydration was rejected');
   }
 });
 
@@ -105,6 +110,119 @@ describe('Phase 5.3C3 shared session coordinator', () => {
     expect(await productPriceTierService.getTier('tier-session-0001')).toEqual(
       core.productPriceTiers[0],
     );
+  });
+
+
+  it('round-trips PlasterMoldYieldProfiles through physical workbook v4 in the shared session', async () => {
+    const core = createEmptyBusinessDatasetV2();
+    core.materials.push(
+      {
+        id: 'session-water',
+        name: 'Session Water',
+        group: 'liquid',
+        baseUnit: 'g',
+        purchaseQuantity: 1000,
+        purchaseUnit: 'g',
+        packageCost: 25,
+        onHandQuantity: 1000,
+        onHandUnit: 'g',
+        isActive: true,
+      },
+      {
+        id: 'session-plaster',
+        name: 'Session Plaster',
+        group: 'plaster',
+        baseUnit: 'g',
+        purchaseQuantity: 1000,
+        purchaseUnit: 'g',
+        packageCost: 70,
+        onHandQuantity: 1000,
+        onHandUnit: 'g',
+        isActive: true,
+      },
+      {
+        id: 'session-glue',
+        name: 'Session Glue',
+        group: 'other',
+        baseUnit: 'g',
+        purchaseQuantity: 500,
+        purchaseUnit: 'g',
+        packageCost: 90,
+        onHandQuantity: 500,
+        onHandUnit: 'g',
+        isActive: true,
+      },
+    );
+    core.products.push({
+      id: 'session-profile-product',
+      name: 'Session Profile Product',
+      category: 'paintable-art',
+      safetyWasteRate: 0,
+      isActive: true,
+    });
+
+    const dataset = extendPhysicalBusinessDatasetV3(
+      extendBusinessDatasetV2(
+        core,
+        [],
+        [
+          {
+            id: 'session-profile-mold',
+            productId: 'session-profile-product',
+            name: 'Session Profile Mold',
+            isActive: true,
+          },
+        ],
+      ),
+      [
+        {
+          id: 'PMYP-SESSION-0001',
+          moldId: 'session-profile-mold',
+          waterMaterialId: 'session-water',
+          plasterMaterialId: 'session-plaster',
+          glueMaterialId: 'session-glue',
+          waterFillWeightGrams: 50,
+          waterAdjustmentRate: 0.3,
+          plasterFactor: 0.75,
+          glueFactor: 0.05,
+          piecesPerPour: 4,
+          notes: 'session persisted profile',
+          isActive: true,
+        },
+      ],
+    );
+
+    expect(await physicalDatasetHydrationServiceV4.hydrate(dataset)).toEqual({
+      status: 'hydrated',
+    });
+
+    const exported = await persistenceCoordinator.exportCurrentWorkbook();
+
+    expect(
+      await physicalDatasetHydrationServiceV4.hydrate(
+        extendPhysicalBusinessDatasetV3(
+          extendBusinessDatasetV2(createEmptyBusinessDatasetV2()),
+        ),
+      ),
+    ).toEqual({ status: 'hydrated' });
+    expect(
+      await plasterMoldYieldProfileService.getProfile('PMYP-SESSION-0001'),
+    ).toBeNull();
+
+    const restored = await persistenceCoordinator.importAndApplyWorkbook(
+      exported.bytes,
+    );
+
+    expect(restored).toMatchObject({
+      status: 'hydrated',
+      metadata: {
+        workbookFormatVersion: 4,
+        datasetSchemaVersion: 4,
+      },
+    });
+    expect(
+      await plasterMoldYieldProfileService.getProfile('pmyp-session-0001'),
+    ).toEqual(dataset.plasterMoldYieldProfiles[0]);
   });
 
 });
