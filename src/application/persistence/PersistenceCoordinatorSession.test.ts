@@ -3,25 +3,30 @@ import { createEmptyBusinessDataset } from '../../domain/businessDataset';
 import { createEmptyBusinessDatasetV2 } from '../../domain/businessDatasetV2';
 import { extendBusinessDatasetV2 } from '../../domain/physicalBusinessDatasetV3';
 import { extendPhysicalBusinessDatasetV3 } from '../../domain/physicalBusinessDatasetV4';
+import { extendPhysicalBusinessDatasetV4 } from '../../domain/physicalBusinessDatasetV5';
 import {
   persistenceCoordinator,
   physicalDatasetHydrationServiceV3,
   physicalDatasetHydrationServiceV4,
+  physicalDatasetHydrationServiceV5,
   plasterMoldYieldProfileService,
   productPriceTierService,
   productStockService,
   validatedAtomicDatasetHydrationService,
+  yieldMoldFormulaSourceService,
 } from '../session';
 import { PersistenceCoordinator } from './PersistenceCoordinator';
 
 afterEach(async () => {
-  const result = await physicalDatasetHydrationServiceV4.hydrate(
-    extendPhysicalBusinessDatasetV3(
-      extendBusinessDatasetV2(createEmptyBusinessDatasetV2()),
+  const result = await physicalDatasetHydrationServiceV5.hydrate(
+    extendPhysicalBusinessDatasetV4(
+      extendPhysicalBusinessDatasetV3(
+        extendBusinessDatasetV2(createEmptyBusinessDatasetV2()),
+      ),
     ),
   );
   if (result.status !== 'hydrated') {
-    throw new Error('profile-aware session cleanup hydration was rejected');
+    throw new Error('provenance-aware session cleanup hydration was rejected');
   }
 });
 
@@ -113,7 +118,7 @@ describe('Phase 5.3C3 shared session coordinator', () => {
   });
 
 
-  it('round-trips PlasterMoldYieldProfiles through physical workbook v4 in the shared session', async () => {
+  it('round-trips PlasterMoldYieldProfiles through physical workbook v5 in the shared session', async () => {
     const core = createEmptyBusinessDatasetV2();
     core.materials.push(
       {
@@ -216,13 +221,154 @@ describe('Phase 5.3C3 shared session coordinator', () => {
     expect(restored).toMatchObject({
       status: 'hydrated',
       metadata: {
-        workbookFormatVersion: 4,
-        datasetSchemaVersion: 4,
+        workbookFormatVersion: 5,
+        datasetSchemaVersion: 5,
       },
     });
     expect(
       await plasterMoldYieldProfileService.getProfile('pmyp-session-0001'),
     ).toEqual(dataset.plasterMoldYieldProfiles[0]);
+  });
+
+
+  it('round-trips Mold Formula provenance through physical workbook v5 in the shared session', async () => {
+    const core = createEmptyBusinessDatasetV2();
+    core.materials.push(
+      {
+        id: 'session-v5-water',
+        name: 'Session V5 Water',
+        group: 'liquid',
+        baseUnit: 'g',
+        purchaseQuantity: 1000,
+        purchaseUnit: 'g',
+        packageCost: 25,
+        onHandQuantity: 1000,
+        onHandUnit: 'g',
+        isActive: true,
+      },
+      {
+        id: 'session-v5-plaster',
+        name: 'Session V5 Plaster',
+        group: 'plaster',
+        baseUnit: 'g',
+        purchaseQuantity: 1000,
+        purchaseUnit: 'g',
+        packageCost: 70,
+        onHandQuantity: 1000,
+        onHandUnit: 'g',
+        isActive: true,
+      },
+      {
+        id: 'session-v5-glue',
+        name: 'Session V5 Glue',
+        group: 'other',
+        baseUnit: 'g',
+        purchaseQuantity: 500,
+        purchaseUnit: 'g',
+        packageCost: 90,
+        onHandQuantity: 500,
+        onHandUnit: 'g',
+        isActive: true,
+      },
+    );
+    core.products.push({
+      id: 'session-v5-product',
+      name: 'Session V5 Product',
+      category: 'paintable-art',
+      safetyWasteRate: 0,
+      isActive: true,
+    });
+    core.yieldSamples.push({
+      id: 'YLD-SESSION-V5',
+      productId: 'session-v5-product',
+      materialInputs: [
+        {
+          materialId: 'session-v5-plaster',
+          quantity: 100,
+          unit: 'g',
+        },
+      ],
+      goodPieces: 4,
+      rejectedPieces: 0,
+      recordedAt: '2026-09-29T13:00:00.000Z',
+    });
+
+    const dataset = extendPhysicalBusinessDatasetV4(
+      extendPhysicalBusinessDatasetV3(
+        extendBusinessDatasetV2(
+          core,
+          [],
+          [
+            {
+              id: 'session-v5-mold',
+              productId: 'session-v5-product',
+              name: 'Session V5 Mold',
+              isActive: true,
+            },
+          ],
+        ),
+        [
+          {
+            id: 'PMYP-SESSION-V5',
+            moldId: 'session-v5-mold',
+            waterMaterialId: 'session-v5-water',
+            plasterMaterialId: 'session-v5-plaster',
+            glueMaterialId: 'session-v5-glue',
+            waterFillWeightGrams: 50,
+            waterAdjustmentRate: 0.3,
+            plasterFactor: 0.75,
+            glueFactor: 0.05,
+            piecesPerPour: 4,
+            isActive: true,
+          },
+        ],
+      ),
+      [
+        {
+          yieldSampleId: 'YLD-SESSION-V5',
+          moldId: 'session-v5-mold',
+          moldYieldProfileId: 'PMYP-SESSION-V5',
+        },
+      ],
+    );
+
+    expect(await physicalDatasetHydrationServiceV5.hydrate(dataset)).toEqual({
+      status: 'hydrated',
+    });
+
+    const exported = await persistenceCoordinator.exportCurrentWorkbook();
+
+    expect(
+      await physicalDatasetHydrationServiceV5.hydrate(
+        extendPhysicalBusinessDatasetV4(
+          extendPhysicalBusinessDatasetV3(
+            extendBusinessDatasetV2(createEmptyBusinessDatasetV2()),
+          ),
+        ),
+      ),
+    ).toEqual({ status: 'hydrated' });
+    expect(
+      await yieldMoldFormulaSourceService.getSourceForYieldSample(
+        'YLD-SESSION-V5',
+      ),
+    ).toBeNull();
+
+    const restored = await persistenceCoordinator.importAndApplyWorkbook(
+      exported.bytes,
+    );
+
+    expect(restored).toMatchObject({
+      status: 'hydrated',
+      metadata: {
+        workbookFormatVersion: 5,
+        datasetSchemaVersion: 5,
+      },
+    });
+    expect(
+      await yieldMoldFormulaSourceService.getSourceForYieldSample(
+        'yld-session-v5',
+      ),
+    ).toEqual(dataset.yieldMoldFormulaSources[0]);
   });
 
 });

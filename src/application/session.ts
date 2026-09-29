@@ -17,9 +17,11 @@ import { PersistenceCoordinator } from './persistence/PersistenceCoordinator';
 import { PhysicalDatasetHydrationService } from './persistence/PhysicalDatasetHydrationService';
 import { PhysicalDatasetHydrationServiceV3 } from './persistence/PhysicalDatasetHydrationServiceV3';
 import { PhysicalDatasetHydrationServiceV4 } from './persistence/PhysicalDatasetHydrationServiceV4';
+import { PhysicalDatasetHydrationServiceV5 } from './persistence/PhysicalDatasetHydrationServiceV5';
 import { PhysicalSourceSnapshotService } from './persistence/PhysicalSourceSnapshotService';
 import { PhysicalSourceSnapshotServiceV3 } from './persistence/PhysicalSourceSnapshotServiceV3';
 import { PhysicalSourceSnapshotServiceV4 } from './persistence/PhysicalSourceSnapshotServiceV4';
+import { PhysicalSourceSnapshotServiceV5 } from './persistence/PhysicalSourceSnapshotServiceV5';
 import { ValidatedAtomicDatasetHydrationService } from './persistence/ValidatedAtomicDatasetHydrationService';
 import { ValidatedAtomicDatasetHydrationServiceV2 } from './persistence/ValidatedAtomicDatasetHydrationServiceV2';
 import { FullyLoadedProductUnitCostService } from './productCosts/FullyLoadedProductUnitCostService';
@@ -171,10 +173,21 @@ export const physicalDatasetHydrationServiceV4 = new PhysicalDatasetHydrationSer
   plasterMoldYieldProfileRepository,
 );
 
+export const physicalSourceSnapshotServiceV5 = new PhysicalSourceSnapshotServiceV5(
+  physicalSourceSnapshotServiceV4,
+  yieldMoldFormulaSourceRepository,
+);
+
+export const physicalDatasetHydrationServiceV5 = new PhysicalDatasetHydrationServiceV5(
+  physicalDatasetHydrationServiceV4,
+  physicalSourceSnapshotServiceV5,
+  yieldMoldFormulaSourceRepository,
+);
+
 const persistenceWorkbookCodec = new SheetJsWorkbookCodec();
 export const persistenceCoordinator = new PersistenceCoordinator(
-  physicalSourceSnapshotServiceV4,
-  physicalDatasetHydrationServiceV4,
+  physicalSourceSnapshotServiceV5,
+  physicalDatasetHydrationServiceV5,
   persistenceWorkbookCodec,
 );
 
