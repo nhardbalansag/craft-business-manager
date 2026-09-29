@@ -50,16 +50,17 @@ Historical child completion records remain authoritative for their individual co
 
 ## Current Repository Milestone
 
-Verified YRS2B integration base:
+Verified YRS2C integration base:
 
 ```text
-develop  f45ba3e53fa94bb6092bdddf306de45d17ac706a
-CI       36560594561 — SUCCESS
+develop  16d3a4bd3255799fdb96d68225b7a16413d15c8d
+CI       36563655833 — SUCCESS
 Tiered Pricing TP0–TP9 — COMPLETE
 Plaster Mold Yield MY0–MY8 — COMPLETE
 YRS1 Recipe Source Domain Foundation — COMPLETE
 YRS2A Provenance Repository + Application Service — COMPLETE
-YRS2B Atomic Yield + Provenance Recording — COMPLETE IN THIS CHANGE
+YRS2B Atomic Yield + Provenance Recording — COMPLETE
+YRS2C PhysicalBusinessDatasetV5 — COMPLETE IN THIS CHANGE
 ```
 
 Tiered Pricing and Plaster Mold Yield Automation are complete. The Yield Recipe Source enhancement now takes precedence before the deferred Phase 6 implementation. Phase 6 remains scoped and must not be started automatically while the YRS task chain is active.
@@ -399,7 +400,7 @@ Plaster Mold Yield Automation is complete after MY8 merges and exact post-merge 
 
 # Yield Recipe Source Enhancement — ACTIVE
 
-Status: **YRS0 + YRS1 + YRS2A + YRS2B COMPLETE**
+Status: **YRS0 + YRS1 + YRS2A + YRS2B + YRS2C COMPLETE**
 
 Master audit:
 
@@ -457,8 +458,8 @@ YRS1 — Recipe Source Domain Foundation                COMPLETE
 YRS2 — Repository / Recording / Persistence           IN PROGRESS
     YRS2A — Provenance Repository + Application Service  COMPLETE
     YRS2B — Atomic Yield + Provenance Recording        COMPLETE
-    YRS2C — PhysicalBusinessDatasetV5                  NEXT
-    YRS2D — Physical Workbook v5 + v4→v5 Migration
+    YRS2C — PhysicalBusinessDatasetV5                  COMPLETE
+    YRS2D — Physical Workbook v5 + v4→v5 Migration    NEXT
     YRS2E — Snapshot / Hydration / Google Sheets Compatibility
 
 YRS3 — Yield Recipe Source UI                         NOT STARTED
@@ -490,6 +491,8 @@ YRS2A adds the shared provenance repository and immutable application service. N
 
 YRS2B adds the source-aware recording coordinator. Manual and Mix preset continue to persist through the existing YieldSample contract; Mold formula preflights both records, then writes YieldSample → provenance in dependency order with compensating rollback and distinct restored-versus-rollback-failed operational errors. The legacy direct Yield evidence path remains available until the UI migration.
 
+YRS2C introduces `PhysicalBusinessDatasetV5` as the complete physical source graph: physical v4 plus `yieldMoldFormulaSources`. The v5 validator reuses all v4 integrity rules and applies YRS provenance validation in historical mode so archived Mold/profile references remain valid production history.
+
 Detailed YRS contracts:
 
 - `docs/YIELD_RECIPE_SOURCE_YRS0_DOMAIN_COMPATIBILITY_AUDIT.md`
@@ -498,8 +501,9 @@ Detailed YRS contracts:
 - `docs/YIELD_RECIPE_SOURCE_YRS1C_REFERENTIAL_VALIDATION.md`
 - `docs/YIELD_RECIPE_SOURCE_YRS2A_REPOSITORY_SERVICE.md`
 - `docs/YIELD_RECIPE_SOURCE_YRS2B_ATOMIC_RECORDING.md`
+- `docs/YIELD_RECIPE_SOURCE_YRS2C_PHYSICAL_DATASET_V5.md`
 
-Do not start YRS2C until YRS2B is merged and exact post-merge `develop` CI is green.
+Do not start YRS2D until YRS2C is merged and exact post-merge `develop` CI is green.
 
 ---
 
@@ -587,8 +591,8 @@ Phase 7 scope should be revisited after the desktop/native persistence workflow 
 ## Current Next Action
 
 ```text
-YRS2C — PhysicalBusinessDatasetV5
+YRS2D — Physical Workbook v5 + v4→v5 Migration
 NEXT / NOT STARTED
 ```
 
-Tiered Pricing TP0–TP9, Plaster Mold Yield MY0–MY8, YRS0, YRS1, YRS2A, and YRS2B are complete. Do not start YRS2C automatically; first verify the exact green post-YRS2B `develop` baseline. Phase 6.1A remains deferred until the Yield Recipe Source enhancement no longer takes precedence.
+Tiered Pricing TP0–TP9, Plaster Mold Yield MY0–MY8, YRS0, YRS1, YRS2A, YRS2B, and YRS2C are complete. Do not start YRS2D automatically; first verify the exact green post-YRS2C `develop` baseline. Phase 6.1A remains deferred until the Yield Recipe Source enhancement no longer takes precedence.
