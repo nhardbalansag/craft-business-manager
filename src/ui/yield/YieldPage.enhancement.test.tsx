@@ -122,6 +122,73 @@ function formField(label: string) {
 }
 
 describe('Yield history enhanced workflows', () => {
+  it('pages the full history, resets filters to page one, and clamps after deleting the last page', async () => {
+    await session.yieldSampleRepository.replaceAll(Array.from({ length: 11 }, (_, index) => sample({
+      id: `YS-${String(index + 1).padStart(2, '0')}`,
+      recordedAt: `2026-09-${String(index + 1).padStart(2, '0')}T01:00:00.000Z`,
+      rejectedPieces: index === 0 ? 0 : 2,
+    })));
+    await mount();
+    const history = container.querySelector<HTMLElement>('[aria-label="Yield history"]')!;
+    expect(history.querySelectorAll('article')).toHaveLength(5);
+    expect(history.textContent).toContain('Batches 1–5 of 11');
+    await click('Next page', history);
+    expect(history.textContent).toContain('Batches 6–10 of 11');
+    expect(document.activeElement?.textContent).toBe('Recorded batches');
+    await fill(history.querySelector<HTMLInputElement>('[aria-label="Search yield history"]')!, 'YS-01');
+    expect(history.querySelectorAll('article')).toHaveLength(1);
+    expect(history.textContent).toContain('Batches 1–1 of 1 matching');
+    await click('Clear filters', history);
+    await click('Next page', history);
+    await fill(history.querySelector<HTMLSelectElement>('[aria-label="Filter yield history by outcome"]')!, 'clean');
+    expect(history.textContent).toContain('Batches 1–1 of 1 matching');
+    await click('Clear filters', history);
+    await click('Next page', history);
+    await fill(history.querySelector<HTMLSelectElement>('[aria-label="Sort yield history"]')!, 'oldest');
+    expect(history.querySelector('article')?.getAttribute('aria-label')).toBe('Yield sample YS-01');
+    expect(history.textContent).toContain('Page 1 of 3');
+    await click('Clear filters', history);
+    await click('Next page', history);
+    await click('Next page', history);
+    expect(history.querySelectorAll('article')).toHaveLength(1);
+    await click('Delete as correction', history);
+    const listHistory = session.yieldHistoryService.listHistory.bind(session.yieldHistoryService);
+    let finishRefresh!: (samples: YieldSample[]) => void;
+    let refreshDelayed = false;
+    vi.spyOn(session.yieldHistoryService, 'listHistory').mockImplementation(async (productId) => {
+      const samples = await listHistory(productId);
+      if (samples.length === 10 && !refreshDelayed) {
+        refreshDelayed = true;
+        return new Promise((resolve) => { finishRefresh = resolve; });
+      }
+      return samples;
+    });
+    await click('Confirm correction delete', history);
+    expect(history.textContent).toContain('Loading yield history');
+    await act(async () => finishRefresh(await listHistory(product.id)));
+    await flush();
+    expect(history.querySelectorAll('article')).toHaveLength(5);
+    expect(history.textContent).toContain('Batches 6–10 of 10');
+    expect(history.textContent).toContain('Page 2 of 2');
+    expect(history.querySelector('[role="status"]')?.textContent).toContain('deleted as a correction');
+    expect(document.activeElement?.textContent).toContain('deleted as a correction');
+  });
+
+  it('keeps preference feedback beside saved results and provides keyboard section shortcuts', async () => {
+    await mount();
+    const history = container.querySelector<HTMLElement>('[aria-label="Yield history"]')!;
+    await click('Use as preferred yield', history.querySelector('[aria-label="Yield sample YS-CLEAN"]')!);
+    expect(history.querySelector('[role="status"]')?.textContent).toContain('YS-CLEAN is now preferred');
+    expect(container.querySelector('[aria-label="Yield sample"] [role="status"]')).toBeNull();
+    await click('Use latest valid automatically');
+    expect(container.querySelector('[aria-label="Effective yield learning"] [role="status"]')?.textContent).toContain('Automatic Yield selection restored');
+    const nav = container.querySelector('[aria-label="Yield sections"]')!;
+    for (const label of ['Batch evidence', 'Effective learning', 'Recorded batches']) {
+      await click(label, nav);
+      expect(document.activeElement?.textContent).toBe(label);
+    }
+  });
+
   it('summarizes production evidence and filters history by batch outcome', async () => {
     await mount();
 
@@ -153,6 +220,7 @@ describe('Yield history enhanced workflows', () => {
     const history = container.querySelector<HTMLElement>('[aria-label="Yield history"]')!;
     const rejectSample = history.querySelector<HTMLElement>('[aria-label="Yield sample YS-REJECT"]')!;
     await click('Use as new draft', rejectSample);
+    expect(document.activeElement?.textContent).toBe('Batch evidence');
 
     expect(formField('Sample ID').value).toBe('YLD-0001');
     expect((formField('Sample ID') as HTMLInputElement).readOnly).toBe(true);
