@@ -28,7 +28,8 @@ describe('MY6C Yield Formula draft responsive/accessibility regression', () => {
   });
 
   it('keeps draft confirmation and estimate content shrink-safe', () => {
-    expect(assistCss).toContain('.yield-formula-draft-guard {');
+    expect(assistCss).toContain('.yield-formula-measurement-confirmation {');
+    expect(assistCss).toContain('.yield-formula-measurement-heading {');
     expect(assistCss).toContain('.yield-formula-draft-confirmation {');
     expect(assistCss).toContain('min-width: 0;');
     expect(assistCss).toContain('overflow-wrap: anywhere;');
