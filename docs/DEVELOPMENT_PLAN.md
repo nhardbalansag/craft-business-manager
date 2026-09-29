@@ -24,6 +24,7 @@ Key persistence / desktop-boundary records:
 - `docs/PHASE_6_TAURI_DESKTOP_INTEGRATION_PLAN.md`
 - `docs/PLASTER_MOLD_YIELD_MY1A_FORMULA_DOMAIN_CONTRACT.md`
 - `docs/PLASTER_MOLD_YIELD_MY1B_PROFILE_SOURCE_CONTRACT.md`
+- `docs/PLASTER_MOLD_YIELD_MY1C_REFERENTIAL_VALIDATION.md`
 
 Historical child completion records remain authoritative for their individual contracts and CI evidence.
 
@@ -42,15 +43,16 @@ Historical child completion records remain authoritative for their individual co
 
 ## Current Repository Milestone
 
-Verified MY1B integration base:
+Verified MY1C integration base:
 
 ```text
-develop  44e9642fe6cfbaeaf407a1ee64764d1422d11f0f
-CI       36503668890 — SUCCESS
+develop  2308aa4455c1c6e69cc8e4bfdebfa1b7a533f9a4
+CI       36504176800 — SUCCESS
 Tiered Pricing TP0–TP9 — COMPLETE
 Plaster Mold Yield MY0 audit — COMPLETE
 MY1A Formula / Result Domain Contract — COMPLETE
-MY1B Mold Yield Profile Source Contract — COMPLETE IN THIS CHANGE
+MY1B Mold Yield Profile Source Contract — COMPLETE
+MY1C Mold / Material Referential Validation — COMPLETE IN THIS CHANGE
 ```
 
 Tiered Pricing is complete. Plaster Mold Yield Automation is now the active intervening business-domain enhancement before Phase 6 implementation. Phase 6 remains scoped but must not be started automatically while the MY task chain is active.
@@ -308,7 +310,7 @@ Tiered Pricing is complete. TP9 now proves current tiered workbook round-trip fi
 
 # Plaster Mold Yield Automation — ACTIVE
 
-Status: **MY1A–MY1B COMPLETE**
+Status: **MY1 COMPLETE**
 
 Purpose:
 
@@ -322,11 +324,11 @@ Task map:
 
 ```text
 MY0 — Domain & Workflow Audit                       COMPLETE
-MY1 — Plaster Mold Formula Foundation               ACTIVE
+MY1 — Plaster Mold Formula Foundation               COMPLETE
     MY1A — Formula / Result Domain Contract          COMPLETE
     MY1B — Mold Yield Profile Source Contract        COMPLETE
-    MY1C — Mold / Material Referential Validation    NEXT / NOT STARTED
-MY2 — Repository & Application Services             NOT STARTED
+    MY1C — Mold / Material Referential Validation    COMPLETE
+MY2 — Repository & Application Services             NEXT / NOT STARTED
 MY3 — Physical Dataset v4 / Workbook Migration      NOT STARTED
 MY4 — Mold Yield Calculator Engine                  NOT STARTED
 MY5 — Mold Formula Configuration UI                 NOT STARTED
@@ -337,14 +339,17 @@ MY8 — Regression & Completion Gate                  NOT STARTED
 
 MY1A establishes the pure weight-based formula, validation/error contract, per-pour values, per-piece values, and optional requested-quantity/required-pours estimate.
 
-MY1B adds the separate authoritative `PlasterMoldYieldProfile` source record and intrinsic field validation while intentionally leaving Mold/Material referential rules for MY1C. It does not alter persisted dataset/workbook schemas or Yield evidence.
+MY1B adds the separate authoritative `PlasterMoldYieldProfile` source record and intrinsic field validation.
+
+MY1C completes the MY1 foundation with Mold/Material existence checks, distinct formula Material roles, weight-compatible `g` base-unit enforcement, active-reference policy, and one-active-profile-per-Mold integrity. Persisted dataset/workbook schemas and Yield evidence remain unchanged.
 
 Detailed contracts:
 
 - `docs/PLASTER_MOLD_YIELD_MY1A_FORMULA_DOMAIN_CONTRACT.md`
 - `docs/PLASTER_MOLD_YIELD_MY1B_PROFILE_SOURCE_CONTRACT.md`
+- `docs/PLASTER_MOLD_YIELD_MY1C_REFERENTIAL_VALIDATION.md`
 
-Do not start MY1C until MY1B is merged and post-merge `develop` CI is green.
+Do not start MY2 until MY1C is merged and post-merge `develop` CI is green.
 
 ---
 
@@ -432,8 +437,8 @@ Phase 7 scope should be revisited after the desktop/native persistence workflow 
 ## Current Next Action
 
 ```text
-MY1C — Mold / Material Referential Validation
+MY2 — Repository & Application Services
 NEXT / NOT STARTED
 ```
 
-MY1A and MY1B are complete. Do not start MY1C automatically; first verify the exact green post-MY1B `develop` baseline. Phase 6.1A remains pending until the Plaster Mold Yield Automation task chain no longer takes precedence.
+MY1 is complete through MY1C. Do not start MY2 automatically; first verify the exact green post-MY1C `develop` baseline. Phase 6.1A remains pending until the Plaster Mold Yield Automation task chain no longer takes precedence.
