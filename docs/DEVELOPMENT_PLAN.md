@@ -29,6 +29,7 @@ Key persistence / desktop-boundary records:
 - `docs/PLASTER_MOLD_YIELD_MY3_PERSISTENCE_MIGRATION.md`
 - `docs/PLASTER_MOLD_YIELD_MY4_CALCULATOR_ENGINE.md`
 - `docs/PLASTER_MOLD_YIELD_MY5_CONFIGURATION_UI.md`
+- `docs/PLASTER_MOLD_YIELD_MY6_YIELD_WORKSPACE_INTEGRATION.md`
 
 Historical child completion records remain authoritative for their individual contracts and CI evidence.
 
@@ -47,14 +48,14 @@ Historical child completion records remain authoritative for their individual co
 
 ## Current Repository Milestone
 
-Verified MY5 integration base:
+Verified MY6 integration base:
 
 ```text
-develop  22deacda832afe503821f01a64c178a24971d0d6
-CI       36508659161 — SUCCESS
+develop  e4c7587a646dda214229d1c731a2b8393c22063b
+CI       36509481071 — SUCCESS
 Tiered Pricing TP0–TP9 — COMPLETE
-Plaster Mold Yield MY0–MY4 — COMPLETE
-MY5 Mold Formula Configuration UI — COMPLETE IN THIS CHANGE
+Plaster Mold Yield MY0–MY5 — COMPLETE
+MY6 Yield Workspace Integration — COMPLETE IN THIS CHANGE
 ```
 
 Tiered Pricing is complete. Plaster Mold Yield Automation is now the active intervening business-domain enhancement before Phase 6 implementation. Phase 6 remains scoped but must not be started automatically while the MY task chain is active.
@@ -312,7 +313,7 @@ Tiered Pricing is complete. TP9 now proves current tiered workbook round-trip fi
 
 # Plaster Mold Yield Automation — ACTIVE
 
-Status: **MY0–MY5 COMPLETE**
+Status: **MY0–MY6 COMPLETE**
 
 Purpose:
 
@@ -344,8 +345,11 @@ MY5 — Mold Formula Configuration UI                 COMPLETE
     MY5A — Profile Configuration Form               COMPLETE
     MY5B — Saved Formula Estimate Preview           COMPLETE
     MY5C — History / Responsive / Accessibility     COMPLETE
-MY6 — Yield Workspace Integration                   NEXT / NOT STARTED
-MY7 — Cost / Capacity / Production Preview          NOT STARTED
+MY6 — Yield Workspace Integration                   COMPLETE
+    MY6A — Formula → Yield Draft Mapping             COMPLETE
+    MY6B — Yield Workspace Draft Assist              COMPLETE
+    MY6C — Evidence Guard / Responsive Regression    COMPLETE
+MY7 — Cost / Capacity / Production Preview          NEXT / NOT STARTED
 MY8 — Regression & Completion Gate                  NOT STARTED
 ```
 
@@ -363,6 +367,8 @@ MY4 adds the Mold-level calculator engine that resolves the active profile and w
 
 MY5 exposes that source configuration and saved-formula calculator inside the existing physical Mold workspace. It supports profile create/edit/archive/restore, weight-compatible Material selection, user-friendly Water-adjustment percentage input, multi-cavity configuration, and optional requested-quantity estimate preview while preserving the theoretical/no-Yield-write boundary.
 
+MY6 adds an explicit Formula → Yield Sample Draft workflow inside the existing Yield workspace. The assistant copies only theoretical Material quantities, intentionally leaves good/rejected outcomes blank, uses the existing unsaved-draft protection, and requires explicit real-batch measurement confirmation before the ordinary Yield evidence save can become ready. It never writes Yield history automatically.
+
 Detailed contracts:
 
 - `docs/PLASTER_MOLD_YIELD_MY1A_FORMULA_DOMAIN_CONTRACT.md`
@@ -372,8 +378,9 @@ Detailed contracts:
 - `docs/PLASTER_MOLD_YIELD_MY3_PERSISTENCE_MIGRATION.md`
 - `docs/PLASTER_MOLD_YIELD_MY4_CALCULATOR_ENGINE.md`
 - `docs/PLASTER_MOLD_YIELD_MY5_CONFIGURATION_UI.md`
+- `docs/PLASTER_MOLD_YIELD_MY6_YIELD_WORKSPACE_INTEGRATION.md`
 
-Do not start MY6 until MY5 is merged and post-merge `develop` CI is green.
+Do not start MY7 until MY6 is merged and post-merge `develop` CI is green.
 
 ---
 
@@ -461,8 +468,8 @@ Phase 7 scope should be revisited after the desktop/native persistence workflow 
 ## Current Next Action
 
 ```text
-MY6 — Yield Workspace Integration
+MY7 — Cost / Capacity / Production Preview
 NEXT / NOT STARTED
 ```
 
-MY0–MY5 are complete. Do not start MY6 automatically; first verify the exact green post-MY5 `develop` baseline. Phase 6.1A remains pending until the Plaster Mold Yield Automation task chain no longer takes precedence.
+MY0–MY6 are complete. Do not start MY7 automatically; first verify the exact green post-MY6 `develop` baseline. Phase 6.1A remains pending until the Plaster Mold Yield Automation task chain no longer takes precedence.
