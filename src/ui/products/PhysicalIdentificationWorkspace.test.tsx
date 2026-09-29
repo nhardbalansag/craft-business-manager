@@ -52,7 +52,10 @@ async function mount() {
 }
 
 function currentForm(): HTMLFormElement {
-  return container.querySelector('form')!;
+  return (
+    container.querySelector<HTMLFormElement>('[aria-label="Mold record form"]') ??
+    container.querySelector<HTMLFormElement>('form')
+  )!;
 }
 
 function field(label: string): HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement {
@@ -108,6 +111,27 @@ async function createLocation(name: string, type: 'rack' | 'shelf' | 'bin', pare
 }
 
 describe('PhysicalIdentificationWorkspace', () => {
+  it('keeps the mold record form in a modal instead of permanently occupying the directory', async () => {
+    await mount();
+
+    expect(container.querySelector('[role="dialog"][aria-labelledby="mold-record-dialog-title"]')).toBeNull();
+    expect(container.querySelector('[aria-label="Mold record form"]')).toBeNull();
+
+    await click('Add mold');
+
+    const dialog = container.querySelector('[role="dialog"][aria-labelledby="mold-record-dialog-title"]');
+    expect(dialog).not.toBeNull();
+    expect(dialog?.textContent).toContain('MOLD RECORD');
+    expect(dialog?.textContent).toContain('Add a mold');
+    expect(field('Mold ID').value).toBe('MOLD-0001');
+
+    await click('Cancel');
+
+    expect(container.querySelector('[role="dialog"][aria-labelledby="mold-record-dialog-title"]')).toBeNull();
+    expect(container.querySelector('[aria-label="Mold record form"]')).toBeNull();
+    expect(container.textContent).toContain('MOLD DIRECTORY');
+  });
+
   it('summarizes physical records and makes unassigned molds a one-click working view', async () => {
     await session.storageLocationService.createLocation({
       id: 'RACK-A',
@@ -160,6 +184,7 @@ describe('PhysicalIdentificationWorkspace', () => {
     expect(container.textContent).toContain('Rack A / Shelf 2 / Bin 04');
 
     await click('Molds');
+    await click('Add mold');
     expect(field('Mold ID').value).toBe('MOLD-0001');
     expect((field('Mold ID') as HTMLInputElement).readOnly).toBe(true);
     await fill(field('Mold name'), 'Dinosaur Mold');
