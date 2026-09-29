@@ -63,6 +63,7 @@ import { InMemoryYieldSampleRepository } from './yieldSamples/InMemoryYieldSampl
 import { YieldHistoryService } from './yieldSamples/YieldHistoryService';
 import { YieldLearningService } from './yieldSamples/YieldLearningService';
 import { YieldSampleEvidenceService } from './yieldSamples/YieldSampleEvidenceService';
+import { YieldRecipeSourceRecordingService } from './yieldRecipeSources/YieldRecipeSourceRecordingService';
 import { InMemoryYieldMoldFormulaSourceRepository } from './yieldMoldFormulaSources/InMemoryYieldMoldFormulaSourceRepository';
 import { YieldMoldFormulaSourceService } from './yieldMoldFormulaSources/YieldMoldFormulaSourceService';
 
@@ -282,6 +283,13 @@ export const yieldMoldFormulaSourceService =
     yieldSampleRepository,
     moldRepository,
     plasterMoldYieldProfileRepository,
+  );
+export const yieldRecipeSourceRecordingService =
+  new YieldRecipeSourceRecordingService(
+    yieldSampleEvidenceService,
+    yieldMoldFormulaSourceService,
+    yieldSampleRepository,
+    yieldMoldFormulaSourceRepository,
   );
 export const yieldLearningService = new YieldLearningService(
   yieldSampleRepository,
