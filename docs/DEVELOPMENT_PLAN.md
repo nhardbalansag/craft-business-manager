@@ -50,16 +50,17 @@ Historical child completion records remain authoritative for their individual co
 
 ## Current Repository Milestone
 
-Verified YRS3A integration base:
+Verified YRS3B integration base:
 
 ```text
-develop  c40d221549b006571e94a5650214d4e0f632da06
-CI       36573687770 — SUCCESS
+develop  f195cdb229268fb97c9c34b8f41d6b1e5f4977ec
+CI       36576459748 — SUCCESS
 Tiered Pricing TP0–TP9 — COMPLETE
 Plaster Mold Yield MY0–MY8 — COMPLETE
 YRS1 Recipe Source Domain Foundation — COMPLETE
 YRS2 Repository / Recording / Persistence — COMPLETE
-YRS3A Recipe Source Selector — COMPLETE IN THIS CHANGE
+YRS3A Recipe Source Selector — COMPLETE
+YRS3B Mix Preset Mode — COMPLETE IN THIS CHANGE
 ```
 
 Tiered Pricing and Plaster Mold Yield Automation are complete. The Yield Recipe Source enhancement now takes precedence before the deferred Phase 6 implementation. Phase 6 remains scoped and must not be started automatically while the YRS task chain is active.
@@ -399,7 +400,7 @@ Plaster Mold Yield Automation is complete after MY8 merges and exact post-merge 
 
 # Yield Recipe Source Enhancement — ACTIVE
 
-Status: **YRS0 + YRS1 + YRS2 + YRS3A COMPLETE**
+Status: **YRS0 + YRS1 + YRS2 + YRS3A + YRS3B COMPLETE**
 
 Master audit:
 
@@ -464,8 +465,8 @@ YRS2 — Repository / Recording / Persistence           COMPLETE
 
 YRS3 — Yield Recipe Source UI                         IN PROGRESS
     YRS3A — Recipe Source Selector                     COMPLETE
-    YRS3B — Mix Preset Mode                            NEXT
-    YRS3C — Mold Formula Mode
+    YRS3B — Mix Preset Mode                            COMPLETE
+    YRS3C — Mold Formula Mode                          NEXT
     YRS3D — Manual Mode
 
 YRS4 — Mold Formula Draft Integration Refactor        NOT STARTED
@@ -499,6 +500,8 @@ YRS2E completes the repository/recording/persistence phase by moving the shared 
 
 YRS3A introduces one explicit Manual / Mix preset / Mold formula selector as authoritative Yield draft state. It enforces draft-level source exclusivity, moves Yield recording onto the YRS2 atomic source-aware recorder, makes MY6 Formula drafts persist Mold/profile provenance without inheriting Product Mix preset provenance, and fails closed on legacy Yield-only deletion when physical provenance exists.
 
+YRS3B turns Mix preset into a dedicated source-specific mode. It presents only active Product-category-compatible presets, previews the selected saved ratio without converting it into actual Yield evidence, keeps missing/archived copied preset identities visible and invalid, and provides an explicit non-recordable state when no compatible preset exists.
+
 Detailed YRS contracts:
 
 - `docs/YIELD_RECIPE_SOURCE_YRS0_DOMAIN_COMPATIBILITY_AUDIT.md`
@@ -511,8 +514,9 @@ Detailed YRS contracts:
 - `docs/YIELD_RECIPE_SOURCE_YRS2D_PHYSICAL_WORKBOOK_V5_MIGRATION.md`
 - `docs/YIELD_RECIPE_SOURCE_YRS2E_RUNTIME_PERSISTENCE.md`
 - `docs/YIELD_RECIPE_SOURCE_YRS3A_SELECTOR.md`
+- `docs/YIELD_RECIPE_SOURCE_YRS3B_MIX_PRESET_MODE.md`
 
-Do not start YRS3B until YRS3A is merged and exact post-merge `develop` CI is green.
+Do not start YRS3C until YRS3B is merged and exact post-merge `develop` CI is green.
 
 ---
 
@@ -600,8 +604,8 @@ Phase 7 scope should be revisited after the desktop/native persistence workflow 
 ## Current Next Action
 
 ```text
-YRS3B — Mix Preset Mode
+YRS3C — Mold Formula Mode
 NEXT / NOT STARTED
 ```
 
-Tiered Pricing TP0–TP9, Plaster Mold Yield MY0–MY8, YRS0, YRS1, YRS2A–YRS2E, and YRS3A are complete. Do not start YRS3B automatically; first merge YRS3A and verify the exact green post-YRS3A `develop` baseline. Phase 6.1A remains deferred until the Yield Recipe Source enhancement no longer takes precedence.
+Tiered Pricing TP0–TP9, Plaster Mold Yield MY0–MY8, YRS0, YRS1, YRS2A–YRS2E, YRS3A, and YRS3B are complete. Do not start YRS3C automatically; first merge YRS3B and verify the exact green post-YRS3B `develop` baseline. Phase 6.1A remains deferred until the Yield Recipe Source enhancement no longer takes precedence.

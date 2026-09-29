@@ -229,7 +229,38 @@ describe('Yield workspace UI/UX', () => {
         'input[value="mold-formula"]',
       )?.checked,
     ).toBe(false);
-    expect((field('Mix preset used') as HTMLSelectElement).disabled).toBe(true);
+    expect(
+      container.querySelector('[aria-label="Mix preset recipe source"]'),
+    ).toBeNull();
+    expect(
+      container.querySelector('[aria-label="Yield Mix preset"]'),
+    ).toBeNull();
+  });
+
+  it('shows an explicit non-recordable empty state when Mix preset mode has no compatible presets', async () => {
+    await seed();
+    await mount();
+
+    const mixSource = container.querySelector<HTMLInputElement>(
+      '[aria-label="Recipe source"] input[value="mix-preset"]',
+    )!;
+    await act(async () => mixSource.click());
+
+    expect(
+      container.querySelector('[aria-label="Mix preset recipe source"]'),
+    ).not.toBeNull();
+    expect(container.textContent).toContain(
+      'No active compatible Mix preset is available.',
+    );
+    expect(
+      container.querySelector<HTMLSelectElement>(
+        '[aria-label="Yield Mix preset"]',
+      )?.disabled,
+    ).toBe(true);
+    expect(
+      container.querySelector<HTMLButtonElement>('button[type="submit"]')
+        ?.disabled,
+    ).toBe(true);
   });
 
   it('switches Manual and Mix preset sources exclusively and records the selected Mix preset provenance', async () => {
@@ -257,9 +288,26 @@ describe('Yield workspace UI/UX', () => {
     )!;
     await act(async () => mixSource.click());
 
-    const mixPreset = field('Mix preset used') as HTMLSelectElement;
+    const mixPreset = container.querySelector<HTMLSelectElement>(
+      '[aria-label="Yield Mix preset"]',
+    )!;
+    expect(
+      container.querySelector('[aria-label="Mix preset recipe source"]'),
+    ).not.toBeNull();
     expect(mixPreset.disabled).toBe(false);
     await fill(mixPreset, 'MIX-PLASTER');
+    expect(
+      container.querySelector('[aria-label="Selected Mix preset summary"]')
+        ?.textContent,
+    ).toContain('Standard Plaster Mix');
+    expect(
+      container.querySelector('[aria-label="Selected Mix preset summary"]')
+        ?.textContent,
+    ).toContain('Weight ratio');
+    expect(
+      container.querySelector('[aria-label="Selected Mix preset summary"]')
+        ?.textContent,
+    ).toContain('1 part');
     await fill(
       container.querySelector<HTMLSelectElement>(
         '[aria-label="Yield material 1"]',

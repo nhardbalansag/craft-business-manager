@@ -26,6 +26,7 @@ import {
 } from '../../domain/units';
 import type { YieldRecipeSourceKind } from '../../domain/yieldRecipeSource';
 import type { YieldSample } from '../../domain/yieldSamples';
+import { YieldMixPresetMode } from './YieldMixPresetMode';
 import { YieldProductSearchPicker } from './YieldProductSearchPicker';
 import { YieldRecipeSourceSelector } from './YieldRecipeSourceSelector';
 import { PlasterMoldYieldDraftAssist } from './PlasterMoldYieldDraftAssist';
@@ -177,6 +178,10 @@ export function YieldPage() {
     () => new Map(mixPresets.map((preset) => [preset.id.toLocaleLowerCase(), preset])),
     [mixPresets],
   );
+
+  const selectedMixPreset = form.mixPresetId
+    ? mixById.get(form.mixPresetId.toLocaleLowerCase())
+    : undefined;
 
   const draftGoodPieces = numericField(form.goodPieces);
   const draftRejectedPieces = numericField(form.rejectedPieces);
@@ -976,37 +981,23 @@ export function YieldPage() {
                       onChange={changeRecipeSource}
                     />
                   </div>
-                  <label className="field field-wide">
-                    <span>Mix preset used</span>
-                    <select
-                      value={form.mixPresetId}
-                      disabled={
-                        Boolean(busy) ||
-                        !selectedProduct?.isActive ||
-                        form.recipeSourceKind !== 'mix-preset'
-                      }
-                      onChange={(event) =>
-                        setForm({ ...form, mixPresetId: event.target.value })
-                      }
-                    >
-                      <option value="">Select mix preset</option>
-                      {!draftMixReady && form.mixPresetId && (
-                        <option value={form.mixPresetId}>
-                          {mixById.get(form.mixPresetId.toLocaleLowerCase())?.name ?? form.mixPresetId} (unavailable)
-                        </option>
-                      )}
-                      {compatibleMixes.map((preset) => (
-                        <option key={preset.id} value={preset.id}>{preset.name}</option>
-                      ))}
-                    </select>
-                    <small>
-                      {form.recipeSourceKind !== 'mix-preset'
-                        ? 'Available when Recipe source is Mix preset.'
-                        : draftMixReady
-                          ? 'The preset identifies the recipe reference; actual measured material quantities below remain authoritative.'
-                          : 'Select an active compatible Mix preset before recording.'}
-                    </small>
-                  </label>
+                  {form.recipeSourceKind === 'mix-preset' && (
+                    <div className="field field-wide">
+                      <YieldMixPresetMode
+                        presets={compatibleMixes}
+                        materials={materials}
+                        selectedPresetId={form.mixPresetId}
+                        selectedPreset={selectedMixPreset}
+                        disabled={Boolean(busy) || !selectedProduct?.isActive}
+                        onChange={(mixPresetId) =>
+                          setForm((current) => ({
+                            ...current,
+                            mixPresetId,
+                          }))
+                        }
+                      />
+                    </div>
+                  )}
                 </div>
               </section>
 
