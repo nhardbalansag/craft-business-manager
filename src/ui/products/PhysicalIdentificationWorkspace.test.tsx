@@ -132,6 +132,66 @@ describe('PhysicalIdentificationWorkspace', () => {
     expect(container.textContent).toContain('MOLD DIRECTORY');
   });
 
+  it('keeps Mold Formula out of the page flow and opens it from the selected mold row', async () => {
+    await session.moldService.createMold({
+      id: 'MOLD-FORMULA',
+      productId: 'PRD-1',
+      name: 'Formula Dinosaur Mold',
+      isActive: true,
+    });
+
+    await mount();
+
+    expect(container.querySelector('[aria-label="Plaster mold formula configuration"]')).toBeNull();
+    const row = container.querySelector('[data-mold-row="MOLD-FORMULA"]');
+    expect(row).not.toBeNull();
+    expect(row?.textContent).toContain('Not configured');
+    expect(row?.textContent).toContain('Configure formula');
+
+    await click('Configure formula');
+
+    const dialog = container.querySelector('[role="dialog"][aria-label="Mold formula for Formula Dinosaur Mold"]');
+    expect(dialog).not.toBeNull();
+    expect(dialog?.textContent).toContain('MOLD FORMULA');
+    expect(dialog?.textContent).toContain('Formula Dinosaur Mold · MOLD-FORMULA');
+    expect(dialog?.querySelector('[aria-label="Plaster mold formula configuration"]')).not.toBeNull();
+
+    await clickLabel('Close mold formula dialog');
+
+    expect(container.querySelector('[role="dialog"][aria-label="Mold formula for Formula Dinosaur Mold"]')).toBeNull();
+    expect(container.querySelector('[aria-label="Plaster mold formula configuration"]')).toBeNull();
+  });
+
+  it('shows configured formula status and profile ID directly in the mold table', async () => {
+    await session.moldService.createMold({
+      id: 'MOLD-CONFIGURED',
+      productId: 'PRD-1',
+      name: 'Configured Mold',
+      isActive: true,
+    });
+    await session.plasterMoldYieldProfileRepository.replaceAll([{
+      id: 'PMYP-0099',
+      moldId: 'MOLD-CONFIGURED',
+      waterMaterialId: 'MAT-WATER',
+      plasterMaterialId: 'MAT-PLASTER',
+      glueMaterialId: 'MAT-GLUE',
+      waterFillWeightGrams: 50,
+      waterAdjustmentRate: 0.3,
+      plasterFactor: 0.75,
+      glueFactor: 0.05,
+      piecesPerPour: 1,
+      isActive: true,
+    }]);
+
+    await mount();
+
+    const row = container.querySelector('[data-mold-row="MOLD-CONFIGURED"]');
+    expect(row).not.toBeNull();
+    expect(row?.textContent).toContain('Configured');
+    expect(row?.textContent).toContain('PMYP-0099');
+    expect(row?.textContent).toContain('Edit formula');
+  });
+
   it('summarizes physical records and makes unassigned molds a one-click working view', async () => {
     await session.storageLocationService.createLocation({
       id: 'RACK-A',

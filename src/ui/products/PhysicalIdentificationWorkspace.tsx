@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
-import { moldService, storageLocationService } from '../../application/session';
+import { moldService, plasterMoldYieldProfileService, storageLocationService } from '../../application/session';
 import { nextSequentialId } from '../../domain/identifiers';
 import type { Mold } from '../../domain/molds';
 import type { Product } from '../../domain/products';
@@ -69,6 +69,19 @@ export function PhysicalIdentificationWorkspace({ products }: { products: readon
   const [moldModalOpen, setMoldModalOpen] = useState(false);
   const [editingLocationId, setEditingLocationId] = useState<string | null>(null);
   const [labelIdentity, setLabelIdentity] = useState<PhysicalLabelIdentity | null>(null);
+  const [formulaMoldId, setFormulaMoldId] = useState<string | null>(null);
+  const [activeFormulaProfileIdByMoldId, setActiveFormulaProfileIdByMoldId] = useState<Record<string, string>>({});
+
+  const reloadFormulaProfiles = useCallback(async () => {
+    const profiles = await plasterMoldYieldProfileService.listProfiles();
+    setActiveFormulaProfileIdByMoldId(
+      Object.fromEntries(
+        profiles
+          .filter((profile) => profile.isActive)
+          .map((profile) => [normalize(profile.moldId), profile.id]),
+      ),
+    );
+  }, []);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -76,6 +89,7 @@ export function PhysicalIdentificationWorkspace({ products }: { products: readon
       const [nextMolds, nextLocations] = await Promise.all([
         moldService.listMolds(),
         storageLocationService.listLocations(),
+        reloadFormulaProfiles(),
       ]);
       const pathEntries = await Promise.all(
         nextLocations.map(async (location) => [location.id, await storageLocationService.formatPath(location.id)] as const),
@@ -88,7 +102,7 @@ export function PhysicalIdentificationWorkspace({ products }: { products: readon
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [reloadFormulaProfiles]);
 
   useEffect(() => {
     void reload();
@@ -172,6 +186,11 @@ export function PhysicalIdentificationWorkspace({ products }: { products: readon
   const assignableLocations = useMemo(
     () => locations.filter((location) => location.isActive),
     [locations],
+  );
+
+  const formulaMold = useMemo(
+    () => molds.find((mold) => normalize(mold.id) === normalize(formulaMoldId ?? '')) ?? null,
+    [formulaMoldId, molds],
   );
 
   const generatedMoldId = useMemo(() => nextSequentialId(molds.map((mold) => mold.id), 'MOLD'), [molds]);
@@ -472,6 +491,7 @@ export function PhysicalIdentificationWorkspace({ products }: { products: readon
                           <th scope="col">Mold</th>
                           <th scope="col">Product</th>
                           <th scope="col">Storage</th>
+                          <th scope="col">Formula</th>
                           <th scope="col">Actions</th>
                         </tr>
                       </thead>
@@ -500,8 +520,23 @@ export function PhysicalIdentificationWorkspace({ products }: { products: readon
                                 <span className={!path ? 'physical-id-unassigned' : ''}>{path ?? 'Unassigned — choose a storage location'}</span>
                               </td>
                               <td>
+                                {activeFormulaProfileIdByMoldId[normalize(mold.id)] ? (
+                                  <span className="physical-id-formula-state configured">Configured</span>
+                                ) : (
+                                  <span className="physical-id-formula-state missing">Not configured</span>
+                                )}
+                                {activeFormulaProfileIdByMoldId[normalize(mold.id)] && (
+                                  <small>{activeFormulaProfileIdByMoldId[normalize(mold.id)]}</small>
+                                )}
+                              </td>
+                              <td>
                                 <div className="physical-id-table-actions">
                                   <button type="button" className="button button-quiet" disabled={busy} onClick={() => editMold(mold)}>Edit / move</button>
+                                  {mold.isActive && (
+                                    <button type="button" className="text-button" onClick={() => setFormulaMoldId(mold.id)}>
+                                      {activeFormulaProfileIdByMoldId[normalize(mold.id)] ? 'Edit formula' : 'Configure formula'}
+                                    </button>
+                                  )}
                                   <button type="button" className="text-button" onClick={() => printMold(mold)}>Print mold label</button>
                                   <button type="button" className={`text-button ${mold.isActive ? 'danger' : ''}`} disabled={busy} onClick={() => void toggleMold(mold)}>{mold.isActive ? 'Archive' : 'Restore'}</button>
                                 </div>
@@ -584,8 +619,23 @@ export function PhysicalIdentificationWorkspace({ products }: { products: readon
         </div>
       )}
 
-      {mode === 'molds' && (
-        <PlasterMoldFormulaConfigurationPanel molds={molds} />
+      {formulaMold && (
+        <div className="physical-id-modal-backdrop" role="presentation">
+          <div className="physical-id-modal physical-id-formula-modal panel" role="dialog" aria-modal="true" aria-label={`Mold formula for ${formulaMold.name}`}>
+            <div className="physical-id-formula-modal-heading">
+              <div>
+                <span className="physical-id-formula-modal-label">Selected mold</span>
+                <strong>{formulaMold.name} · {formulaMold.id}</strong>
+              </div>
+              <button type="button" className="text-button" onClick={() => setFormulaMoldId(null)} aria-label="Close mold formula dialog">Close</button>
+            </div>
+            <PlasterMoldFormulaConfigurationPanel
+              molds={[formulaMold]}
+              hideMoldSelector
+              onProfilesChanged={() => void reloadFormulaProfiles()}
+            />
+          </div>
+        </div>
       )}
 
       {labelIdentity && <PhysicalLabelPrintDialog identity={labelIdentity} onClose={() => setLabelIdentity(null)} />}
