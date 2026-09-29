@@ -7,6 +7,8 @@ import { InMemoryMixPresetRepository } from './mixPresets/InMemoryMixPresetRepos
 import { MixPresetService } from './mixPresets/MixPresetService';
 import { InMemoryMoldRepository } from './molds/InMemoryMoldRepository';
 import { MoldService } from './molds/MoldService';
+import { InMemoryPlasterMoldYieldProfileRepository } from './plasterMoldYieldProfiles/InMemoryPlasterMoldYieldProfileRepository';
+import { PlasterMoldYieldProfileService } from './plasterMoldYieldProfiles/PlasterMoldYieldProfileService';
 import { CompleteSourceSnapshotService } from './persistence/CompleteSourceSnapshotService';
 import { CompleteSourceSnapshotServiceV2 } from './persistence/CompleteSourceSnapshotServiceV2';
 import { PersistenceCoordinator } from './persistence/PersistenceCoordinator';
@@ -70,6 +72,8 @@ export const yieldSampleRepository = new InMemoryYieldSampleRepository();
 export const fixedRecipeItemRepository = new InMemoryFixedRecipeItemRepository();
 export const storageLocationRepository = new InMemoryStorageLocationRepository();
 export const moldRepository = new InMemoryMoldRepository();
+export const plasterMoldYieldProfileRepository =
+  new InMemoryPlasterMoldYieldProfileRepository();
 
 export const completeSourceSnapshotService = new CompleteSourceSnapshotService({
   materials: materialRepository,
@@ -177,10 +181,17 @@ export const productPriceTierService = new ProductPriceTierService(
   productPriceTierRepository,
   productRepository,
 );
+export const plasterMoldYieldProfileService =
+  new PlasterMoldYieldProfileService(
+    plasterMoldYieldProfileRepository,
+    moldRepository,
+    materialRepository,
+  );
 export const moldService = new MoldService(
   moldRepository,
   productRepository,
   storageLocationRepository,
+  plasterMoldYieldProfileService,
 );
 export const storageLocationService = new StorageLocationService(
   storageLocationRepository,
@@ -205,6 +216,7 @@ export const materialService = new MaterialService(
   materialRepository,
   materialCalibrationEvidenceProvider,
   productComponentService,
+  plasterMoldYieldProfileService,
 );
 
 export const calibrationService = new CalibrationService(calibrationRepository, materialRepository);
