@@ -159,6 +159,18 @@ export class PlasterMoldYieldCalculatorService {
       );
     }
 
+    if (!profile.isActive) {
+      throw new PlasterMoldYieldCalculatorError(
+        'PROFILE_SOURCE_INVALID',
+        `Plaster mold yield profile ${profile.id} was resolved as active but is archived.`,
+        {
+          moldId: mold.id,
+          profileId: profile.id,
+          underlyingCode: 'PROFILE_INACTIVE',
+        },
+      );
+    }
+
     try {
       validatePlasterMoldYieldProfileContract(profile);
     } catch (error) {
