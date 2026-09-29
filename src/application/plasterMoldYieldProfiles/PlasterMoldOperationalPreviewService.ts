@@ -111,9 +111,17 @@ function quantityForRole(
   estimate: PlasterMoldYieldCalculatorResult,
   role: PlasterMoldFormulaMaterialRole,
   scope: 'perPour' | 'perPiece' | 'target',
+  zeroTarget = false,
 ): number {
-  const target =
-    estimate.formula.requestedQuantityEstimate?.totals ?? estimate.formula.perPour;
+  const target = zeroTarget
+    ? {
+        adjustedWaterGrams: 0,
+        plasterGrams: 0,
+        glueGrams: 0,
+        totalMixtureGrams: 0,
+      }
+    : estimate.formula.requestedQuantityEstimate?.totals ??
+      estimate.formula.perPour;
 
   const values =
     scope === 'perPour'
@@ -149,9 +157,10 @@ export class PlasterMoldOperationalPreviewService {
     moldId: string,
     requestedQuantity?: number,
   ): Promise<PlasterMoldOperationalPreviewResult> {
+    const zeroTarget = requestedQuantity === 0;
     const estimate = await this.calculator.calculateForMold(
       moldId,
-      requestedQuantity,
+      zeroTarget ? undefined : requestedQuantity,
     );
     const [allMaterials, allCalibrations] = await Promise.all([
       this.materials.list(),
@@ -180,7 +189,16 @@ export class PlasterMoldOperationalPreviewService {
           message: `Material ${identity.materialId} was not found for Mold Formula operational preview.`,
         };
         issues.push(issue);
-        lines.push(this.unresolvedLine(estimate, role, identity.materialId, identity.materialName, issue));
+        lines.push(
+          this.unresolvedLine(
+            estimate,
+            role,
+            identity.materialId,
+            identity.materialName,
+            issue,
+            zeroTarget,
+          ),
+        );
         continue;
       }
 
@@ -245,6 +263,7 @@ export class PlasterMoldOperationalPreviewService {
           costPerGram,
           normalizedOnHandGrams,
           lineIssues,
+          zeroTarget,
         ),
       );
     }
@@ -276,13 +295,16 @@ export class PlasterMoldOperationalPreviewService {
       issues: line.issues.map((issue) => ({ ...issue })),
     }));
 
-    const requiredPours =
-      estimate.formula.requestedQuantityEstimate?.requiredPours ?? 1;
-    const producedCapacityPieces =
-      estimate.formula.requestedQuantityEstimate?.producedCapacityPieces ??
-      estimate.formula.piecesPerPour;
-    const extraCapacityPieces =
-      estimate.formula.requestedQuantityEstimate?.extraCapacityPieces ?? 0;
+    const requiredPours = zeroTarget
+      ? 0
+      : estimate.formula.requestedQuantityEstimate?.requiredPours ?? 1;
+    const producedCapacityPieces = zeroTarget
+      ? 0
+      : estimate.formula.requestedQuantityEstimate?.producedCapacityPieces ??
+        estimate.formula.piecesPerPour;
+    const extraCapacityPieces = zeroTarget
+      ? 0
+      : estimate.formula.requestedQuantityEstimate?.extraCapacityPieces ?? 0;
 
     const feasibility: PlasterMoldOperationalFeasibility =
       maxCompletePours === null
@@ -308,12 +330,7 @@ export class PlasterMoldOperationalPreviewService {
       moldName: estimate.mold.name,
       productId: estimate.mold.productId,
       profileId: estimate.profile.id,
-      ...(estimate.formula.requestedQuantityEstimate
-        ? {
-            requestedQuantity:
-              estimate.formula.requestedQuantityEstimate.requestedQuantity,
-          }
-        : {}),
+      ...(requestedQuantity !== undefined ? { requestedQuantity } : {}),
       requiredPours,
       producedCapacityPieces,
       extraCapacityPieces,
@@ -359,15 +376,19 @@ export class PlasterMoldOperationalPreviewService {
     costPerGram: number | null,
     normalizedOnHandGrams: number | null,
     issues: PlasterMoldOperationalIssue[],
+    zeroTarget = false,
   ): PlasterMoldOperationalMaterialLine {
     const perPourGrams = quantityForRole(estimate, role, 'perPour');
     const perPieceGrams = quantityForRole(estimate, role, 'perPiece');
-    const targetBatchGrams = quantityForRole(estimate, role, 'target');
+    const targetBatchGrams = quantityForRole(
+      estimate,
+      role,
+      'target',
+      zeroTarget,
+    );
     const completePourCapacity =
       normalizedOnHandGrams === null || perPourGrams <= 0
-        ? perPourGrams <= 0
-          ? null
-          : null
+        ? null
         : Math.floor(normalizedOnHandGrams / perPourGrams);
 
     return {
@@ -406,6 +427,7 @@ export class PlasterMoldOperationalPreviewService {
     materialId: string,
     materialName: string,
     issue: PlasterMoldOperationalIssue,
+    zeroTarget = false,
   ): PlasterMoldOperationalMaterialLine {
     return {
       role,
@@ -414,7 +436,12 @@ export class PlasterMoldOperationalPreviewService {
       baseUnit: 'g',
       perPourGrams: quantityForRole(estimate, role, 'perPour'),
       perPieceGrams: quantityForRole(estimate, role, 'perPiece'),
-      targetBatchGrams: quantityForRole(estimate, role, 'target'),
+      targetBatchGrams: quantityForRole(
+        estimate,
+        role,
+        'target',
+        zeroTarget,
+      ),
       costPerGram: null,
       costPerPour: null,
       costPerPiece: null,
