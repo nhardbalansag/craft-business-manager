@@ -78,9 +78,11 @@ function materialOptionLabel(material: Material): string {
 export function PlasterMoldFormulaConfigurationPanel({
   molds,
   onProfilesChanged,
+  hideMoldSelector = false,
 }: {
   molds: readonly Mold[];
   onProfilesChanged?: () => void;
+  hideMoldSelector?: boolean;
 }) {
   const [profiles, setProfiles] = useState<PlasterMoldYieldProfile[]>([]);
   const [materials, setMaterials] = useState<Material[]>([]);
@@ -357,20 +359,22 @@ export function PlasterMoldFormulaConfigurationPanel({
       ) : (
         <>
           <div className="plaster-formula-selector">
-            <label className="field">
-              <span>Mold</span>
-              <select
-                value={selectedMoldId}
-                onChange={(event) => setSelectedMoldId(event.target.value)}
-                aria-label="Formula Mold"
-              >
-                {activeMolds.map((mold) => (
-                  <option key={mold.id} value={mold.id}>
-                    {mold.name} · {mold.id}
-                  </option>
-                ))}
-              </select>
-            </label>
+            {!hideMoldSelector && (
+              <label className="field">
+                <span>Mold</span>
+                <select
+                  value={selectedMoldId}
+                  onChange={(event) => setSelectedMoldId(event.target.value)}
+                  aria-label="Formula Mold"
+                >
+                  {activeMolds.map((mold) => (
+                    <option key={mold.id} value={mold.id}>
+                      {mold.name} · {mold.id}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
 
             <div className="plaster-formula-status" aria-live="polite">
               <span>Formula status</span>
