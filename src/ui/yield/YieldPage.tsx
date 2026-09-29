@@ -929,38 +929,11 @@ export function YieldPage() {
                   : form.recipeSourceKind === 'mold-formula' && formulaDraftSource === null
                     ? 'Choose a saved Mold Formula in the Mold Formula source area below before recording this source type.'
                     : formulaDraftSource && !formulaDraftConfirmed
-                      ? 'Formula-assisted material quantities must be measured or confirmed against the real batch before recording.'
+                      ? 'Complete Actual measurement confirmation in the Mold Formula source area after checking the real batch quantities.'
                       : form.recipeSourceKind === 'mix-preset' && !draftMixReady
                         ? 'Choose an active compatible Mix preset before recording.'
                         : 'Use a valid date, complete each active material line, and enter whole-piece counts. The Sample ID is assigned automatically.'}
               </p>
-
-              {formulaDraftSource && (
-                <div className="yield-formula-draft-guard" role="note">
-                  <div>
-                    <strong>
-                      Formula-assisted draft · {formulaDraftSource.moldName} ({formulaDraftSource.moldId})
-                    </strong>
-                    <p>
-                      Profile {formulaDraftSource.profileId} supplied theoretical material quantities only.
-                      Good/rejected pieces were intentionally left blank. Actual measurements remain authoritative.
-                    </p>
-                  </div>
-                  <label className="yield-formula-draft-confirmation">
-                    <input
-                      type="checkbox"
-                      checked={formulaDraftConfirmed}
-                      disabled={Boolean(busy) || !selectedProduct?.isActive}
-                      onChange={(event) =>
-                        setFormulaDraftConfirmed(event.target.checked)
-                      }
-                    />
-                    <span>
-                      I measured this real batch and replaced or confirmed the material quantities below against the actual consumption.
-                    </span>
-                  </label>
-                </div>
-              )}
 
               <section className="yield-form-section" aria-labelledby="yield-batch-reference-heading">
                 <div className="yield-section-heading">
@@ -1032,6 +1005,13 @@ export function YieldPage() {
                               requestDraftAction({ kind: 'formula', draft })
                             }
                           />
+                        }
+                        measurementConfirmed={formulaDraftConfirmed}
+                        measurementDisabled={
+                          Boolean(busy) || !selectedProduct.isActive
+                        }
+                        onMeasurementConfirmationChange={
+                          setFormulaDraftConfirmed
                         }
                       />
                     </div>
