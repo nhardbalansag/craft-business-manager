@@ -22,6 +22,7 @@ Key persistence / desktop-boundary records:
 - `docs/PHASE_5_6B_REGRESSION_BUILD_PHASE_5_COMPLETION.md`
 - `docs/PHYSICAL_IDENTIFICATION_STORAGE_FOUNDATION_PLAN.md`
 - `docs/PHASE_6_TAURI_DESKTOP_INTEGRATION_PLAN.md`
+- `docs/PLASTER_MOLD_YIELD_MY1A_FORMULA_DOMAIN_CONTRACT.md`
 
 Historical child completion records remain authoritative for their individual contracts and CI evidence.
 
@@ -40,17 +41,17 @@ Historical child completion records remain authoritative for their individual co
 
 ## Current Repository Milestone
 
-Current verified integration baseline before the Tiered Pricing enhancement:
+Verified integration baseline before the Plaster Mold Yield Automation enhancement:
 
 ```text
-develop  e2057a063544f56088177e8211e03b96c21ef7e1
-CI       35432387049 — SUCCESS
-Preferred Yield enhancement — COMPLETE
-Legacy physical workbook Preferred Yield compatibility fix — COMPLETE
-Tiered Pricing TP0 audit — ACTIVE
+develop  f7a38edbe4a513ce767fd6e2b22148de1e1a2a17
+CI       36499932137 — SUCCESS
+Tiered Pricing TP0–TP9 — COMPLETE
+Plaster Mold Yield MY0 audit — COMPLETE
+MY1A Formula / Result Domain Contract — CURRENT IMPLEMENTATION
 ```
 
-The completed physical-identification and Preferred Yield work extends persisted source truth while preserving Phase 5 persistence boundaries. Tiered Pricing is an intervening business-domain enhancement requested before Phase 6 implementation. Phase 6 remains scoped but must not be started automatically while the Tiered Pricing task chain is active.
+Tiered Pricing is complete. Plaster Mold Yield Automation is now the active intervening business-domain enhancement before Phase 6 implementation. Phase 6 remains scoped but must not be started automatically while the MY task chain is active.
 
 ---
 
@@ -303,6 +304,45 @@ Tiered Pricing is complete. TP9 now proves current tiered workbook round-trip fi
 
 ---
 
+# Plaster Mold Yield Automation — ACTIVE
+
+Status: **MY1A COMPLETE IN THIS CHANGE; MERGE GATE PENDING**
+
+Purpose:
+
+- derive plaster mold recipe estimates from measured mold water-fill weight;
+- keep formula configuration separate from physical Mold identity;
+- preserve Product safety waste as a different planning concept;
+- preserve Yield Samples as actual production evidence;
+- support multi-cavity molds without persisting calculated quantities.
+
+Task map:
+
+```text
+MY0 — Domain & Workflow Audit                       COMPLETE
+MY1 — Plaster Mold Formula Foundation               ACTIVE
+    MY1A — Formula / Result Domain Contract          COMPLETE
+    MY1B — Mold Yield Profile Source Contract        NEXT / NOT STARTED
+    MY1C — Mold / Material Referential Validation    NOT STARTED
+MY2 — Repository & Application Services             NOT STARTED
+MY3 — Physical Dataset v4 / Workbook Migration      NOT STARTED
+MY4 — Mold Yield Calculator Engine                  NOT STARTED
+MY5 — Mold Formula Configuration UI                 NOT STARTED
+MY6 — Yield Workspace Integration                   NOT STARTED
+MY7 — Cost / Capacity / Production Preview          NOT STARTED
+MY8 — Regression & Completion Gate                  NOT STARTED
+```
+
+MY1A establishes the pure weight-based formula, validation/error contract, per-pour values, per-piece values, and optional requested-quantity/required-pours estimate. It intentionally does not create persisted source records or modify Yield evidence.
+
+Detailed MY1A contract:
+
+`docs/PLASTER_MOLD_YIELD_MY1A_FORMULA_DOMAIN_CONTRACT.md`
+
+Do not start MY1B until MY1A is merged and post-merge `develop` CI is green.
+
+---
+
 # Phase 6 — Tauri Desktop Integration
 
 Status: **SCOPED / IMPLEMENTATION NOT STARTED**
@@ -387,8 +427,15 @@ Phase 7 scope should be revisited after the desktop/native persistence workflow 
 ## Current Next Action
 
 ```text
-6.1A — Tauri v2 Project Scaffold & Dev/Build Scripts
+MY1A — Plaster Mold Formula / Result Domain Contract
+CURRENT — IMPLEMENTED ON FEATURE BRANCH, MERGE/POST-MERGE CI GATE PENDING
+```
+
+After MY1A is merged and post-merge `develop` CI is green, stop with:
+
+```text
+MY1B — Mold Yield Profile Source Contract
 NEXT / NOT STARTED
 ```
 
-The Tiered Pricing enhancement is complete through TP9. Phase 6.1A is now the next planned task, but it has not been started by TP9.
+Do not start MY1B automatically. Phase 6.1A remains pending until the Plaster Mold Yield Automation task chain no longer takes precedence.
