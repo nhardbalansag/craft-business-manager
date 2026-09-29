@@ -388,24 +388,20 @@ describe('YRS2B YieldRecipeSourceRecordingService', () => {
           moldYieldProfileId: 'PMYP-001',
         },
       }),
-    ).rejects.toBeInstanceOf(
-      YieldRecipeSourceRecordingError,
-    );
-
-    await expect(
-      service.record({
-        sample: sample({ id: 'YLD-002' }),
-        source: {
-          kind: 'mold-formula',
-          moldId: 'MOLD-001',
-          moldYieldProfileId: 'PMYP-001',
-        },
-      }),
     ).rejects.toMatchObject({
+      name: 'YieldRecipeSourceRecordingError',
       code: 'ROLLBACK_FAILED',
+      sampleId: 'YLD-001',
     });
 
     await expect(yieldRepository.list()).resolves.toEqual([]);
+    await expect(sourceRepository.list()).resolves.toEqual([
+      {
+        yieldSampleId: 'YLD-001',
+        moldId: 'MOLD-001',
+        moldYieldProfileId: 'PMYP-001',
+      },
+    ]);
   });
 
   it('keeps the legacy direct evidence recording path available', async () => {
