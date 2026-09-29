@@ -9,6 +9,7 @@ import {
   type StorageLocationType,
 } from '../../domain/storageLocations';
 import { PhysicalLabelPrintDialog } from '../labels/PhysicalLabelPrintDialog';
+import { PlasterMoldFormulaConfigurationPanel } from './PlasterMoldFormulaConfigurationPanel';
 import type { PhysicalLabelIdentity } from '../labels/physicalLabel';
 import './physicalIdentification.css';
 
@@ -488,6 +489,10 @@ export function PhysicalIdentificationWorkspace({ products }: { products: readon
             })}</div>}
           </div>
         </div>
+      )}
+
+      {mode === 'molds' && (
+        <PlasterMoldFormulaConfigurationPanel molds={molds} />
       )}
 
       {labelIdentity && <PhysicalLabelPrintDialog identity={labelIdentity} onClose={() => setLabelIdentity(null)} />}
