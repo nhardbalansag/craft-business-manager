@@ -244,8 +244,13 @@ describe('MY6 Yield Workspace Mold Formula integration', () => {
 
     expect(field('Good pieces').value).toBe('');
     expect(field('Rejected pieces').value).toBe('');
-    expect(container.textContent).toContain(
-      'Good/rejected pieces were intentionally left blank',
+    const confirmationPanel = container.querySelector<HTMLElement>(
+      '[aria-label="Actual measurement confirmation"]',
+    )!;
+    expect(confirmationPanel).not.toBeNull();
+    expect(confirmationPanel.textContent).toContain('Required');
+    expect(confirmationPanel.textContent).toContain(
+      'Review the copied Material quantities against the real batch',
     );
     expect(
       container.querySelector<HTMLButtonElement>('button[type="submit"]')
