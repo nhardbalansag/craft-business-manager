@@ -229,7 +229,12 @@ describe('Yield workspace UI/UX', () => {
         'input[value="mold-formula"]',
       )?.checked,
     ).toBe(false);
-    expect((field('Mix preset used') as HTMLSelectElement).disabled).toBe(true);
+    expect(
+      container.querySelector('[aria-label="Mix preset recipe source"]'),
+    ).toBeNull();
+    expect(
+      container.querySelector('[aria-label="Yield Mix preset"]'),
+    ).toBeNull();
   });
 
   it('switches Manual and Mix preset sources exclusively and records the selected Mix preset provenance', async () => {
@@ -257,7 +262,12 @@ describe('Yield workspace UI/UX', () => {
     )!;
     await act(async () => mixSource.click());
 
-    const mixPreset = field('Mix preset used') as HTMLSelectElement;
+    const mixPreset = container.querySelector<HTMLSelectElement>(
+      '[aria-label="Yield Mix preset"]',
+    )!;
+    expect(
+      container.querySelector('[aria-label="Mix preset recipe source"]'),
+    ).not.toBeNull();
     expect(mixPreset.disabled).toBe(false);
     await fill(mixPreset, 'MIX-PLASTER');
     await fill(
