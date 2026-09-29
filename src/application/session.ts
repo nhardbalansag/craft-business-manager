@@ -9,6 +9,7 @@ import { InMemoryMoldRepository } from './molds/InMemoryMoldRepository';
 import { MoldService } from './molds/MoldService';
 import { InMemoryPlasterMoldYieldProfileRepository } from './plasterMoldYieldProfiles/InMemoryPlasterMoldYieldProfileRepository';
 import { PlasterMoldYieldCalculatorService } from './plasterMoldYieldProfiles/PlasterMoldYieldCalculatorService';
+import { PlasterMoldOperationalPreviewService } from './plasterMoldYieldProfiles/PlasterMoldOperationalPreviewService';
 import { PlasterMoldYieldProfileService } from './plasterMoldYieldProfiles/PlasterMoldYieldProfileService';
 import { CompleteSourceSnapshotService } from './persistence/CompleteSourceSnapshotService';
 import { CompleteSourceSnapshotServiceV2 } from './persistence/CompleteSourceSnapshotServiceV2';
@@ -206,6 +207,12 @@ export const plasterMoldYieldCalculatorService =
     moldRepository,
     materialRepository,
     plasterMoldYieldProfileService,
+  );
+export const plasterMoldOperationalPreviewService =
+  new PlasterMoldOperationalPreviewService(
+    plasterMoldYieldCalculatorService,
+    materialRepository,
+    calibrationRepository,
   );
 export const moldService = new MoldService(
   moldRepository,

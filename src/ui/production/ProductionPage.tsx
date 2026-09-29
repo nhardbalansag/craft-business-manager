@@ -19,10 +19,12 @@ import {
   buildProductionIssueRows,
 } from './componentAwareProductionView';
 import { ProductionFinancialSummary } from './ProductionFinancialSummary';
+import { PlasterMoldProductionPreview } from './PlasterMoldProductionPreview';
 import { ProductionProductSearchPicker } from './ProductionProductSearchPicker';
 import { capacityPlan, parsePlannedQuantity, stockShortfall } from './productionPlanningView';
 import { AppIcon } from '../icons/AppIcon';
 import './production.css';
+import './plasterMoldProductionPreview.css';
 
 const peso = new Intl.NumberFormat('en-PH', {
   style: 'currency',
@@ -341,12 +343,25 @@ export function ProductionPage({ onOpenProducts }: { onOpenProducts: () => void 
               </button>
             ))}
           </nav>
-          <div id="production-overview" hidden={view !== 'overview'} aria-busy={estimating}>
+          <div
+            id="production-overview"
+            className="production-view-content"
+            hidden={view !== 'overview'}
+            aria-busy={estimating}
+          >
             <ProductionFinancialSummary
               result={batchFeasibility}
               loading={estimating}
               onPrepare={() => setView('preparation')}
             />
+            {selectedProduct && (
+              <PlasterMoldProductionPreview
+                productId={selectedProduct.id}
+                productName={selectedProduct.name}
+                plannedQuantity={quantityValid ? quantity : null}
+                authoritativeYieldSampleId={plan?.effectiveYieldSampleId ?? null}
+              />
+            )}
           </div>
           <div
             id="production-details"

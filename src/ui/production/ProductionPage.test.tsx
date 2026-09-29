@@ -22,6 +22,9 @@ beforeEach(async () => {
     session.productComponentRepository.replaceAll([]),
     session.productStockRepository.replaceAll([]),
     session.productFinancialProfileRepository.replaceAll([]),
+    session.storageLocationRepository.replaceAll([]),
+    session.moldRepository.replaceAll([]),
+    session.plasterMoldYieldProfileRepository.replaceAll([]),
   ]);
   container = document.createElement('div');
   document.body.append(container);
@@ -220,6 +223,96 @@ describe('production planning interactions', () => {
     await session.productStockRepository.replaceAll([{ productId: 'POT', onHandQuantity: 0 }]);
     await click('10');
     expect(container.querySelector('#production-preparation')?.textContent).toContain('10 pc short');
+  });
+
+
+  it('shows a parallel Mold Formula cost/capacity estimate without replacing the existing Production result', async () => {
+    await seed();
+    await session.materialService.createMaterial({
+      id: 'WATER',
+      name: 'Water',
+      group: 'liquid',
+      baseUnit: 'g',
+      purchaseQuantity: 1000,
+      purchaseUnit: 'g',
+      packageCost: 20,
+      onHandQuantity: 1000,
+      onHandUnit: 'g',
+      isActive: true,
+    });
+    await session.materialService.createMaterial({
+      id: 'PLASTER',
+      name: 'Plaster',
+      group: 'plaster',
+      baseUnit: 'g',
+      purchaseQuantity: 1000,
+      purchaseUnit: 'g',
+      packageCost: 100,
+      onHandQuantity: 1000,
+      onHandUnit: 'g',
+      isActive: true,
+    });
+    await session.materialService.createMaterial({
+      id: 'GLUE',
+      name: 'White Glue',
+      group: 'other',
+      baseUnit: 'g',
+      purchaseQuantity: 1000,
+      purchaseUnit: 'g',
+      packageCost: 200,
+      onHandQuantity: 1000,
+      onHandUnit: 'g',
+      isActive: true,
+    });
+    await session.moldRepository.replaceAll([
+      {
+        id: 'MOLD-CANDLE',
+        productId: 'CANDLE',
+        name: 'Four Cavity Pot Mold',
+        isActive: true,
+      },
+    ]);
+    await session.plasterMoldYieldProfileRepository.replaceAll([
+      {
+        id: 'PMYP-CANDLE',
+        moldId: 'MOLD-CANDLE',
+        waterMaterialId: 'WATER',
+        plasterMaterialId: 'PLASTER',
+        glueMaterialId: 'GLUE',
+        waterFillWeightGrams: 50,
+        waterAdjustmentRate: 0.3,
+        plasterFactor: 0.75,
+        glueFactor: 0.05,
+        piecesPerPour: 4,
+        isActive: true,
+      },
+    ]);
+
+    await mount();
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(overview().textContent).toContain('Within current capacity');
+    expect(overview().textContent).toContain('MOLD FORMULA ESTIMATE');
+    expect(overview().textContent).toContain('Formula cost & stock preview');
+    expect(overview().textContent).toContain('3.68');
+    expect(overview().textContent).toContain('112 pc');
+    expect(overview().textContent).toContain(
+      'does not replace the Product/Yield production plan',
+    );
+
+    await click('25');
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(overview().textContent).toContain('7 complete pours');
+    expect(overview().textContent).toContain('28 Mold-capacity pieces');
+    expect(overview().textContent).toContain('3 extra capacity');
   });
 });
 
