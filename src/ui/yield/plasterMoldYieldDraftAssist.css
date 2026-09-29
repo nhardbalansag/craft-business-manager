@@ -231,6 +231,7 @@
 
 .yield-formula-measurement-heading {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   gap: 12px;
   align-items: flex-start;
@@ -238,6 +239,7 @@
 
 .yield-formula-measurement-heading > div {
   min-width: 0;
+  flex: 1 1 200px;
   display: grid;
   gap: 3px;
 }
@@ -256,6 +258,7 @@
 
 .yield-formula-measurement-heading > span {
   flex: 0 0 auto;
+  align-self: flex-start;
   padding: 4px 7px;
   border-radius: 999px;
   background: #f1e5c9;
@@ -277,6 +280,7 @@
   align-items: flex-start;
   gap: 9px;
   padding: 9px 10px;
+  min-height: 44px;
   border-radius: 9px;
   background: #fff;
   color: #514737;
@@ -285,16 +289,35 @@
   cursor: pointer;
 }
 
-.yield-formula-draft-confirmation input {
-  flex: 0 0 auto;
-  margin-top: 2px;
+.yield-formula-draft-confirmation input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  padding: 0;
+  margin: 2px 0 0;
+  accent-color: #75572f;
+}
+
+.yield-formula-draft-confirmation > span {
+  min-width: 0;
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+
+.yield-formula-draft-confirmation:has(input:focus-visible) {
+  outline: 3px solid #866439;
+  outline-offset: 3px;
+}
+
+.yield-formula-draft-confirmation:has(input:disabled) {
+  cursor: not-allowed;
+  opacity: .62;
 }
 
 @media (max-width: 780px) {
   .yield-formula-assist-heading,
   .yield-formula-assist-action,
-  .yield-formula-preview-heading,
-  .yield-formula-measurement-heading {
+  .yield-formula-preview-heading {
     align-items: stretch;
     flex-direction: column;
   }
