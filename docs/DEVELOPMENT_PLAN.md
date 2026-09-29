@@ -50,11 +50,11 @@ Historical child completion records remain authoritative for their individual co
 
 ## Current Repository Milestone
 
-Verified YRS5B integration base:
+Verified YRS5C integration base:
 
 ```text
-develop  ac50f84f73ce66d70666960e5c6a9763be0d9699
-CI       36593940497 — SUCCESS
+develop  33e57761870189a521ec14aab436fe069e30f0d7
+CI       36595594512 — SUCCESS
 Tiered Pricing TP0–TP9 — COMPLETE
 Plaster Mold Yield MY0–MY8 — COMPLETE
 YRS1 Recipe Source Domain Foundation — COMPLETE
@@ -62,7 +62,8 @@ YRS2 Repository / Recording / Persistence — COMPLETE
 YRS3 Yield Recipe Source UI — COMPLETE
 YRS4 Mold Formula Draft Integration Refactor — COMPLETE
 YRS5A Resolved Source Labels — COMPLETE
-YRS5B Mold / Profile Traceability — COMPLETE IN THIS CHANGE
+YRS5B Mold / Profile Traceability — COMPLETE
+YRS5C Legacy Sample Presentation — COMPLETE IN THIS CHANGE
 ```
 
 Tiered Pricing and Plaster Mold Yield Automation are complete. The Yield Recipe Source enhancement now takes precedence before the deferred Phase 6 implementation. Phase 6 remains scoped and must not be started automatically while the YRS task chain is active.
@@ -402,7 +403,7 @@ Plaster Mold Yield Automation is complete after MY8 merges and exact post-merge 
 
 # Yield Recipe Source Enhancement — ACTIVE
 
-Status: **YRS0 + YRS1 + YRS2 + YRS3 + YRS4 + YRS5A + YRS5B COMPLETE**
+Status: **YRS0 + YRS1 + YRS2 + YRS3 + YRS4 + YRS5 COMPLETE**
 
 Master audit:
 
@@ -476,12 +477,12 @@ YRS4 — Mold Formula Draft Integration Refactor        COMPLETE
     YRS4B — Formula Preview / Planned Pieces           COMPLETE
     YRS4C — Actual Measurement Confirmation            COMPLETE
 
-YRS5 — Yield History Provenance UI                    IN PROGRESS
+YRS5 — Yield History Provenance UI                    COMPLETE
     YRS5A — Resolved Source Labels                    COMPLETE
     YRS5B — Mold / Profile Traceability               COMPLETE
-    YRS5C — Legacy Sample Presentation                NEXT
+    YRS5C — Legacy Sample Presentation                COMPLETE
 
-YRS6 — Integrated Regression & Completion Gate        NOT STARTED
+YRS6 — Integrated Regression & Completion Gate        NEXT / NOT STARTED
 ```
 
 YRS1A defines the pure source-resolution contract for Manual, Mix preset, and Mold formula views while preserving the existing YieldSample persistence shape. It fails closed on ambiguous MixPreset + Mold Formula provenance and defers the authoritative physical provenance source record to YRS1B.
@@ -518,6 +519,8 @@ YRS5A moves Yield History from the old implicit Mix/no-Mix presentation to autho
 
 YRS5B adds physical Formula traceability to Mold Formula history rows. The stored provenance IDs remain authoritative, the referenced Mold name is resolved for human-readable context, Mold ID + profile ID remain visible for exact traceability, archived Mold/profile records stay visible as historical provenance, and Mold/profile terms participate in history search without changing Yield learning or effective/preferred selection.
 
+YRS5C completes history provenance presentation with truthful legacy compatibility. Because the preserved YieldSample contract and physical v4→v5 migration contain no per-sample creation-origin marker, history does not guess a `Legacy` badge from dates or missing provenance. Instead it explains the deterministic compatibility rule and shows the saved source basis: Mix preset rows carry `Saved Mix preset reference`, Manual rows carry `No saved recipe reference`, and only an explicit physical Mold/profile provenance link resolves Mold formula.
+
 Detailed YRS contracts:
 
 - `docs/YIELD_RECIPE_SOURCE_YRS0_DOMAIN_COMPATIBILITY_AUDIT.md`
@@ -538,8 +541,9 @@ Detailed YRS contracts:
 - `docs/YIELD_RECIPE_SOURCE_YRS4C_ACTUAL_MEASUREMENT_CONFIRMATION.md`
 - `docs/YIELD_RECIPE_SOURCE_YRS5A_RESOLVED_SOURCE_LABELS.md`
 - `docs/YIELD_RECIPE_SOURCE_YRS5B_MOLD_PROFILE_TRACEABILITY.md`
+- `docs/YIELD_RECIPE_SOURCE_YRS5C_LEGACY_SAMPLE_PRESENTATION.md`
 
-Do not start YRS5C until YRS5B is merged and exact post-merge `develop` CI is green.
+Do not start YRS6 until YRS5C is merged and exact post-merge `develop` CI is green.
 
 ---
 
@@ -627,8 +631,8 @@ Phase 7 scope should be revisited after the desktop/native persistence workflow 
 ## Current Next Action
 
 ```text
-YRS5C — Legacy Sample Presentation
+YRS6 — Integrated Regression & Completion Gate
 NEXT / NOT STARTED
 ```
 
-Tiered Pricing TP0–TP9, Plaster Mold Yield MY0–MY8, YRS0, YRS1, YRS2A–YRS2E, YRS3A–YRS3D, YRS4A–YRS4C, YRS5A, and YRS5B are complete. Do not start YRS5C automatically; first merge YRS5B and verify the exact green post-YRS5B `develop` baseline. Phase 6.1A remains deferred until the Yield Recipe Source enhancement no longer takes precedence.
+Tiered Pricing TP0–TP9, Plaster Mold Yield MY0–MY8, YRS0, YRS1, YRS2A–YRS2E, YRS3A–YRS3D, YRS4A–YRS4C, and YRS5A–YRS5C are complete. Do not start YRS6 automatically; first merge YRS5C and verify the exact green post-YRS5C `develop` baseline. Phase 6.1A remains deferred until the Yield Recipe Source enhancement is fully closed by YRS6.

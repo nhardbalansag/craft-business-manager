@@ -1321,6 +1321,32 @@ export function YieldPage() {
                   <div className="material-count"><strong>{history.length}</strong><span>samples</span></div>
                 </div>
 
+                <details
+                  className="yield-history-legacy-compatibility"
+                  aria-label="Legacy Yield sample compatibility"
+                >
+                  <summary>How legacy samples are shown</summary>
+                  <div>
+                    <p>
+                      Pre-YRS samples keep their original saved meaning. History
+                      does not guess source origin from dates or migration age.
+                    </p>
+                    <ul>
+                      <li>
+                        Saved Mix preset reference → <strong>Mix preset</strong>
+                      </li>
+                      <li>
+                        No saved Mix preset and no Mold Formula provenance →{' '}
+                        <strong>Manual</strong>
+                      </li>
+                      <li>
+                        Explicit Mold/profile provenance →{' '}
+                        <strong>Mold formula</strong>
+                      </li>
+                    </ul>
+                  </div>
+                </details>
+
                 <div className="yield-history-toolbar">
                   <label className="field yield-history-search">
                     <span>Search history</span>
@@ -1431,8 +1457,20 @@ export function YieldPage() {
                                   ? recipeSourceLabel(recipeSource)
                                   : 'Unavailable'}
                               </strong>
-                              {recipeSourceMixName && (
-                                <em>{recipeSourceMixName}</em>
+                              {recipeSource?.kind === 'mix-preset' && (
+                                <>
+                                  {recipeSourceMixName && (
+                                    <em>{recipeSourceMixName}</em>
+                                  )}
+                                  <em className="yield-history-source-basis">
+                                    Saved Mix preset reference
+                                  </em>
+                                </>
+                              )}
+                              {recipeSource?.kind === 'manual' && (
+                                <em className="yield-history-source-basis">
+                                  No saved recipe reference
+                                </em>
                               )}
                               {recipeSource?.kind === 'mold-formula' && (
                                 <span

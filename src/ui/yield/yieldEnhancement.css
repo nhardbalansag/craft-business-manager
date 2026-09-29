@@ -157,6 +157,41 @@
   line-height: 1.5;
 }
 
+.yield-history-legacy-compatibility {
+  margin: 12px 0 14px;
+  padding: 10px 12px;
+  border: 1px solid #e1d6c8;
+  border-radius: 11px;
+  background: #fbf7f1;
+}
+
+.yield-history-legacy-compatibility summary {
+  cursor: pointer;
+  color: #5f5549;
+  font-size: .74rem;
+  font-weight: 780;
+}
+
+.yield-history-legacy-compatibility > div {
+  display: grid;
+  gap: 7px;
+  margin-top: 8px;
+  color: #766c60;
+  font-size: .72rem;
+  line-height: 1.5;
+}
+
+.yield-history-legacy-compatibility p,
+.yield-history-legacy-compatibility ul {
+  margin: 0;
+}
+
+.yield-history-legacy-compatibility ul {
+  display: grid;
+  gap: 3px;
+  padding-left: 18px;
+}
+
 .yield-history-panel .yield-history-toolbar {
   grid-template-columns: minmax(180px, 1fr) minmax(145px, .55fr) minmax(130px, .48fr) auto;
   align-items: end;
@@ -209,6 +244,11 @@
   line-height: 1.35;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.history-summary-grid .yield-history-recipe-source .yield-history-source-basis {
+  color: #978b7d;
+  font-size: .63rem;
 }
 
 .yield-history-formula-trace {
