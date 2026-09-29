@@ -17,6 +17,7 @@ type WorkspaceMode = 'molds' | 'storage';
 type StatusFilter = 'active' | 'archived' | 'all';
 type MoldStorageFilter = 'all' | 'assigned' | 'unassigned';
 type LocationTypeFilter = 'all' | StorageLocationType;
+const MOLD_PAGE_SIZE = 10;
 
 type MoldForm = {
   id: string;
@@ -60,6 +61,7 @@ export function PhysicalIdentificationWorkspace({ products }: { products: readon
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState<StatusFilter>('active');
   const [moldStorageFilter, setMoldStorageFilter] = useState<MoldStorageFilter>('all');
+  const [moldPage, setMoldPage] = useState(1);
   const [locationTypeFilter, setLocationTypeFilter] = useState<LocationTypeFilter>('all');
   const [moldForm, setMoldForm] = useState<MoldForm>(EMPTY_MOLD);
   const [locationForm, setLocationForm] = useState<LocationForm>(EMPTY_LOCATION);
@@ -132,6 +134,20 @@ export function PhysicalIdentificationWorkspace({ products }: { products: readon
       );
     });
   }, [molds, moldStorageFilter, pathByLocationId, productById, query, status]);
+
+  const moldPageCount = Math.max(1, Math.ceil(visibleMolds.length / MOLD_PAGE_SIZE));
+  const paginatedMolds = useMemo(
+    () => visibleMolds.slice((moldPage - 1) * MOLD_PAGE_SIZE, moldPage * MOLD_PAGE_SIZE),
+    [moldPage, visibleMolds],
+  );
+
+  useEffect(() => {
+    setMoldPage(1);
+  }, [moldStorageFilter, query, status]);
+
+  useEffect(() => {
+    if (moldPage > moldPageCount) setMoldPage(moldPageCount);
+  }, [moldPage, moldPageCount]);
 
   const visibleLocations = useMemo(() => {
     const search = normalize(query);
@@ -440,19 +456,74 @@ export function PhysicalIdentificationWorkspace({ products }: { products: readon
                 <div><p className="panel-kicker">MOLD DIRECTORY</p><h3>{loading ? 'Loading…' : `${visibleMolds.length} shown`}</h3><p>{loading ? 'Refreshing mold records.' : `${molds.length} total records · ${unassignedActiveMolds} active molds need storage`}</p></div>
                 <button type="button" className="button button-primary physical-id-directory-action" disabled={busy || loading} onClick={openMoldForm}>Add mold</button>
               </div>
-              {visibleMolds.length === 0 ? <div className="empty-state physical-id-empty"><strong>No molds match this view.</strong><p>Adjust the search or filters, or use Add mold to register a new physical mold.</p>{filtersActive && <button type="button" className="text-button" onClick={clearFilters}>Clear filters</button>}</div> : <div className="physical-id-card-list">{visibleMolds.map((mold) => {
-                const product = productById.get(normalize(mold.productId));
-                const path = mold.storageLocationId ? pathByLocationId[mold.storageLocationId] : undefined;
-                return <article className={`physical-id-card ${!mold.storageLocationId && mold.isActive ? 'needs-storage' : ''}`} key={mold.id}>
-                  <div className="physical-id-card-top">
-                    <div className="physical-id-card-title"><div className="physical-id-card-badges"><span className={`status-pill ${mold.isActive ? 'status-active' : ''}`}>{mold.isActive ? 'Active' : 'Archived'}</span>{!mold.storageLocationId && mold.isActive && <span className="physical-id-warning-pill">Needs storage</span>}</div><h4>{mold.name}</h4><code>{mold.id}</code></div>
-                    <button type="button" className="button button-quiet physical-id-primary-action" disabled={busy} onClick={() => editMold(mold)}>Edit / move</button>
+              {visibleMolds.length === 0 ? (
+                <div className="empty-state physical-id-empty">
+                  <strong>No molds match this view.</strong>
+                  <p>Adjust the search or filters, or use Add mold to register a new physical mold.</p>
+                  {filtersActive && <button type="button" className="text-button" onClick={clearFilters}>Clear filters</button>}
+                </div>
+              ) : (
+                <>
+                  <div className="physical-id-table-wrap">
+                    <table className="physical-id-table" aria-label="Mold directory table">
+                      <thead>
+                        <tr>
+                          <th scope="col">Status</th>
+                          <th scope="col">Mold</th>
+                          <th scope="col">Product</th>
+                          <th scope="col">Storage</th>
+                          <th scope="col">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {paginatedMolds.map((mold) => {
+                          const product = productById.get(normalize(mold.productId));
+                          const path = mold.storageLocationId ? pathByLocationId[mold.storageLocationId] : undefined;
+                          return (
+                            <tr className={!mold.storageLocationId && mold.isActive ? 'needs-storage' : ''} key={mold.id} data-mold-row={mold.id}>
+                              <td>
+                                <div className="physical-id-table-status">
+                                  <span className={`status-pill ${mold.isActive ? 'status-active' : ''}`}>{mold.isActive ? 'Active' : 'Archived'}</span>
+                                  {!mold.storageLocationId && mold.isActive && <span className="physical-id-warning-pill">Needs storage</span>}
+                                </div>
+                              </td>
+                              <td>
+                                <strong className="physical-id-table-name">{mold.name}</strong>
+                                <code>{mold.id}</code>
+                                {mold.notes && <small className="physical-id-table-note">{mold.notes}</small>}
+                              </td>
+                              <td>
+                                <strong>{product?.name ?? mold.productId}</strong>
+                                <small>{mold.productId}</small>
+                              </td>
+                              <td>
+                                <span className={!path ? 'physical-id-unassigned' : ''}>{path ?? 'Unassigned — choose a storage location'}</span>
+                              </td>
+                              <td>
+                                <div className="physical-id-table-actions">
+                                  <button type="button" className="button button-quiet" disabled={busy} onClick={() => editMold(mold)}>Edit / move</button>
+                                  <button type="button" className="text-button" onClick={() => printMold(mold)}>Print mold label</button>
+                                  <button type="button" className={`text-button ${mold.isActive ? 'danger' : ''}`} disabled={busy} onClick={() => void toggleMold(mold)}>{mold.isActive ? 'Archive' : 'Restore'}</button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
-                  <dl><div><dt>Product</dt><dd><strong>{product?.name ?? mold.productId}</strong><small>{mold.productId}</small></dd></div><div><dt>Storage</dt><dd className={!path ? 'physical-id-unassigned' : ''}>{path ?? 'Unassigned — choose a storage location'}</dd></div></dl>
-                  {mold.notes && <p className="physical-id-notes">{mold.notes}</p>}
-                  <div className="physical-id-actions"><button type="button" className="text-button" onClick={() => printMold(mold)}>Print mold label</button><button type="button" className={`text-button ${mold.isActive ? 'danger' : ''}`} disabled={busy} onClick={() => void toggleMold(mold)}>{mold.isActive ? 'Archive' : 'Restore'}</button></div>
-                </article>;
-              })}</div>}
+                  <div className="physical-id-pagination" aria-label="Mold directory pagination">
+                    <span>
+                      {((moldPage - 1) * MOLD_PAGE_SIZE) + 1}–{Math.min(moldPage * MOLD_PAGE_SIZE, visibleMolds.length)} of {visibleMolds.length}
+                    </span>
+                    <div>
+                      <button type="button" className="button button-quiet" aria-label="Previous mold page" disabled={moldPage <= 1} onClick={() => setMoldPage((current) => Math.max(1, current - 1))}>Previous</button>
+                      <span>Page {moldPage} of {moldPageCount}</span>
+                      <button type="button" className="button button-quiet" aria-label="Next mold page" disabled={moldPage >= moldPageCount} onClick={() => setMoldPage((current) => Math.min(moldPageCount, current + 1))}>Next</button>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 

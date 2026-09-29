@@ -161,12 +161,49 @@ describe('PhysicalIdentificationWorkspace', () => {
 
     await clickLabel('Show unassigned molds');
 
-    const cards = Array.from(container.querySelectorAll('.physical-id-card'));
-    expect(cards).toHaveLength(1);
-    expect(cards[0]?.textContent).toContain('Loose Dinosaur Mold');
-    expect(cards[0]?.textContent).toContain('Needs storage');
-    expect(cards[0]?.textContent).toContain('Unassigned — choose a storage location');
+    const rows = Array.from(container.querySelectorAll('[data-mold-row]'));
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.textContent).toContain('Loose Dinosaur Mold');
+    expect(rows[0]?.textContent).toContain('Needs storage');
+    expect(rows[0]?.textContent).toContain('Unassigned — choose a storage location');
     expect(container.querySelector<HTMLSelectElement>('[aria-label="Mold storage assignment filter"]')?.value).toBe('unassigned');
+  });
+
+  it('renders the mold directory as a table and paginates filtered records by 10', async () => {
+    for (let index = 1; index <= 12; index += 1) {
+      await session.moldService.createMold({
+        id: `MOLD-${String(index).padStart(4, '0')}`,
+        productId: 'PRD-1',
+        name: `Dinosaur Mold ${index}`,
+        isActive: true,
+      });
+    }
+
+    await mount();
+
+    const table = container.querySelector<HTMLTableElement>('[aria-label="Mold directory table"]');
+    expect(table).not.toBeNull();
+    const firstPageRows = Array.from(table!.querySelectorAll<HTMLTableRowElement>('tbody tr'));
+    const firstPageIds = firstPageRows.map((row) => row.dataset.moldRow);
+    expect(firstPageRows).toHaveLength(10);
+    expect(container.querySelector('[aria-label="Mold directory pagination"]')?.textContent).toContain('1–10 of 12');
+    expect(container.querySelector('[aria-label="Mold directory pagination"]')?.textContent).toContain('Page 1 of 2');
+
+    await clickLabel('Next mold page');
+
+    const secondPageRows = Array.from(table!.querySelectorAll<HTMLTableRowElement>('tbody tr'));
+    const secondPageIds = secondPageRows.map((row) => row.dataset.moldRow);
+    expect(secondPageRows).toHaveLength(2);
+    expect(container.querySelector('[aria-label="Mold directory pagination"]')?.textContent).toContain('11–12 of 12');
+    expect(container.querySelector('[aria-label="Mold directory pagination"]')?.textContent).toContain('Page 2 of 2');
+    expect(new Set([...firstPageIds, ...secondPageIds]).size).toBe(12);
+
+    const search = container.querySelector<HTMLInputElement>('[aria-label="Search molds"]')!;
+    await fill(search, 'Dinosaur Mold 12');
+
+    expect(Array.from(table!.querySelectorAll('tbody tr'))).toHaveLength(1);
+    expect(container.querySelector('[aria-label="Mold directory pagination"]')?.textContent).toContain('1–1 of 1');
+    expect(container.querySelector('[aria-label="Mold directory pagination"]')?.textContent).toContain('Page 1 of 1');
   });
 
   it('creates Rack → Shelf → Bin records and then creates a mold assigned to the resolved path', async () => {
