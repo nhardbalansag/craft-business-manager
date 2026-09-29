@@ -205,6 +205,17 @@ describe('MY4 PlasterMoldYieldCalculatorService', () => {
     ).rejects.toMatchObject({ code: 'ACTIVE_PROFILE_NOT_FOUND' });
   });
 
+  it('fails closed if the active-profile provider returns an archived profile', async () => {
+    await expect(
+      setup({
+        activeProfile: profile({ isActive: false }),
+      }).calculateForMold('MOLD-1'),
+    ).rejects.toMatchObject({
+      code: 'PROFILE_SOURCE_INVALID',
+      underlyingCode: 'PROFILE_INACTIVE',
+    });
+  });
+
   it('fails closed if the active-profile provider returns a profile for another Mold', async () => {
     await expect(
       setup({
