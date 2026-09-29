@@ -171,6 +171,9 @@ describe('MY6 Yield Workspace Mold Formula integration', () => {
     expect(
       container.querySelector('[aria-label="Mold Formula assistant"]'),
     ).not.toBeNull();
+    expect(
+      container.querySelector('[aria-label="Actual measurement confirmation"]'),
+    ).toBeNull();
     expect(container.textContent).toContain('FORMULA SETUP');
     expect(
       container.querySelector('[aria-label="Formula source context"]')
@@ -290,13 +293,21 @@ describe('MY6 Yield Workspace Mold Formula integration', () => {
     await fill(field('Good pieces'), '20');
     await fill(field('Rejected pieces'), '4');
 
-    const confirmation = container.querySelector<HTMLInputElement>(
-      '.yield-formula-draft-confirmation input[type="checkbox"]',
+    const formulaMode = container.querySelector<HTMLElement>(
+      '[aria-label="Mold Formula recipe source"]',
+    )!;
+    const confirmationPanel = formulaMode.querySelector<HTMLElement>(
+      '[aria-label="Actual measurement confirmation"]',
+    )!;
+    const confirmation = confirmationPanel.querySelector<HTMLInputElement>(
+      'input[type="checkbox"]',
     )!;
     const record = container.querySelector<HTMLButtonElement>(
       'button[type="submit"]',
     )!;
 
+    expect(confirmationPanel).not.toBeNull();
+    expect(confirmationPanel.textContent).toContain('Required');
     expect(confirmation.checked).toBe(false);
     expect(record.disabled).toBe(true);
 
@@ -304,6 +315,7 @@ describe('MY6 Yield Workspace Mold Formula integration', () => {
     await flush();
 
     expect(confirmation.checked).toBe(true);
+    expect(confirmationPanel.textContent).toContain('Confirmed');
     expect(record.disabled).toBe(false);
     expect(
       await session.yieldSampleEvidenceService.listSamples({
@@ -352,12 +364,16 @@ describe('MY6 Yield Workspace Mold Formula integration', () => {
     await fill(field('Good pieces'), '3');
     await fill(field('Rejected pieces'), '1');
 
-    const confirmation = container.querySelector<HTMLInputElement>(
-      '.yield-formula-draft-confirmation input[type="checkbox"]',
+    const confirmationPanel = container.querySelector<HTMLElement>(
+      '[aria-label="Actual measurement confirmation"]',
+    )!;
+    const confirmation = confirmationPanel.querySelector<HTMLInputElement>(
+      'input[type="checkbox"]',
     )!;
     await act(async () => confirmation.click());
     await flush();
     expect(confirmation.checked).toBe(true);
+    expect(confirmationPanel.textContent).toContain('Confirmed');
 
     const waterQuantity = container.querySelector<HTMLInputElement>(
       '[aria-label="Yield quantity 1"]',
@@ -365,6 +381,10 @@ describe('MY6 Yield Workspace Mold Formula integration', () => {
     await fill(waterQuantity, '34.8');
 
     expect(confirmation.checked).toBe(false);
+    expect(confirmationPanel.textContent).toContain('Required');
+    expect(container.textContent).toContain(
+      'Complete Actual measurement confirmation in the Mold Formula source area',
+    );
     expect(
       container.querySelector<HTMLButtonElement>('button[type="submit"]')
         ?.disabled,
