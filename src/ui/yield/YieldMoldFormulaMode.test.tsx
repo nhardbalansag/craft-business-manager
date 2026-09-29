@@ -73,7 +73,7 @@ describe('YRS3C YieldMoldFormulaMode', () => {
     expect(container.textContent).toContain(
       'No Mold Formula is attached to this draft yet.',
     );
-    expect(container.textContent).toContain('MOLD FORMULA ASSIST below');
+    expect(container.textContent).toContain('Formula setup below');
     expect(container.textContent).toContain(
       'Actual batch evidence stays separate.',
     );
@@ -112,7 +112,7 @@ describe('YRS3C YieldMoldFormulaMode', () => {
         <YieldMoldFormulaMode
           draft={null}
           selectedProductId="PROD-DINO"
-          assistant={<div aria-label="Stub MY6 assistant">MOLD FORMULA ASSIST</div>}
+          assistant={<div aria-label="Stub MY6 assistant">FORMULA SETUP</div>}
         />,
       ),
     );
@@ -125,8 +125,8 @@ describe('YRS3C YieldMoldFormulaMode', () => {
     )!;
 
     expect(assistant).not.toBeNull();
-    expect(assistant.textContent).toContain('MOLD FORMULA ASSIST');
-    expect(container.textContent).toContain('Use MOLD FORMULA ASSIST below');
+    expect(assistant.textContent).toContain('FORMULA SETUP');
+    expect(container.textContent).toContain('Use Formula setup below');
   });
 
   it('fails visibly if an attached formula belongs to another Product', async () => {
