@@ -165,4 +165,26 @@ describe('YRS3B YieldMixPresetMode', () => {
       'Select an active compatible preset before recording.',
     );
   });
+
+  it('keeps a missing copied preset identity visible instead of silently clearing it', async () => {
+    await act(async () =>
+      root.render(
+        <YieldMixPresetMode
+          presets={[preset]}
+          materials={materials}
+          selectedPresetId="MIX-MISSING"
+          onChange={() => undefined}
+        />,
+      ),
+    );
+
+    const select = container.querySelector<HTMLSelectElement>(
+      '[aria-label="Yield Mix preset"]',
+    )!;
+    expect(select.value).toBe('MIX-MISSING');
+    expect(container.textContent).toContain('MIX-MISSING · unavailable');
+    expect(container.textContent).toContain(
+      'Referenced Mix preset MIX-MISSING is unavailable.',
+    );
+  });
 });
