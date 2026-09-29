@@ -106,6 +106,29 @@ describe('YRS3C YieldMoldFormulaMode', () => {
     expect(summary.textContent).not.toContain('300');
   });
 
+  it('hosts the relocated MY6 assistant inside the Mold Formula mode', async () => {
+    await act(async () =>
+      root.render(
+        <YieldMoldFormulaMode
+          draft={null}
+          selectedProductId="PROD-DINO"
+          assistant={<div aria-label="Stub MY6 assistant">MOLD FORMULA ASSIST</div>}
+        />,
+      ),
+    );
+
+    const mode = container.querySelector(
+      '[aria-label="Mold Formula recipe source"]',
+    )!;
+    const assistant = mode.querySelector(
+      '[aria-label="Mold Formula assistant"]',
+    )!;
+
+    expect(assistant).not.toBeNull();
+    expect(assistant.textContent).toContain('MOLD FORMULA ASSIST');
+    expect(container.textContent).toContain('Use MOLD FORMULA ASSIST below');
+  });
+
   it('fails visibly if an attached formula belongs to another Product', async () => {
     await act(async () =>
       root.render(
