@@ -208,6 +208,34 @@
   box-shadow: 0 24px 80px rgb(15 23 42 / 28%);
 }
 
+.physical-id-formula-modal {
+  width: min(1180px, 100%);
+  padding: 20px;
+}
+
+.physical-id-formula-modal-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.physical-id-formula-modal-heading > div {
+  display: grid;
+  gap: 3px;
+}
+
+.physical-id-formula-modal-heading strong {
+  font-size: 0.92rem;
+}
+
+.physical-id-formula-modal .plaster-formula-config {
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+}
+
 .physical-id-modal-form {
   position: static;
   width: 100%;
@@ -289,7 +317,7 @@
 
 .physical-id-table {
   width: 100%;
-  min-width: 920px;
+  min-width: 1080px;
   border-collapse: collapse;
 }
 
@@ -344,7 +372,32 @@
 }
 
 .physical-id-table td:nth-child(5) {
+  width: 150px;
+}
+
+.physical-id-table td:nth-child(6) {
   width: 200px;
+}
+
+.physical-id-formula-state {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.physical-id-formula-state.configured {
+  background: #eaf4e7;
+  color: #4f724c;
+}
+
+.physical-id-formula-state.missing {
+  background: #fbf0df;
+  color: #98621f;
 }
 
 .physical-id-table-status {
@@ -656,6 +709,16 @@
     max-height: calc(100vh - 24px);
     padding: 18px;
     border-radius: 18px 18px 10px 10px;
+  }
+
+  .physical-id-formula-modal {
+    width: 100%;
+    padding: 16px;
+  }
+
+  .physical-id-formula-modal-heading {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .physical-id-modal-form {
