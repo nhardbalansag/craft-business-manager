@@ -4,6 +4,11 @@ import {
   toBusinessDatasetV2,
   type PhysicalBusinessDatasetV3,
 } from '../../domain/physicalBusinessDatasetV3';
+import {
+  extendPhysicalBusinessDatasetV3,
+  toPhysicalBusinessDatasetV3,
+  type PhysicalBusinessDatasetV4,
+} from '../../domain/physicalBusinessDatasetV4';
 import type { BusinessDataset } from '../../domain/types';
 import {
   toLegacyBusinessDataset,
@@ -30,6 +35,11 @@ import {
   importPhysicalBusinessDatasetV3FromXlsx,
   type PhysicalBusinessDatasetV3WorkbookImportResult,
 } from '../../storage/physicalBusinessDatasetV3Workbook';
+import {
+  exportPhysicalBusinessDatasetV4ToXlsx,
+  importPhysicalBusinessDatasetV4FromXlsx,
+  type PhysicalBusinessDatasetV4WorkbookImportResult,
+} from '../../storage/physicalBusinessDatasetV4Workbook';
 import type { WorkbookBinaryInput, WorkbookCodec } from '../../storage/workbookCodec';
 import {
   cloneWorkbookBytes,
@@ -55,6 +65,8 @@ export interface PersistenceCoordinatorOptions {
   readonly physicalIdentification?: boolean;
   /** Explicit override for BusinessDataset-v2 / workbook-v3 tier persistence. */
   readonly tieredPricing?: boolean;
+  /** Explicit override for PhysicalBusinessDataset-v4 plaster mold profile persistence. */
+  readonly plasterMoldYieldProfiles?: boolean;
 }
 
 export interface PersistenceWorkbookExported {
@@ -83,11 +95,13 @@ type PersistableDataset =
   | BusinessDataset
   | PhysicalBusinessDataset
   | BusinessDatasetV2
-  | PhysicalBusinessDatasetV3;
+  | PhysicalBusinessDatasetV3
+  | PhysicalBusinessDatasetV4;
 
 interface SnapshotSource {
   readonly physicalIdentification?: boolean;
   readonly tieredPricing?: boolean;
+  readonly plasterMoldYieldProfiles?: boolean;
   snapshot(): Promise<PersistableDataset>;
 }
 
@@ -142,8 +156,23 @@ function isPhysicalDatasetV3(
   );
 }
 
+function isPhysicalDatasetV4(
+  dataset: PersistableDataset,
+): dataset is PhysicalBusinessDatasetV4 {
+  return (
+    'productPriceTiers' in dataset &&
+    'storageLocations' in dataset &&
+    'molds' in dataset &&
+    'plasterMoldYieldProfiles' in dataset &&
+    dataset.schemaVersion === 4
+  );
+}
+
 function hasPhysicalSourceRecords(
-  dataset: PhysicalBusinessDataset | PhysicalBusinessDatasetV3,
+  dataset:
+    | PhysicalBusinessDataset
+    | PhysicalBusinessDatasetV3
+    | PhysicalBusinessDatasetV4,
 ): boolean {
   return dataset.storageLocations.length > 0 || dataset.molds.length > 0;
 }
@@ -176,6 +205,30 @@ function importTieredPhysicalOrCore(
     return {
       ok: true,
       dataset: extendBusinessDatasetV2(core.dataset),
+      metadata: core.metadata,
+    };
+  }
+
+  return core;
+}
+
+function importProfilePhysicalOrCore(
+  bytes: WorkbookBinaryInput,
+  codec: WorkbookCodec,
+): PhysicalBusinessDatasetV4WorkbookImportResult {
+  const physicalShape = workbookHasPhysicalSheets(bytes, codec);
+
+  if (physicalShape) {
+    return importPhysicalBusinessDatasetV4FromXlsx(bytes, codec);
+  }
+
+  const core = importBusinessDatasetV2FromXlsx(bytes, codec);
+  if (core.ok) {
+    return {
+      ok: true,
+      dataset: extendPhysicalBusinessDatasetV3(
+        extendBusinessDatasetV2(core.dataset),
+      ),
       metadata: core.metadata,
     };
   }
@@ -226,14 +279,16 @@ function hydrationOperationalError(
  *
  * Legacy callers retain the proven Phase 5 v1/v2 persistence behavior by default.
  * Tier-aware snapshot services advertise tieredPricing=true and move the live path to
- * core workbook v3 / dataset v2 or physical workbook v3 / dataset v3 while retaining
- * legacy import compatibility.
+ * core workbook v3 / dataset v2 or physical workbook v3 / dataset v3.
+ * Profile-aware physical snapshots additionally advertise plasterMoldYieldProfiles=true
+ * and use physical workbook/dataset v4 while retaining v2/v3 import compatibility.
  */
 export class PersistenceCoordinator {
   private readonly clock: PersistenceClock;
   private readonly applicationVersion?: string;
   private readonly physicalIdentification: boolean;
   private readonly tieredPricing: boolean;
+  private readonly plasterMoldYieldProfiles: boolean;
 
   constructor(
     private readonly snapshotService: SnapshotSource,
@@ -249,6 +304,10 @@ export class PersistenceCoordinator {
       false;
     this.tieredPricing =
       options.tieredPricing ?? snapshotService.tieredPricing ?? false;
+    this.plasterMoldYieldProfiles =
+      options.plasterMoldYieldProfiles ??
+      snapshotService.plasterMoldYieldProfiles ??
+      false;
   }
 
   async exportCurrentWorkbook(): Promise<PersistenceWorkbookExported> {
@@ -295,7 +354,14 @@ export class PersistenceCoordinator {
     let imported;
     try {
       const ownedBytes = cloneWorkbookBytes(bytes);
-      if (this.tieredPricing) {
+      if (this.plasterMoldYieldProfiles) {
+        if (!this.physicalIdentification || !this.tieredPricing) {
+          throw new Error(
+            'Plaster mold yield profile persistence requires tiered physical persistence.',
+          );
+        }
+        imported = importProfilePhysicalOrCore(ownedBytes, this.codec);
+      } else if (this.tieredPricing) {
         imported = this.physicalIdentification
           ? importTieredPhysicalOrCore(ownedBytes, this.codec)
           : importBusinessDatasetV2FromXlsx(ownedBytes, this.codec);
@@ -383,7 +449,32 @@ export class PersistenceCoordinator {
 
       let bytes: Uint8Array;
 
-      if (this.tieredPricing) {
+      if (this.plasterMoldYieldProfiles) {
+        if (!this.physicalIdentification || !this.tieredPricing) {
+          throw new Error(
+            'Plaster mold yield profile persistence requires tiered physical persistence.',
+          );
+        }
+        if (!isPhysicalDatasetV4(dataset)) {
+          throw new Error(
+            'Plaster mold yield profile persistence requires a PhysicalBusinessDataset v4 source snapshot.',
+          );
+        }
+
+        bytes =
+          hasPhysicalSourceRecords(dataset) ||
+          dataset.plasterMoldYieldProfiles.length > 0
+            ? exportPhysicalBusinessDatasetV4ToXlsx(
+                dataset,
+                metadata,
+                this.codec,
+              )
+            : exportBusinessDatasetV2ToXlsx(
+                toBusinessDatasetV2(toPhysicalBusinessDatasetV3(dataset)),
+                metadata,
+                this.codec,
+              );
+      } else if (this.tieredPricing) {
         if (this.physicalIdentification) {
           if (!isPhysicalDatasetV3(dataset)) {
             throw new Error(

@@ -14,8 +14,10 @@ import { CompleteSourceSnapshotServiceV2 } from './persistence/CompleteSourceSna
 import { PersistenceCoordinator } from './persistence/PersistenceCoordinator';
 import { PhysicalDatasetHydrationService } from './persistence/PhysicalDatasetHydrationService';
 import { PhysicalDatasetHydrationServiceV3 } from './persistence/PhysicalDatasetHydrationServiceV3';
+import { PhysicalDatasetHydrationServiceV4 } from './persistence/PhysicalDatasetHydrationServiceV4';
 import { PhysicalSourceSnapshotService } from './persistence/PhysicalSourceSnapshotService';
 import { PhysicalSourceSnapshotServiceV3 } from './persistence/PhysicalSourceSnapshotServiceV3';
+import { PhysicalSourceSnapshotServiceV4 } from './persistence/PhysicalSourceSnapshotServiceV4';
 import { ValidatedAtomicDatasetHydrationService } from './persistence/ValidatedAtomicDatasetHydrationService';
 import { ValidatedAtomicDatasetHydrationServiceV2 } from './persistence/ValidatedAtomicDatasetHydrationServiceV2';
 import { FullyLoadedProductUnitCostService } from './productCosts/FullyLoadedProductUnitCostService';
@@ -151,10 +153,21 @@ export const physicalDatasetHydrationServiceV3 = new PhysicalDatasetHydrationSer
   moldRepository,
 );
 
+export const physicalSourceSnapshotServiceV4 = new PhysicalSourceSnapshotServiceV4(
+  physicalSourceSnapshotServiceV3,
+  plasterMoldYieldProfileRepository,
+);
+
+export const physicalDatasetHydrationServiceV4 = new PhysicalDatasetHydrationServiceV4(
+  physicalDatasetHydrationServiceV3,
+  physicalSourceSnapshotServiceV4,
+  plasterMoldYieldProfileRepository,
+);
+
 const persistenceWorkbookCodec = new SheetJsWorkbookCodec();
 export const persistenceCoordinator = new PersistenceCoordinator(
-  physicalSourceSnapshotServiceV3,
-  physicalDatasetHydrationServiceV3,
+  physicalSourceSnapshotServiceV4,
+  physicalDatasetHydrationServiceV4,
   persistenceWorkbookCodec,
 );
 
