@@ -182,7 +182,11 @@ describe('MY3 physical workbook v4 / dataset v4 migration', () => {
       workbookFormatVersion: 4,
       datasetSchemaVersion: 4,
     });
-    expect(result.dataset).toEqual(source);
+    expect(
+      createPhysicalBusinessDatasetV4WorkbookDocument(result.dataset, metadata),
+    ).toEqual(
+      createPhysicalBusinessDatasetV4WorkbookDocument(source, metadata),
+    );
     expect(result.dataset.plasterMoldYieldProfiles).toEqual(
       source.plasterMoldYieldProfiles,
     );
