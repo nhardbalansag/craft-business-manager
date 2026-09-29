@@ -80,9 +80,11 @@ export function YieldMixPresetMode({
               ? 'Select mix preset'
               : 'No active compatible presets'}
           </option>
-          {selectedPresetId && selected && !selectedIsAvailable && (
-            <option value={selected.id}>
-              {selected.name} ({selected.id}) · unavailable
+          {selectedPresetId && !selectedIsAvailable && (
+            <option value={selected?.id ?? selectedPresetId}>
+              {selected
+                ? `${selected.name} (${selected.id}) · unavailable`
+                : `${selectedPresetId} · unavailable`}
             </option>
           )}
           {presets.map((preset) => (
@@ -97,7 +99,15 @@ export function YieldMixPresetMode({
         </small>
       </label>
 
-      {!hasAvailablePresets && !selected ? (
+      {selectedPresetId && !selected ? (
+        <div className="yield-source-mode-state" role="alert">
+          <strong>Referenced Mix preset {selectedPresetId} is unavailable.</strong>
+          <span>
+            Select an active compatible preset before recording this copied
+            batch setup.
+          </span>
+        </div>
+      ) : !hasAvailablePresets && !selected ? (
         <div className="yield-source-mode-state" role="note">
           <strong>No active compatible Mix preset is available.</strong>
           <span>
