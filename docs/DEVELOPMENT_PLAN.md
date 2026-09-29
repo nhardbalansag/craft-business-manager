@@ -50,17 +50,17 @@ Historical child completion records remain authoritative for their individual co
 
 ## Current Repository Milestone
 
-Verified MY8 integration base:
+Verified YRS0 audit base:
 
 ```text
-develop  608fd485cce44c79b78a2ad0be1a540d0339f994
-CI       36514585530 — SUCCESS
+develop  3a8e87469df35e0db939915f9dc942e99a7b33b7
+CI       36533479009 — SUCCESS
 Tiered Pricing TP0–TP9 — COMPLETE
-Plaster Mold Yield MY0–MY7 — COMPLETE
-MY8 Regression & Completion Gate — COMPLETE IN THIS CHANGE
+Plaster Mold Yield MY0–MY8 — COMPLETE
+YRS0 Domain & Compatibility Audit — COMPLETE IN THIS CHANGE
 ```
 
-Tiered Pricing is complete. Plaster Mold Yield Automation is now the active intervening business-domain enhancement before Phase 6 implementation. Phase 6 remains scoped but must not be started automatically while the MY task chain is active.
+Tiered Pricing and Plaster Mold Yield Automation are complete. The Yield Recipe Source enhancement now takes precedence before the deferred Phase 6 implementation. Phase 6 remains scoped and must not be started automatically while the YRS task chain is active.
 
 ---
 
@@ -395,6 +395,93 @@ Plaster Mold Yield Automation is complete after MY8 merges and exact post-merge 
 
 ---
 
+# Yield Recipe Source Enhancement — ACTIVE
+
+Status: **YRS0 COMPLETE**
+
+Master audit:
+
+`docs/YIELD_RECIPE_SOURCE_YRS0_DOMAIN_COMPATIBILITY_AUDIT.md`
+
+Purpose:
+
+- replace the Yield form's implicit "Mix preset used / no preset" source choice with an explicit Recipe source workflow;
+- support Mix preset, Mold formula, and Manual modes without changing actual Yield evidence semantics;
+- preserve the existing `YieldSample` contract for legacy/core compatibility;
+- persist Mold Formula provenance as a physical-domain source relationship;
+- keep theoretical formula quantities distinct from actual measured Yield evidence;
+- preserve Yield learning, Product safety waste, preferred/effective Yield selection, and Production mathematics.
+
+YRS0 compatibility decision:
+
+```text
+Existing YieldSample contract preserved                 YES
+Existing MixPreset samples remain compatible            YES
+Legacy no-preset samples resolve Manual                  YES
+Mold Formula provenance becomes explicit                YES
+MixPreset + Mold Formula simultaneous source forbidden  YES
+Formula outputs remain derived                          YES
+Actual Yield measurements remain authoritative          YES
+Core workbook version bump required                     NO
+Physical workbook v5 required                           YES
+Atomic Yield + provenance recording required            YES
+```
+
+Resolved source semantics:
+
+```text
+Mold Formula provenance link exists
+        → mold-formula
+
+otherwise YieldSample.mixPresetId exists
+        → mix-preset
+
+otherwise
+        → manual
+```
+
+The Mold Formula provenance source will be a separate physical-domain record linking a saved Yield Sample to the Mold and PlasterMoldYieldProfile used to start that batch. It will not persist calculated formula quantities.
+
+Task map:
+
+```text
+YRS0 — Domain & Compatibility Audit                   COMPLETE
+
+YRS1 — Recipe Source Domain Foundation                NEXT / NOT STARTED
+    YRS1A — Recipe Source Resolution Contract         NEXT
+    YRS1B — Mold Formula Provenance Source Contract
+    YRS1C — Referential / Exclusivity Validation
+
+YRS2 — Repository / Recording / Persistence           NOT STARTED
+    YRS2A — Provenance Repository + Application Service
+    YRS2B — Atomic Yield + Provenance Recording
+    YRS2C — PhysicalBusinessDatasetV5
+    YRS2D — Physical Workbook v5 + v4→v5 Migration
+    YRS2E — Snapshot / Hydration / Google Sheets Compatibility
+
+YRS3 — Yield Recipe Source UI                         NOT STARTED
+    YRS3A — Recipe Source Selector
+    YRS3B — Mix Preset Mode
+    YRS3C — Mold Formula Mode
+    YRS3D — Manual Mode
+
+YRS4 — Mold Formula Draft Integration Refactor        NOT STARTED
+    YRS4A — Move MY6 Assist Under Mold Formula Mode
+    YRS4B — Formula Preview / Planned Pieces
+    YRS4C — Actual Measurement Confirmation
+
+YRS5 — Yield History Provenance UI                    NOT STARTED
+    YRS5A — Resolved Source Labels
+    YRS5B — Mold / Profile Traceability
+    YRS5C — Legacy Sample Presentation
+
+YRS6 — Integrated Regression & Completion Gate        NOT STARTED
+```
+
+Do not start YRS1A until YRS0 is merged and exact post-merge `develop` CI is green.
+
+---
+
 # Phase 6 — Tauri Desktop Integration
 
 Status: **SCOPED / IMPLEMENTATION NOT STARTED**
@@ -479,8 +566,8 @@ Phase 7 scope should be revisited after the desktop/native persistence workflow 
 ## Current Next Action
 
 ```text
-6.1A — Tauri v2 Project Scaffold & Dev/Build Scripts
+YRS1A — Recipe Source Resolution Contract
 NEXT / NOT STARTED
 ```
 
-Tiered Pricing TP0–TP9 and Plaster Mold Yield MY0–MY8 are complete. Phase 6.1A is again the next project task, but do not start it as part of MY8; first verify the exact green post-MY8 `develop` baseline in the next task.
+Tiered Pricing TP0–TP9, Plaster Mold Yield MY0–MY8, and YRS0 are complete. Do not start YRS1A automatically; first verify the exact green post-YRS0 `develop` baseline. Phase 6.1A remains deferred until the Yield Recipe Source enhancement no longer takes precedence.
