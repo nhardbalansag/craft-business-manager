@@ -865,6 +865,61 @@
   line-height: 1.45;
 }
 
+.yield-manual-mode-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.yield-manual-mode-summary > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+  padding: 10px 11px;
+  border: 1px solid #dfd5c8;
+  border-radius: 10px;
+  background: #fffdf9;
+}
+
+.yield-manual-mode-summary span {
+  color: #8b8074;
+  font-size: .64rem;
+  font-weight: 780;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.yield-manual-mode-summary strong {
+  color: var(--yield-ink);
+  font-size: .77rem;
+}
+
+.yield-manual-mode-summary small {
+  color: var(--yield-muted);
+  font-size: .67rem;
+  line-height: 1.4;
+}
+
+.yield-manual-mode-guidance {
+  display: grid;
+  gap: 4px;
+  padding: 10px 11px;
+  border-left: 3px solid #9eae9d;
+  border-radius: 0 10px 10px 0;
+  background: #f1f4ef;
+}
+
+.yield-manual-mode-guidance strong {
+  color: #4f5f50;
+  font-size: .74rem;
+}
+
+.yield-manual-mode-guidance span {
+  color: var(--yield-muted);
+  font-size: .69rem;
+  line-height: 1.45;
+}
+
 @media (max-width: 1180px) {
   .yield-product-bar {
     grid-template-columns: minmax(220px, 300px) minmax(0, 1fr);
@@ -886,6 +941,7 @@
 }
 
 @media (max-width: 760px) {
+  .yield-manual-mode-summary { grid-template-columns: 1fr; }
   .yield-mold-formula-source-summary { grid-template-columns: 1fr; }
   .yield-recipe-source-options { grid-template-columns: 1fr; }
   .yield-guide { grid-template-columns: 1fr; }
