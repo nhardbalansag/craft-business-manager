@@ -413,6 +413,26 @@ export function PhysicalIdentificationWorkspace({ products }: { products: readon
           </select>
         </label>
         {mode === 'molds' ? (
+          <label>
+            <span>Storage</span>
+            <select value={moldStorageFilter} onChange={(event) => setMoldStorageFilter(event.target.value as MoldStorageFilter)} aria-label="Mold storage assignment filter">
+              <option value="all">All assignments</option><option value="assigned">Assigned</option><option value="unassigned">Unassigned</option>
+            </select>
+          </label>
+        ) : (
+          <label>
+            <span>Type</span>
+            <select value={locationTypeFilter} onChange={(event) => setLocationTypeFilter(event.target.value as LocationTypeFilter)} aria-label="Storage location type filter">
+              <option value="all">All types</option>{STORAGE_LOCATION_TYPES.map((type) => <option key={type} value={type}>{titleCase(type)}</option>)}
+            </select>
+          </label>
+        )}
+        {filtersActive && <button type="button" className="text-button physical-id-clear" onClick={clearFilters}>Clear filters</button>}
+      </div>
+
+      {feedback && <div className={`feedback ${feedback.type}`} role={feedback.type === 'error' ? 'alert' : 'status'}>{feedback.message}</div>}
+
+      {mode === 'molds' ? (
         <>
           <div className="physical-id-layout physical-id-layout-directory">
             <div className="panel physical-id-list">
