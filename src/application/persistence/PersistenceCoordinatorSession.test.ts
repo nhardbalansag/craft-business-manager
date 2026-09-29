@@ -118,7 +118,7 @@ describe('Phase 5.3C3 shared session coordinator', () => {
   });
 
 
-  it('round-trips PlasterMoldYieldProfiles through physical workbook v4 in the shared session', async () => {
+  it('round-trips PlasterMoldYieldProfiles through physical workbook v5 in the shared session', async () => {
     const core = createEmptyBusinessDatasetV2();
     core.materials.push(
       {
@@ -221,8 +221,8 @@ describe('Phase 5.3C3 shared session coordinator', () => {
     expect(restored).toMatchObject({
       status: 'hydrated',
       metadata: {
-        workbookFormatVersion: 4,
-        datasetSchemaVersion: 4,
+        workbookFormatVersion: 5,
+        datasetSchemaVersion: 5,
       },
     });
     expect(
