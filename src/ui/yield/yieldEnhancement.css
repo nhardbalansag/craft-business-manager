@@ -211,6 +211,17 @@
   white-space: nowrap;
 }
 
+.yield-history-formula-trace {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.history-summary-grid .yield-history-formula-trace em:last-child {
+  color: #92877b;
+  font-size: .64rem;
+}
+
 .yield-clean-badge {
   background: #eaf3e9;
   color: #48634e;
