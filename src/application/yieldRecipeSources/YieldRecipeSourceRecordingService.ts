@@ -41,13 +41,14 @@ export interface YieldRecipeSourceRecordingResult {
 }
 
 export type YieldRecipeSourceRecordingErrorCode =
+  | 'EXISTING_MOLD_FORMULA_SOURCE'
   | 'APPLY_FAILED_RESTORED'
   | 'ROLLBACK_FAILED';
 
 export class YieldRecipeSourceRecordingError extends Error {
   readonly code: YieldRecipeSourceRecordingErrorCode;
   readonly sampleId: string;
-  readonly operationCause: unknown;
+  readonly operationCause?: unknown;
   readonly rollbackCause?: unknown;
 
   constructor(
@@ -55,7 +56,7 @@ export class YieldRecipeSourceRecordingError extends Error {
     message: string,
     context: {
       sampleId: string;
-      operationCause: unknown;
+      operationCause?: unknown;
       rollbackCause?: unknown;
     },
   ) {
@@ -122,6 +123,22 @@ export class YieldRecipeSourceRecordingService {
       );
 
     let preparedSource: YieldMoldFormulaSource | undefined;
+
+    if (input.source.kind !== 'mold-formula') {
+      const existingSource =
+        await this.moldFormulaSources.findByYieldSampleId(
+          preparedSample.id,
+        );
+      if (existingSource) {
+        throw new YieldRecipeSourceRecordingError(
+          'EXISTING_MOLD_FORMULA_SOURCE',
+          `Yield Sample ID ${preparedSample.id} already has Mold Formula provenance and cannot be recorded as ${input.source.kind}.`,
+          {
+            sampleId: preparedSample.id,
+          },
+        );
+      }
+    }
 
     if (input.source.kind === 'mold-formula') {
       preparedSource =
