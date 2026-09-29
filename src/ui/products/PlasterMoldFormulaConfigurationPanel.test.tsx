@@ -246,7 +246,7 @@ describe('MY5 PlasterMoldFormulaConfigurationPanel', () => {
     await submitForm();
 
     expect(container.querySelector('[role="alert"]')?.textContent).toContain(
-      'different',
+      'distinct Material IDs',
     );
     expect(await session.plasterMoldYieldProfileService.listProfiles()).toEqual([]);
   });
