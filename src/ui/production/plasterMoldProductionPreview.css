@@ -1,0 +1,199 @@
+/* MY7C — Mold Formula Production preview responsive/accessibility completion */
+.mold-production-preview {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+  padding: 20px;
+}
+
+.mold-production-preview-heading,
+.mold-production-preview-controls,
+.mold-production-preview-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.mold-production-preview-heading {
+  align-items: flex-start;
+}
+
+.mold-production-preview-heading h2 {
+  margin: 4px 0 5px;
+}
+
+.mold-production-preview-heading p:not(.panel-kicker) {
+  max-width: 720px;
+  margin: 0;
+  color: var(--text-muted, #667085);
+  font-size: .82rem;
+  line-height: 1.5;
+}
+
+.mold-production-preview-boundary {
+  flex: 0 0 auto;
+  padding: 7px 10px;
+  border: 1px solid #ddd2c2;
+  border-radius: 999px;
+  background: #fbf7f0;
+  color: #715f49;
+  font-size: .69rem;
+  font-weight: 850;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+}
+
+.mold-production-authority-note {
+  margin: 0;
+  padding: 10px 12px;
+  border-left: 3px solid #b99c70;
+  border-radius: 0 9px 9px 0;
+  background: #fbf7ef;
+  color: #6f604b;
+  font-size: .78rem;
+  line-height: 1.5;
+}
+
+.mold-production-preview-controls {
+  align-items: stretch;
+}
+
+.mold-production-preview-controls .field {
+  flex: 1 1 440px;
+  min-width: 0;
+  margin: 0;
+}
+
+.mold-production-preview-controls > div {
+  display: grid;
+  flex: 0 1 300px;
+  gap: 3px;
+  align-content: center;
+  padding: 10px 13px;
+  border: 1px solid var(--border, #d7dce4);
+  border-radius: 11px;
+  background: var(--surface-soft, #f7f8fa);
+}
+
+.mold-production-preview-controls > div > span,
+.mold-production-preview-summary span {
+  color: var(--text-muted, #667085);
+  font-size: .67rem;
+  font-weight: 850;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.mold-production-preview-controls small,
+.mold-production-preview-summary small {
+  color: var(--text-muted, #667085);
+  line-height: 1.35;
+}
+
+.mold-production-preview-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.mold-production-preview-summary article {
+  display: grid;
+  min-width: 0;
+  gap: 5px;
+  padding: 13px;
+  border: 1px solid var(--border, #d7dce4);
+  border-radius: 12px;
+  background: var(--surface-soft, #f7f8fa);
+}
+
+.mold-production-preview-summary strong {
+  font-size: 1.05rem;
+  overflow-wrap: anywhere;
+}
+
+.mold-production-feasibility {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 11px 13px;
+  border-radius: 10px;
+  font-size: .78rem;
+}
+
+.mold-production-feasibility.within-current-stock {
+  background: #edf5ed;
+  color: #376247;
+}
+
+.mold-production-feasibility.insufficient-current-stock {
+  background: #f9e7e1;
+  color: #93382d;
+}
+
+.mold-production-feasibility.capacity-unresolved {
+  background: #f7eed9;
+  color: #7b5c20;
+}
+
+.mold-production-material-table th,
+.mold-production-material-table td {
+  vertical-align: top;
+}
+
+.mold-production-material-table .limiting-row {
+  background: rgba(239, 68, 68, 0.045);
+}
+
+.mold-production-preview-footer {
+  color: var(--text-muted, #667085);
+  font-size: .72rem;
+  line-height: 1.45;
+}
+
+.mold-production-preview-footer span {
+  max-width: 48%;
+}
+
+.mold-production-preview-state {
+  color: var(--text-muted, #667085);
+  font-size: .82rem;
+}
+
+@media (max-width: 1050px) {
+  .mold-production-preview-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .mold-production-preview-heading,
+  .mold-production-preview-controls,
+  .mold-production-feasibility,
+  .mold-production-preview-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .mold-production-preview-boundary {
+    align-self: flex-start;
+  }
+
+  .mold-production-preview-controls > div {
+    flex-basis: auto;
+  }
+
+  .mold-production-preview-footer span {
+    max-width: none;
+  }
+}
+
+@media (max-width: 520px) {
+  .mold-production-preview {
+    padding: 14px;
+  }
+
+  .mold-production-preview-summary {
+    grid-template-columns: 1fr;
+  }
+}
