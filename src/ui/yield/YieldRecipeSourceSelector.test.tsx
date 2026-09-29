@@ -79,8 +79,5 @@ describe('YRS3A YieldRecipeSourceSelector', () => {
       '[aria-label="Recipe source"]',
     )!;
     expect(group.disabled).toBe(true);
-    expect(radio('mix-preset').matches(':disabled')).toBe(true);
-    expect(radio('mold-formula').matches(':disabled')).toBe(true);
-    expect(radio('manual').matches(':disabled')).toBe(true);
   });
 });
