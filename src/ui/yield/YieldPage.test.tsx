@@ -238,6 +238,51 @@ describe('Yield workspace UI/UX', () => {
     expect(
       container.querySelector('[aria-label="Mold Formula recipe source"]'),
     ).toBeNull();
+    const manualMode = container.querySelector<HTMLElement>(
+      '[aria-label="Manual recipe source"]',
+    )!;
+    expect(manualMode).not.toBeNull();
+    expect(manualMode.textContent).toContain('No saved recipe');
+    expect(manualMode.textContent).toContain('Actual batch measurements');
+  });
+
+  it('records Manual evidence without Mix preset or Mold Formula provenance', async () => {
+    await seed();
+    await mount();
+
+    await fill(
+      container.querySelector<HTMLSelectElement>(
+        '[aria-label="Yield material 1"]',
+      )!,
+      plaster.id,
+    );
+    await fill(
+      container.querySelector<HTMLInputElement>(
+        '[aria-label="Yield quantity 1"]',
+      )!,
+      '100',
+    );
+
+    const recordSpy = vi.spyOn(
+      session.yieldRecipeSourceRecordingService,
+      'record',
+    );
+
+    await submit();
+
+    expect(recordSpy).toHaveBeenCalledOnce();
+    expect(recordSpy.mock.calls[0]?.[0].source).toEqual({ kind: 'manual' });
+
+    const saved = await session.yieldSampleEvidenceService.listSamples({
+      productId: product.id,
+    });
+    expect(saved).toHaveLength(1);
+    expect(saved[0].mixPresetId).toBeUndefined();
+    expect(
+      await session.yieldMoldFormulaSourceService.getSourceForYieldSample(
+        saved[0].id,
+      ),
+    ).toBeNull();
   });
 
   it('shows an explicit non-recordable Mold Formula source state before a formula draft is attached', async () => {
