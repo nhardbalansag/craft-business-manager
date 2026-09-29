@@ -2,6 +2,7 @@ import {
   cloneYieldMoldFormulaSource,
   normalizeYieldMoldFormulaSource,
   validateYieldMoldFormulaSourceContract,
+  toMoldFormulaYieldRecipeSourceReference,
   type YieldMoldFormulaSource,
 } from '../../domain/yieldMoldFormulaSource';
 import {
@@ -11,7 +12,6 @@ import {
 } from '../../domain/yieldMoldFormulaSourceValidation';
 import {
   resolveYieldRecipeSource,
-  toMoldFormulaYieldRecipeSourceReference,
   type ResolvedYieldRecipeSource,
 } from '../../domain/yieldRecipeSource';
 import type { MoldRepository } from '../molds/MoldRepository';
