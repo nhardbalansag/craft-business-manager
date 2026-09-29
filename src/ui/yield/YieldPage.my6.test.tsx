@@ -133,6 +133,7 @@ async function seedFormula() {
         isActive: true,
       },
     ]),
+    session.yieldMoldFormulaSourceRepository.replaceAll([]),
   ]);
 }
 
@@ -203,7 +204,7 @@ describe('MY6 Yield Workspace Mold Formula integration', () => {
     ).toBe(true);
   });
 
-  it('scales requested pieces, requires measured confirmation, then records only through the normal Yield save', async () => {
+  it('scales requested pieces, requires measured confirmation, then records Yield evidence with Mold Formula provenance', async () => {
     await mount();
 
     const planned = container.querySelector<HTMLInputElement>(
@@ -273,6 +274,16 @@ describe('MY6 Yield Workspace Mold Formula integration', () => {
         { materialId: 'MAT-PLASTER', quantity: 157.5, unit: 'g' },
         { materialId: 'MAT-GLUE', quantity: 10.5, unit: 'g' },
       ],
+    });
+    expect(saved[0].mixPresetId).toBeUndefined();
+    expect(
+      await session.yieldMoldFormulaSourceService.getSourceForYieldSample(
+        saved[0].id,
+      ),
+    ).toEqual({
+      yieldSampleId: saved[0].id,
+      moldId: 'MOLD-MY6',
+      moldYieldProfileId: 'PMYP-MY6',
     });
   });
 

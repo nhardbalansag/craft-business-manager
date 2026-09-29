@@ -60,6 +60,7 @@ beforeEach(async () => {
     session.storageLocationRepository.replaceAll([]),
     session.moldRepository.replaceAll([]),
     session.plasterMoldYieldProfileRepository.replaceAll([]),
+    session.yieldMoldFormulaSourceRepository.replaceAll([]),
   ]);
   container = document.createElement('div');
   document.body.append(container);
@@ -184,10 +185,17 @@ describe('Yield workspace UI/UX', () => {
     expect(field('Sample ID').value).toBe('YLD-0001');
     await fill(container.querySelector<HTMLSelectElement>('[aria-label="Yield material 1"]')!, plaster.id);
     await fill(container.querySelector<HTMLInputElement>('[aria-label="Yield quantity 1"]')!, '100');
-    const record = session.yieldSampleEvidenceService.recordSample.bind(session.yieldSampleEvidenceService);
+    const record = session.yieldRecipeSourceRecordingService.record.bind(
+      session.yieldRecipeSourceRecordingService,
+    );
     let release!: () => void;
     const gate = new Promise<void>((resolve) => { release = resolve; });
-    const spy = vi.spyOn(session.yieldSampleEvidenceService, 'recordSample').mockImplementation(async (input) => { await gate; return record(input); });
+    const spy = vi
+      .spyOn(session.yieldRecipeSourceRecordingService, 'record')
+      .mockImplementation(async (input) => {
+        await gate;
+        return record(input);
+      });
     await submit();
     await submit();
     expect(spy).toHaveBeenCalledTimes(1);
@@ -196,6 +204,87 @@ describe('Yield workspace UI/UX', () => {
     await act(async () => release());
     expect(await session.yieldSampleEvidenceService.listSamples({ productId: product.id })).toHaveLength(1);
     expect(container.querySelector<HTMLSelectElement>('.yield-product-bar select')?.disabled).toBe(false);
+  });
+
+  it('shows an explicit recipe-source selector and defaults products without a preset to Manual', async () => {
+    await seed();
+    await mount();
+
+    const selector = container.querySelector<HTMLElement>(
+      '[aria-label="Recipe source"]',
+    )!;
+    expect(selector).not.toBeNull();
+    expect(
+      selector.querySelector<HTMLInputElement>(
+        'input[value="manual"]',
+      )?.checked,
+    ).toBe(true);
+    expect(
+      selector.querySelector<HTMLInputElement>(
+        'input[value="mix-preset"]',
+      )?.checked,
+    ).toBe(false);
+    expect(
+      selector.querySelector<HTMLInputElement>(
+        'input[value="mold-formula"]',
+      )?.checked,
+    ).toBe(false);
+    expect((field('Mix preset used') as HTMLSelectElement).disabled).toBe(true);
+  });
+
+  it('switches Manual and Mix preset sources exclusively and records the selected Mix preset provenance', async () => {
+    await seed();
+    await session.mixPresetRepository.replaceAll([
+      {
+        id: 'MIX-PLASTER',
+        name: 'Standard Plaster Mix',
+        compatibleCategories: ['paintable-art'],
+        basis: 'weight',
+        lines: [
+          {
+            materialId: plaster.id,
+            role: 'primary',
+            parts: 1,
+          },
+        ],
+        isActive: true,
+      },
+    ]);
+    await mount();
+
+    const mixSource = container.querySelector<HTMLInputElement>(
+      '[aria-label="Recipe source"] input[value="mix-preset"]',
+    )!;
+    await act(async () => mixSource.click());
+
+    const mixPreset = field('Mix preset used') as HTMLSelectElement;
+    expect(mixPreset.disabled).toBe(false);
+    await fill(mixPreset, 'MIX-PLASTER');
+    await fill(
+      container.querySelector<HTMLSelectElement>(
+        '[aria-label="Yield material 1"]',
+      )!,
+      plaster.id,
+    );
+    await fill(
+      container.querySelector<HTMLInputElement>(
+        '[aria-label="Yield quantity 1"]',
+      )!,
+      '100',
+    );
+
+    await submit();
+
+    const saved = await session.yieldSampleEvidenceService.listSamples({
+      productId: product.id,
+    });
+    expect(saved).toHaveLength(1);
+    expect(saved[0].mixPresetId).toBe('MIX-PLASTER');
+    expect(
+      await session.yieldMoldFormulaSourceService.getSourceForYieldSample(
+        saved[0].id,
+      ),
+    ).toBeNull();
   });
 
   it('requires a valid date and never previews percentages from invalid piece counts', async () => {
@@ -218,7 +307,9 @@ describe('Yield workspace UI/UX', () => {
     expect(field('Sample ID').value).toBe('YLD-0001');
     await fill(container.querySelector<HTMLSelectElement>('[aria-label="Yield material 1"]')!, plaster.id);
     await fill(container.querySelector<HTMLInputElement>('[aria-label="Yield quantity 1"]')!, '100');
-    vi.spyOn(session.yieldSampleEvidenceService, 'recordSample').mockRejectedValueOnce(new Error('Save failed'));
+    vi.spyOn(session.yieldRecipeSourceRecordingService, 'record').mockRejectedValueOnce(
+      new Error('Save failed'),
+    );
     await submit();
     expect(field('Sample ID').value).toBe('YLD-0001');
     expect(form()?.textContent).toContain('Save failed');
