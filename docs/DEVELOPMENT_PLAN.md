@@ -50,17 +50,18 @@ Historical child completion records remain authoritative for their individual co
 
 ## Current Repository Milestone
 
-Verified YRS2C integration base:
+Verified YRS2D integration base:
 
 ```text
-develop  16d3a4bd3255799fdb96d68225b7a16413d15c8d
-CI       36563655833 — SUCCESS
+develop  570af60b59c9a9c60666f967659acd8aa07356ae
+CI       36565962359 — SUCCESS
 Tiered Pricing TP0–TP9 — COMPLETE
 Plaster Mold Yield MY0–MY8 — COMPLETE
 YRS1 Recipe Source Domain Foundation — COMPLETE
 YRS2A Provenance Repository + Application Service — COMPLETE
 YRS2B Atomic Yield + Provenance Recording — COMPLETE
-YRS2C PhysicalBusinessDatasetV5 — COMPLETE IN THIS CHANGE
+YRS2C PhysicalBusinessDatasetV5 — COMPLETE
+YRS2D Physical Workbook v5 + v4→v5 Migration — COMPLETE IN THIS CHANGE
 ```
 
 Tiered Pricing and Plaster Mold Yield Automation are complete. The Yield Recipe Source enhancement now takes precedence before the deferred Phase 6 implementation. Phase 6 remains scoped and must not be started automatically while the YRS task chain is active.
@@ -400,7 +401,7 @@ Plaster Mold Yield Automation is complete after MY8 merges and exact post-merge 
 
 # Yield Recipe Source Enhancement — ACTIVE
 
-Status: **YRS0 + YRS1 + YRS2A + YRS2B + YRS2C COMPLETE**
+Status: **YRS0 + YRS1 + YRS2A + YRS2B + YRS2C + YRS2D COMPLETE**
 
 Master audit:
 
@@ -459,8 +460,9 @@ YRS2 — Repository / Recording / Persistence           IN PROGRESS
     YRS2A — Provenance Repository + Application Service  COMPLETE
     YRS2B — Atomic Yield + Provenance Recording        COMPLETE
     YRS2C — PhysicalBusinessDatasetV5                  COMPLETE
-    YRS2D — Physical Workbook v5 + v4→v5 Migration    NEXT
+    YRS2D — Physical Workbook v5 + v4→v5 Migration    COMPLETE
     YRS2E — Snapshot / Hydration / Google Sheets Compatibility
+                                                        NEXT
 
 YRS3 — Yield Recipe Source UI                         NOT STARTED
     YRS3A — Recipe Source Selector
@@ -493,6 +495,8 @@ YRS2B adds the source-aware recording coordinator. Manual and Mix preset continu
 
 YRS2C introduces `PhysicalBusinessDatasetV5` as the complete physical source graph: physical v4 plus `yieldMoldFormulaSources`. The v5 validator reuses all v4 integrity rules and applies YRS provenance validation in historical mode so archived Mold/profile references remain valid production history.
 
+YRS2D adds physical workbook v5 with a canonical `YieldMoldFormulaSources` sheet and the explicit physical 4/4 → 5/5 migration edge. Legacy physical workbooks migrate without inventing provenance, current v5 workbooks round-trip provenance through XLSX, and strict import diagnostics map provenance failures back to the new sheet.
+
 Detailed YRS contracts:
 
 - `docs/YIELD_RECIPE_SOURCE_YRS0_DOMAIN_COMPATIBILITY_AUDIT.md`
@@ -502,8 +506,9 @@ Detailed YRS contracts:
 - `docs/YIELD_RECIPE_SOURCE_YRS2A_REPOSITORY_SERVICE.md`
 - `docs/YIELD_RECIPE_SOURCE_YRS2B_ATOMIC_RECORDING.md`
 - `docs/YIELD_RECIPE_SOURCE_YRS2C_PHYSICAL_DATASET_V5.md`
+- `docs/YIELD_RECIPE_SOURCE_YRS2D_PHYSICAL_WORKBOOK_V5_MIGRATION.md`
 
-Do not start YRS2D until YRS2C is merged and exact post-merge `develop` CI is green.
+Do not start YRS2E until YRS2D is merged and exact post-merge `develop` CI is green.
 
 ---
 
@@ -591,8 +596,8 @@ Phase 7 scope should be revisited after the desktop/native persistence workflow 
 ## Current Next Action
 
 ```text
-YRS2D — Physical Workbook v5 + v4→v5 Migration
+YRS2E — Snapshot / Hydration / Google Sheets Compatibility
 NEXT / NOT STARTED
 ```
 
-Tiered Pricing TP0–TP9, Plaster Mold Yield MY0–MY8, YRS0, YRS1, YRS2A, YRS2B, and YRS2C are complete. Do not start YRS2D automatically; first verify the exact green post-YRS2C `develop` baseline. Phase 6.1A remains deferred until the Yield Recipe Source enhancement no longer takes precedence.
+Tiered Pricing TP0–TP9, Plaster Mold Yield MY0–MY8, YRS0, YRS1, YRS2A, YRS2B, YRS2C, and YRS2D are complete. Do not start YRS2E automatically; first merge YRS2D and verify the exact green post-YRS2D `develop` baseline. Phase 6.1A remains deferred until the Yield Recipe Source enhancement no longer takes precedence.
