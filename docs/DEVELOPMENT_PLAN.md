@@ -397,7 +397,7 @@ Plaster Mold Yield Automation is complete after MY8 merges and exact post-merge 
 
 # Yield Recipe Source Enhancement — ACTIVE
 
-Status: **YRS0 + YRS1A + YRS1B COMPLETE**
+Status: **YRS0 + YRS1 COMPLETE**
 
 Master audit:
 
@@ -447,13 +447,13 @@ Task map:
 ```text
 YRS0 — Domain & Compatibility Audit                   COMPLETE
 
-YRS1 — Recipe Source Domain Foundation                IN PROGRESS
+YRS1 — Recipe Source Domain Foundation                COMPLETE
     YRS1A — Recipe Source Resolution Contract         COMPLETE
     YRS1B — Mold Formula Provenance Source Contract   COMPLETE
-    YRS1C — Referential / Exclusivity Validation      NEXT
+    YRS1C — Referential / Exclusivity Validation      COMPLETE
 
-YRS2 — Repository / Recording / Persistence           NOT STARTED
-    YRS2A — Provenance Repository + Application Service
+YRS2 — Repository / Recording / Persistence           NEXT / NOT STARTED
+    YRS2A — Provenance Repository + Application Service  NEXT
     YRS2B — Atomic Yield + Provenance Recording
     YRS2C — PhysicalBusinessDatasetV5
     YRS2D — Physical Workbook v5 + v4→v5 Migration
@@ -480,15 +480,18 @@ YRS6 — Integrated Regression & Completion Gate        NOT STARTED
 
 YRS1A defines the pure source-resolution contract for Manual, Mix preset, and Mold formula views while preserving the existing YieldSample persistence shape. It fails closed on ambiguous MixPreset + Mold Formula provenance and defers the authoritative physical provenance source record to YRS1B.
 
-YRS1B adds the authoritative physical provenance source `YieldMoldFormulaSource` linking one saved Yield Sample to the physical Mold and saved formula profile used to start that batch. It persists identifiers only—never theoretical formula outputs—and intentionally defers all cross-record relationship rules to YRS1C.
+YRS1B adds the authoritative physical provenance source `YieldMoldFormulaSource` linking one saved Yield Sample to the physical Mold and saved formula profile used to start that batch. It persists identifiers only—never theoretical formula outputs.
+
+YRS1C completes the domain foundation with Yield/Mold/profile reference checks, MixPreset/Mold Formula exclusivity, Product ownership, profile/Mold ownership, one-source-per-Yield identity, and explicit historical-versus-recording active-source policy.
 
 Detailed YRS contracts:
 
 - `docs/YIELD_RECIPE_SOURCE_YRS0_DOMAIN_COMPATIBILITY_AUDIT.md`
 - `docs/YIELD_RECIPE_SOURCE_YRS1A_RESOLUTION_CONTRACT.md`
 - `docs/YIELD_RECIPE_SOURCE_YRS1B_PROVENANCE_SOURCE_CONTRACT.md`
+- `docs/YIELD_RECIPE_SOURCE_YRS1C_REFERENTIAL_VALIDATION.md`
 
-Do not start YRS1C until YRS1B is merged and exact post-merge `develop` CI is green.
+Do not start YRS2A until YRS1C is merged and exact post-merge `develop` CI is green.
 
 ---
 
@@ -576,8 +579,8 @@ Phase 7 scope should be revisited after the desktop/native persistence workflow 
 ## Current Next Action
 
 ```text
-YRS1C — Referential / Exclusivity Validation
+YRS2A — Provenance Repository + Application Service
 NEXT / NOT STARTED
 ```
 
-Tiered Pricing TP0–TP9, Plaster Mold Yield MY0–MY8, YRS0, YRS1A, and YRS1B are complete. Do not start YRS1C automatically; first verify the exact green post-YRS1B `develop` baseline. Phase 6.1A remains deferred until the Yield Recipe Source enhancement no longer takes precedence.
+Tiered Pricing TP0–TP9, Plaster Mold Yield MY0–MY8, YRS0, and the complete YRS1 domain foundation are finished. Do not start YRS2A automatically; first verify the exact green post-YRS1C `develop` baseline. Phase 6.1A remains deferred until the Yield Recipe Source enhancement no longer takes precedence.

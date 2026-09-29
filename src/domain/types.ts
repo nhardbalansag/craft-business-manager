@@ -38,6 +38,12 @@ export type {
   MoldFormulaYieldRecipeSourceReference,
 } from './yieldRecipeSource';
 export type { YieldMoldFormulaSource } from './yieldMoldFormulaSource';
+export type {
+  YieldMoldFormulaSourceValidationMode,
+  YieldMoldFormulaSourceReferenceIssue,
+  YieldMoldFormulaSourceReferenceIssueCode,
+  YieldMoldFormulaSourceReferenceValidationResult,
+} from './yieldMoldFormulaSourceValidation';
 export type { BaseUnit, InputUnit } from './units';
 
 /**
