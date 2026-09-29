@@ -113,11 +113,13 @@ export function validatePhysicalBusinessDatasetV4Integrity(
     base.issues.map((issue) => ({ ...issue }));
 
   const firstProfileById = new Map<string, number>();
+  let allProfilesIntrinsicallyValid = true;
 
   dataset.plasterMoldYieldProfiles.forEach((profile, index) => {
     try {
       validatePlasterMoldYieldProfileContract(profile);
     } catch (error) {
+      allProfilesIntrinsicallyValid = false;
       issues.push({
         code:
           error instanceof Error &&
@@ -148,19 +150,21 @@ export function validatePhysicalBusinessDatasetV4Integrity(
     });
   });
 
-  const references = validatePlasterMoldYieldProfileReferences({
-    profiles: dataset.plasterMoldYieldProfiles,
-    molds: dataset.molds,
-    materials: dataset.materials,
-  });
+  if (allProfilesIntrinsicallyValid) {
+    const references = validatePlasterMoldYieldProfileReferences({
+      profiles: dataset.plasterMoldYieldProfiles,
+      molds: dataset.molds,
+      materials: dataset.materials,
+    });
 
-  issues.push(
-    ...references.issues.map((issue) => ({
-      code: issue.code,
-      path: issue.path,
-      message: issue.message,
-    })),
-  );
+    issues.push(
+      ...references.issues.map((issue) => ({
+        code: issue.code,
+        path: issue.path,
+        message: issue.message,
+      })),
+    );
+  }
 
   return {
     valid: issues.length === 0,
