@@ -5,6 +5,9 @@ export interface YieldMoldFormulaModeProps {
   draft: PlasterMoldYieldDraft | null;
   selectedProductId: string;
   assistant?: ReactNode;
+  measurementConfirmed?: boolean;
+  measurementDisabled?: boolean;
+  onMeasurementConfirmationChange?(confirmed: boolean): void;
 }
 
 function comparable(value: string): string {
@@ -15,13 +18,17 @@ function comparable(value: string): string {
  * YRS3C Mold Formula source mode.
  *
  * YRS4A relocates the existing MY6 assistant into this source mode without
- * changing the assistant's calculation or draft-copy behavior. YRS4B/YRS4C
- * still own deeper preview/planned-pieces and confirmation integration.
+ * changing the assistant's calculation or draft-copy behavior. YRS4B integrates
+ * planned-piece/formula preview, and YRS4C integrates the actual-batch
+ * measurement confirmation while preserving the existing recording gate.
  */
 export function YieldMoldFormulaMode({
   draft,
   selectedProductId,
   assistant,
+  measurementConfirmed = false,
+  measurementDisabled = false,
+  onMeasurementConfirmationChange,
 }: YieldMoldFormulaModeProps) {
   const belongsToSelectedProduct =
     draft === null ||
@@ -93,6 +100,48 @@ export function YieldMoldFormulaMode({
           aria-label="Mold Formula assistant"
         >
           {assistant}
+        </div>
+      )}
+
+      {draft !== null && onMeasurementConfirmationChange && (
+        <div
+          className={
+            measurementConfirmed
+              ? 'yield-formula-measurement-confirmation is-confirmed'
+              : 'yield-formula-measurement-confirmation'
+          }
+          aria-label="Actual measurement confirmation"
+        >
+          <div className="yield-formula-measurement-heading">
+            <div>
+              <strong>Actual measurement confirmation</strong>
+              <span>
+                Review the copied Material quantities against the real batch
+                before this Formula-assisted draft can become Yield evidence.
+              </span>
+            </div>
+            <span>{measurementConfirmed ? 'Confirmed' : 'Required'}</span>
+          </div>
+
+          <label className="yield-formula-draft-confirmation">
+            <input
+              type="checkbox"
+              checked={measurementConfirmed}
+              disabled={measurementDisabled || !belongsToSelectedProduct}
+              onChange={(event) =>
+                onMeasurementConfirmationChange(event.target.checked)
+              }
+            />
+            <span>
+              I measured this real batch and replaced or confirmed the Material
+              quantities below against the actual consumption.
+            </span>
+          </label>
+
+          <small>
+            Changing, adding, or removing any Material line resets this
+            confirmation so the revised evidence must be checked again.
+          </small>
         </div>
       )}
 
