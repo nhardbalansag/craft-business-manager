@@ -81,7 +81,7 @@ export function PhysicalIdentificationWorkspace({ products }: { products: readon
           .map((profile) => [normalize(profile.moldId), profile.id]),
       ),
     );
-  }, [reloadFormulaProfiles]);
+  }, []);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -102,7 +102,7 @@ export function PhysicalIdentificationWorkspace({ products }: { products: readon
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [reloadFormulaProfiles]);
 
   useEffect(() => {
     void reload();
