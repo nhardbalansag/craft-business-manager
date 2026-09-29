@@ -16,6 +16,7 @@ import {
 } from '../../domain/yieldRecipeSource';
 import type { MoldRepository } from '../molds/MoldRepository';
 import type { PlasterMoldYieldProfileRepository } from '../plasterMoldYieldProfiles/PlasterMoldYieldProfileRepository';
+import type { YieldSample } from '../../domain/yieldSamples';
 import type { YieldSampleRepository } from '../yieldSamples/YieldSampleRepository';
 import type { YieldMoldFormulaSourceRepository } from './YieldMoldFormulaSourceRepository';
 
@@ -79,7 +80,7 @@ export class YieldMoldFormulaSourceService {
 
   async prepareSourceForPendingYieldSample(
     input: YieldMoldFormulaSource,
-    pendingSample: import('../../domain/yieldSamples').YieldSample,
+    pendingSample: YieldSample,
   ): Promise<YieldMoldFormulaSource> {
     let candidate = normalizeYieldMoldFormulaSource({
       ...input,
@@ -196,7 +197,7 @@ export class YieldMoldFormulaSourceService {
 
   private async canonicalizePendingReferences(
     source: YieldMoldFormulaSource,
-    pendingSample: import('../../domain/yieldSamples').YieldSample,
+    pendingSample: YieldSample,
   ): Promise<YieldMoldFormulaSource> {
     const [mold, profile] = await Promise.all([
       this.molds.findById(source.moldId),
@@ -212,7 +213,7 @@ export class YieldMoldFormulaSourceService {
 
   private async assertCreateReferences(
     candidate: YieldMoldFormulaSource,
-    pendingSample: import('../../domain/yieldSamples').YieldSample,
+    pendingSample: YieldSample,
   ): Promise<void> {
     const [sources, yieldSamples, molds, profiles] = await Promise.all([
       this.repository.list(),
