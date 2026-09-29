@@ -50,18 +50,19 @@ Historical child completion records remain authoritative for their individual co
 
 ## Current Repository Milestone
 
-Verified YRS4B integration base:
+Verified YRS4C integration base:
 
 ```text
-develop  0521efd0f45b51553e275cd715f9564c2efa05d0
-CI       36584187256 — SUCCESS
+develop  e79cf49d68a5a1f72472c62591725b6738b224df
+CI       36588183073 — SUCCESS
 Tiered Pricing TP0–TP9 — COMPLETE
 Plaster Mold Yield MY0–MY8 — COMPLETE
 YRS1 Recipe Source Domain Foundation — COMPLETE
 YRS2 Repository / Recording / Persistence — COMPLETE
 YRS3 Yield Recipe Source UI — COMPLETE
 YRS4A Move MY6 Assist Under Mold Formula Mode — COMPLETE
-YRS4B Formula Preview / Planned Pieces — COMPLETE IN THIS CHANGE
+YRS4B Formula Preview / Planned Pieces — COMPLETE
+YRS4C Actual Measurement Confirmation — COMPLETE IN THIS CHANGE
 ```
 
 Tiered Pricing and Plaster Mold Yield Automation are complete. The Yield Recipe Source enhancement now takes precedence before the deferred Phase 6 implementation. Phase 6 remains scoped and must not be started automatically while the YRS task chain is active.
@@ -401,7 +402,7 @@ Plaster Mold Yield Automation is complete after MY8 merges and exact post-merge 
 
 # Yield Recipe Source Enhancement — ACTIVE
 
-Status: **YRS0 + YRS1 + YRS2 + YRS3 + YRS4A + YRS4B COMPLETE**
+Status: **YRS0 + YRS1 + YRS2 + YRS3 + YRS4 COMPLETE**
 
 Master audit:
 
@@ -470,13 +471,13 @@ YRS3 — Yield Recipe Source UI                         COMPLETE
     YRS3C — Mold Formula Mode                          COMPLETE
     YRS3D — Manual Mode                                COMPLETE
 
-YRS4 — Mold Formula Draft Integration Refactor        IN PROGRESS
+YRS4 — Mold Formula Draft Integration Refactor        COMPLETE
     YRS4A — Move MY6 Assist Under Mold Formula Mode    COMPLETE
     YRS4B — Formula Preview / Planned Pieces           COMPLETE
-    YRS4C — Actual Measurement Confirmation            NEXT
+    YRS4C — Actual Measurement Confirmation            COMPLETE
 
 YRS5 — Yield History Provenance UI                    NOT STARTED
-    YRS5A — Resolved Source Labels
+    YRS5A — Resolved Source Labels                    NEXT
     YRS5B — Mold / Profile Traceability
     YRS5C — Legacy Sample Presentation
 
@@ -511,6 +512,8 @@ YRS4A relocates the existing MY6 `MOLD FORMULA ASSIST` from the global Yield evi
 
 YRS4B integrates the planning side of the Mold Formula workflow. The source area now presents Mold/profile context, an explicit optional planned-piece target, a one-pour baseline when no target is entered, structured theoretical Water/Plaster/Glue/total-mix preview, and explicit required-pours/capacity/extra-capacity values. All values still come from the existing MY6 calculator, remain derived only, and become editable draft quantities only after `Use as Yield Sample Draft`.
 
+YRS4C completes the Mold Formula draft integration by moving the actual-batch measurement confirmation into the Mold Formula source mode. The confirmation visibly transitions Required → Confirmed, remains a hard recording gate, and automatically resets when a Formula-derived Material line is changed, added, or removed. Manual/Mix preset behavior, formula math, provenance persistence, Yield learning, and Production mathematics remain unchanged.
+
 Detailed YRS contracts:
 
 - `docs/YIELD_RECIPE_SOURCE_YRS0_DOMAIN_COMPATIBILITY_AUDIT.md`
@@ -528,8 +531,9 @@ Detailed YRS contracts:
 - `docs/YIELD_RECIPE_SOURCE_YRS3D_MANUAL_MODE.md`
 - `docs/YIELD_RECIPE_SOURCE_YRS4A_MOVE_MY6_ASSIST.md`
 - `docs/YIELD_RECIPE_SOURCE_YRS4B_FORMULA_PREVIEW_PLANNED_PIECES.md`
+- `docs/YIELD_RECIPE_SOURCE_YRS4C_ACTUAL_MEASUREMENT_CONFIRMATION.md`
 
-Do not start YRS4C until YRS4B is merged and exact post-merge `develop` CI is green.
+Do not start YRS5A until YRS4C is merged and exact post-merge `develop` CI is green.
 
 ---
 
@@ -617,8 +621,8 @@ Phase 7 scope should be revisited after the desktop/native persistence workflow 
 ## Current Next Action
 
 ```text
-YRS4C — Actual Measurement Confirmation
+YRS5A — Resolved Source Labels
 NEXT / NOT STARTED
 ```
 
-Tiered Pricing TP0–TP9, Plaster Mold Yield MY0–MY8, YRS0, YRS1, YRS2A–YRS2E, YRS3A–YRS3D, YRS4A, and YRS4B are complete. Do not start YRS4C automatically; first merge YRS4B and verify the exact green post-YRS4B `develop` baseline. Phase 6.1A remains deferred until the Yield Recipe Source enhancement no longer takes precedence.
+Tiered Pricing TP0–TP9, Plaster Mold Yield MY0–MY8, YRS0, YRS1, YRS2A–YRS2E, YRS3A–YRS3D, and YRS4A–YRS4C are complete. Do not start YRS5A automatically; first merge YRS4C and verify the exact green post-YRS4C `develop` baseline. Phase 6.1A remains deferred until the Yield Recipe Source enhancement no longer takes precedence.
