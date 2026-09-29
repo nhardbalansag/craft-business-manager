@@ -23,6 +23,7 @@ Key persistence / desktop-boundary records:
 - `docs/PHYSICAL_IDENTIFICATION_STORAGE_FOUNDATION_PLAN.md`
 - `docs/PHASE_6_TAURI_DESKTOP_INTEGRATION_PLAN.md`
 - `docs/PLASTER_MOLD_YIELD_MY1A_FORMULA_DOMAIN_CONTRACT.md`
+- `docs/PLASTER_MOLD_YIELD_MY1B_PROFILE_SOURCE_CONTRACT.md`
 
 Historical child completion records remain authoritative for their individual contracts and CI evidence.
 
@@ -41,14 +42,15 @@ Historical child completion records remain authoritative for their individual co
 
 ## Current Repository Milestone
 
-Verified integration baseline before the Plaster Mold Yield Automation enhancement:
+Verified MY1B integration base:
 
 ```text
-develop  f7a38edbe4a513ce767fd6e2b22148de1e1a2a17
-CI       36499932137 — SUCCESS
+develop  44e9642fe6cfbaeaf407a1ee64764d1422d11f0f
+CI       36503668890 — SUCCESS
 Tiered Pricing TP0–TP9 — COMPLETE
 Plaster Mold Yield MY0 audit — COMPLETE
 MY1A Formula / Result Domain Contract — COMPLETE
+MY1B Mold Yield Profile Source Contract — COMPLETE IN THIS CHANGE
 ```
 
 Tiered Pricing is complete. Plaster Mold Yield Automation is now the active intervening business-domain enhancement before Phase 6 implementation. Phase 6 remains scoped but must not be started automatically while the MY task chain is active.
@@ -306,7 +308,7 @@ Tiered Pricing is complete. TP9 now proves current tiered workbook round-trip fi
 
 # Plaster Mold Yield Automation — ACTIVE
 
-Status: **MY1A COMPLETE**
+Status: **MY1A–MY1B COMPLETE**
 
 Purpose:
 
@@ -322,8 +324,8 @@ Task map:
 MY0 — Domain & Workflow Audit                       COMPLETE
 MY1 — Plaster Mold Formula Foundation               ACTIVE
     MY1A — Formula / Result Domain Contract          COMPLETE
-    MY1B — Mold Yield Profile Source Contract        NEXT / NOT STARTED
-    MY1C — Mold / Material Referential Validation    NOT STARTED
+    MY1B — Mold Yield Profile Source Contract        COMPLETE
+    MY1C — Mold / Material Referential Validation    NEXT / NOT STARTED
 MY2 — Repository & Application Services             NOT STARTED
 MY3 — Physical Dataset v4 / Workbook Migration      NOT STARTED
 MY4 — Mold Yield Calculator Engine                  NOT STARTED
@@ -333,13 +335,16 @@ MY7 — Cost / Capacity / Production Preview          NOT STARTED
 MY8 — Regression & Completion Gate                  NOT STARTED
 ```
 
-MY1A establishes the pure weight-based formula, validation/error contract, per-pour values, per-piece values, and optional requested-quantity/required-pours estimate. It intentionally does not create persisted source records or modify Yield evidence.
+MY1A establishes the pure weight-based formula, validation/error contract, per-pour values, per-piece values, and optional requested-quantity/required-pours estimate.
 
-Detailed MY1A contract:
+MY1B adds the separate authoritative `PlasterMoldYieldProfile` source record and intrinsic field validation while intentionally leaving Mold/Material referential rules for MY1C. It does not alter persisted dataset/workbook schemas or Yield evidence.
 
-`docs/PLASTER_MOLD_YIELD_MY1A_FORMULA_DOMAIN_CONTRACT.md`
+Detailed contracts:
 
-Do not start MY1B until MY1A is merged and post-merge `develop` CI is green.
+- `docs/PLASTER_MOLD_YIELD_MY1A_FORMULA_DOMAIN_CONTRACT.md`
+- `docs/PLASTER_MOLD_YIELD_MY1B_PROFILE_SOURCE_CONTRACT.md`
+
+Do not start MY1C until MY1B is merged and post-merge `develop` CI is green.
 
 ---
 
@@ -427,8 +432,8 @@ Phase 7 scope should be revisited after the desktop/native persistence workflow 
 ## Current Next Action
 
 ```text
-MY1B — Mold Yield Profile Source Contract
+MY1C — Mold / Material Referential Validation
 NEXT / NOT STARTED
 ```
 
-MY1A is complete. Do not start MY1B automatically; reassess the exact green `develop` baseline first. Phase 6.1A remains pending until the Plaster Mold Yield Automation task chain no longer takes precedence.
+MY1A and MY1B are complete. Do not start MY1C automatically; first verify the exact green post-MY1B `develop` baseline. Phase 6.1A remains pending until the Plaster Mold Yield Automation task chain no longer takes precedence.
