@@ -349,6 +349,8 @@ describe('MY8 Plaster Mold Yield Automation integrated completion gate', () => {
     await expect(
       session.materialService.updateMaterial('MAT-GLUE-MY8', {
         baseUnit: 'mL',
+        purchaseUnit: 'mL',
+        onHandUnit: 'mL',
       }),
     ).rejects.toMatchObject({
       code: 'ACTIVE_PROFILE_REQUIRES_WEIGHT_MATERIAL',
