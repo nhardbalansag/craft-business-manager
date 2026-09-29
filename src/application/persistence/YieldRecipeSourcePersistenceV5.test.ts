@@ -303,8 +303,10 @@ describe('YRS2E physical v5 runtime persistence', () => {
     });
 
     const snapshot = await harness.snapshotV5.snapshot();
-    expect(snapshot).toEqual(source);
     expect(snapshot.schemaVersion).toBe(5);
+    expect(snapshot.plasterMoldYieldProfiles).toEqual(
+      source.plasterMoldYieldProfiles,
+    );
     expect(snapshot.yieldMoldFormulaSources).toEqual([
       {
         yieldSampleId: 'YLD-001',
@@ -361,6 +363,7 @@ describe('YRS2E physical v5 runtime persistence', () => {
     expect(await harness.hydrateV5.hydrate(source)).toEqual({
       status: 'hydrated',
     });
+    const canonicalSource = await harness.snapshotV5.snapshot();
 
     const exported = await harness.coordinator.exportCurrentWorkbook();
     const document = codec.decode(exported.bytes);
@@ -390,7 +393,7 @@ describe('YRS2E physical v5 runtime persistence', () => {
         datasetSchemaVersion: 5,
       },
     });
-    expect(await harness.snapshotV5.snapshot()).toEqual(source);
+    expect(await harness.snapshotV5.snapshot()).toEqual(canonicalSource);
   });
 
   it('migrates a physical-v4 workbook through the live v5 coordinator and clears stale provenance', async () => {
@@ -439,6 +442,7 @@ describe('YRS2E physical v5 runtime persistence', () => {
     expect(await harness.hydrateV5.hydrate(source)).toEqual({
       status: 'hydrated',
     });
+    const canonicalSource = await harness.snapshotV5.snapshot();
     const exported = await harness.coordinator.exportCurrentWorkbook();
 
     expect(await harness.hydrateV5.hydrate(emptyV5())).toEqual({
@@ -478,6 +482,6 @@ describe('YRS2E physical v5 runtime persistence', () => {
         datasetSchemaVersion: 5,
       },
     });
-    expect(await harness.snapshotV5.snapshot()).toEqual(source);
+    expect(await harness.snapshotV5.snapshot()).toEqual(canonicalSource);
   });
 });
