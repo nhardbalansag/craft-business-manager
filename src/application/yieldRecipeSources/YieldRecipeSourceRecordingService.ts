@@ -113,7 +113,6 @@ export class YieldRecipeSourceRecordingService {
       preparedSource =
         await this.provenance.prepareSourceForPendingYieldSample(
           {
-            yieldSampleId: preparedSample.id,
             moldId: input.source.moldId,
             moldYieldProfileId: input.source.moldYieldProfileId,
           },
