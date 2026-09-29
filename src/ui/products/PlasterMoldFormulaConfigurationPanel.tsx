@@ -77,8 +77,10 @@ function materialOptionLabel(material: Material): string {
 
 export function PlasterMoldFormulaConfigurationPanel({
   molds,
+  onProfilesChanged,
 }: {
   molds: readonly Mold[];
+  onProfilesChanged?: () => void;
 }) {
   const [profiles, setProfiles] = useState<PlasterMoldYieldProfile[]>([]);
   const [materials, setMaterials] = useState<Material[]>([]);
@@ -278,6 +280,7 @@ export function PlasterMoldFormulaConfigurationPanel({
       }
 
       await reloadSources();
+      onProfilesChanged?.();
     } catch (error) {
       setFeedback({ type: 'error', message: errorMessage(error) });
     } finally {
@@ -293,6 +296,7 @@ export function PlasterMoldFormulaConfigurationPanel({
     try {
       await plasterMoldYieldProfileService.archiveProfile(activeProfile.id);
       await reloadSources();
+      onProfilesChanged?.();
       setFeedback({
         type: 'success',
         message: `Formula profile ${activeProfile.id} archived.`,
@@ -312,6 +316,7 @@ export function PlasterMoldFormulaConfigurationPanel({
     try {
       await plasterMoldYieldProfileService.restoreProfile(profile.id);
       await reloadSources();
+      onProfilesChanged?.();
       setFeedback({
         type: 'success',
         message: `Formula profile ${profile.id} restored.`,
