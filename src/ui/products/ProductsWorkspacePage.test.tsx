@@ -88,7 +88,8 @@ describe('ProductsWorkspacePage', () => {
     expect(container.textContent).toContain('Molds & storage');
     expect(container.textContent).toContain('Molds');
     expect(container.textContent).toContain('Storage');
-    expect(container.textContent).toContain('Plaster yield setup');
+    expect(container.textContent).toContain('MOLD DIRECTORY');
+    expect(container.querySelector('[aria-label="Plaster mold formula configuration"]')).toBeNull();
     expect(container.textContent).toContain('Dinosaur Toy');
   });
 });
