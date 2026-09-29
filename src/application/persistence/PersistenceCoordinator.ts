@@ -9,6 +9,11 @@ import {
   toPhysicalBusinessDatasetV3,
   type PhysicalBusinessDatasetV4,
 } from '../../domain/physicalBusinessDatasetV4';
+import {
+  extendPhysicalBusinessDatasetV4,
+  toPhysicalBusinessDatasetV4,
+  type PhysicalBusinessDatasetV5,
+} from '../../domain/physicalBusinessDatasetV5';
 import type { BusinessDataset } from '../../domain/types';
 import {
   toLegacyBusinessDataset,
@@ -40,6 +45,11 @@ import {
   importPhysicalBusinessDatasetV4FromXlsx,
   type PhysicalBusinessDatasetV4WorkbookImportResult,
 } from '../../storage/physicalBusinessDatasetV4Workbook';
+import {
+  exportPhysicalBusinessDatasetV5ToXlsx,
+  importPhysicalBusinessDatasetV5FromXlsx,
+  type PhysicalBusinessDatasetV5WorkbookImportResult,
+} from '../../storage/physicalBusinessDatasetV5Workbook';
 import type { WorkbookBinaryInput, WorkbookCodec } from '../../storage/workbookCodec';
 import {
   cloneWorkbookBytes,
@@ -67,6 +77,8 @@ export interface PersistenceCoordinatorOptions {
   readonly tieredPricing?: boolean;
   /** Explicit override for PhysicalBusinessDataset-v4 plaster mold profile persistence. */
   readonly plasterMoldYieldProfiles?: boolean;
+  /** Explicit override for PhysicalBusinessDataset-v5 Mold Formula provenance persistence. */
+  readonly yieldMoldFormulaSources?: boolean;
 }
 
 export interface PersistenceWorkbookExported {
@@ -96,12 +108,14 @@ type PersistableDataset =
   | PhysicalBusinessDataset
   | BusinessDatasetV2
   | PhysicalBusinessDatasetV3
-  | PhysicalBusinessDatasetV4;
+  | PhysicalBusinessDatasetV4
+  | PhysicalBusinessDatasetV5;
 
 interface SnapshotSource {
   readonly physicalIdentification?: boolean;
   readonly tieredPricing?: boolean;
   readonly plasterMoldYieldProfiles?: boolean;
+  readonly yieldMoldFormulaSources?: boolean;
   snapshot(): Promise<PersistableDataset>;
 }
 
@@ -168,11 +182,25 @@ function isPhysicalDatasetV4(
   );
 }
 
+function isPhysicalDatasetV5(
+  dataset: PersistableDataset,
+): dataset is PhysicalBusinessDatasetV5 {
+  return (
+    'productPriceTiers' in dataset &&
+    'storageLocations' in dataset &&
+    'molds' in dataset &&
+    'plasterMoldYieldProfiles' in dataset &&
+    'yieldMoldFormulaSources' in dataset &&
+    dataset.schemaVersion === 5
+  );
+}
+
 function hasPhysicalSourceRecords(
   dataset:
     | PhysicalBusinessDataset
     | PhysicalBusinessDatasetV3
-    | PhysicalBusinessDatasetV4,
+    | PhysicalBusinessDatasetV4
+    | PhysicalBusinessDatasetV5,
 ): boolean {
   return dataset.storageLocations.length > 0 || dataset.molds.length > 0;
 }
@@ -236,6 +264,32 @@ function importProfilePhysicalOrCore(
   return core;
 }
 
+function importProvenancePhysicalOrCore(
+  bytes: WorkbookBinaryInput,
+  codec: WorkbookCodec,
+): PhysicalBusinessDatasetV5WorkbookImportResult {
+  const physicalShape = workbookHasPhysicalSheets(bytes, codec);
+
+  if (physicalShape) {
+    return importPhysicalBusinessDatasetV5FromXlsx(bytes, codec);
+  }
+
+  const core = importBusinessDatasetV2FromXlsx(bytes, codec);
+  if (core.ok) {
+    return {
+      ok: true,
+      dataset: extendPhysicalBusinessDatasetV4(
+        extendPhysicalBusinessDatasetV3(
+          extendBusinessDatasetV2(core.dataset),
+        ),
+      ),
+      metadata: core.metadata,
+    };
+  }
+
+  return core;
+}
+
 function hydrationOperationalError(
   error: unknown,
 ): PersistenceLifecycleOperationalError {
@@ -282,6 +336,8 @@ function hydrationOperationalError(
  * core workbook v3 / dataset v2 or physical workbook v3 / dataset v3.
  * Profile-aware physical snapshots additionally advertise plasterMoldYieldProfiles=true
  * and use physical workbook/dataset v4 while retaining v2/v3 import compatibility.
+ * Provenance-aware snapshots advertise yieldMoldFormulaSources=true and move the
+ * physical live path to workbook/dataset v5 while retaining earlier physical/core imports.
  */
 export class PersistenceCoordinator {
   private readonly clock: PersistenceClock;
@@ -289,6 +345,7 @@ export class PersistenceCoordinator {
   private readonly physicalIdentification: boolean;
   private readonly tieredPricing: boolean;
   private readonly plasterMoldYieldProfiles: boolean;
+  private readonly yieldMoldFormulaSources: boolean;
 
   constructor(
     private readonly snapshotService: SnapshotSource,
@@ -307,6 +364,10 @@ export class PersistenceCoordinator {
     this.plasterMoldYieldProfiles =
       options.plasterMoldYieldProfiles ??
       snapshotService.plasterMoldYieldProfiles ??
+      false;
+    this.yieldMoldFormulaSources =
+      options.yieldMoldFormulaSources ??
+      snapshotService.yieldMoldFormulaSources ??
       false;
   }
 
@@ -354,7 +415,18 @@ export class PersistenceCoordinator {
     let imported;
     try {
       const ownedBytes = cloneWorkbookBytes(bytes);
-      if (this.plasterMoldYieldProfiles) {
+      if (this.yieldMoldFormulaSources) {
+        if (
+          !this.physicalIdentification ||
+          !this.tieredPricing ||
+          !this.plasterMoldYieldProfiles
+        ) {
+          throw new Error(
+            'Mold Formula provenance persistence requires plaster-profile-aware tiered physical persistence.',
+          );
+        }
+        imported = importProvenancePhysicalOrCore(ownedBytes, this.codec);
+      } else if (this.plasterMoldYieldProfiles) {
         if (!this.physicalIdentification || !this.tieredPricing) {
           throw new Error(
             'Plaster mold yield profile persistence requires tiered physical persistence.',
@@ -449,7 +521,41 @@ export class PersistenceCoordinator {
 
       let bytes: Uint8Array;
 
-      if (this.plasterMoldYieldProfiles) {
+      if (this.yieldMoldFormulaSources) {
+        if (
+          !this.physicalIdentification ||
+          !this.tieredPricing ||
+          !this.plasterMoldYieldProfiles
+        ) {
+          throw new Error(
+            'Mold Formula provenance persistence requires plaster-profile-aware tiered physical persistence.',
+          );
+        }
+        if (!isPhysicalDatasetV5(dataset)) {
+          throw new Error(
+            'Mold Formula provenance persistence requires a PhysicalBusinessDataset v5 source snapshot.',
+          );
+        }
+
+        bytes =
+          hasPhysicalSourceRecords(dataset) ||
+          dataset.plasterMoldYieldProfiles.length > 0 ||
+          dataset.yieldMoldFormulaSources.length > 0
+            ? exportPhysicalBusinessDatasetV5ToXlsx(
+                dataset,
+                metadata,
+                this.codec,
+              )
+            : exportBusinessDatasetV2ToXlsx(
+                toBusinessDatasetV2(
+                  toPhysicalBusinessDatasetV3(
+                    toPhysicalBusinessDatasetV4(dataset),
+                  ),
+                ),
+                metadata,
+                this.codec,
+              );
+      } else if (this.plasterMoldYieldProfiles) {
         if (!this.physicalIdentification || !this.tieredPricing) {
           throw new Error(
             'Plaster mold yield profile persistence requires tiered physical persistence.',
