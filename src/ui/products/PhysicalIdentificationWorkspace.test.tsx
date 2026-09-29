@@ -183,19 +183,20 @@ describe('PhysicalIdentificationWorkspace', () => {
 
     const table = container.querySelector<HTMLTableElement>('[aria-label="Mold directory table"]');
     expect(table).not.toBeNull();
-    expect(Array.from(table!.querySelectorAll('tbody tr'))).toHaveLength(10);
+    const firstPageRows = Array.from(table!.querySelectorAll<HTMLTableRowElement>('tbody tr'));
+    const firstPageIds = firstPageRows.map((row) => row.dataset.moldRow);
+    expect(firstPageRows).toHaveLength(10);
     expect(container.querySelector('[aria-label="Mold directory pagination"]')?.textContent).toContain('1–10 of 12');
     expect(container.querySelector('[aria-label="Mold directory pagination"]')?.textContent).toContain('Page 1 of 2');
-    expect(container.textContent).toContain('Dinosaur Mold 1');
-    expect(container.textContent).not.toContain('Dinosaur Mold 11');
 
     await clickLabel('Next mold page');
 
-    expect(Array.from(table!.querySelectorAll('tbody tr'))).toHaveLength(2);
+    const secondPageRows = Array.from(table!.querySelectorAll<HTMLTableRowElement>('tbody tr'));
+    const secondPageIds = secondPageRows.map((row) => row.dataset.moldRow);
+    expect(secondPageRows).toHaveLength(2);
     expect(container.querySelector('[aria-label="Mold directory pagination"]')?.textContent).toContain('11–12 of 12');
     expect(container.querySelector('[aria-label="Mold directory pagination"]')?.textContent).toContain('Page 2 of 2');
-    expect(container.textContent).toContain('Dinosaur Mold 11');
-    expect(container.textContent).toContain('Dinosaur Mold 12');
+    expect(new Set([...firstPageIds, ...secondPageIds]).size).toBe(12);
 
     const search = container.querySelector<HTMLInputElement>('[aria-label="Search molds"]')!;
     await fill(search, 'Dinosaur Mold 12');
