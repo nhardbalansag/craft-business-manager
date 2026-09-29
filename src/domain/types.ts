@@ -19,6 +19,7 @@ export type {
   ProductComponentSourceType as ProductComponentSource,
 } from './productComponents';
 export type { ProductFinancialProfile } from './productFinancialProfile';
+export type { PlasterMoldYieldProfile } from './plasterMoldYieldProfiles';
 export type {
   ProductPriceTier,
   ProductPriceTierKind,
