@@ -201,6 +201,16 @@
   white-space: nowrap;
 }
 
+.history-summary-grid .yield-history-recipe-source em {
+  overflow: hidden;
+  color: #81776c;
+  font-size: .68rem;
+  font-style: normal;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .yield-clean-badge {
   background: #eaf3e9;
   color: #48634e;

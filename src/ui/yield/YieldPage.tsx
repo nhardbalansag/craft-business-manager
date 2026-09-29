@@ -24,7 +24,10 @@ import {
   areUnitsCompatible,
   type InputUnit,
 } from '../../domain/units';
-import type { YieldRecipeSourceKind } from '../../domain/yieldRecipeSource';
+import type {
+  ResolvedYieldRecipeSource,
+  YieldRecipeSourceKind,
+} from '../../domain/yieldRecipeSource';
 import type { YieldSample } from '../../domain/yieldSamples';
 import { YieldManualMode } from './YieldManualMode';
 import { YieldMixPresetMode } from './YieldMixPresetMode';
@@ -136,12 +139,21 @@ function numericField(value: string): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function recipeSourceLabel(source: ResolvedYieldRecipeSource): string {
+  if (source.kind === 'mix-preset') return 'Mix preset';
+  if (source.kind === 'mold-formula') return 'Mold formula';
+  return 'Manual';
+}
+
 export function YieldPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [materials, setMaterials] = useState<Material[]>([]);
   const [mixPresets, setMixPresets] = useState<MixPreset[]>([]);
   const [selectedProductId, setSelectedProductId] = useState('');
   const [history, setHistory] = useState<YieldSample[]>([]);
+  const [historyRecipeSources, setHistoryRecipeSources] = useState<
+    Record<string, ResolvedYieldRecipeSource>
+  >({});
   const [knownSampleIds, setKnownSampleIds] = useState<string[]>([]);
   const [effective, setEffective] = useState<EffectiveYieldSelection | null>(null);
   const [effectiveNotice, setEffectiveNotice] = useState('Select a product to inspect yield history.');
@@ -263,6 +275,7 @@ export function YieldPage() {
   const loadHistory = useCallback(async (productId: string) => {
     const request = ++historyRequest.current;
     setHistory([]);
+    setHistoryRecipeSources({});
     setEffective(null);
     setHistoryError(null);
     setEffectiveNotice(productId ? 'Loading yield evidence...' : 'Select a product to inspect yield history.');
@@ -270,6 +283,14 @@ export function YieldPage() {
     if (!productId) return;
     try {
       const nextHistory = await yieldHistoryService.listHistory(productId);
+      const sourceEntries = await Promise.all(
+        nextHistory.map(async (sample) => [
+          sample.id,
+          await yieldMoldFormulaSourceService.resolveRecipeSourceForYieldSample(
+            sample.id,
+          ),
+        ] as const),
+      );
       if (request !== historyRequest.current) return;
       let nextEffective: EffectiveYieldSelection | null = null;
       let notice: string;
@@ -295,6 +316,7 @@ export function YieldPage() {
       }
       if (request !== historyRequest.current) return;
       setHistory(nextHistory);
+      setHistoryRecipeSources(Object.fromEntries(sourceEntries));
       setEffective(nextEffective);
       setEffectiveNotice(notice);
     } catch (error) {
@@ -381,9 +403,13 @@ export function YieldPage() {
       if (historyOutcome === 'clean' && sample.rejectedPieces !== 0) return false;
       if (historyOutcome === 'with-rejects' && sample.rejectedPieces === 0) return false;
       if (!normalizedQuery) return true;
-      const mixName = sample.mixPresetId
-        ? mixById.get(sample.mixPresetId.toLocaleLowerCase())?.name ?? sample.mixPresetId
-        : 'no mix preset';
+      const source = historyRecipeSources[sample.id];
+      const sourceLabel = source ? recipeSourceLabel(source) : '';
+      const mixName =
+        source?.kind === 'mix-preset'
+          ? mixById.get(source.mixPresetId.toLocaleLowerCase())?.name ??
+            source.mixPresetId
+          : '';
       const materialNames = sample.materialInputs.map((input) =>
         materialById.get(input.materialId.toLocaleLowerCase())?.name ?? input.materialId,
       );
@@ -391,6 +417,7 @@ export function YieldPage() {
         sample.id,
         sample.notes ?? '',
         formatDate(sample.recordedAt),
+        sourceLabel,
         mixName,
         ...materialNames,
       ].some((value) => value.toLocaleLowerCase().includes(normalizedQuery));
@@ -403,7 +430,15 @@ export function YieldPage() {
       const byId = left.id.localeCompare(right.id, undefined, { sensitivity: 'base' });
       return historySort === 'oldest' ? byTime || byId : -(byTime || byId);
     });
-  }, [history, historyOutcome, historyQuery, historySort, materialById, mixById]);
+  }, [
+    history,
+    historyOutcome,
+    historyQuery,
+    historyRecipeSources,
+    historySort,
+    materialById,
+    mixById,
+  ]);
 
   function unitOptions(materialId: string): InputUnit[] {
     const material = materialById.get(materialId.toLocaleLowerCase());
@@ -1247,7 +1282,7 @@ export function YieldPage() {
                       type="search"
                       value={historyQuery}
                       onChange={(event) => setHistoryQuery(event.target.value)}
-                      placeholder="Sample, material, mix, notes…"
+                      placeholder="Sample, material, source, notes…"
                     />
                   </label>
                   <label className="field yield-history-outcome">
@@ -1302,13 +1337,20 @@ export function YieldPage() {
                       <div className="empty-state">
                         <div className="empty-icon" aria-hidden="true"><AppIcon name="search" size={28} /></div>
                         <h3>No matching batches</h3>
-                        <p>Try a different sample ID, material, mix preset, outcome, date, or note.</p>
+                        <p>Try a different sample ID, material, recipe source, outcome, date, or note.</p>
                         <button type="button" className="button button-quiet" onClick={clearHistoryFilters}>Clear history filters</button>
                       </div>
                     ) : visibleHistory.map((sample) => {
                       const sampleIsEffective = sample.id === effectiveId;
                       const sampleIsPreferred = effective?.preferredSampleId === sample.id;
                       const skippedInvalid = skippedIds.has(sample.id);
+                      const recipeSource = historyRecipeSources[sample.id];
+                      const recipeSourceMixName =
+                        recipeSource?.kind === 'mix-preset'
+                          ? mixById.get(
+                              recipeSource.mixPresetId.toLocaleLowerCase(),
+                            )?.name ?? recipeSource.mixPresetId
+                          : null;
                       return (
                         <article
                           className={`yield-history-item ${sampleIsEffective ? 'effective-history-item' : ''}`}
@@ -1333,7 +1375,17 @@ export function YieldPage() {
                             <span><small>Good pieces</small><strong>{sample.goodPieces}</strong></span>
                             <span><small>Good yield</small><strong>{formatNumber((1 - defectRate(sample)) * 100, 2)}%</strong></span>
                             <span><small>Defect rate</small><strong>{formatNumber(defectRate(sample) * 100, 2)}%</strong></span>
-                            <span><small>Mix</small><strong>{sample.mixPresetId ? (mixById.get(sample.mixPresetId.toLocaleLowerCase())?.name ?? sample.mixPresetId) : 'Manual batch'}</strong></span>
+                            <span className="yield-history-recipe-source">
+                              <small>Recipe source</small>
+                              <strong>
+                                {recipeSource
+                                  ? recipeSourceLabel(recipeSource)
+                                  : 'Unavailable'}
+                              </strong>
+                              {recipeSourceMixName && (
+                                <em>{recipeSourceMixName}</em>
+                              )}
+                            </span>
                           </div>
                           <details className="history-evidence-details">
                             <summary>Evidence details · {sample.materialInputs.length} material{sample.materialInputs.length === 1 ? '' : 's'}</summary>
