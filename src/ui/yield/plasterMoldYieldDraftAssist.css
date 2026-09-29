@@ -1,20 +1,21 @@
-/* MY6C — Yield Formula draft responsive/accessibility completion */
+/* MY6C + YRS4B — Mold Formula setup / preview */
 .yield-formula-assist {
   display: grid;
   gap: 14px;
-  margin-bottom: 14px;
-  padding: 16px;
+  padding: 2px 0 0;
 }
 
 .yield-formula-assist-heading,
-.yield-formula-assist-capacity {
+.yield-formula-assist-action,
+.yield-formula-preview-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
 }
 
-.yield-formula-assist-heading {
+.yield-formula-assist-heading,
+.yield-formula-preview-heading {
   align-items: flex-start;
 }
 
@@ -31,7 +32,8 @@
   line-height: 1.5;
 }
 
-.yield-formula-assist-heading > span {
+.yield-formula-assist-heading > span,
+.yield-formula-preview-heading > span {
   flex: 0 0 auto;
   padding: 6px 9px;
   border: 1px solid #dfd1bd;
@@ -46,7 +48,7 @@
 
 .yield-formula-assist-controls {
   display: grid;
-  grid-template-columns: minmax(220px, 1fr) minmax(150px, .45fr);
+  grid-template-columns: minmax(220px, 1fr) minmax(190px, .6fr);
   gap: 10px;
 }
 
@@ -61,13 +63,79 @@
   min-width: 0;
 }
 
+.yield-formula-source-context {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.yield-formula-source-context > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+  padding: 9px 10px;
+  border: 1px solid #e3d9cc;
+  border-radius: 10px;
+  background: #fffdf9;
+}
+
+.yield-formula-source-context span,
+.yield-formula-capacity-preview span {
+  color: #8b8074;
+  font-size: .64rem;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.yield-formula-source-context strong {
+  overflow: hidden;
+  color: #342f29;
+  font-size: .77rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.yield-formula-source-context small,
+.yield-formula-capacity-preview small {
+  color: var(--text-muted, #667085);
+  font-size: .67rem;
+}
+
+.yield-formula-preview {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #ded3c5;
+  border-radius: 12px;
+  background: #fffdf9;
+}
+
+.yield-formula-preview-heading > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.yield-formula-preview-heading strong {
+  color: #342f29;
+  font-size: .8rem;
+}
+
+.yield-formula-preview-heading > div > span {
+  color: var(--text-muted, #667085);
+  font-size: .7rem;
+  line-height: 1.4;
+}
+
 .yield-formula-assist-metrics {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
 }
 
-.yield-formula-assist-metrics > div {
+.yield-formula-assist-metrics > div,
+.yield-formula-capacity-preview > div {
   display: grid;
   min-width: 0;
   gap: 4px;
@@ -85,18 +153,41 @@
   text-transform: uppercase;
 }
 
-.yield-formula-assist-metrics strong {
+.yield-formula-assist-metrics strong,
+.yield-formula-capacity-preview strong {
   overflow-wrap: anywhere;
 }
 
-.yield-formula-assist-capacity {
+.yield-formula-capacity-preview {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.yield-formula-capacity-preview strong {
+  color: #342f29;
+  font-size: .95rem;
+}
+
+.yield-formula-assist-action {
   padding-top: 2px;
 }
 
-.yield-formula-assist-capacity > span {
+.yield-formula-assist-action > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.yield-formula-assist-action strong {
+  color: #4f463b;
+  font-size: .76rem;
+}
+
+.yield-formula-assist-action span {
   color: var(--text-muted, #667085);
-  font-size: .75rem;
-  line-height: 1.4;
+  font-size: .7rem;
+  line-height: 1.45;
 }
 
 .yield-formula-assist-warning,
@@ -163,21 +254,24 @@
 
 @media (max-width: 780px) {
   .yield-formula-assist-heading,
-  .yield-formula-assist-capacity {
+  .yield-formula-assist-action,
+  .yield-formula-preview-heading {
     align-items: stretch;
     flex-direction: column;
   }
 
-  .yield-formula-assist-heading > span {
+  .yield-formula-assist-heading > span,
+  .yield-formula-preview-heading > span {
     align-self: flex-start;
   }
 
   .yield-formula-assist-controls,
-  .yield-formula-assist-metrics {
+  .yield-formula-assist-metrics,
+  .yield-formula-capacity-preview {
     grid-template-columns: 1fr 1fr;
   }
 
-  .yield-formula-assist-capacity .button {
+  .yield-formula-assist-action .button {
     width: 100%;
     justify-content: center;
   }
@@ -185,7 +279,9 @@
 
 @media (max-width: 520px) {
   .yield-formula-assist-controls,
-  .yield-formula-assist-metrics {
+  .yield-formula-assist-metrics,
+  .yield-formula-capacity-preview,
+  .yield-formula-source-context {
     grid-template-columns: 1fr;
   }
 }
