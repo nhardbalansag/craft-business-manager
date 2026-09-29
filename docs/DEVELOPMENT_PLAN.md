@@ -397,7 +397,7 @@ Plaster Mold Yield Automation is complete after MY8 merges and exact post-merge 
 
 # Yield Recipe Source Enhancement — ACTIVE
 
-Status: **YRS0 COMPLETE**
+Status: **YRS0 + YRS1A COMPLETE**
 
 Master audit:
 
@@ -447,9 +447,9 @@ Task map:
 ```text
 YRS0 — Domain & Compatibility Audit                   COMPLETE
 
-YRS1 — Recipe Source Domain Foundation                NEXT / NOT STARTED
-    YRS1A — Recipe Source Resolution Contract         NEXT
-    YRS1B — Mold Formula Provenance Source Contract
+YRS1 — Recipe Source Domain Foundation                IN PROGRESS
+    YRS1A — Recipe Source Resolution Contract         COMPLETE
+    YRS1B — Mold Formula Provenance Source Contract   NEXT
     YRS1C — Referential / Exclusivity Validation
 
 YRS2 — Repository / Recording / Persistence           NOT STARTED
@@ -478,7 +478,14 @@ YRS5 — Yield History Provenance UI                    NOT STARTED
 YRS6 — Integrated Regression & Completion Gate        NOT STARTED
 ```
 
-Do not start YRS1A until YRS0 is merged and exact post-merge `develop` CI is green.
+YRS1A defines the pure source-resolution contract for Manual, Mix preset, and Mold formula views while preserving the existing YieldSample persistence shape. It fails closed on ambiguous MixPreset + Mold Formula provenance and defers the authoritative physical provenance source record to YRS1B.
+
+Detailed YRS contracts:
+
+- `docs/YIELD_RECIPE_SOURCE_YRS0_DOMAIN_COMPATIBILITY_AUDIT.md`
+- `docs/YIELD_RECIPE_SOURCE_YRS1A_RESOLUTION_CONTRACT.md`
+
+Do not start YRS1B until YRS1A is merged and exact post-merge `develop` CI is green.
 
 ---
 
@@ -566,8 +573,8 @@ Phase 7 scope should be revisited after the desktop/native persistence workflow 
 ## Current Next Action
 
 ```text
-YRS1A — Recipe Source Resolution Contract
+YRS1B — Mold Formula Provenance Source Contract
 NEXT / NOT STARTED
 ```
 
-Tiered Pricing TP0–TP9, Plaster Mold Yield MY0–MY8, and YRS0 are complete. Do not start YRS1A automatically; first verify the exact green post-YRS0 `develop` baseline. Phase 6.1A remains deferred until the Yield Recipe Source enhancement no longer takes precedence.
+Tiered Pricing TP0–TP9, Plaster Mold Yield MY0–MY8, YRS0, and YRS1A are complete. Do not start YRS1B automatically; first verify the exact green post-YRS1A `develop` baseline. Phase 6.1A remains deferred until the Yield Recipe Source enhancement no longer takes precedence.
