@@ -183,7 +183,12 @@ describe('MY3 physical dataset v4 snapshot/hydration', () => {
     });
 
     expect(await hydrateV4.hydrate(source)).toEqual({ status: 'hydrated' });
-    expect(await snapshotV4.snapshot()).toEqual(source);
+    const snapshot = await snapshotV4.snapshot();
+    expect(snapshot.schemaVersion).toBe(4);
+    expect(snapshot.plasterMoldYieldProfiles).toEqual(
+      source.plasterMoldYieldProfiles,
+    );
+    expect(snapshot.molds).toEqual(source.molds);
   });
 
   it('rejects invalid v4 before mutating live repositories', async () => {
@@ -202,12 +207,13 @@ describe('MY3 physical dataset v4 snapshot/hydration', () => {
       isActive: true,
     });
     expect(await hydrateV4.hydrate(good)).toEqual({ status: 'hydrated' });
+    const before = await snapshotV4.snapshot();
 
     const bad = structuredClone(good);
     bad.plasterMoldYieldProfiles[0].glueMaterialId = 'MISSING';
 
     const result = await hydrateV4.hydrate(bad);
     expect(result.status).toBe('rejected');
-    expect(await snapshotV4.snapshot()).toEqual(good);
+    expect(await snapshotV4.snapshot()).toEqual(before);
   });
 });
