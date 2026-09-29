@@ -53,7 +53,7 @@ export function ProductsWorkspacePage() {
           onClick={() => setMode('physical')}
         >
           <strong>Molds &amp; storage</strong>
-          <small>Physical IDs, locations &amp; labels</small>
+          <small>Physical IDs, locations, formulas &amp; labels</small>
         </button>
       </nav>
 
