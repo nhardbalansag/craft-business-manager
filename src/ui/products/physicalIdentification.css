@@ -230,6 +230,14 @@
   font-size: 0.92rem;
 }
 
+.physical-id-formula-modal-label {
+  color: var(--text-muted, #667085);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
 .physical-id-formula-modal .plaster-formula-config {
   border: 0;
   box-shadow: none;
