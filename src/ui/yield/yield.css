@@ -798,6 +798,73 @@
   color: #875b3f;
 }
 
+.yield-mold-formula-source-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.yield-mold-formula-source-summary > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+  padding: 10px 11px;
+  border: 1px solid #dfd5c8;
+  border-radius: 10px;
+  background: #fffdf9;
+}
+
+.yield-mold-formula-source-summary.is-invalid > div {
+  border-color: #e2c5b3;
+  background: #fff9f4;
+}
+
+.yield-mold-formula-source-summary span {
+  color: #8b8074;
+  font-size: .64rem;
+  font-weight: 780;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.yield-mold-formula-source-summary strong {
+  overflow: hidden;
+  color: var(--yield-ink);
+  font-size: .77rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.yield-mold-formula-source-summary small {
+  color: var(--yield-muted);
+  font-size: .67rem;
+  line-height: 1.4;
+}
+
+.yield-mold-formula-source-summary .yield-source-mode-warning {
+  grid-column: 1 / -1;
+}
+
+.yield-mold-formula-boundary {
+  display: grid;
+  gap: 4px;
+  padding: 10px 11px;
+  border-left: 3px solid #b8aa91;
+  border-radius: 0 10px 10px 0;
+  background: #f4efe6;
+}
+
+.yield-mold-formula-boundary strong {
+  color: #5d554d;
+  font-size: .74rem;
+}
+
+.yield-mold-formula-boundary span {
+  color: var(--yield-muted);
+  font-size: .69rem;
+  line-height: 1.45;
+}
+
 @media (max-width: 1180px) {
   .yield-product-bar {
     grid-template-columns: minmax(220px, 300px) minmax(0, 1fr);
@@ -819,6 +886,7 @@
 }
 
 @media (max-width: 760px) {
+  .yield-mold-formula-source-summary { grid-template-columns: 1fr; }
   .yield-recipe-source-options { grid-template-columns: 1fr; }
   .yield-guide { grid-template-columns: 1fr; }
   .yield-product-bar { grid-template-columns: 1fr; align-items: stretch; }

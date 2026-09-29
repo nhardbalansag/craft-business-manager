@@ -235,6 +235,34 @@ describe('Yield workspace UI/UX', () => {
     expect(
       container.querySelector('[aria-label="Yield Mix preset"]'),
     ).toBeNull();
+    expect(
+      container.querySelector('[aria-label="Mold Formula recipe source"]'),
+    ).toBeNull();
+  });
+
+  it('shows an explicit non-recordable Mold Formula source state before a formula draft is attached', async () => {
+    await seed();
+    await mount();
+
+    const formulaSource = container.querySelector<HTMLInputElement>(
+      '[aria-label="Recipe source"] input[value="mold-formula"]',
+    )!;
+    await act(async () => formulaSource.click());
+
+    expect(
+      container.querySelector('[aria-label="Mold Formula recipe source"]'),
+    ).not.toBeNull();
+    expect(
+      container.querySelector('[aria-label="Mix preset recipe source"]'),
+    ).toBeNull();
+    expect(container.textContent).toContain(
+      'No Mold Formula is attached to this draft yet.',
+    );
+    expect(container.textContent).toContain('MOLD FORMULA ASSIST above');
+    expect(
+      container.querySelector<HTMLButtonElement>('button[type="submit"]')
+        ?.disabled,
+    ).toBe(true);
   });
 
   it('shows an explicit non-recordable empty state when Mix preset mode has no compatible presets', async () => {

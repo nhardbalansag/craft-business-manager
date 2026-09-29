@@ -50,17 +50,18 @@ Historical child completion records remain authoritative for their individual co
 
 ## Current Repository Milestone
 
-Verified YRS3B integration base:
+Verified YRS3C integration base:
 
 ```text
-develop  f195cdb229268fb97c9c34b8f41d6b1e5f4977ec
-CI       36576459748 — SUCCESS
+develop  4ade5c5cecfa56963a6678808b4ffa458dc16602
+CI       36578589994 — SUCCESS
 Tiered Pricing TP0–TP9 — COMPLETE
 Plaster Mold Yield MY0–MY8 — COMPLETE
 YRS1 Recipe Source Domain Foundation — COMPLETE
 YRS2 Repository / Recording / Persistence — COMPLETE
 YRS3A Recipe Source Selector — COMPLETE
-YRS3B Mix Preset Mode — COMPLETE IN THIS CHANGE
+YRS3B Mix Preset Mode — COMPLETE
+YRS3C Mold Formula Mode — COMPLETE IN THIS CHANGE
 ```
 
 Tiered Pricing and Plaster Mold Yield Automation are complete. The Yield Recipe Source enhancement now takes precedence before the deferred Phase 6 implementation. Phase 6 remains scoped and must not be started automatically while the YRS task chain is active.
@@ -400,7 +401,7 @@ Plaster Mold Yield Automation is complete after MY8 merges and exact post-merge 
 
 # Yield Recipe Source Enhancement — ACTIVE
 
-Status: **YRS0 + YRS1 + YRS2 + YRS3A + YRS3B COMPLETE**
+Status: **YRS0 + YRS1 + YRS2 + YRS3A + YRS3B + YRS3C COMPLETE**
 
 Master audit:
 
@@ -466,8 +467,8 @@ YRS2 — Repository / Recording / Persistence           COMPLETE
 YRS3 — Yield Recipe Source UI                         IN PROGRESS
     YRS3A — Recipe Source Selector                     COMPLETE
     YRS3B — Mix Preset Mode                            COMPLETE
-    YRS3C — Mold Formula Mode                          NEXT
-    YRS3D — Manual Mode
+    YRS3C — Mold Formula Mode                          COMPLETE
+    YRS3D — Manual Mode                                NEXT
 
 YRS4 — Mold Formula Draft Integration Refactor        NOT STARTED
     YRS4A — Move MY6 Assist Under Mold Formula Mode
@@ -502,6 +503,8 @@ YRS3A introduces one explicit Manual / Mix preset / Mold formula selector as aut
 
 YRS3B turns Mix preset into a dedicated source-specific mode. It presents only active Product-category-compatible presets, previews the selected saved ratio without converting it into actual Yield evidence, keeps missing/archived copied preset identities visible and invalid, and provides an explicit non-recordable state when no compatible preset exists.
 
+YRS3C turns Mold formula into a dedicated source/provenance mode while preserving the YRS4 boundary. Before a formula is attached it shows an explicit non-recordable source state; after MY6 supplies a draft it displays the exact Mold/profile identity that will be persisted as physical provenance. Planned pieces, theoretical formula preview, the MY6 assistant location, and actual measurement confirmation remain deferred to YRS4A–YRS4C.
+
 Detailed YRS contracts:
 
 - `docs/YIELD_RECIPE_SOURCE_YRS0_DOMAIN_COMPATIBILITY_AUDIT.md`
@@ -515,8 +518,9 @@ Detailed YRS contracts:
 - `docs/YIELD_RECIPE_SOURCE_YRS2E_RUNTIME_PERSISTENCE.md`
 - `docs/YIELD_RECIPE_SOURCE_YRS3A_SELECTOR.md`
 - `docs/YIELD_RECIPE_SOURCE_YRS3B_MIX_PRESET_MODE.md`
+- `docs/YIELD_RECIPE_SOURCE_YRS3C_MOLD_FORMULA_MODE.md`
 
-Do not start YRS3C until YRS3B is merged and exact post-merge `develop` CI is green.
+Do not start YRS3D until YRS3C is merged and exact post-merge `develop` CI is green.
 
 ---
 
@@ -604,8 +608,8 @@ Phase 7 scope should be revisited after the desktop/native persistence workflow 
 ## Current Next Action
 
 ```text
-YRS3C — Mold Formula Mode
+YRS3D — Manual Mode
 NEXT / NOT STARTED
 ```
 
-Tiered Pricing TP0–TP9, Plaster Mold Yield MY0–MY8, YRS0, YRS1, YRS2A–YRS2E, YRS3A, and YRS3B are complete. Do not start YRS3C automatically; first merge YRS3B and verify the exact green post-YRS3B `develop` baseline. Phase 6.1A remains deferred until the Yield Recipe Source enhancement no longer takes precedence.
+Tiered Pricing TP0–TP9, Plaster Mold Yield MY0–MY8, YRS0, YRS1, YRS2A–YRS2E, YRS3A, YRS3B, and YRS3C are complete. Do not start YRS3D automatically; first merge YRS3C and verify the exact green post-YRS3C `develop` baseline. Phase 6.1A remains deferred until the Yield Recipe Source enhancement no longer takes precedence.

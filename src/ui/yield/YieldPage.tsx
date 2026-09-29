@@ -27,6 +27,7 @@ import {
 import type { YieldRecipeSourceKind } from '../../domain/yieldRecipeSource';
 import type { YieldSample } from '../../domain/yieldSamples';
 import { YieldMixPresetMode } from './YieldMixPresetMode';
+import { YieldMoldFormulaMode } from './YieldMoldFormulaMode';
 import { YieldProductSearchPicker } from './YieldProductSearchPicker';
 import { YieldRecipeSourceSelector } from './YieldRecipeSourceSelector';
 import { PlasterMoldYieldDraftAssist } from './PlasterMoldYieldDraftAssist';
@@ -995,6 +996,14 @@ export function YieldPage() {
                             mixPresetId,
                           }))
                         }
+                      />
+                    </div>
+                  )}
+                  {form.recipeSourceKind === 'mold-formula' && selectedProduct && (
+                    <div className="field field-wide">
+                      <YieldMoldFormulaMode
+                        draft={formulaDraftSource}
+                        selectedProductId={selectedProduct.id}
                       />
                     </div>
                   )}
