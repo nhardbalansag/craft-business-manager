@@ -261,21 +261,27 @@ describe('MY3 physical workbook v4 / dataset v4 migration', () => {
   });
 
   it('rejects profile rows that violate domain/referential integrity', () => {
-    const document = createPhysicalBusinessDatasetV4WorkbookDocument(
-      v4Dataset(),
-      metadata,
+    const document = structuredClone(
+      createPhysicalBusinessDatasetV4WorkbookDocument(v4Dataset(), metadata),
+    ) as unknown as {
+      sheets: Array<{
+        name: string;
+        columns: string[];
+        rows: Array<Record<string, unknown>>;
+      }>;
+    };
+    const profileSheet = document.sheets.find(
+      (candidate) => candidate.name === PLASTER_MOLD_YIELD_PROFILES_SHEET_NAME,
     );
-    const profileSheet = getSheet(
-      document,
-      PLASTER_MOLD_YIELD_PROFILES_SHEET_NAME,
-    );
+    if (!profileSheet) throw new Error('Profile sheet missing from MY3 fixture.');
+
     profileSheet.rows[0] = {
       ...profileSheet.rows[0],
       waterMaterialId: 'MISSING-WATER',
     };
 
     const result = importPhysicalBusinessDatasetV4FromXlsx(
-      codec.encode(document),
+      codec.encode(document as unknown as WorkbookNeutralDocument),
       codec,
     );
 
