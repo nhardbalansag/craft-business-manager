@@ -29,6 +29,14 @@ export type { ProductStock } from './productStock';
 export type { PricingMethod, PricingPolicy } from './pricing';
 export type { Product, ProductCategory } from './products';
 export type { YieldSample, YieldSampleMaterialInput } from './yieldSamples';
+export type {
+  YieldRecipeSourceKind,
+  ResolvedYieldRecipeSource,
+  ManualYieldRecipeSource,
+  MixPresetYieldRecipeSource,
+  MoldFormulaYieldRecipeSource,
+  MoldFormulaYieldRecipeSourceReference,
+} from './yieldRecipeSource';
 export type { BaseUnit, InputUnit } from './units';
 
 /**
