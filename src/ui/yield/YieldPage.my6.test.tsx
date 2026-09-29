@@ -163,6 +163,20 @@ describe('MY6 Yield Workspace Mold Formula integration', () => {
     await click('Use as Yield Sample Draft');
 
     expect(
+      container.querySelector<HTMLInputElement>(
+        '[aria-label="Recipe source"] input[value="mold-formula"]',
+      )?.checked,
+    ).toBe(true);
+    const sourceSummary = container.querySelector<HTMLElement>(
+      '[aria-label="Selected Mold Formula summary"]',
+    )!;
+    expect(sourceSummary).not.toBeNull();
+    expect(sourceSummary.textContent).toContain('Four Cavity Dino Mold');
+    expect(sourceSummary.textContent).toContain('MOLD-MY6');
+    expect(sourceSummary.textContent).toContain('PMYP-MY6');
+    expect(sourceSummary.textContent).toContain('Mold + profile provenance');
+
+    expect(
       await session.yieldSampleEvidenceService.listSamples({
         productId: product.id,
       }),
