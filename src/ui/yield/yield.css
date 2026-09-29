@@ -865,6 +865,14 @@
   line-height: 1.45;
 }
 
+.yield-mold-formula-assist-slot {
+  min-width: 0;
+}
+
+.yield-mold-formula-assist-slot .yield-formula-assist {
+  margin-bottom: 0;
+}
+
 .yield-manual-mode-summary {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

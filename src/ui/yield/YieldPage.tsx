@@ -66,6 +66,18 @@ function draftKey(form: YieldFormState): string {
   return JSON.stringify({ ...form, materialInputs: form.materialInputs.map(({ key: _key, ...input }) => input) });
 }
 
+function draftEvidenceKey(form: YieldFormState): string {
+  const {
+    recipeSourceKind: _recipeSourceKind,
+    mixPresetId: _mixPresetId,
+    ...evidence
+  } = form;
+  return JSON.stringify({
+    ...evidence,
+    materialInputs: evidence.materialInputs.map(({ key: _key, ...input }) => input),
+  });
+}
+
 type YieldHistorySort = 'newest' | 'oldest';
 type YieldOutcomeFilter = 'all' | 'clean' | 'with-rejects';
 
@@ -152,6 +164,9 @@ export function YieldPage() {
   const historyRequest = useRef(0);
   const draftWarning = useRef<HTMLDivElement>(null);
   const draftDirty = draftKey(form) !== draftBaseline;
+  const draftEvidenceDirty =
+    draftEvidenceKey(form) !==
+    draftEvidenceKey(JSON.parse(draftBaseline) as YieldFormState);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   const selectedProduct = useMemo(
@@ -544,6 +559,15 @@ export function YieldPage() {
 
   function requestDraftAction(action: DraftAction) {
     if (mutationInFlight.current) return;
+    if (
+      action.kind === 'formula' &&
+      form.recipeSourceKind === 'mold-formula' &&
+      formulaDraftSource === null &&
+      !draftEvidenceDirty
+    ) {
+      performDraftAction(action);
+      return;
+    }
     if (draftDirty) setPendingAction(action);
     else performDraftAction(action);
   }
@@ -848,16 +872,6 @@ export function YieldPage() {
                 <p>Enter this batch's actual consumption and piece counts. Draft values become evidence when you record the sample.</p>
               </div>
 
-              {selectedProduct && (
-                <PlasterMoldYieldDraftAssist
-                  product={selectedProduct}
-                  disabled={Boolean(busy) || !selectedProduct.isActive}
-                  onUseDraft={(draft) =>
-                    requestDraftAction({ kind: 'formula', draft })
-                  }
-                />
-              )}
-
             <form className="panel material-form yield-form" aria-busy={Boolean(busy)} aria-label="Yield sample" onSubmit={submitSample}>
               <div className="panel-heading yield-form-heading">
                 <div>
@@ -1010,6 +1024,15 @@ export function YieldPage() {
                       <YieldMoldFormulaMode
                         draft={formulaDraftSource}
                         selectedProductId={selectedProduct.id}
+                        assistant={
+                          <PlasterMoldYieldDraftAssist
+                            product={selectedProduct}
+                            disabled={Boolean(busy) || !selectedProduct.isActive}
+                            onUseDraft={(draft) =>
+                              requestDraftAction({ kind: 'formula', draft })
+                            }
+                          />
+                        }
                       />
                     </div>
                   )}

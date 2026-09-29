@@ -73,7 +73,7 @@ describe('YRS3C YieldMoldFormulaMode', () => {
     expect(container.textContent).toContain(
       'No Mold Formula is attached to this draft yet.',
     );
-    expect(container.textContent).toContain('MOLD FORMULA ASSIST above');
+    expect(container.textContent).toContain('MOLD FORMULA ASSIST below');
     expect(container.textContent).toContain(
       'Actual batch evidence stays separate.',
     );
@@ -104,6 +104,29 @@ describe('YRS3C YieldMoldFormulaMode', () => {
     // YRS4 owns planned pieces and theoretical quantity preview inside the mode.
     expect(summary.textContent).not.toContain('12');
     expect(summary.textContent).not.toContain('300');
+  });
+
+  it('hosts the relocated MY6 assistant inside the Mold Formula mode', async () => {
+    await act(async () =>
+      root.render(
+        <YieldMoldFormulaMode
+          draft={null}
+          selectedProductId="PROD-DINO"
+          assistant={<div aria-label="Stub MY6 assistant">MOLD FORMULA ASSIST</div>}
+        />,
+      ),
+    );
+
+    const mode = container.querySelector(
+      '[aria-label="Mold Formula recipe source"]',
+    )!;
+    const assistant = mode.querySelector(
+      '[aria-label="Mold Formula assistant"]',
+    )!;
+
+    expect(assistant).not.toBeNull();
+    expect(assistant.textContent).toContain('MOLD FORMULA ASSIST');
+    expect(container.textContent).toContain('Use MOLD FORMULA ASSIST below');
   });
 
   it('fails visibly if an attached formula belongs to another Product', async () => {

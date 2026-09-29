@@ -1,8 +1,10 @@
+import type { ReactNode } from 'react';
 import type { PlasterMoldYieldDraft } from './plasterMoldYieldDraft';
 
 export interface YieldMoldFormulaModeProps {
   draft: PlasterMoldYieldDraft | null;
   selectedProductId: string;
+  assistant?: ReactNode;
 }
 
 function comparable(value: string): string {
@@ -12,13 +14,14 @@ function comparable(value: string): string {
 /**
  * YRS3C Mold Formula source mode.
  *
- * This mode owns source/provenance presentation only. The existing MY6 formula
- * assistant, theoretical quantity preview/planned-pieces workflow, and actual
- * measurement confirmation remain separate until YRS4A-YRS4C.
+ * YRS4A relocates the existing MY6 assistant into this source mode without
+ * changing the assistant's calculation or draft-copy behavior. YRS4B/YRS4C
+ * still own deeper preview/planned-pieces and confirmation integration.
  */
 export function YieldMoldFormulaMode({
   draft,
   selectedProductId,
+  assistant,
 }: YieldMoldFormulaModeProps) {
   const belongsToSelectedProduct =
     draft === null ||
@@ -44,7 +47,7 @@ export function YieldMoldFormulaMode({
         <div className="yield-source-mode-state" role="note">
           <strong>No Mold Formula is attached to this draft yet.</strong>
           <span>
-            Use MOLD FORMULA ASSIST above to choose a saved Mold Formula and
+            Use MOLD FORMULA ASSIST below to choose a saved Mold Formula and
             copy its theoretical quantities into this batch draft.
           </span>
         </div>
@@ -81,6 +84,15 @@ export function YieldMoldFormulaMode({
               for the currently selected Product before recording.
             </p>
           )}
+        </div>
+      )}
+
+      {assistant && (
+        <div
+          className="yield-mold-formula-assist-slot"
+          aria-label="Mold Formula assistant"
+        >
+          {assistant}
         </div>
       )}
 
