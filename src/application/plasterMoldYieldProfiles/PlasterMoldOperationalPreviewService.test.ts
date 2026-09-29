@@ -243,4 +243,24 @@ describe('MY7 PlasterMoldOperationalPreviewService', () => {
       1.75,
     ]);
   });
+
+  it('supports the Production workspace zero-quantity exploration without inventing a pour requirement', async () => {
+    const { service } = setup();
+
+    const result = await service.preview('MOLD-1', 0);
+
+    expect(result.requestedQuantity).toBe(0);
+    expect(result.requiredPours).toBe(0);
+    expect(result.producedCapacityPieces).toBe(0);
+    expect(result.extraCapacityPieces).toBe(0);
+    expect(result.estimatedTargetBatchMaterialCost).toBe(0);
+    expect(result.materials.map((line) => line.targetBatchGrams)).toEqual([
+      0,
+      0,
+      0,
+    ]);
+    expect(result.estimatedMaterialCostPerPour).toBeCloseTo(3.675);
+    expect(result.maxProducedPiecesFromCurrentStock).toBe(112);
+  });
+
 });
