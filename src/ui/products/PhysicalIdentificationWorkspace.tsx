@@ -502,7 +502,7 @@ export function PhysicalIdentificationWorkspace({ products }: { products: readon
                               <td>
                                 <div className="physical-id-table-actions">
                                   <button type="button" className="button button-quiet" disabled={busy} onClick={() => editMold(mold)}>Edit / move</button>
-                                  <button type="button" className="text-button" onClick={() => printMold(mold)}>Print label</button>
+                                  <button type="button" className="text-button" onClick={() => printMold(mold)}>Print mold label</button>
                                   <button type="button" className={`text-button ${mold.isActive ? 'danger' : ''}`} disabled={busy} onClick={() => void toggleMold(mold)}>{mold.isActive ? 'Archive' : 'Restore'}</button>
                                 </div>
                               </td>
