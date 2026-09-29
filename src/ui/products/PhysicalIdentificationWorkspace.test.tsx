@@ -169,7 +169,7 @@ describe('PhysicalIdentificationWorkspace', () => {
       name: 'Configured Mold',
       isActive: true,
     });
-    await session.plasterMoldYieldProfileService.createProfile({
+    await session.plasterMoldYieldProfileRepository.replaceAll([{
       id: 'PMYP-0099',
       moldId: 'MOLD-CONFIGURED',
       waterMaterialId: 'MAT-WATER',
@@ -181,7 +181,7 @@ describe('PhysicalIdentificationWorkspace', () => {
       glueFactor: 0.05,
       piecesPerPour: 1,
       isActive: true,
-    });
+    }]);
 
     await mount();
 
