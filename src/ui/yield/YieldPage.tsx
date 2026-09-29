@@ -2,6 +2,8 @@ import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 're
 import {
   materialService,
   mixPresetService,
+  moldService,
+  plasterMoldYieldProfileService,
   productService,
   yieldHistoryService,
   yieldMoldFormulaSourceService,
@@ -84,6 +86,14 @@ function draftEvidenceKey(form: YieldFormState): string {
 type YieldHistorySort = 'newest' | 'oldest';
 type YieldOutcomeFilter = 'all' | 'clean' | 'with-rejects';
 
+type YieldHistoryMoldFormulaTrace = {
+  moldId: string;
+  moldName: string | null;
+  moldIsActive: boolean | null;
+  moldYieldProfileId: string;
+  profileIsActive: boolean | null;
+};
+
 let inputSequence = 0;
 
 function localDateTimeValue(): string {
@@ -153,6 +163,9 @@ export function YieldPage() {
   const [history, setHistory] = useState<YieldSample[]>([]);
   const [historyRecipeSources, setHistoryRecipeSources] = useState<
     Record<string, ResolvedYieldRecipeSource>
+  >({});
+  const [historyMoldFormulaTraces, setHistoryMoldFormulaTraces] = useState<
+    Record<string, YieldHistoryMoldFormulaTrace | null>
   >({});
   const [knownSampleIds, setKnownSampleIds] = useState<string[]>([]);
   const [effective, setEffective] = useState<EffectiveYieldSelection | null>(null);
@@ -276,6 +289,7 @@ export function YieldPage() {
     const request = ++historyRequest.current;
     setHistory([]);
     setHistoryRecipeSources({});
+    setHistoryMoldFormulaTraces({});
     setEffective(null);
     setHistoryError(null);
     setEffectiveNotice(productId ? 'Loading yield evidence...' : 'Select a product to inspect yield history.');
@@ -290,6 +304,31 @@ export function YieldPage() {
             sample.id,
           ),
         ] as const),
+      );
+      const moldFormulaTraceEntries = await Promise.all(
+        sourceEntries.map(async ([sampleId, source]) => {
+          if (source.kind !== 'mold-formula') {
+            return [sampleId, null] as const;
+          }
+
+          const [mold, profile] = await Promise.all([
+            moldService.getMold(source.moldId),
+            plasterMoldYieldProfileService.getProfile(
+              source.moldYieldProfileId,
+            ),
+          ]);
+
+          return [
+            sampleId,
+            {
+              moldId: source.moldId,
+              moldName: mold?.name ?? null,
+              moldIsActive: mold?.isActive ?? null,
+              moldYieldProfileId: source.moldYieldProfileId,
+              profileIsActive: profile?.isActive ?? null,
+            },
+          ] as const;
+        }),
       );
       if (request !== historyRequest.current) return;
       let nextEffective: EffectiveYieldSelection | null = null;
@@ -317,6 +356,9 @@ export function YieldPage() {
       if (request !== historyRequest.current) return;
       setHistory(nextHistory);
       setHistoryRecipeSources(Object.fromEntries(sourceEntries));
+      setHistoryMoldFormulaTraces(
+        Object.fromEntries(moldFormulaTraceEntries),
+      );
       setEffective(nextEffective);
       setEffectiveNotice(notice);
     } catch (error) {
@@ -410,6 +452,7 @@ export function YieldPage() {
           ? mixById.get(source.mixPresetId.toLocaleLowerCase())?.name ??
             source.mixPresetId
           : '';
+      const moldFormulaTrace = historyMoldFormulaTraces[sample.id];
       const materialNames = sample.materialInputs.map((input) =>
         materialById.get(input.materialId.toLocaleLowerCase())?.name ?? input.materialId,
       );
@@ -419,6 +462,9 @@ export function YieldPage() {
         formatDate(sample.recordedAt),
         sourceLabel,
         mixName,
+        moldFormulaTrace?.moldName ?? '',
+        moldFormulaTrace?.moldId ?? '',
+        moldFormulaTrace?.moldYieldProfileId ?? '',
         ...materialNames,
       ].some((value) => value.toLocaleLowerCase().includes(normalizedQuery));
     });
@@ -434,6 +480,7 @@ export function YieldPage() {
     history,
     historyOutcome,
     historyQuery,
+    historyMoldFormulaTraces,
     historyRecipeSources,
     historySort,
     materialById,
@@ -1351,6 +1398,8 @@ export function YieldPage() {
                               recipeSource.mixPresetId.toLocaleLowerCase(),
                             )?.name ?? recipeSource.mixPresetId
                           : null;
+                      const moldFormulaTrace =
+                        historyMoldFormulaTraces[sample.id] ?? null;
                       return (
                         <article
                           className={`yield-history-item ${sampleIsEffective ? 'effective-history-item' : ''}`}
@@ -1384,6 +1433,26 @@ export function YieldPage() {
                               </strong>
                               {recipeSourceMixName && (
                                 <em>{recipeSourceMixName}</em>
+                              )}
+                              {recipeSource?.kind === 'mold-formula' && (
+                                <span
+                                  className="yield-history-formula-trace"
+                                  aria-label={`Mold Formula traceability ${sample.id}`}
+                                >
+                                  <em>
+                                    {moldFormulaTrace?.moldName ?? 'Mold'} ·{' '}
+                                    {recipeSource.moldId}
+                                    {moldFormulaTrace?.moldIsActive === false
+                                      ? ' · archived'
+                                      : ''}
+                                  </em>
+                                  <em>
+                                    Profile {recipeSource.moldYieldProfileId}
+                                    {moldFormulaTrace?.profileIsActive === false
+                                      ? ' · archived'
+                                      : ''}
+                                  </em>
+                                </span>
                               )}
                             </span>
                           </div>

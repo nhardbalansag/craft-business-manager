@@ -168,9 +168,6 @@ describe('YRS5A Yield history resolved source labels', () => {
     expect(formulaSource.textContent).toContain('Recipe source');
     expect(formulaSource.textContent).toContain('Mold formula');
 
-    // YRS5B owns Mold/profile traceability details.
-    expect(formulaSource.textContent).not.toContain('MOLD-YRS5A');
-    expect(formulaSource.textContent).not.toContain('PMYP-YRS5A');
   });
 
   it('includes resolved source labels in Yield history search', async () => {
