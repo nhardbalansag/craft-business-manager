@@ -26,6 +26,7 @@ import {
 } from '../../domain/units';
 import type { YieldRecipeSourceKind } from '../../domain/yieldRecipeSource';
 import type { YieldSample } from '../../domain/yieldSamples';
+import { YieldManualMode } from './YieldManualMode';
 import { YieldMixPresetMode } from './YieldMixPresetMode';
 import { YieldMoldFormulaMode } from './YieldMoldFormulaMode';
 import { YieldProductSearchPicker } from './YieldProductSearchPicker';
@@ -982,6 +983,11 @@ export function YieldPage() {
                       onChange={changeRecipeSource}
                     />
                   </div>
+                  {form.recipeSourceKind === 'manual' && (
+                    <div className="field field-wide">
+                      <YieldManualMode />
+                    </div>
+                  )}
                   {form.recipeSourceKind === 'mix-preset' && (
                     <div className="field field-wide">
                       <YieldMixPresetMode
