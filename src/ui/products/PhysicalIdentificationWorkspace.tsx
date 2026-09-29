@@ -624,13 +624,14 @@ export function PhysicalIdentificationWorkspace({ products }: { products: readon
           <div className="physical-id-modal physical-id-formula-modal panel" role="dialog" aria-modal="true" aria-label={`Mold formula for ${formulaMold.name}`}>
             <div className="physical-id-formula-modal-heading">
               <div>
-                <p className="panel-kicker">MOLD FORMULA</p>
+                <span className="physical-id-formula-modal-label">Selected mold</span>
                 <strong>{formulaMold.name} · {formulaMold.id}</strong>
               </div>
               <button type="button" className="text-button" onClick={() => setFormulaMoldId(null)} aria-label="Close mold formula dialog">Close</button>
             </div>
             <PlasterMoldFormulaConfigurationPanel
               molds={[formulaMold]}
+              hideMoldSelector
               onProfilesChanged={() => void reloadFormulaProfiles()}
             />
           </div>
