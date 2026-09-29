@@ -77,6 +77,15 @@ async function click(text: string) {
   await flush();
 }
 
+async function selectMoldFormulaSource() {
+  const source = container.querySelector<HTMLInputElement>(
+    '[aria-label="Recipe source"] input[value="mold-formula"]',
+  );
+  if (!source) throw new Error('Missing Mold Formula Recipe source option.');
+  await act(async () => source.click());
+  await flush();
+}
+
 function yieldForm(): HTMLFormElement {
   return container.querySelector<HTMLFormElement>(
     '[aria-label="Yield sample"]',
@@ -156,6 +165,12 @@ describe('MY6 Yield Workspace Mold Formula integration', () => {
   it('copies a theoretical formula into a draft without creating Yield evidence', async () => {
     await mount();
 
+    expect(container.textContent).not.toContain('MOLD FORMULA ASSIST');
+    await selectMoldFormulaSource();
+
+    expect(
+      container.querySelector('[aria-label="Mold Formula assistant"]'),
+    ).not.toBeNull();
     expect(container.textContent).toContain('MOLD FORMULA ASSIST');
     expect(container.textContent).toContain('Four Cavity Dino Mold');
     expect(container.textContent).toContain('63 g');
@@ -220,6 +235,7 @@ describe('MY6 Yield Workspace Mold Formula integration', () => {
 
   it('scales requested pieces, requires measured confirmation, then records Yield evidence with Mold Formula provenance', async () => {
     await mount();
+    await selectMoldFormulaSource();
 
     const planned = container.querySelector<HTMLInputElement>(
       '[aria-label="Formula planned pieces"]',
@@ -303,6 +319,7 @@ describe('MY6 Yield Workspace Mold Formula integration', () => {
 
   it('invalidates measurement confirmation when a copied Material quantity changes', async () => {
     await mount();
+    await selectMoldFormulaSource();
     await click('Use as Yield Sample Draft');
 
     await fill(field('Good pieces'), '3');
@@ -329,8 +346,10 @@ describe('MY6 Yield Workspace Mold Formula integration', () => {
 
   it('protects an existing dirty Yield draft before replacing it with a formula draft', async () => {
     await mount();
-
     await fill(field('Notes'), 'Keep this batch');
+    await selectMoldFormulaSource();
+
+
     await click('Use as Yield Sample Draft');
 
     expect(container.textContent).toContain('Keep your unsaved batch?');
