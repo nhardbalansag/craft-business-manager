@@ -454,7 +454,6 @@ YRS1 — Recipe Source Domain Foundation                COMPLETE
 
 YRS2 — Repository / Recording / Persistence           NEXT / NOT STARTED
     YRS2A — Provenance Repository + Application Service  NEXT
-    YRS2A — Provenance Repository + Application Service
     YRS2B — Atomic Yield + Provenance Recording
     YRS2C — PhysicalBusinessDatasetV5
     YRS2D — Physical Workbook v5 + v4→v5 Migration
