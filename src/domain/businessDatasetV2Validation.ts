@@ -64,9 +64,12 @@ function tierField(errorCode: string | undefined): string | undefined {
       return 'kind';
     case 'INVALID_PRICE_BASIS':
       return 'priceBasis';
-    case 'NON_FINITE_PRICE_AMOUNT':
-    case 'NEGATIVE_PRICE_AMOUNT':
-      return 'priceAmount';
+    case 'INVALID_PRICING_METHOD':
+      return 'pricingMethod';
+    case 'MISSING_PRICING_VALUE':
+    case 'NON_FINITE_PRICING_VALUE':
+    case 'NEGATIVE_PRICING_VALUE':
+      return 'pricingValue';
     case 'NON_FINITE_UNITS_PER_OFFER':
     case 'NON_INTEGER_UNITS_PER_OFFER':
     case 'NON_POSITIVE_UNITS_PER_OFFER':

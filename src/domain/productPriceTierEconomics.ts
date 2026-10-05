@@ -1,4 +1,5 @@
 import {
+  resolveProductPriceTierPricingSource,
   validateProductPriceTierContract,
   type ProductPriceTier,
 } from './productPriceTiers';
@@ -33,10 +34,13 @@ export function deriveProductPriceTierEconomics(
 
   const baseOfferCost = fullyLoadedUnitCost * tier.unitsPerOffer;
   const totalOfferCost = baseOfferCost + tier.additionalCostPerOffer;
+  const pricingSource = resolveProductPriceTierPricingSource(tier);
   const offerSellingPrice =
-    tier.priceBasis === 'per-offer'
-      ? tier.priceAmount
-      : tier.priceAmount * tier.unitsPerOffer;
+    pricingSource.pricingMethod === 'profit-per-unit'
+      ? totalOfferCost + pricingSource.pricingValue * tier.unitsPerOffer
+      : tier.priceBasis === 'per-offer'
+        ? pricingSource.pricingValue
+        : pricingSource.pricingValue * tier.unitsPerOffer;
   const effectiveUnitSellingPrice = offerSellingPrice / tier.unitsPerOffer;
   const profitPerOffer = offerSellingPrice - totalOfferCost;
   const effectiveProfitPerUnit = profitPerOffer / tier.unitsPerOffer;

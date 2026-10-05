@@ -10,7 +10,8 @@ function tier(overrides: Partial<ProductPriceTier> = {}): ProductPriceTier {
     name: 'Bulk 20+',
     kind: 'bulk',
     priceBasis: 'per-unit',
-    priceAmount: 40,
+    pricingMethod: 'fixed-price',
+    pricingValue: 40,
     unitsPerOffer: 1,
     minimumOrderQuantity: 20,
     additionalCostPerOffer: 0,
@@ -23,7 +24,7 @@ describe('deriveProductPriceTierEconomics', () => {
   it('derives per-unit bulk economics without rounding', () => {
     const result = deriveProductPriceTierEconomics(
       31.125,
-      tier({ priceAmount: 40.75 }),
+      tier({ pricingValue: 40.75 }),
     );
 
     expect(result).toEqual({
@@ -41,6 +42,22 @@ describe('deriveProductPriceTierEconomics', () => {
     });
   });
 
+  it('derives selling price from requested profit per unit', () => {
+    const result = deriveProductPriceTierEconomics(
+      30,
+      tier({
+        pricingMethod: 'profit-per-unit',
+        pricingValue: 15,
+        additionalCostPerOffer: 5,
+      }),
+    );
+
+    expect(result.totalOfferCost).toBe(35);
+    expect(result.effectiveProfitPerUnit).toBe(15);
+    expect(result.effectiveUnitSellingPrice).toBe(50);
+    expect(result.offerSellingPrice).toBe(50);
+  });
+
   it('derives package per-offer economics including additional package cost', () => {
     const result = deriveProductPriceTierEconomics(
       30,
@@ -48,7 +65,7 @@ describe('deriveProductPriceTierEconomics', () => {
         name: 'Package 6',
         kind: 'package',
         priceBasis: 'per-offer',
-        priceAmount: 270,
+        pricingValue: 270,
         unitsPerOffer: 6,
         minimumOrderQuantity: 6,
         additionalCostPerOffer: 20,
@@ -72,7 +89,7 @@ describe('deriveProductPriceTierEconomics', () => {
         name: 'Party Pack',
         kind: 'custom',
         priceBasis: 'per-offer',
-        priceAmount: 500,
+        pricingValue: 500,
         unitsPerOffer: 12,
         minimumOrderQuantity: 12,
         additionalCostPerOffer: 18.75,
@@ -91,7 +108,7 @@ describe('deriveProductPriceTierEconomics', () => {
   it('returns null markup only when total offer cost is zero', () => {
     const zeroCost = deriveProductPriceTierEconomics(
       0,
-      tier({ priceAmount: 10, additionalCostPerOffer: 0 }),
+      tier({ pricingValue: 10, additionalCostPerOffer: 0 }),
     );
     expect(zeroCost.totalOfferCost).toBe(0);
     expect(zeroCost.effectiveMarkup).toBeNull();
@@ -99,7 +116,7 @@ describe('deriveProductPriceTierEconomics', () => {
 
     const additionalCost = deriveProductPriceTierEconomics(
       0,
-      tier({ priceAmount: 10, additionalCostPerOffer: 2 }),
+      tier({ pricingValue: 10, additionalCostPerOffer: 2 }),
     );
     expect(additionalCost.totalOfferCost).toBe(2);
     expect(additionalCost.effectiveMarkup).toBe(4);
@@ -108,7 +125,7 @@ describe('deriveProductPriceTierEconomics', () => {
   it('returns null margin only when offer selling price is zero', () => {
     const result = deriveProductPriceTierEconomics(
       25,
-      tier({ priceAmount: 0 }),
+      tier({ pricingValue: 0 }),
     );
 
     expect(result.offerSellingPrice).toBe(0);
@@ -121,7 +138,7 @@ describe('deriveProductPriceTierEconomics', () => {
   it('permits negative profit so below-cost pricing can be diagnosed later', () => {
     const result = deriveProductPriceTierEconomics(
       50,
-      tier({ priceAmount: 40 }),
+      tier({ pricingValue: 40 }),
     );
 
     expect(result.profitPerOffer).toBe(-10);
@@ -156,7 +173,7 @@ describe('deriveProductPriceTierEconomics', () => {
       name: 'Package 6',
       kind: 'package',
       priceBasis: 'per-offer',
-      priceAmount: 270,
+      pricingValue: 270,
       unitsPerOffer: 6,
       minimumOrderQuantity: 6,
       additionalCostPerOffer: 20,

@@ -1,16 +1,21 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import {
   ProductPriceTierError,
+  resolveProductPriceTierPricingSource,
   validateProductPriceTierContract,
   type ProductPriceTier,
+  type ProductPriceTierPricingMethod,
 } from '../../domain/productPriceTiers';
+import { deriveProductPriceTierEconomics } from '../../domain/productPriceTierEconomics';
+import { formatPhp } from './productPricingQuoteView';
 import type { Product } from '../../domain/products';
 
 export interface ProductPriceTierEditorValue {
   name: string;
   kind: ProductPriceTier['kind'];
   priceBasis: ProductPriceTier['priceBasis'];
-  priceAmount: number;
+  pricingMethod: ProductPriceTierPricingMethod;
+  pricingValue: number;
   unitsPerOffer: number;
   minimumOrderQuantity: number;
   additionalCostPerOffer: number;
@@ -23,6 +28,7 @@ interface ProductPriceTierEditorPanelProps {
   open: boolean;
   saving: boolean;
   error?: string | null;
+  fullyLoadedUnitCost?: number | null;
   onSubmit: (value: ProductPriceTierEditorValue) => Promise<void> | void;
   onCancel: () => void;
 }
@@ -31,7 +37,8 @@ interface TierFormState {
   name: string;
   kind: ProductPriceTier['kind'];
   priceBasis: ProductPriceTier['priceBasis'];
-  priceAmount: string;
+  pricingMethod: ProductPriceTierPricingMethod;
+  pricingValue: string;
   unitsPerOffer: string;
   minimumOrderQuantity: string;
   additionalCostPerOffer: string;
@@ -43,7 +50,8 @@ function emptyForm(): TierFormState {
     name: '',
     kind: 'bulk',
     priceBasis: 'per-unit',
-    priceAmount: '',
+    pricingMethod: 'profit-per-unit',
+    pricingValue: '',
     unitsPerOffer: '1',
     minimumOrderQuantity: '1',
     additionalCostPerOffer: '0',
@@ -53,11 +61,13 @@ function emptyForm(): TierFormState {
 
 function tierToForm(tier: ProductPriceTier | null): TierFormState {
   if (!tier) return emptyForm();
+  const pricing = resolveProductPriceTierPricingSource(tier);
   return {
     name: tier.name,
     kind: tier.kind,
     priceBasis: tier.priceBasis,
-    priceAmount: String(tier.priceAmount),
+    pricingMethod: pricing.pricingMethod,
+    pricingValue: String(pricing.pricingValue),
     unitsPerOffer: String(tier.unitsPerOffer),
     minimumOrderQuantity: String(tier.minimumOrderQuantity),
     additionalCostPerOffer: String(tier.additionalCostPerOffer),
@@ -118,6 +128,7 @@ export function ProductPriceTierEditorPanel({
   open,
   saving,
   error = null,
+  fullyLoadedUnitCost = null,
   onSubmit,
   onCancel,
 }: ProductPriceTierEditorPanelProps) {
@@ -128,7 +139,7 @@ export function ProductPriceTierEditorPanel({
   }, [open, tier]);
 
   const parsed = useMemo(() => ({
-    priceAmount: finiteNonNegative(form.priceAmount),
+    pricingValue: finiteNonNegative(form.pricingValue),
     unitsPerOffer: positiveInteger(form.unitsPerOffer),
     minimumOrderQuantity: positiveInteger(form.minimumOrderQuantity),
     additionalCostPerOffer: finiteNonNegative(form.additionalCostPerOffer),
@@ -138,7 +149,7 @@ export function ProductPriceTierEditorPanel({
     if (
       !product ||
       !form.name.trim() ||
-      parsed.priceAmount === null ||
+      parsed.pricingValue === null ||
       parsed.unitsPerOffer === null ||
       parsed.minimumOrderQuantity === null ||
       parsed.additionalCostPerOffer === null
@@ -153,7 +164,8 @@ export function ProductPriceTierEditorPanel({
         name: form.name,
         kind: form.kind,
         priceBasis: form.priceBasis,
-        priceAmount: parsed.priceAmount,
+        pricingMethod: form.pricingMethod,
+        pricingValue: parsed.pricingValue,
         unitsPerOffer: parsed.unitsPerOffer,
         minimumOrderQuantity: parsed.minimumOrderQuantity,
         additionalCostPerOffer: parsed.additionalCostPerOffer,
@@ -201,6 +213,41 @@ export function ProductPriceTierEditorPanel({
   }, [form.kind, form.priceBasis, parsed.minimumOrderQuantity, parsed.unitsPerOffer]);
 
   const kindGuide = TIER_KIND_GUIDANCE[form.kind];
+  const pricingPreview = useMemo(() => {
+    if (
+      !product ||
+      fullyLoadedUnitCost === null ||
+      !Number.isFinite(fullyLoadedUnitCost) ||
+      fullyLoadedUnitCost < 0 ||
+      !form.name.trim() ||
+      parsed.pricingValue === null ||
+      parsed.unitsPerOffer === null ||
+      parsed.minimumOrderQuantity === null ||
+      parsed.additionalCostPerOffer === null
+    ) {
+      return null;
+    }
+
+    try {
+      return deriveProductPriceTierEconomics(fullyLoadedUnitCost, {
+        id: tier?.id ?? 'TIER-DRAFT',
+        productId: product.id,
+        name: form.name,
+        kind: form.kind,
+        priceBasis: form.priceBasis,
+        pricingMethod: form.pricingMethod,
+        pricingValue: parsed.pricingValue,
+        unitsPerOffer: parsed.unitsPerOffer,
+        minimumOrderQuantity: parsed.minimumOrderQuantity,
+        additionalCostPerOffer: parsed.additionalCostPerOffer,
+        notes: form.notes,
+        isActive: tier?.isActive ?? true,
+      });
+    } catch {
+      return null;
+    }
+  }, [form, fullyLoadedUnitCost, parsed, product, tier]);
+
   const editorTitleId = 'price-tier-editor-title';
   const kindGuideId = 'price-tier-kind-guidance';
   const unitsHelpId = 'price-tier-units-help';
@@ -219,7 +266,7 @@ export function ProductPriceTierEditorPanel({
   const valid =
     Boolean(product) &&
     form.name.trim().length > 0 &&
-    parsed.priceAmount !== null &&
+    parsed.pricingValue !== null &&
     parsed.unitsPerOffer !== null &&
     parsed.minimumOrderQuantity !== null &&
     parsed.additionalCostPerOffer !== null &&
@@ -290,7 +337,8 @@ export function ProductPriceTierEditorPanel({
       name: form.name,
       kind: form.kind,
       priceBasis: form.priceBasis,
-      priceAmount: parsed.priceAmount!,
+      pricingMethod: form.pricingMethod,
+      pricingValue: parsed.pricingValue!,
       unitsPerOffer: parsed.unitsPerOffer!,
       minimumOrderQuantity: parsed.minimumOrderQuantity!,
       additionalCostPerOffer: parsed.additionalCostPerOffer!,
@@ -415,18 +463,45 @@ export function ProductPriceTierEditorPanel({
         </label>
 
         <label className="field">
-          <span>Price amount (PHP)</span>
+          <span>Pricing method</span>
+          <select
+            value={form.pricingMethod}
+            disabled={saving || createBlocked}
+            onChange={(event) =>
+              setForm({
+                ...form,
+                pricingMethod: event.target.value as ProductPriceTierPricingMethod,
+                pricingValue: '',
+              })
+            }
+          >
+            <option value="profit-per-unit">Profit per unit (PHP)</option>
+            <option value="fixed-price">Fixed selling price (PHP)</option>
+          </select>
+          <small className="tier-editor-field-help">
+            Profit per unit follows the current fully loaded cost. Fixed selling price stays locked until you edit it.
+          </small>
+        </label>
+
+        <label className="field">
+          <span>
+            {form.pricingMethod === 'profit-per-unit'
+              ? 'Profit per unit (PHP)'
+              : form.priceBasis === 'per-offer'
+                ? 'Fixed selling price (PHP per offer)'
+                : 'Fixed selling price (PHP per unit)'}
+          </span>
           <input
             type="number"
             min="0"
             step="any"
             inputMode="decimal"
-            value={form.priceAmount}
+            value={form.pricingValue}
             required
             aria-required="true"
-            aria-invalid={form.priceAmount.trim() !== '' && parsed.priceAmount === null}
+            aria-invalid={form.pricingValue.trim() !== '' && parsed.pricingValue === null}
             disabled={saving || createBlocked}
-            onChange={(event) => setForm({ ...form, priceAmount: event.target.value })}
+            onChange={(event) => setForm({ ...form, pricingValue: event.target.value })}
           />
         </label>
 
@@ -525,6 +600,29 @@ export function ProductPriceTierEditorPanel({
             placeholder="Optional source notes"
           />
         </label>
+      </div>
+
+      <div className="pricing-draft-preview" aria-label="Tier pricing preview">
+        <div className="pricing-draft-preview-heading">
+          <div><span>TIER PRICE PREVIEW</span><strong>Derived from current saved cost</strong></div>
+          <span className={`pricing-save-state ${pricingPreview ? 'ready' : ''}`}>
+            {pricingPreview ? 'Ready' : 'Waiting for valid cost + inputs'}
+          </span>
+        </div>
+        <div className="pricing-draft-metrics">
+          <div><span>Cost / unit</span><strong>{formatPhp(fullyLoadedUnitCost)}</strong></div>
+          <div>
+            <span>{form.pricingMethod === 'profit-per-unit' ? 'Profit / unit' : 'Fixed source'}</span>
+            <strong>{formatPhp(parsed.pricingValue)}</strong>
+          </div>
+          <div><span>Selling price / unit</span><strong>{formatPhp(pricingPreview?.effectiveUnitSellingPrice ?? null)}</strong></div>
+          <div><span>Selling price / offer</span><strong>{formatPhp(pricingPreview?.offerSellingPrice ?? null)}</strong></div>
+        </div>
+        <p>
+          {form.pricingMethod === 'profit-per-unit'
+            ? 'Selling price recalculates from the current fully loaded cost plus the requested profit per finished unit.'
+            : 'Fixed selling price remains the saved source amount; changes in cost affect profit and margin, not the fixed price.'}
+        </p>
       </div>
 
       <div className="tier-editor-source-note">

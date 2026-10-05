@@ -38,7 +38,8 @@ function dataset(): BusinessDatasetV2 {
       name: 'Bulk 20+',
       kind: 'bulk',
       priceBasis: 'per-unit',
-      priceAmount: 40,
+      pricingMethod: 'fixed-price',
+      pricingValue: 40,
       unitsPerOffer: 1,
       minimumOrderQuantity: 20,
       additionalCostPerOffer: 0,
@@ -51,7 +52,8 @@ function dataset(): BusinessDatasetV2 {
       name: 'Historical package',
       kind: 'package',
       priceBasis: 'per-offer',
-      priceAmount: 270,
+      pricingMethod: 'fixed-price',
+      pricingValue: 270,
       unitsPerOffer: 6,
       minimumOrderQuantity: 6,
       additionalCostPerOffer: 20,
@@ -118,8 +120,8 @@ describe('BusinessDataset v2', () => {
     expect(source.productPriceTiers[0]?.name).toBe('Bulk 20+');
     expect(source.productPriceTiers[0]?.notes).toBe('Wholesale');
 
-    source.productPriceTiers[1]!.priceAmount = 999;
-    expect(cloned.productPriceTiers[1]?.priceAmount).toBe(270);
+    source.productPriceTiers[1]!.pricingValue = 999;
+    expect(cloned.productPriceTiers[1]?.pricingValue).toBe(270);
   });
 
   it('normalizes ownership by completeness validation plus defensive cloning only', () => {
@@ -143,7 +145,7 @@ describe('BusinessDataset v2', () => {
 
   it('rejects invalid tier source rows with field-specific paths', () => {
     const value = dataset();
-    value.productPriceTiers[0]!.priceAmount = -1;
+    value.productPriceTiers[0]!.pricingValue = -1;
 
     const result = validateBusinessDatasetV2Integrity(value);
 
@@ -155,8 +157,8 @@ describe('BusinessDataset v2', () => {
           collection: 'productPriceTiers',
           index: 0,
           entityId: 'TIER-0001',
-          field: 'priceAmount',
-          path: 'productPriceTiers[0].priceAmount',
+          field: 'pricingValue',
+          path: 'productPriceTiers[0].pricingValue',
         }),
       ]),
     );

@@ -418,7 +418,8 @@ describe('Pricing workspace UI/UX', () => {
     await fill(field('Tier name', tierForm!), 'Bulk 20+');
     await fill(field('Tier kind', tierForm!), 'bulk');
     await fill(field('Price basis', tierForm!), 'per-unit');
-    await fill(field('Price amount', tierForm!), '40');
+    expect((field('Pricing method', tierForm!) as HTMLSelectElement).value).toBe('profit-per-unit');
+    await fill(field('Profit per unit', tierForm!), '10');
     await fill(field('Units per offer', tierForm!), '1');
     await fill(field('Minimum order quantity', tierForm!), '20');
     await fill(field('Additional cost per offer', tierForm!), '0');
@@ -435,7 +436,8 @@ describe('Pricing workspace UI/UX', () => {
     expect(created[0]).toMatchObject({
       id: 'TIER-0001',
       name: 'Bulk 20+',
-      priceAmount: 40,
+      pricingMethod: 'profit-per-unit',
+      pricingValue: 10,
       minimumOrderQuantity: 20,
       notes: 'Wholesale counter price',
       isActive: true,
@@ -448,7 +450,7 @@ describe('Pricing workspace UI/UX', () => {
     )!;
     expect(editForm.textContent).toContain('TIER-0001');
     await fill(field('Tier name', editForm), 'Bulk 25+');
-    await fill(field('Price amount', editForm), '38');
+    await fill(field('Profit per unit', editForm), '8');
     await fill(field('Minimum order quantity', editForm), '25');
 
     await act(async () => {
@@ -461,7 +463,8 @@ describe('Pricing workspace UI/UX', () => {
     expect(updated).toMatchObject({
       id: 'TIER-0001',
       name: 'Bulk 25+',
-      priceAmount: 38,
+      pricingMethod: 'profit-per-unit',
+      pricingValue: 8,
       minimumOrderQuantity: 25,
       isActive: true,
     });

@@ -240,7 +240,8 @@ describe('TP5C core v1/v2 -> v3 migration chain', () => {
       name: 'Bulk 20+',
       kind: 'bulk',
       priceBasis: 'per-unit',
-      priceAmount: 45,
+      pricingMethod: 'fixed-price',
+      pricingValue: 45,
       unitsPerOffer: 1,
       minimumOrderQuantity: 20,
       additionalCostPerOffer: 0,
@@ -256,7 +257,8 @@ describe('TP5C core v1/v2 -> v3 migration chain', () => {
       expect.objectContaining({
         id: 'TIER-0001',
         productId: 'PROD-A',
-        priceAmount: 45,
+        pricingMethod: 'fixed-price',
+        pricingValue: 45,
       }),
     ]);
   });

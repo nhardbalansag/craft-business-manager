@@ -39,7 +39,7 @@ const codec = new SheetJsWorkbookCodec();
 function tier(
   id: string,
   productId: string,
-  priceAmount: number,
+  pricingValue: number,
 ): ProductPriceTier {
   return {
     id,
@@ -47,7 +47,8 @@ function tier(
     name: `Tier ${id}`,
     kind: 'bulk',
     priceBasis: 'per-unit',
-    priceAmount,
+    pricingMethod: 'fixed-price',
+    pricingValue,
     unitsPerOffer: 1,
     minimumOrderQuantity: 10,
     additionalCostPerOffer: 0,
@@ -58,7 +59,7 @@ function tier(
 function coreDataset(
   productId: string,
   tierId: string,
-  priceAmount: number,
+  pricingValue: number,
 ) {
   const dataset = createEmptyBusinessDatasetV2();
   dataset.products.push({
@@ -74,17 +75,17 @@ function coreDataset(
     overheadCostPerUnit: 5,
     pricingPolicy: { method: 'profit-amount', value: 20 },
   });
-  dataset.productPriceTiers.push(tier(tierId, productId, priceAmount));
+  dataset.productPriceTiers.push(tier(tierId, productId, pricingValue));
   return dataset;
 }
 
 function physicalDataset(
   productId: string,
   tierId: string,
-  priceAmount: number,
+  pricingValue: number,
 ): PhysicalBusinessDatasetV3 {
   return extendBusinessDatasetV2(
-    coreDataset(productId, tierId, priceAmount),
+    coreDataset(productId, tierId, pricingValue),
     [
       {
         id: `RACK-${productId}`,

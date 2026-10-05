@@ -8,6 +8,7 @@ import type {
   ProductPriceTierKind,
   ProductPriceTierPriceBasis,
 } from '../../domain/productPriceTiers';
+import { resolveProductPriceTierPricingSource } from '../../domain/productPriceTiers';
 import { formatPercent, formatPhp } from './productPricingQuoteView';
 
 interface ProductPriceTierCatalogPanelProps {
@@ -92,9 +93,13 @@ function safeDomId(value: string): string {
 }
 
 function sourcePriceLabel(line: ProductPriceTierQuoteLine): string {
+  const source = resolveProductPriceTierPricingSource(line.tier);
+  if (source.pricingMethod === 'profit-per-unit') {
+    return `${formatPhp(source.pricingValue)} profit / unit`;
+  }
   return line.tier.priceBasis === 'per-unit'
-    ? `${formatPhp(line.tier.priceAmount)} / unit`
-    : `${formatPhp(line.tier.priceAmount)} / offer`;
+    ? `${formatPhp(source.pricingValue)} / unit`
+    : `${formatPhp(source.pricingValue)} / offer`;
 }
 
 function Metric({
@@ -188,7 +193,7 @@ function TierCard({
       </div>
 
       <div className="tier-catalog-source-grid" aria-label={`${line.tier.name} source terms`}>
-        <Metric label="Source price" value={sourcePriceLabel(line)} />
+        <Metric label="Pricing source" value={sourcePriceLabel(line)} />
         <Metric label="Units / offer" value={line.tier.unitsPerOffer.toLocaleString('en-PH')} />
         <Metric label="Minimum order" value={`${line.tier.minimumOrderQuantity.toLocaleString('en-PH')} units`} />
         <Metric label="Extra cost / offer" value={formatPhp(line.tier.additionalCostPerOffer)} />
