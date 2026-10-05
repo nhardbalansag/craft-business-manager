@@ -152,7 +152,7 @@ export function MaterialCatalog({
       {loadFailed ? (
         <div className="empty-state">
           <h3>Inventory unavailable</h3>
-          <p>Use Retry loading above to refresh materials and calibrations.</p>
+          <p>Use Retry loading above to refresh materials.</p>
         </div>
       ) : loading ? (
         <div className="empty-state">
@@ -229,8 +229,7 @@ export function MaterialCatalog({
                         </p>
                         {stock && (
                           <p>
-                            Stock uses {stock.conversionSource} conversion
-                            {stock.calibrationId ? ` (${stock.calibrationId})` : ''}.
+                            Stock uses {stock.conversionSource} conversion.
                           </p>
                         )}
                         {row.issues.map((issue) => (
@@ -300,7 +299,7 @@ export function MaterialCatalog({
         </div>
       )}
       <footer className="list-footer">
-        <span>Unit costs and stock values use saved purchase data and material calibrations.</span>
+        <span>Unit costs and stock values use saved purchase data and explicit manual conversions when needed.</span>
         <span>Stock filters use recorded quantities.</span>
       </footer>
     </section>
