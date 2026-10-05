@@ -1,8 +1,7 @@
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { calibrationService, materialService } from '../../application/session';
+import { materialService } from '../../application/session';
 import { MaterialApplicationError } from '../../application/materials/MaterialService';
 import { nextSequentialId } from '../../domain/identifiers';
-import { MaterialCalibrationError, type MaterialCalibrationEvidence } from '../../domain/materialCalibration';
 import {
   MATERIAL_GROUPS,
   MATERIAL_PACKAGE_UNITS,
@@ -77,15 +76,15 @@ function compatibleStandardUnits(baseUnit: BaseUnit): Unit[] {
 
 function purchaseUnitOptions(baseUnit: BaseUnit): MaterialPurchaseUnit[] {
   const standard = compatibleStandardUnits(baseUnit);
-  const calibrationBridge: MaterialPurchaseUnit[] = baseUnit === 'g' ? ['cup'] : [];
-  return [...standard, ...calibrationBridge, ...MATERIAL_PACKAGE_UNITS];
+  const cupBridge: MaterialPurchaseUnit[] = baseUnit === 'g' ? ['cup'] : [];
+  return [...standard, ...cupBridge, ...MATERIAL_PACKAGE_UNITS];
 }
 
 function onHandUnitOptions(baseUnit: BaseUnit, purchaseUnit: MaterialPurchaseUnit): MaterialPurchaseUnit[] {
   const standard = compatibleStandardUnits(baseUnit);
-  const calibrationBridge: MaterialPurchaseUnit[] = baseUnit === 'g' ? ['cup'] : [];
+  const cupBridge: MaterialPurchaseUnit[] = baseUnit === 'g' ? ['cup'] : [];
   const packageOption: MaterialPurchaseUnit[] = isMaterialPackageUnit(purchaseUnit) ? [purchaseUnit] : [];
-  return [...standard, ...calibrationBridge, ...packageOption];
+  return [...standard, ...cupBridge, ...packageOption];
 }
 
 function defaultPurchaseUnit(baseUnit: BaseUnit): MaterialPurchaseUnit {
@@ -178,43 +177,31 @@ function formToMaterial(form: MaterialFormState, isActive: boolean): Material {
   };
 }
 
-function packageCostingOrNull(
-  material: Material,
-  evidence: readonly MaterialCalibrationEvidence[],
-): MaterialPackageCosting | null {
+function packageCostingOrNull(material: Material): MaterialPackageCosting | null {
   try {
-    return calculateMaterialPackageCosting(material, evidence);
+    return calculateMaterialPackageCosting(material);
   } catch {
     return null;
   }
 }
 
-function onHandNormalizationOrNull(
-  material: Material,
-  evidence: readonly MaterialCalibrationEvidence[],
-): MaterialOnHandNormalization | null {
+function onHandNormalizationOrNull(material: Material): MaterialOnHandNormalization | null {
   try {
-    return normalizeMaterialOnHand(material, evidence);
+    return normalizeMaterialOnHand(material);
   } catch {
     return null;
   }
 }
 
-function inventoryValuationOrNull(
-  material: Material,
-  evidence: readonly MaterialCalibrationEvidence[],
-): MaterialInventoryValuation | null {
+function inventoryValuationOrNull(material: Material): MaterialInventoryValuation | null {
   try {
-    return calculateMaterialInventoryValuation(material, evidence);
+    return calculateMaterialInventoryValuation(material);
   } catch {
     return null;
   }
 }
 
 function conversionSourceLabel(stock: MaterialOnHandNormalization): string {
-  if (stock.conversionSource === 'calibration') {
-    return `material calibration${stock.calibrationId ? ` (${stock.calibrationId})` : ''}`;
-  }
   if (stock.conversionSource === 'manual') return 'manual g/cup fallback';
   if (stock.conversionSource === 'purchase-package') {
     return `purchase-package conversion${
@@ -229,8 +216,7 @@ function errorMessage(error: unknown): string {
     error instanceof MaterialApplicationError ||
     error instanceof MaterialContractError ||
     error instanceof MaterialCostingError ||
-    error instanceof MaterialInventoryError ||
-    error instanceof MaterialCalibrationError
+    error instanceof MaterialInventoryError
   ) {
     return error.message;
   }
@@ -240,7 +226,6 @@ function errorMessage(error: unknown): string {
 
 export function MaterialsPage() {
   const [materials, setMaterials] = useState<Material[]>([]);
-  const [calibrations, setCalibrations] = useState<MaterialCalibrationEvidence[]>([]);
   const [form, setForm] = useState<MaterialFormState>(EMPTY_FORM);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [view, setView] = useState<'inventory' | 'editor'>('inventory');
@@ -257,20 +242,6 @@ export function MaterialsPage() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const calibrationMap = useMemo(() => {
-    const map = new Map<string, MaterialCalibrationEvidence[]>();
-    for (const record of calibrations) {
-      const key = record.materialId.trim().toLocaleLowerCase();
-      map.set(key, [...(map.get(key) ?? []), record]);
-    }
-    return map;
-  }, [calibrations]);
-
-  const evidenceFor = useCallback(
-    (materialId: string) => calibrationMap.get(materialId.trim().toLocaleLowerCase()) ?? [],
-    [calibrationMap],
-  );
-
   const generatedMaterialId = useMemo(() => nextSequentialId(materials.map((material) => material.id), 'MAT'), [materials]);
   const purchaseOptions = useMemo(() => purchaseUnitOptions(form.baseUnit), [form.baseUnit]);
   const stockOptions = useMemo(
@@ -281,35 +252,29 @@ export function MaterialsPage() {
     () => formToMaterial(editingId ? form : { ...form, id: generatedMaterialId }, true),
     [editingId, form, generatedMaterialId],
   );
-  const previewEvidence = useMemo(() => evidenceFor(previewMaterial.id), [evidenceFor, previewMaterial.id]);
   const costingPreview = useMemo(
-    () => packageCostingOrNull(previewMaterial, previewEvidence),
-    [previewMaterial, previewEvidence],
+    () => packageCostingOrNull(previewMaterial),
+    [previewMaterial],
   );
   const stockPreview = useMemo(
-    () => onHandNormalizationOrNull(previewMaterial, previewEvidence),
-    [previewMaterial, previewEvidence],
+    () => onHandNormalizationOrNull(previewMaterial),
+    [previewMaterial],
   );
   const inventoryPreview = useMemo(
-    () => inventoryValuationOrNull(previewMaterial, previewEvidence),
-    [previewMaterial, previewEvidence],
+    () => inventoryValuationOrNull(previewMaterial),
+    [previewMaterial],
   );
-  const hasCalibration = previewEvidence.length > 0;
   const dryCupPurchase = form.baseUnit === 'g' && form.purchaseUnit === 'cup';
-  const manualIsRequired = isMaterialPackageUnit(form.purchaseUnit) || (dryCupPurchase && !hasCalibration);
+  const manualIsRequired = isMaterialPackageUnit(form.purchaseUnit) || dryCupPurchase;
 
   const refresh = useCallback(async () => {
     const version = ++loadVersion.current;
     setLoading(true);
     setLoadError(null);
     try {
-      const [nextMaterials, nextCalibrations] = await Promise.all([
-        materialService.listMaterials(),
-        calibrationService.listCalibrations(),
-      ]);
+      const nextMaterials = await materialService.listMaterials();
       if (loadVersion.current !== version) return;
       setMaterials(nextMaterials);
-      setCalibrations(nextCalibrations);
     } catch (caught) {
       if (loadVersion.current === version) setLoadError(errorMessage(caught));
     } finally {
@@ -337,8 +302,8 @@ export function MaterialsPage() {
   }, [error, busy, view]);
 
   const inventoryRows = useMemo(
-    () => materials.map((material) => materialInventoryRow(material, evidenceFor(material.id))),
-    [materials, evidenceFor],
+    () => materials.map((material) => materialInventoryRow(material)),
+    [materials],
   );
   const overview = useMemo(() => inventoryOverview(inventoryRows), [inventoryRows]);
 
@@ -686,9 +651,7 @@ export function MaterialsPage() {
                 />
                 <small>
                   {dryCupPurchase
-                    ? hasCalibration
-                      ? 'Saved calibration takes precedence. This value is only a fallback.'
-                      : `Create a calibration first or enter an explicit ${form.baseUnit}/cup fallback.`
+                    ? `Enter how many ${form.baseUnit} are in 1 cup. This manual conversion is required for dry cup-to-weight materials.`
                     : manualIsRequired
                       ? `Enter how many ${form.baseUnit} are in 1 ${formatUnit(form.purchaseUnit)}.`
                       : 'Leave blank to use standard conversion; a value here overrides it.'}{' '}
@@ -714,15 +677,6 @@ export function MaterialsPage() {
                             )} ${form.baseUnit}`}
                       </strong>
                     </div>
-                    <div className="cost-metric">
-                      <span>Calibration</span>
-                      <strong>
-                        {costingPreview.calibrationBaseUnitsPerPurchaseUnit === null
-                          ? 'Not used'
-                          : `${formatNumber(costingPreview.calibrationBaseUnitsPerPurchaseUnit)} ${form.baseUnit}/cup`}
-                      </strong>
-                      {costingPreview.effectiveCalibrationId && <small>{costingPreview.effectiveCalibrationId}</small>}
-                    </div>
                     <div className="cost-metric cost-metric-emphasis">
                       <span>Effective conversion</span>
                       <strong>
@@ -743,7 +697,7 @@ export function MaterialsPage() {
                   </div>
                 ) : (
                   <div className="cost-preview-empty">
-                    Enter valid package data and, for dry cups, create a calibration or manual g/cup fallback.
+                    Enter valid package data and provide a manual g/cup conversion for dry cup-to-weight materials.
                   </div>
                 )}
               </details>
@@ -779,7 +733,7 @@ export function MaterialsPage() {
                     </option>
                   ))}
                 </select>
-                <small>Gram-based materials may use cup after calibration.</small>
+                <small>Gram-based materials may use cup when a manual g/cup conversion is configured.</small>
               </label>
 
               <details className="field-wide cost-preview">
@@ -826,8 +780,7 @@ export function MaterialsPage() {
                   </div>
                 ) : (
                   <div className="cost-preview-empty">
-                    Enter stock in a compatible unit. Cup-to-gram stock requires saved calibration or an eligible manual
-                    fallback.
+                    Enter stock in a compatible unit. Cup-to-gram stock requires a manual g/cup conversion on the material.
                   </div>
                 )}
               </details>
