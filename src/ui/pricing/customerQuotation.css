@@ -1,0 +1,130 @@
+.customer-quotation-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1300;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(32, 28, 24, .56);
+  overflow-y: auto;
+}
+
+.customer-quotation-dialog {
+  width: min(920px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  padding: 24px;
+}
+
+.customer-quotation-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.customer-quotation-heading h2 {
+  margin: 4px 0 6px;
+  font-size: 1.55rem;
+}
+
+.customer-quotation-heading p:not(.panel-kicker) {
+  margin: 0;
+  max-width: 650px;
+  color: #756c62;
+  line-height: 1.5;
+}
+
+.customer-quotation-price-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 9px;
+  margin-bottom: 20px;
+}
+
+.customer-quotation-price-summary > div {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid #e2dbd0;
+  border-radius: 12px;
+  background: #faf7f1;
+  min-width: 0;
+}
+
+.customer-quotation-price-summary span {
+  color: #8b8176;
+  font-size: .67rem;
+  font-weight: 850;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+.customer-quotation-price-summary strong {
+  color: #302b25;
+  overflow-wrap: anywhere;
+}
+
+.customer-quotation-price-summary small {
+  color: #8c8278;
+  font-size: .71rem;
+}
+
+.customer-quotation-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 16px;
+}
+
+.customer-quotation-grid .field-wide {
+  grid-column: 1 / -1;
+}
+
+.customer-quotation-grid textarea {
+  min-height: 84px;
+  resize: vertical;
+}
+
+.customer-quotation-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+@media (max-width: 760px) {
+  .customer-quotation-backdrop {
+    padding: 0;
+    align-items: end;
+  }
+
+  .customer-quotation-dialog {
+    width: 100%;
+    max-height: 94vh;
+    border-radius: 18px 18px 0 0;
+    padding: 18px;
+  }
+
+  .customer-quotation-heading {
+    flex-direction: column;
+  }
+
+  .customer-quotation-price-summary,
+  .customer-quotation-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .customer-quotation-grid .field-wide {
+    grid-column: auto;
+  }
+
+  .customer-quotation-actions {
+    flex-direction: column-reverse;
+  }
+
+  .customer-quotation-actions .button,
+  .customer-quotation-heading .button {
+    width: 100%;
+  }
+}
