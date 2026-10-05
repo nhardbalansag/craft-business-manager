@@ -385,8 +385,8 @@ describe('Materials workspace interactions', () => {
       purchaseUnit: 'cup' as const,
       source: undefined,
     };
-    const known = materialInventoryRow(plaster, []);
-    const unknown = materialInventoryRow(invalid, []);
+    const known = materialInventoryRow(plaster);
+    const unknown = materialInventoryRow(invalid);
     expect(inventoryOverview([known, unknown])).toMatchObject({
       activeCount: 2,
       needsAttention: 1,
