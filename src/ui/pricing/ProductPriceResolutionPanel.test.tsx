@@ -210,6 +210,59 @@ describe('TP8D ProductPriceResolutionPanel', () => {
     expect(onSelect).toHaveBeenCalledWith('TIER-0001');
   });
 
+  it('enables customer quotation only for ready saved pricing', async () => {
+    const onCreateQuotation = vi.fn();
+
+    await act(async () =>
+      root.render(
+        <ProductPriceResolutionPanel
+          productName="Product P"
+          quantity="20"
+          selectedTierId={null}
+          result={result()}
+          loading={false}
+          error={null}
+          onQuantityChange={vi.fn()}
+          onSelectPricingSource={vi.fn()}
+          onCreateQuotation={onCreateQuotation}
+        />,
+      ),
+    );
+
+    const quotationButton = Array.from(container.querySelectorAll('button')).find(
+      (button) => button.textContent?.trim() === 'Customer quotation',
+    ) as HTMLButtonElement;
+
+    expect(quotationButton).toBeDefined();
+    expect(quotationButton.disabled).toBe(false);
+
+    await act(async () => quotationButton.click());
+    expect(onCreateQuotation).toHaveBeenCalledOnce();
+
+    await act(async () =>
+      root.render(
+        <ProductPriceResolutionPanel
+          productName="Product P"
+          quantity="20"
+          selectedTierId={null}
+          result={result()}
+          loading={false}
+          error={null}
+          hasUnsavedChanges
+          onQuantityChange={vi.fn()}
+          onSelectPricingSource={vi.fn()}
+          onCreateQuotation={onCreateQuotation}
+        />,
+      ),
+    );
+
+    const disabledButton = Array.from(container.querySelectorAll('button')).find(
+      (button) => button.textContent?.trim() === 'Customer quotation',
+    ) as HTMLButtonElement;
+
+    expect(disabledButton.disabled).toBe(true);
+  });
+
   it('renders an explicit tier total and preserves below-cost warnings', async () => {
     const belowCost = {
       ...bulkLine,

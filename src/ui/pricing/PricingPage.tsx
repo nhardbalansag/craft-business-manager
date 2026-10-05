@@ -15,6 +15,7 @@ import {
   type Product,
 } from '../../domain/products';
 import { ProductPriceResolutionPanel } from './ProductPriceResolutionPanel';
+import { CustomerQuotationDialog } from './CustomerQuotationDialog';
 import { ProductPricingQuotePanel } from './ProductPricingQuotePanel';
 import { ProductPriceTierCatalogPanel } from './ProductPriceTierCatalogPanel';
 import {
@@ -108,6 +109,7 @@ export function PricingPage() {
   const [resolution, setResolution] = useState<ProductPriceResolutionResult | null>(null);
   const [resolutionLoading, setResolutionLoading] = useState(false);
   const [resolutionError, setResolutionError] = useState<string | null>(null);
+  const [quotationOpen, setQuotationOpen] = useState(false);
   const [tierEditorOpen, setTierEditorOpen] = useState(false);
   const [editingTier, setEditingTier] = useState<ProductPriceTier | null>(null);
   const [tierSaving, setTierSaving] = useState(false);
@@ -338,6 +340,7 @@ export function PricingPage() {
     setResolution(null);
     setResolutionLoading(false);
     setResolutionError(null);
+    setQuotationOpen(false);
     setSelectedProductId(product.id);
     setForm(
       productFinancialProfileToForm(
@@ -928,6 +931,15 @@ export function PricingPage() {
                 )
             : undefined
         }
+        onCreateQuotation={
+          resolution?.status === 'ready' ? () => setQuotationOpen(true) : undefined
+        }
+      />
+
+      <CustomerQuotationDialog
+        open={quotationOpen}
+        result={resolution}
+        onClose={() => setQuotationOpen(false)}
       />
 
       {tierMutationFeedback && (

@@ -16,6 +16,7 @@ interface ProductPriceResolutionPanelProps {
   onQuantityChange: (value: string) => void;
   onSelectPricingSource: (tierId: string | null) => void;
   onRefresh?: () => void;
+  onCreateQuotation?: () => void;
 }
 
 function eligibilityFor(
@@ -118,6 +119,7 @@ export function ProductPriceResolutionPanel({
   onQuantityChange,
   onSelectPricingSource,
   onRefresh,
+  onCreateQuotation,
 }: ProductPriceResolutionPanelProps) {
   const tierLines = result?.integratedQuote.tierPricing?.tiers ?? [];
   const headingId = 'pricing-order-preview-heading';
@@ -162,6 +164,22 @@ export function ProductPriceResolutionPanel({
               disabled={loading}
             >
               {loading ? 'Refreshing…' : 'Refresh preview'}
+            </button>
+          )}
+          {onCreateQuotation && (
+            <button
+              className="button button-primary"
+              type="button"
+              onClick={onCreateQuotation}
+              disabled={
+                loading ||
+                hasUnsavedChanges ||
+                result?.status !== 'ready' ||
+                result.unitSellingPrice === null ||
+                result.totalSellingPrice === null
+              }
+            >
+              Customer quotation
             </button>
           )}
         </div>
