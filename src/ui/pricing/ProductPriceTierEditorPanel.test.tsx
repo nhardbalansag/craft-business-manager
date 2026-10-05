@@ -64,6 +64,7 @@ async function mount(onSubmit = vi.fn()) {
         tier={null}
         open
         saving={false}
+        fullyLoadedUnitCost={30}
         onSubmit={onSubmit}
         onCancel={vi.fn()}
       />,
@@ -89,7 +90,8 @@ describe('TP6C ProductPriceTierEditorPanel kind-aware UX', () => {
     expect((field('Minimum order quantity') as HTMLInputElement).value).toBe('6');
 
     await fill(field('Tier name'), '6-piece Package');
-    await fill(field('Price amount'), '270');
+    await fill(field('Pricing method'), 'fixed-price');
+    await fill(field('Fixed selling price'), '270');
     await fill(field('Additional cost per offer'), '20');
 
     const form = container.querySelector<HTMLFormElement>('[aria-label="Price tier editor"]')!;
@@ -101,7 +103,8 @@ describe('TP6C ProductPriceTierEditorPanel kind-aware UX', () => {
       name: '6-piece Package',
       kind: 'package',
       priceBasis: 'per-offer',
-      priceAmount: 270,
+      pricingMethod: 'fixed-price',
+      pricingValue: 270,
       unitsPerOffer: 6,
       minimumOrderQuantity: 6,
       additionalCostPerOffer: 20,
@@ -116,7 +119,7 @@ describe('TP6C ProductPriceTierEditorPanel kind-aware UX', () => {
     await fill(field('Units per offer'), '6');
     await fill(field('Minimum order quantity'), '7');
     await fill(field('Tier name'), 'Party Pack');
-    await fill(field('Price amount'), '300');
+    await fill(field('Profit per unit'), '20');
 
     expect(container.textContent).toContain(
       'Per-offer minimum order quantity must be a whole multiple of units per offer.',
@@ -142,6 +145,21 @@ describe('TP6C ProductPriceTierEditorPanel kind-aware UX', () => {
     );
   });
 
+  it('derives a live selling-price preview from Profit per unit', async () => {
+    await mount();
+
+    await fill(field('Tier name'), 'Bulk 20+');
+    await fill(field('Minimum order quantity'), '20');
+    await fill(field('Profit per unit'), '15');
+    await fill(field('Additional cost per offer'), '5');
+
+    const preview = container.querySelector('[aria-label="Tier pricing preview"]');
+    expect(preview?.textContent).toContain('PHP 30.00');
+    expect(preview?.textContent).toContain('PHP 15.00');
+    expect(preview?.textContent).toContain('PHP 50.00');
+    expect(preview?.textContent).toContain('Selling price recalculates');
+  });
+
   it('keeps Custom tiers explicit and does not imply automatic selection', async () => {
     await mount();
 
@@ -160,7 +178,8 @@ describe('TP6C ProductPriceTierEditorPanel kind-aware UX', () => {
     expect(container.querySelector(`#${titleId}`)?.textContent).toContain('Create price tier');
 
     expect(field('Tier name').hasAttribute('required')).toBe(true);
-    expect(field('Price amount').hasAttribute('required')).toBe(true);
+    expect((field('Pricing method') as HTMLSelectElement).value).toBe('profit-per-unit');
+    expect(field('Profit per unit').hasAttribute('required')).toBe(true);
     expect(field('Units per offer').getAttribute('aria-describedby')).toBe(
       'price-tier-units-help',
     );
@@ -181,7 +200,7 @@ describe('TP6C ProductPriceTierEditorPanel kind-aware UX', () => {
     await fill(field('Units per offer'), '6');
     await fill(field('Minimum order quantity'), '7');
     await fill(field('Tier name'), 'Invalid Package');
-    await fill(field('Price amount'), '300');
+    await fill(field('Profit per unit'), '20');
 
     const minimum = field('Minimum order quantity');
     expect(minimum.getAttribute('aria-invalid')).toBe('true');

@@ -959,6 +959,7 @@ export function PricingPage() {
         open={tierEditorOpen}
         saving={tierSaving}
         error={tierMutationError}
+        fullyLoadedUnitCost={quote?.totalFullyLoadedUnitCost ?? null}
         onSubmit={submitTier}
         onCancel={closeTierEditor}
       />

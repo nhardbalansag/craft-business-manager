@@ -3,6 +3,7 @@ import type {
   ProductPriceResolutionTierEligibility,
 } from '../../application/pricing/ProductPriceResolutionService';
 import type { ProductPriceTierQuoteLine } from '../../application/productPriceTiers/ProductPriceTierQuoteService';
+import { resolveProductPriceTierPricingSource } from '../../domain/productPriceTiers';
 import { formatPhp } from './productPricingQuoteView';
 
 interface ProductPriceResolutionPanelProps {
@@ -98,9 +99,13 @@ function tierEligibilitySummary(
 }
 
 function sourcePriceLabel(line: ProductPriceTierQuoteLine): string {
+  const source = resolveProductPriceTierPricingSource(line.tier);
+  if (source.pricingMethod === 'profit-per-unit') {
+    return `${formatPhp(source.pricingValue)} profit / unit`;
+  }
   return line.tier.priceBasis === 'per-unit'
-    ? `${formatPhp(line.tier.priceAmount)} / unit`
-    : `${formatPhp(line.tier.priceAmount)} / ${line.tier.unitsPerOffer.toLocaleString('en-PH')}-unit offer`;
+    ? `${formatPhp(source.pricingValue)} / unit`
+    : `${formatPhp(source.pricingValue)} / ${line.tier.unitsPerOffer.toLocaleString('en-PH')}-unit offer`;
 }
 
 function resultSourceLabel(result: ProductPriceResolutionResult): string {

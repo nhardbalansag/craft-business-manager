@@ -3,10 +3,12 @@ import {
   cloneProductPriceTier,
   isProductPriceTierKind,
   isProductPriceTierPriceBasis,
+  isProductPriceTierPricingMethod,
   normalizeProductPriceTier,
   nextProductPriceTierId,
   PRODUCT_PRICE_TIER_KINDS,
   PRODUCT_PRICE_TIER_PRICE_BASES,
+  PRODUCT_PRICE_TIER_PRICING_METHODS,
   ProductPriceTierError,
   type ProductPriceTier,
   validateProductPriceTierContract,
@@ -19,7 +21,8 @@ function tier(overrides: Partial<ProductPriceTier> = {}): ProductPriceTier {
     name: 'Bulk 20+',
     kind: 'bulk',
     priceBasis: 'per-unit',
-    priceAmount: 40,
+    pricingMethod: 'fixed-price',
+    pricingValue: 40,
     unitsPerOffer: 1,
     minimumOrderQuantity: 20,
     additionalCostPerOffer: 0,
@@ -58,6 +61,13 @@ describe('ProductPriceTier contract', () => {
   it('exposes only the planned tier kinds and price bases', () => {
     expect(PRODUCT_PRICE_TIER_KINDS).toEqual(['package', 'bulk', 'custom']);
     expect(PRODUCT_PRICE_TIER_PRICE_BASES).toEqual(['per-unit', 'per-offer']);
+    expect(PRODUCT_PRICE_TIER_PRICING_METHODS).toEqual([
+      'profit-per-unit',
+      'fixed-price',
+    ]);
+    expect(isProductPriceTierPricingMethod('profit-per-unit')).toBe(true);
+    expect(isProductPriceTierPricingMethod('fixed-price')).toBe(true);
+    expect(isProductPriceTierPricingMethod('markup')).toBe(false);
 
     expect(isProductPriceTierKind('package')).toBe(true);
     expect(isProductPriceTierKind('bulk')).toBe(true);
@@ -104,7 +114,7 @@ describe('ProductPriceTier contract', () => {
           name: '6-piece Package',
           kind: 'package',
           priceBasis: 'per-offer',
-          priceAmount: 270,
+          pricingValue: 270,
           unitsPerOffer: 6,
           minimumOrderQuantity: 6,
           additionalCostPerOffer: 20,
@@ -120,7 +130,7 @@ describe('ProductPriceTier contract', () => {
           name: 'Event Partner Pack',
           kind: 'custom',
           priceBasis: 'per-offer',
-          priceAmount: 500,
+          pricingValue: 500,
           unitsPerOffer: 12,
           minimumOrderQuantity: 24,
         }),
@@ -132,7 +142,7 @@ describe('ProductPriceTier contract', () => {
     expect(() =>
       validateProductPriceTierContract(
         tier({
-          priceAmount: 0,
+          pricingValue: 0,
           additionalCostPerOffer: 0,
         }),
       ),
@@ -146,7 +156,7 @@ describe('ProductPriceTier contract', () => {
           id: '  TIER-0042  ',
           productId: '  PROD-CANDLE  ',
           name: '  Event Package  ',
-          priceAmount: 275.125,
+          pricingValue: 275.125,
           additionalCostPerOffer: 17.75,
           notes: '  includes gift box  ',
         }),
@@ -156,10 +166,24 @@ describe('ProductPriceTier contract', () => {
       id: 'TIER-0042',
       productId: 'PROD-CANDLE',
       name: 'Event Package',
-      priceAmount: 275.125,
+      pricingValue: 275.125,
       additionalCostPerOffer: 17.75,
       notes: 'includes gift box',
     });
+  });
+
+  it('normalizes legacy priceAmount rows to fixed-price source', () => {
+    const legacy = tier({
+      pricingMethod: undefined,
+      pricingValue: undefined,
+      priceAmount: 88.5,
+    });
+
+    expect(normalizeProductPriceTier(legacy)).toMatchObject({
+      pricingMethod: 'fixed-price',
+      pricingValue: 88.5,
+    });
+    expect(normalizeProductPriceTier(legacy).priceAmount).toBeUndefined();
   });
 
   it('omits blank normalized notes', () => {
@@ -174,7 +198,7 @@ describe('ProductPriceTier contract', () => {
     const cloned = cloneProductPriceTier(original);
 
     cloned.name = 'Changed';
-    cloned.priceAmount = 10;
+    cloned.pricingValue = 10;
     cloned.notes = 'changed';
 
     expect(original).toEqual(tier({ notes: 'original' }));
@@ -208,22 +232,30 @@ describe('ProductPriceTier contract', () => {
     ).toThrowError(
       expect.objectContaining<Partial<ProductPriceTierError>>({ code: 'INVALID_PRICE_BASIS' }),
     );
+
+    expect(() =>
+      validateProductPriceTierContract(
+        tier({ pricingMethod: 'markup' as ProductPriceTier['pricingMethod'] }),
+      ),
+    ).toThrowError(
+      expect.objectContaining<Partial<ProductPriceTierError>>({ code: 'INVALID_PRICING_METHOD' }),
+    );
   });
 
   it.each([Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY])(
-    'rejects non-finite price amount %s',
-    (priceAmount) => {
-      expect(() => validateProductPriceTierContract(tier({ priceAmount }))).toThrowError(
+    'rejects non-finite pricing value %s',
+    (pricingValue) => {
+      expect(() => validateProductPriceTierContract(tier({ pricingValue }))).toThrowError(
         expect.objectContaining<Partial<ProductPriceTierError>>({
-          code: 'NON_FINITE_PRICE_AMOUNT',
+          code: 'NON_FINITE_PRICING_VALUE',
         }),
       );
     },
   );
 
-  it('rejects negative price amount', () => {
-    expect(() => validateProductPriceTierContract(tier({ priceAmount: -0.01 }))).toThrowError(
-      expect.objectContaining<Partial<ProductPriceTierError>>({ code: 'NEGATIVE_PRICE_AMOUNT' }),
+  it('rejects negative pricing value', () => {
+    expect(() => validateProductPriceTierContract(tier({ pricingValue: -0.01 }))).toThrowError(
+      expect.objectContaining<Partial<ProductPriceTierError>>({ code: 'NEGATIVE_PRICING_VALUE' }),
     );
   });
 
@@ -377,14 +409,14 @@ describe('ProductPriceTier contract', () => {
         tier({
           id: ' TIER-X ',
           productId: ' PROD-X ',
-          priceAmount: -5,
+          pricingValue: -5,
         }),
       );
       throw new Error('Expected validation to fail.');
     } catch (error) {
       expect(error).toBeInstanceOf(ProductPriceTierError);
       expect(error).toMatchObject({
-        code: 'NEGATIVE_PRICE_AMOUNT',
+        code: 'NEGATIVE_PRICING_VALUE',
         tierId: ' TIER-X ',
         productId: ' PROD-X ',
         input: -5,

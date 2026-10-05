@@ -9,6 +9,8 @@ import {
 import {
   PRODUCT_PRICE_TIER_KINDS,
   PRODUCT_PRICE_TIER_PRICE_BASES,
+  PRODUCT_PRICE_TIER_PRICING_METHODS,
+  resolveProductPriceTierPricingSource,
   type ProductPriceTier,
 } from '../domain/productPriceTiers';
 import type { BusinessDataset } from '../domain/types';
@@ -60,13 +62,28 @@ export const CORE_WORKBOOK_V3_VERSION_KEY: WorkbookVersionKey = Object.freeze({
 });
 export const PRODUCT_PRICE_TIERS_SHEET_NAME = 'ProductPriceTiers' as const;
 
-export const PRODUCT_PRICE_TIERS_WORKBOOK_COLUMNS = [
+export const PRODUCT_PRICE_TIERS_LEGACY_WORKBOOK_COLUMNS = [
   'id',
   'productId',
   'name',
   'kind',
   'priceBasis',
   'priceAmount',
+  'unitsPerOffer',
+  'minimumOrderQuantity',
+  'additionalCostPerOffer',
+  'notes',
+  'isActive',
+] as const;
+
+export const PRODUCT_PRICE_TIERS_WORKBOOK_COLUMNS = [
+  'id',
+  'productId',
+  'name',
+  'kind',
+  'priceBasis',
+  'pricingMethod',
+  'pricingValue',
   'unitsPerOffer',
   'minimumOrderQuantity',
   'additionalCostPerOffer',
@@ -233,19 +250,23 @@ function tierRows(
         canonical(left.id).localeCompare(canonical(right.id)) ||
         left.id.localeCompare(right.id),
     )
-    .map((tier) => ({
-      id: tier.id,
-      productId: tier.productId,
-      name: tier.name,
-      kind: tier.kind,
-      priceBasis: tier.priceBasis,
-      priceAmount: tier.priceAmount,
-      unitsPerOffer: tier.unitsPerOffer,
-      minimumOrderQuantity: tier.minimumOrderQuantity,
-      additionalCostPerOffer: tier.additionalCostPerOffer,
-      notes: tier.notes,
-      isActive: tier.isActive,
-    }));
+    .map((tier) => {
+      const pricing = resolveProductPriceTierPricingSource(tier);
+      return {
+        id: tier.id,
+        productId: tier.productId,
+        name: tier.name,
+        kind: tier.kind,
+        priceBasis: tier.priceBasis,
+        pricingMethod: pricing.pricingMethod,
+        pricingValue: pricing.pricingValue,
+        unitsPerOffer: tier.unitsPerOffer,
+        minimumOrderQuantity: tier.minimumOrderQuantity,
+        additionalCostPerOffer: tier.additionalCostPerOffer,
+        notes: tier.notes,
+        isActive: tier.isActive,
+      };
+    });
 }
 
 function tierSheet(dataset: BusinessDatasetV2): WorkbookNeutralSheet {
@@ -345,6 +366,16 @@ function schemaIssue(
   };
 }
 
+function sameColumns(
+  actual: readonly string[],
+  expected: readonly string[],
+): boolean {
+  return (
+    actual.length === expected.length &&
+    actual.every((column, index) => column === expected[index])
+  );
+}
+
 function validateTierSheet(
   sheet: WorkbookNeutralSheet | undefined,
 ): BusinessDatasetWorkbookImportIssue[] {
@@ -360,16 +391,20 @@ function validateTierSheet(
 
   const issues: BusinessDatasetWorkbookImportIssue[] = [];
 
-  if (
-    sheet.columns.length !== PRODUCT_PRICE_TIERS_WORKBOOK_COLUMNS.length ||
-    !sheet.columns.every(
-      (column, index) => column === PRODUCT_PRICE_TIERS_WORKBOOK_COLUMNS[index],
-    )
-  ) {
+  const currentColumns = sameColumns(
+    sheet.columns,
+    PRODUCT_PRICE_TIERS_WORKBOOK_COLUMNS,
+  );
+  const legacyColumns = sameColumns(
+    sheet.columns,
+    PRODUCT_PRICE_TIERS_LEGACY_WORKBOOK_COLUMNS,
+  );
+
+  if (!currentColumns && !legacyColumns) {
     issues.push(
       schemaIssue(
         'INVALID_COLUMN_ORDER',
-        `${PRODUCT_PRICE_TIERS_SHEET_NAME} columns must exactly match the canonical v3 order.`,
+        `${PRODUCT_PRICE_TIERS_SHEET_NAME} columns must match either the current pricing-method layout or the legacy fixed-price layout.`,
         {
           sheetName: PRODUCT_PRICE_TIERS_SHEET_NAME,
           input: sheet.columns,
@@ -378,13 +413,12 @@ function validateTierSheet(
     );
   }
 
-  const requiredText = ['id', 'productId', 'name', 'kind', 'priceBasis'] as const;
-  const requiredNumbers = [
-    'priceAmount',
-    'unitsPerOffer',
-    'minimumOrderQuantity',
-    'additionalCostPerOffer',
-  ] as const;
+  const requiredText = currentColumns
+    ? (['id', 'productId', 'name', 'kind', 'priceBasis', 'pricingMethod'] as const)
+    : (['id', 'productId', 'name', 'kind', 'priceBasis'] as const);
+  const requiredNumbers = currentColumns
+    ? (['pricingValue', 'unitsPerOffer', 'minimumOrderQuantity', 'additionalCostPerOffer'] as const)
+    : (['priceAmount', 'unitsPerOffer', 'minimumOrderQuantity', 'additionalCostPerOffer'] as const);
 
   sheet.rows.forEach((row, rowIndex) => {
     for (const column of requiredText) {
@@ -521,6 +555,27 @@ function validateTierSheet(
             rowIndex,
             column: 'priceBasis',
             input: row.priceBasis,
+          },
+        ),
+      );
+    }
+
+    if (
+      currentColumns &&
+      typeof row.pricingMethod === 'string' &&
+      !PRODUCT_PRICE_TIER_PRICING_METHODS.includes(
+        row.pricingMethod as (typeof PRODUCT_PRICE_TIER_PRICING_METHODS)[number],
+      )
+    ) {
+      issues.push(
+        schemaIssue(
+          'INVALID_ENUM_TOKEN',
+          `Unsupported token ${row.pricingMethod} for ${PRODUCT_PRICE_TIERS_SHEET_NAME}.pricingMethod.`,
+          {
+            sheetName: PRODUCT_PRICE_TIERS_SHEET_NAME,
+            rowIndex,
+            column: 'pricingMethod',
+            input: row.pricingMethod,
           },
         ),
       );
@@ -729,13 +784,19 @@ function reconstructTiers(
         ? row.notes
         : undefined;
 
+    const currentPricing = sheet.columns.includes('pricingMethod');
     return {
       id: textValue(row, 'id'),
       productId: textValue(row, 'productId'),
       name: textValue(row, 'name'),
       kind: textValue(row, 'kind') as ProductPriceTier['kind'],
       priceBasis: textValue(row, 'priceBasis') as ProductPriceTier['priceBasis'],
-      priceAmount: numberValue(row, 'priceAmount'),
+      pricingMethod: currentPricing
+        ? (textValue(row, 'pricingMethod') as ProductPriceTier['pricingMethod'])
+        : 'fixed-price',
+      pricingValue: currentPricing
+        ? numberValue(row, 'pricingValue')
+        : numberValue(row, 'priceAmount'),
       unitsPerOffer: numberValue(row, 'unitsPerOffer'),
       minimumOrderQuantity: numberValue(row, 'minimumOrderQuantity'),
       additionalCostPerOffer: numberValue(row, 'additionalCostPerOffer'),

@@ -29,7 +29,8 @@ function tier(overrides: Partial<ProductPriceTier> = {}): ProductPriceTier {
     name: 'Bulk 20+',
     kind: 'bulk',
     priceBasis: 'per-unit',
-    priceAmount: 40,
+    pricingMethod: 'fixed-price',
+    pricingValue: 40,
     unitsPerOffer: 1,
     minimumOrderQuantity: 20,
     additionalCostPerOffer: 0,
@@ -115,7 +116,7 @@ describe('ProductPriceTierService', () => {
     const { tierService } = setup([product('PROD-A')]);
 
     await expect(
-      tierService.createTier(createInput({ priceAmount: -1 })),
+      tierService.createTier(createInput({ pricingValue: -1 })),
     ).rejects.toBeInstanceOf(ProductPriceTierError);
 
     const created = await tierService.createTier(createInput());
@@ -129,6 +130,9 @@ describe('ProductPriceTierService', () => {
       id: 'WHOLESALE-OLD',
       productId: 'ARCHIVED',
       name: 'Historical wholesale',
+      pricingMethod: undefined,
+      pricingValue: undefined,
+      priceAmount: 40,
       isActive: false,
     });
     const { tierService } = setup([product('ARCHIVED', false)], [historical]);
@@ -148,7 +152,7 @@ describe('ProductPriceTierService', () => {
       name: '  Package 6  ',
       kind: 'package',
       priceBasis: 'per-offer',
-      priceAmount: 270,
+      pricingValue: 270,
       unitsPerOffer: 6,
       minimumOrderQuantity: 6,
       additionalCostPerOffer: 20,
@@ -162,7 +166,7 @@ describe('ProductPriceTierService', () => {
         name: 'Package 6',
         kind: 'package',
         priceBasis: 'per-offer',
-        priceAmount: 270,
+        pricingValue: 270,
         unitsPerOffer: 6,
         minimumOrderQuantity: 6,
         additionalCostPerOffer: 20,
@@ -197,18 +201,18 @@ describe('ProductPriceTierService', () => {
           id: 'TIER-OLD',
           productId: 'ARCHIVED',
           name: 'Old wholesale',
-          priceAmount: 35,
+          pricingValue: 35,
           isActive: false,
         }),
       ],
     );
 
     const corrected = await tierService.updateTier('TIER-OLD', {
-      priceAmount: 36,
+      pricingValue: 36,
       notes: ' corrected historical price ',
     });
 
-    expect(corrected.priceAmount).toBe(36);
+    expect(corrected.pricingValue).toBe(36);
     expect(corrected.notes).toBe('corrected historical price');
     expect(corrected.isActive).toBe(false);
 
@@ -247,7 +251,7 @@ describe('ProductPriceTierService', () => {
           name: 'VIP Event',
           kind: 'custom',
           priceBasis: 'per-offer',
-          priceAmount: 500,
+          pricingValue: 500,
           unitsPerOffer: 10,
           minimumOrderQuantity: 10,
           notes: 'priority packaging',
@@ -307,8 +311,8 @@ describe('ProductPriceTierService', () => {
     expect(stored?.notes).toBe('original');
 
     const listed = await tierService.listTiers();
-    listed[0]!.priceAmount = 999;
-    expect((await tierService.getTier(created.id))?.priceAmount).toBe(40);
+    listed[0]!.pricingValue = 999;
+    expect((await tierService.getTier(created.id))?.pricingValue).toBe(40);
   });
 
   it('uses typed application errors for missing tier operations', async () => {

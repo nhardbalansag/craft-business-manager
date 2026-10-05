@@ -61,7 +61,8 @@ function datasetFixture(): BusinessDatasetV2 {
       name: 'Custom Event',
       kind: 'custom',
       priceBasis: 'per-offer',
-      priceAmount: 500.125,
+      pricingMethod: 'fixed-price',
+      pricingValue: 500.125,
       unitsPerOffer: 10,
       minimumOrderQuantity: 20,
       additionalCostPerOffer: 25.5,
@@ -74,7 +75,8 @@ function datasetFixture(): BusinessDatasetV2 {
       name: 'Bulk 20+',
       kind: 'bulk',
       priceBasis: 'per-unit',
-      priceAmount: 40.75,
+      pricingMethod: 'profit-per-unit',
+      pricingValue: 12.5,
       unitsPerOffer: 1,
       minimumOrderQuantity: 20,
       additionalCostPerOffer: 0,
@@ -148,7 +150,8 @@ describe('BusinessDataset v2 core workbook v3', () => {
       name: 'Bulk 20+',
       kind: 'bulk',
       priceBasis: 'per-unit',
-      priceAmount: 40.75,
+      pricingMethod: 'profit-per-unit',
+      pricingValue: 12.5,
       unitsPerOffer: 1,
       minimumOrderQuantity: 20,
       additionalCostPerOffer: 0,
@@ -183,8 +186,54 @@ describe('BusinessDataset v2 core workbook v3', () => {
     const custom = result.dataset.productPriceTiers.find(
       (tier) => tier.id === 'TIER-Z',
     );
-    expect(custom?.priceAmount).toBe(500.125);
+    expect(custom?.pricingMethod).toBe('fixed-price');
+    expect(custom?.pricingValue).toBe(500.125);
     expect(custom?.additionalCostPerOffer).toBe(25.5);
+  });
+
+  it('imports legacy priceAmount tier rows as fixed-price pricing sources', () => {
+    const document = mutableDocument();
+    const tiers = document.sheets.find(
+      (candidate) => candidate.name === PRODUCT_PRICE_TIERS_SHEET_NAME,
+    )!;
+
+    tiers.columns = [
+      'id',
+      'productId',
+      'name',
+      'kind',
+      'priceBasis',
+      'priceAmount',
+      'unitsPerOffer',
+      'minimumOrderQuantity',
+      'additionalCostPerOffer',
+      'notes',
+      'isActive',
+    ];
+    tiers.rows = tiers.rows.map((row) => {
+      const {
+        pricingMethod: _pricingMethod,
+        pricingValue,
+        ...rest
+      } = row;
+      return {
+        ...rest,
+        priceAmount: pricingValue,
+      };
+    });
+
+    const result = reconstructBusinessDatasetV2FromWorkbook(document);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(JSON.stringify(result.issues));
+    expect(result.dataset.productPriceTiers[0]).toMatchObject({
+      pricingMethod: 'fixed-price',
+      pricingValue: 12.5,
+    });
+    expect(result.dataset.productPriceTiers[1]).toMatchObject({
+      pricingMethod: 'fixed-price',
+      pricingValue: 500.125,
+    });
   });
 
   it('round-trips an empty ProductPriceTiers collection without synthesizing tiers', () => {
@@ -257,7 +306,7 @@ describe('BusinessDataset v2 core workbook v3', () => {
     const tiers = document.sheets.find(
       (candidate) => candidate.name === PRODUCT_PRICE_TIERS_SHEET_NAME,
     )!;
-    tiers.rows[0]!.priceAmount = {
+    tiers.rows[0]!.pricingValue = {
       formula: '1+1',
       cachedValue: 2,
     };
@@ -272,7 +321,7 @@ describe('BusinessDataset v2 core workbook v3', () => {
           stage: 'schema',
           code: 'FORMULA_CELL_NOT_ALLOWED',
           sheetName: PRODUCT_PRICE_TIERS_SHEET_NAME,
-          column: 'priceAmount',
+          column: 'pricingValue',
         }),
       ]),
     );
@@ -302,7 +351,7 @@ describe('BusinessDataset v2 core workbook v3', () => {
 
   it('rejects invalid v2 datasets before invoking the workbook codec', () => {
     const source = datasetFixture();
-    source.productPriceTiers[0]!.priceAmount = -1;
+    source.productPriceTiers[0]!.pricingValue = -1;
 
     let encodeCalls = 0;
     const codec: WorkbookCodec = {

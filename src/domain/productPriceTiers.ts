@@ -6,12 +6,23 @@ export type ProductPriceTierKind = (typeof PRODUCT_PRICE_TIER_KINDS)[number];
 export const PRODUCT_PRICE_TIER_PRICE_BASES = ['per-unit', 'per-offer'] as const;
 export type ProductPriceTierPriceBasis = (typeof PRODUCT_PRICE_TIER_PRICE_BASES)[number];
 
+export const PRODUCT_PRICE_TIER_PRICING_METHODS = [
+  'profit-per-unit',
+  'fixed-price',
+] as const;
+export type ProductPriceTierPricingMethod =
+  (typeof PRODUCT_PRICE_TIER_PRICING_METHODS)[number];
+
 /**
  * Authoritative tiered-pricing source record.
  *
  * The existing ProductFinancialProfile pricing policy remains the Default / Single
  * pricing source. These records represent additive Package / Bulk / Custom offers.
  * Derived cost, profit, markup, margin, and discount values never belong here.
+ *
+ * pricingMethod + pricingValue are the current authoritative pricing source.
+ * priceAmount remains an optional legacy compatibility input so older saved tier
+ * rows can be normalized to fixed-price without data loss.
  */
 export interface ProductPriceTier {
   id: string;
@@ -19,7 +30,10 @@ export interface ProductPriceTier {
   name: string;
   kind: ProductPriceTierKind;
   priceBasis: ProductPriceTierPriceBasis;
-  priceAmount: number;
+  pricingMethod?: ProductPriceTierPricingMethod;
+  pricingValue?: number;
+  /** @deprecated Legacy fixed selling-price source. */
+  priceAmount?: number;
   unitsPerOffer: number;
   minimumOrderQuantity: number;
   additionalCostPerOffer: number;
@@ -29,6 +43,9 @@ export interface ProductPriceTier {
 
 const KIND_SET: ReadonlySet<string> = new Set(PRODUCT_PRICE_TIER_KINDS);
 const PRICE_BASIS_SET: ReadonlySet<string> = new Set(PRODUCT_PRICE_TIER_PRICE_BASES);
+const PRICING_METHOD_SET: ReadonlySet<string> = new Set(
+  PRODUCT_PRICE_TIER_PRICING_METHODS,
+);
 
 export type ProductPriceTierErrorCode =
   | 'INVALID_ID'
@@ -36,8 +53,10 @@ export type ProductPriceTierErrorCode =
   | 'INVALID_NAME'
   | 'INVALID_KIND'
   | 'INVALID_PRICE_BASIS'
-  | 'NON_FINITE_PRICE_AMOUNT'
-  | 'NEGATIVE_PRICE_AMOUNT'
+  | 'INVALID_PRICING_METHOD'
+  | 'MISSING_PRICING_VALUE'
+  | 'NON_FINITE_PRICING_VALUE'
+  | 'NEGATIVE_PRICING_VALUE'
   | 'NON_FINITE_UNITS_PER_OFFER'
   | 'NON_INTEGER_UNITS_PER_OFFER'
   | 'NON_POSITIVE_UNITS_PER_OFFER'
@@ -85,6 +104,61 @@ export function isProductPriceTierPriceBasis(
   return typeof value === 'string' && PRICE_BASIS_SET.has(value);
 }
 
+export function isProductPriceTierPricingMethod(
+  value: unknown,
+): value is ProductPriceTierPricingMethod {
+  return typeof value === 'string' && PRICING_METHOD_SET.has(value);
+}
+
+export interface ResolvedProductPriceTierPricingSource {
+  pricingMethod: ProductPriceTierPricingMethod;
+  pricingValue: number;
+  legacyPriceAmount: boolean;
+}
+
+export function resolveProductPriceTierPricingSource(
+  tier: ProductPriceTier,
+): ResolvedProductPriceTierPricingSource {
+  const explicitMethod = tier.pricingMethod;
+  const explicitValue = tier.pricingValue;
+
+  if (explicitMethod !== undefined) {
+    if (!isProductPriceTierPricingMethod(explicitMethod)) {
+      throw new ProductPriceTierError(
+        'INVALID_PRICING_METHOD',
+        `Unsupported Product price tier pricing method: ${String(explicitMethod)}.`,
+        { tierId: tier.id, productId: tier.productId, input: explicitMethod },
+      );
+    }
+    if (explicitValue === undefined) {
+      throw new ProductPriceTierError(
+        'MISSING_PRICING_VALUE',
+        'Product price tier pricing value is required.',
+        { tierId: tier.id, productId: tier.productId, input: explicitValue },
+      );
+    }
+    return {
+      pricingMethod: explicitMethod,
+      pricingValue: explicitValue,
+      legacyPriceAmount: false,
+    };
+  }
+
+  if (tier.priceAmount === undefined) {
+    throw new ProductPriceTierError(
+      'MISSING_PRICING_VALUE',
+      'Product price tier pricing value is required.',
+      { tierId: tier.id, productId: tier.productId },
+    );
+  }
+
+  return {
+    pricingMethod: 'fixed-price',
+    pricingValue: tier.priceAmount,
+    legacyPriceAmount: true,
+  };
+}
+
 export function cloneProductPriceTier(tier: ProductPriceTier): ProductPriceTier {
   return { ...tier };
 }
@@ -107,12 +181,21 @@ export function nextProductPriceTierId(existingIds: readonly string[]): string {
  */
 export function normalizeProductPriceTier(tier: ProductPriceTier): ProductPriceTier {
   const notes = tier.notes?.trim();
+  const source = resolveProductPriceTierPricingSource(tier);
+  const {
+    priceAmount: _legacyPriceAmount,
+    pricingMethod: _pricingMethod,
+    pricingValue: _pricingValue,
+    ...rest
+  } = tier;
 
   return {
-    ...tier,
+    ...rest,
     id: tier.id.trim(),
     productId: tier.productId.trim(),
     name: tier.name.trim(),
+    pricingMethod: source.pricingMethod,
+    pricingValue: source.pricingValue,
     notes: notes ? notes : undefined,
   };
 }
@@ -176,24 +259,26 @@ export function validateProductPriceTierContract(tier: ProductPriceTier): void {
     );
   }
 
-  if (!Number.isFinite(tier.priceAmount)) {
+  const pricingSource = resolveProductPriceTierPricingSource(tier);
+
+  if (!Number.isFinite(pricingSource.pricingValue)) {
     throw new ProductPriceTierError(
-      'NON_FINITE_PRICE_AMOUNT',
-      'Product price tier price amount must be finite.',
+      'NON_FINITE_PRICING_VALUE',
+      'Product price tier pricing value must be finite.',
       {
         ...context,
-        input: tier.priceAmount,
+        input: pricingSource.pricingValue,
       },
     );
   }
 
-  if (tier.priceAmount < 0) {
+  if (pricingSource.pricingValue < 0) {
     throw new ProductPriceTierError(
-      'NEGATIVE_PRICE_AMOUNT',
-      'Product price tier price amount cannot be negative.',
+      'NEGATIVE_PRICING_VALUE',
+      'Product price tier pricing value cannot be negative.',
       {
         ...context,
-        input: tier.priceAmount,
+        input: pricingSource.pricingValue,
       },
     );
   }
