@@ -32,7 +32,7 @@ describe('YRS3D YieldManualMode', () => {
     expect(mode).not.toBeNull();
     expect(mode.textContent).toContain('Manual');
     expect(mode.textContent).toContain('No saved recipe');
-    expect(mode.textContent).toContain('No Mix preset is linked');
+    expect(mode.textContent).toContain('No saved recipe reference is linked');
     expect(mode.textContent).toContain(
       'No Mold Formula or profile source is linked',
     );

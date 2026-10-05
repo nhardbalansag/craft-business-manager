@@ -28,7 +28,7 @@ function radio(kind: string): HTMLInputElement {
 }
 
 describe('YRS3A YieldRecipeSourceSelector', () => {
-  it('exposes the three authoritative recipe-source choices as one radio group', async () => {
+  it('exposes only Manual and Mold Formula as recordable recipe-source choices', async () => {
     await act(async () =>
       root.render(
         <YieldRecipeSourceSelector
@@ -41,9 +41,9 @@ describe('YRS3A YieldRecipeSourceSelector', () => {
     expect(
       container.querySelector('[aria-label="Recipe source"]'),
     ).not.toBeNull();
-    expect(radio('mix-preset').checked).toBe(false);
     expect(radio('mold-formula').checked).toBe(false);
     expect(radio('manual').checked).toBe(true);
+    expect(radio('mix-preset')).toBeNull();
   });
 
   it('reports the selected source kind without owning source-specific fields', async () => {
@@ -52,7 +52,7 @@ describe('YRS3A YieldRecipeSourceSelector', () => {
     await act(async () =>
       root.render(
         <YieldRecipeSourceSelector
-          value="mix-preset"
+          value="manual"
           onChange={onChange}
         />,
       ),
@@ -68,7 +68,7 @@ describe('YRS3A YieldRecipeSourceSelector', () => {
     await act(async () =>
       root.render(
         <YieldRecipeSourceSelector
-          value="mix-preset"
+          value="manual"
           disabled
           onChange={() => undefined}
         />,

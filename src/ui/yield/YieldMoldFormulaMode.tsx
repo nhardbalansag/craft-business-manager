@@ -81,7 +81,7 @@ export function YieldMoldFormulaMode({
             <span>Recording behavior</span>
             <strong>Mold + profile provenance</strong>
             <small>
-              The recorded Yield sample will not carry a Mix preset reference.
+              The recorded Yield sample will keep only its Mold and profile provenance.
             </small>
           </div>
 
