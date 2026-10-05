@@ -51,17 +51,52 @@ describe('customerQuotation', () => {
         contact: '0917 000 0000',
         address: 'Bulacan',
       },
-      product: {
-        id: 'PROD-CANDLE',
-        name: 'Rose Candle',
-        quantity: 12,
-      },
-      pricing: {
-        sourceLabel: 'Default / Single',
-        unitSellingPrice: 85,
-        totalSellingPrice: 1020,
-      },
+      items: [
+        {
+          product: {
+            id: 'PROD-CANDLE',
+            name: 'Rose Candle',
+            quantity: 12,
+          },
+          pricing: {
+            sourceLabel: 'Default / Single',
+            unitSellingPrice: 85,
+            totalSellingPrice: 1020,
+          },
+        },
+      ],
+      subtotal: 1020,
+      total: 1020,
     });
+  });
+
+  it('combines multiple resolved Products into one quotation total', () => {
+    const view = buildCustomerQuotationView(
+      [
+        result(),
+        result({
+          productId: 'PROD-PLASTER',
+          productName: 'Paintable Bear',
+          quantity: 5,
+          unitSellingPrice: 120,
+          totalSellingPrice: 600,
+        }),
+      ],
+      {
+        businessName: 'My Lovely Craft',
+        quotationReference: 'QT-MULTI',
+        customerName: 'Event Customer',
+        generatedAtIso: '2026-10-06T00:00:00.000Z',
+      },
+    );
+
+    expect(view.items).toHaveLength(2);
+    expect(view.items.map((item) => item.product.name)).toEqual([
+      'Rose Candle',
+      'Paintable Bear',
+    ]);
+    expect(view.subtotal).toBe(1620);
+    expect(view.total).toBe(1620);
   });
 
   it('uses the selected tier name without exposing internal economics', () => {
