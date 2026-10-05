@@ -6,7 +6,7 @@ import {
 import type { BusinessDataset } from '../../domain/types';
 import {
   assemblyCapacityTraceService,
-  calibrationService,
+  calibrationRepository,
   componentSourceAvailabilityService,
   effectiveRecipeRequirementService,
   expectedBatchFinancialsService,
@@ -33,6 +33,7 @@ function derivedEquivalenceFixture(): BusinessDataset {
         purchaseQuantity: 1,
         purchaseUnit: 'cup',
         packageCost: 84,
+        manualBaseUnitsPerPurchaseUnit: 210,
         onHandQuantity: 3,
         onHandUnit: 'cup',
         isActive: true,
@@ -215,7 +216,6 @@ async function roundTripCurrentWorkbook(): Promise<void> {
 
 function derivedServiceIdentities() {
   return [
-    calibrationService,
     effectiveRecipeRequirementService,
     recipeMaterialCostPreviewService,
     componentSourceAvailabilityService,
@@ -238,22 +238,22 @@ afterEach(async () => {
 });
 
 describe('Phase 5.6A2 Phase 1-4 derived service equivalence', () => {
-  it('Scenario B: preserves calibration-dependent cup-to-gram conversion, costing, and calibration selection', async () => {
+  it('Scenario B: preserves manual cup-to-gram conversion while legacy calibration rows remain inert', async () => {
     await hydrate(derivedEquivalenceFixture());
     const identitiesBefore = derivedServiceIdentities();
 
-    const beforeCalibration = await calibrationService.getEffectiveCalibration(
-      'mat-calibrated-plaster',
-    );
     const beforeRequirements = await effectiveRecipeRequirementService.deriveForProduct(
       'product-calibrated',
     );
     const beforePreview = await recipeMaterialCostPreviewService.previewForProduct(
       'product-calibrated',
     );
+    const legacyCalibrationsBefore = await calibrationRepository.list();
 
-    expect(beforeCalibration?.evidence.id).toBe('cal-plaster-new');
-    expect(beforeCalibration?.gramsPerCup).toBe(210);
+    expect(legacyCalibrationsBefore.map((record) => record.id)).toEqual([
+      'cal-plaster-old',
+      'cal-plaster-new',
+    ]);
     expect(beforeRequirements.requirements).toEqual([
       expect.objectContaining({
         materialId: 'mat-calibrated-plaster',
@@ -265,8 +265,8 @@ describe('Phase 5.6A2 Phase 1-4 derived service equivalence', () => {
     expect(beforePreview.lines).toEqual([
       expect.objectContaining({
         materialId: 'mat-calibrated-plaster',
-        packageConversionSource: 'calibration',
-        costingCalibrationId: 'cal-plaster-new',
+        packageConversionSource: 'manual',
+        costingCalibrationId: null,
         packageBaseQuantity: 210,
         costPerBaseUnit: 0.4,
         materialCostPerProduct: 42,
@@ -275,9 +275,7 @@ describe('Phase 5.6A2 Phase 1-4 derived service equivalence', () => {
 
     await roundTripCurrentWorkbook();
 
-    expect(await calibrationService.getEffectiveCalibration('mat-calibrated-plaster')).toEqual(
-      beforeCalibration,
-    );
+    expect(await calibrationRepository.list()).toEqual(legacyCalibrationsBefore);
     expect(
       await effectiveRecipeRequirementService.deriveForProduct('product-calibrated'),
     ).toEqual(beforeRequirements);
