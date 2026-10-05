@@ -1,7 +1,7 @@
 /**
  * YRS3D Manual source mode.
  *
- * Manual means no saved Mix preset and no Mold Formula provenance. The batch is
+ * Manual means no saved recipe source and no Mold Formula provenance. The batch is
  * recorded only from the measured Material quantities and actual piece counts
  * already owned by the Yield form.
  */
@@ -26,7 +26,7 @@ export function YieldManualMode() {
         <div>
           <span>Recipe reference</span>
           <strong>None</strong>
-          <small>No Mix preset is linked to this Yield sample.</small>
+          <small>No saved recipe reference is linked to this Yield sample.</small>
         </div>
         <div>
           <span>Physical provenance</span>

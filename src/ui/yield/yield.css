@@ -715,93 +715,6 @@
   font-size: .76rem;
 }
 
-.yield-mix-preset-preview {
-  display: grid;
-  gap: 10px;
-  padding: 11px;
-  border: 1px solid #e1d7ca;
-  border-radius: 11px;
-  background: #fffdf9;
-}
-
-.yield-mix-preset-preview.is-unavailable {
-  border-color: #e2cdbd;
-  background: #fff9f4;
-}
-
-.yield-mix-preset-preview-heading {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  align-items: flex-start;
-}
-
-.yield-mix-preset-preview-heading > div {
-  min-width: 0;
-  display: grid;
-  gap: 2px;
-}
-
-.yield-mix-preset-preview-heading strong {
-  overflow: hidden;
-  color: var(--yield-ink);
-  font-size: .8rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.yield-mix-preset-preview-heading span {
-  color: var(--yield-muted);
-  font-size: .68rem;
-}
-
-.yield-mix-preset-preview-heading > span {
-  flex: 0 0 auto;
-  padding: 4px 6px;
-  border-radius: 8px;
-  background: #f0eadf;
-  font-weight: 760;
-}
-
-.yield-mix-preset-lines {
-  display: grid;
-  gap: 6px;
-}
-
-.yield-mix-preset-lines > div {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  gap: 8px;
-  align-items: center;
-  padding: 7px 8px;
-  border-radius: 9px;
-  background: #f7f2e9;
-}
-
-.yield-mix-preset-lines span,
-.yield-mix-preset-lines strong,
-.yield-mix-preset-lines small {
-  min-width: 0;
-  font-size: .69rem;
-}
-
-.yield-mix-preset-lines span {
-  overflow: hidden;
-  color: #5d554d;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.yield-mix-preset-lines strong {
-  color: var(--yield-ink);
-}
-
-.yield-mix-preset-lines small {
-  color: #8b8074;
-  text-transform: capitalize;
-}
-
-.yield-mix-preset-notes,
 .yield-source-mode-warning {
   margin: 0;
   font-size: .71rem;
@@ -983,22 +896,12 @@
 }
 
 @media (max-width: 520px) {
-  .yield-source-mode-heading,
-  .yield-mix-preset-preview-heading {
+  .yield-source-mode-heading {
     display: grid;
   }
 
-  .yield-source-mode-badge,
-  .yield-mix-preset-preview-heading > span {
+  .yield-source-mode-badge {
     justify-self: start;
-  }
-
-  .yield-mix-preset-lines > div {
-    grid-template-columns: 1fr auto;
-  }
-
-  .yield-mix-preset-lines small {
-    grid-column: 1 / -1;
   }
 
   .yield-product-context,

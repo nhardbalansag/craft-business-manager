@@ -222,8 +222,8 @@ describe('Yield workspace UI/UX', () => {
     expect(
       selector.querySelector<HTMLInputElement>(
         'input[value="mix-preset"]',
-      )?.checked,
-    ).toBe(false);
+      ),
+    ).toBeNull();
     expect(
       selector.querySelector<HTMLInputElement>(
         'input[value="mold-formula"]',
@@ -313,34 +313,11 @@ describe('Yield workspace UI/UX', () => {
     ).toBe(true);
   });
 
-  it('shows an explicit non-recordable empty state when Mix preset mode has no compatible presets', async () => {
+  it('does not offer Mix preset for new Yield recording', async () => {
     await seed();
-    await mount();
-
-    const mixSource = container.querySelector<HTMLInputElement>(
-      '[aria-label="Recipe source"] input[value="mix-preset"]',
-    )!;
-    await act(async () => mixSource.click());
-
-    expect(
-      container.querySelector('[aria-label="Mix preset recipe source"]'),
-    ).not.toBeNull();
-    expect(container.textContent).toContain(
-      'No active compatible Mix preset is available.',
-    );
-    expect(
-      container.querySelector<HTMLSelectElement>(
-        '[aria-label="Yield Mix preset"]',
-      )?.disabled,
-    ).toBe(true);
-    expect(
-      container.querySelector<HTMLButtonElement>('button[type="submit"]')
-        ?.disabled,
-    ).toBe(true);
-  });
-
-  it('switches Manual and Mix preset sources exclusively and records the selected Mix preset provenance', async () => {
-    await seed();
+    await session.productRepository.replaceAll([
+      { ...product, mixPresetId: 'MIX-PLASTER' },
+    ]);
     await session.mixPresetRepository.replaceAll([
       {
         id: 'MIX-PLASTER',
@@ -359,56 +336,66 @@ describe('Yield workspace UI/UX', () => {
     ]);
     await mount();
 
-    const mixSource = container.querySelector<HTMLInputElement>(
-      '[aria-label="Recipe source"] input[value="mix-preset"]',
+    const selector = container.querySelector<HTMLElement>(
+      '[aria-label="Recipe source"]',
     )!;
-    await act(async () => mixSource.click());
-
-    const mixPreset = container.querySelector<HTMLSelectElement>(
-      '[aria-label="Yield Mix preset"]',
-    )!;
+    expect(
+      selector.querySelector('input[value="mix-preset"]'),
+    ).toBeNull();
     expect(
       container.querySelector('[aria-label="Mix preset recipe source"]'),
-    ).not.toBeNull();
-    expect(mixPreset.disabled).toBe(false);
-    await fill(mixPreset, 'MIX-PLASTER');
-    expect(
-      container.querySelector('[aria-label="Selected Mix preset summary"]')
-        ?.textContent,
-    ).toContain('Standard Plaster Mix');
-    expect(
-      container.querySelector('[aria-label="Selected Mix preset summary"]')
-        ?.textContent,
-    ).toContain('Weight ratio');
-    expect(
-      container.querySelector('[aria-label="Selected Mix preset summary"]')
-        ?.textContent,
-    ).toContain('1 part');
-    await fill(
-      container.querySelector<HTMLSelectElement>(
-        '[aria-label="Yield material 1"]',
-      )!,
-      plaster.id,
-    );
-    await fill(
-      container.querySelector<HTMLInputElement>(
-        '[aria-label="Yield quantity 1"]',
-      )!,
-      '100',
-    );
-
-    await submit();
-
-    const saved = await session.yieldSampleEvidenceService.listSamples({
-      productId: product.id,
-    });
-    expect(saved).toHaveLength(1);
-    expect(saved[0].mixPresetId).toBe('MIX-PLASTER');
-    expect(
-      await session.yieldMoldFormulaSourceService.getSourceForYieldSample(
-        saved[0].id,
-      ),
     ).toBeNull();
+    expect(
+      container.querySelector('[aria-label="Yield Mix preset"]'),
+    ).toBeNull();
+    expect(container.textContent).toContain('Manual or Mold Formula');
+  });
+
+  it('copies a legacy Mix-preset Yield sample into a Manual draft', async () => {
+    await seed();
+    await session.mixPresetRepository.replaceAll([
+      {
+        id: 'MIX-LEGACY',
+        name: 'Legacy Mix',
+        compatibleCategories: ['paintable-art'],
+        basis: 'weight',
+        lines: [
+          {
+            materialId: plaster.id,
+            role: 'primary',
+            parts: 1,
+          },
+        ],
+        isActive: true,
+      },
+    ]);
+    await session.yieldSampleRepository.replaceAll([
+      sample({ id: 'YLD-LEGACY-MIX', mixPresetId: 'MIX-LEGACY' }),
+    ]);
+    await mount();
+
+    const legacy = container.querySelector<HTMLElement>(
+      '[aria-label="Yield sample YLD-LEGACY-MIX"]',
+    )!;
+    expect(
+      legacy.querySelector('.yield-history-recipe-source')?.textContent,
+    ).toContain('Mix preset');
+
+    await click('Use as new draft', legacy);
+
+    const selector = container.querySelector<HTMLElement>(
+      '[aria-label="Recipe source"]',
+    )!;
+    expect(
+      selector.querySelector<HTMLInputElement>('input[value="manual"]')
+        ?.checked,
+    ).toBe(true);
+    expect(selector.querySelector('input[value="mix-preset"]')).toBeNull();
+    expect(field('Good pieces').value).toBe('8');
+    expect(
+      container.querySelector<HTMLSelectElement>('[aria-label="Yield material 1"]')
+        ?.value,
+    ).toBe(plaster.id);
   });
 
   it('requires a valid date and never previews percentages from invalid piece counts', async () => {

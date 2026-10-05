@@ -18,7 +18,6 @@ import { nextSequentialId } from '../../domain/identifiers';
 import type { Material } from '../../domain/materials';
 import { isMaterialCupWeightBridge } from '../../domain/materials';
 import type { MixPreset } from '../../domain/mixPresets';
-import { isMixPresetCompatibleWithCategory } from '../../domain/mixPresets';
 import type { Product } from '../../domain/products';
 import { PRODUCT_CATEGORY_RULES } from '../../domain/products';
 import {
@@ -28,14 +27,15 @@ import {
 } from '../../domain/units';
 import type {
   ResolvedYieldRecipeSource,
-  YieldRecipeSourceKind,
 } from '../../domain/yieldRecipeSource';
 import type { YieldSample } from '../../domain/yieldSamples';
 import { YieldManualMode } from './YieldManualMode';
-import { YieldMixPresetMode } from './YieldMixPresetMode';
 import { YieldMoldFormulaMode } from './YieldMoldFormulaMode';
 import { YieldProductSearchPicker } from './YieldProductSearchPicker';
-import { YieldRecipeSourceSelector } from './YieldRecipeSourceSelector';
+import {
+  YieldRecipeSourceSelector,
+  type YieldSelectableRecipeSourceKind,
+} from './YieldRecipeSourceSelector';
 import { PlasterMoldYieldDraftAssist } from './PlasterMoldYieldDraftAssist';
 import type { PlasterMoldYieldDraft } from './plasterMoldYieldDraft';
 import { AppIcon } from '../icons/AppIcon';
@@ -52,8 +52,7 @@ type YieldInputForm = {
 
 type YieldFormState = {
   id: string;
-  recipeSourceKind: YieldRecipeSourceKind;
-  mixPresetId: string;
+  recipeSourceKind: YieldSelectableRecipeSourceKind;
   goodPieces: string;
   rejectedPieces: string;
   recordedAt: string;
@@ -74,7 +73,6 @@ function draftKey(form: YieldFormState): string {
 function draftEvidenceKey(form: YieldFormState): string {
   const {
     recipeSourceKind: _recipeSourceKind,
-    mixPresetId: _mixPresetId,
     ...evidence
   } = form;
   return JSON.stringify({
@@ -113,11 +111,10 @@ function newInput(unit: InputUnit = 'g'): YieldInputForm {
   };
 }
 
-function emptyForm(mixPresetId = ''): YieldFormState {
+function emptyForm(): YieldFormState {
   return {
     id: '',
-    recipeSourceKind: mixPresetId ? 'mix-preset' : 'manual',
-    mixPresetId,
+    recipeSourceKind: 'manual',
     goodPieces: '1',
     rejectedPieces: '0',
     recordedAt: localDateTimeValue(),
@@ -210,13 +207,6 @@ export function YieldPage() {
     [materials],
   );
 
-  const compatibleMixes = useMemo(() => {
-    if (!selectedProduct) return [];
-    return mixPresets.filter(
-      (preset) => preset.isActive && isMixPresetCompatibleWithCategory(preset, selectedProduct.category),
-    );
-  }, [mixPresets, selectedProduct]);
-
   const materialById = useMemo(
     () => new Map(materials.map((material) => [material.id.toLocaleLowerCase(), material])),
     [materials],
@@ -226,10 +216,6 @@ export function YieldPage() {
     () => new Map(mixPresets.map((preset) => [preset.id.toLocaleLowerCase(), preset])),
     [mixPresets],
   );
-
-  const selectedMixPreset = form.mixPresetId
-    ? mixById.get(form.mixPresetId.toLocaleLowerCase())
-    : undefined;
 
   const draftGoodPieces = numericField(form.goodPieces);
   const draftRejectedPieces = numericField(form.rejectedPieces);
@@ -244,10 +230,6 @@ export function YieldPage() {
     return material?.isActive && quantity !== null && quantity > 0
       && (areUnitsCompatible(input.unit, material.baseUnit) || isMaterialCupWeightBridge(input.unit, material.baseUnit));
   }).length;
-  const draftMixReady =
-    form.recipeSourceKind !== 'mix-preset' ||
-    (Boolean(form.mixPresetId) &&
-      compatibleMixes.some((mix) => mix.id === form.mixPresetId));
   const draftMoldFormulaReady =
     form.recipeSourceKind !== 'mold-formula' ||
     (formulaDraftSource !== null &&
@@ -255,11 +237,7 @@ export function YieldPage() {
       formulaDraftSource.productId.toLocaleLowerCase() ===
         selectedProduct.id.toLocaleLowerCase());
   const draftSourceReady =
-    form.recipeSourceKind === 'manual'
-      ? true
-      : form.recipeSourceKind === 'mix-preset'
-        ? draftMixReady
-        : draftMoldFormulaReady;
+    form.recipeSourceKind === 'manual' ? true : draftMoldFormulaReady;
   const generatedSampleId = useMemo(() => nextSequentialId(knownSampleIds, 'YLD'), [knownSampleIds]);
   const draftReferenceReady = Boolean(
     Number.isFinite(new Date(form.recordedAt).getTime()) && draftSourceReady,
@@ -408,8 +386,7 @@ export function YieldPage() {
 
   useEffect(() => {
     void loadHistory(selectedProductId);
-    const product = products.find((item) => item.id === selectedProductId);
-    replaceDraft(emptyForm(product?.mixPresetId ?? ''));
+    replaceDraft(emptyForm());
     setFeedback(null);
     setPendingDeleteId(null);
     setHistoryQuery('');
@@ -581,44 +558,19 @@ export function YieldPage() {
   }
 
   function resetDraft() {
-    replaceDraft(emptyForm(selectedProduct?.mixPresetId ?? ''));
+    replaceDraft(emptyForm());
     setFeedback(null);
   }
 
-  function changeRecipeSource(kind: YieldRecipeSourceKind) {
+  function changeRecipeSource(kind: YieldSelectableRecipeSourceKind) {
     if (kind === form.recipeSourceKind) return;
 
     setFormulaDraftSource(null);
     setFormulaDraftConfirmed(false);
     setFeedback(null);
-
-    if (kind === 'mix-preset') {
-      const productDefault =
-        selectedProduct?.mixPresetId &&
-        compatibleMixes.some(
-          (preset) => preset.id === selectedProduct.mixPresetId,
-        )
-          ? selectedProduct.mixPresetId
-          : '';
-
-      setForm((current) => ({
-        ...current,
-        recipeSourceKind: kind,
-        mixPresetId:
-          current.mixPresetId &&
-          compatibleMixes.some(
-            (preset) => preset.id === current.mixPresetId,
-          )
-            ? current.mixPresetId
-            : productDefault,
-      }));
-      return;
-    }
-
     setForm((current) => ({
       ...current,
       recipeSourceKind: kind,
-      mixPresetId: '',
     }));
   }
 
@@ -626,14 +578,9 @@ export function YieldPage() {
     if (!selectedProduct?.isActive) return;
     setFormulaDraftSource(null);
     setFormulaDraftConfirmed(false);
-    const copiedMixPresetId =
-      mixById.get(sample.mixPresetId?.toLocaleLowerCase() ?? '')?.id ??
-      sample.mixPresetId ??
-      '';
     setForm({
       id: '',
-      recipeSourceKind: copiedMixPresetId ? 'mix-preset' : 'manual',
-      mixPresetId: copiedMixPresetId,
+      recipeSourceKind: 'manual',
       goodPieces: String(sample.goodPieces),
       rejectedPieces: String(sample.rejectedPieces),
       recordedAt: localDateTimeValue(),
@@ -658,7 +605,6 @@ export function YieldPage() {
     setForm({
       id: '',
       recipeSourceKind: 'mold-formula',
-      mixPresetId: '',
       goodPieces: '',
       rejectedPieces: '',
       recordedAt: localDateTimeValue(),
@@ -746,15 +692,7 @@ export function YieldPage() {
         notes: form.notes,
       };
 
-      if (form.recipeSourceKind === 'mix-preset') {
-        await yieldRecipeSourceRecordingService.record({
-          sample,
-          source: {
-            kind: 'mix-preset',
-            mixPresetId: form.mixPresetId,
-          },
-        });
-      } else if (form.recipeSourceKind === 'mold-formula') {
+      if (form.recipeSourceKind === 'mold-formula') {
         if (!formulaDraftSource) {
           throw new Error(
             'Choose a Mold Formula draft before recording a Mold Formula sourced Yield sample.',
@@ -778,7 +716,7 @@ export function YieldPage() {
       setKnownSampleIds((current) => current.includes(sampleId) ? current : [...current, sampleId]);
       clearHistoryFilters();
       setHistoryPage(1);
-      replaceDraft(emptyForm(selectedProduct.mixPresetId ?? ''));
+      replaceDraft(emptyForm());
       setFeedback({ type: 'success', message: `Yield sample ${sampleId} recorded.` });
       await loadHistory(selectedProduct.id);
     } catch (error) {
@@ -951,9 +889,9 @@ export function YieldPage() {
                 <small>{selectedProduct ? PRODUCT_CATEGORY_RULES[selectedProduct.category].productionStyle : 'No production style'}</small>
               </div>
               <div>
-                <span className="yield-context-label">Compatible mixes</span>
-                <strong>{compatibleMixes.length}</strong>
-                <small>{compatibleMixes.length === 1 ? 'active preset' : 'active presets'}</small>
+                <span className="yield-context-label">Recipe sources</span>
+                <strong>2</strong>
+                <small>Manual or Mold Formula</small>
               </div>
               <div>
                 <span className="yield-context-label">Evidence</span>
@@ -1071,9 +1009,7 @@ export function YieldPage() {
                     ? 'Choose a saved Mold Formula in the Mold Formula source area below before recording this source type.'
                     : formulaDraftSource && !formulaDraftConfirmed
                       ? 'Complete Actual measurement confirmation in the Mold Formula source area after checking the real batch quantities.'
-                      : form.recipeSourceKind === 'mix-preset' && !draftMixReady
-                        ? 'Choose an active compatible Mix preset before recording.'
-                        : 'Use a valid date, complete each active material line, and enter whole-piece counts. The Sample ID is assigned automatically.'}
+                      : 'Use a valid date, complete each active material line, and enter whole-piece counts. The Sample ID is assigned automatically.'}
               </p>
 
               <section className="yield-form-section" aria-labelledby="yield-batch-reference-heading">
@@ -1114,23 +1050,6 @@ export function YieldPage() {
                   {form.recipeSourceKind === 'manual' && (
                     <div className="field field-wide">
                       <YieldManualMode />
-                    </div>
-                  )}
-                  {form.recipeSourceKind === 'mix-preset' && (
-                    <div className="field field-wide">
-                      <YieldMixPresetMode
-                        presets={compatibleMixes}
-                        materials={materials}
-                        selectedPresetId={form.mixPresetId}
-                        selectedPreset={selectedMixPreset}
-                        disabled={Boolean(busy) || !selectedProduct?.isActive}
-                        onChange={(mixPresetId) =>
-                          setForm((current) => ({
-                            ...current,
-                            mixPresetId,
-                          }))
-                        }
-                      />
                     </div>
                   )}
                   {form.recipeSourceKind === 'mold-formula' && selectedProduct && (

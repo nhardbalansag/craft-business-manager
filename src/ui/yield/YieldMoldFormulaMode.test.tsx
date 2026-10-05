@@ -98,7 +98,7 @@ describe('YRS4C YieldMoldFormulaMode', () => {
     expect(summary.textContent).toContain('PMYP-DINO');
     expect(summary.textContent).toContain('Mold + profile provenance');
     expect(summary.textContent).toContain(
-      'will not carry a Mix preset reference',
+      'will keep only its Mold and profile provenance',
     );
 
     // YRS4 owns planned pieces and theoretical quantity preview inside the mode.

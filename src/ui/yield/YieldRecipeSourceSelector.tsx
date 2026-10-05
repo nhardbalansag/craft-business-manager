@@ -1,21 +1,21 @@
 import type { YieldRecipeSourceKind } from '../../domain/yieldRecipeSource';
 
+export type YieldSelectableRecipeSourceKind = Exclude<
+  YieldRecipeSourceKind,
+  'mix-preset'
+>;
+
 export interface YieldRecipeSourceSelectorProps {
-  value: YieldRecipeSourceKind;
+  value: YieldSelectableRecipeSourceKind;
   disabled?: boolean;
-  onChange(kind: YieldRecipeSourceKind): void;
+  onChange(kind: YieldSelectableRecipeSourceKind): void;
 }
 
 const OPTIONS: readonly {
-  kind: YieldRecipeSourceKind;
+  kind: YieldSelectableRecipeSourceKind;
   label: string;
   description: string;
 }[] = [
-  {
-    kind: 'mix-preset',
-    label: 'Mix preset',
-    description: 'Reference an active compatible saved preset.',
-  },
   {
     kind: 'mold-formula',
     label: 'Mold formula',
