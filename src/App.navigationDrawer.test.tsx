@@ -44,7 +44,7 @@ describe('application navigation drawer', () => {
     expect(container.querySelector('.app-header')).toBeNull();
     expect(drawer?.querySelector('[aria-label="Application sections"]')).not.toBeNull();
     expect(drawer?.textContent).toContain('Materials');
-    expect(drawer?.textContent).toContain('Calibration');
+    expect(drawer?.textContent).not.toContain('Calibration');
     expect(drawer?.textContent).toContain('Products');
     expect(drawer?.textContent).toContain('Yield');
     expect(drawer?.textContent).toContain('Production');

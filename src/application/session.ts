@@ -1,5 +1,4 @@
 import { SheetJsWorkbookCodec } from '../storage/sheetJsWorkbookCodec';
-import { CalibrationService } from './calibrations/CalibrationService';
 import { InMemoryCalibrationRepository } from './calibrations/InMemoryCalibrationRepository';
 import { InMemoryMaterialRepository } from './materials/InMemoryMaterialRepository';
 import { MaterialService } from './materials/MaterialService';
@@ -70,7 +69,10 @@ import { InMemoryYieldMoldFormulaSourceRepository } from './yieldMoldFormulaSour
 import { YieldMoldFormulaSourceService } from './yieldMoldFormulaSources/YieldMoldFormulaSourceService';
 
 export const materialRepository = new InMemoryMaterialRepository();
+// Legacy workbook compatibility only. Runtime calculations intentionally do not consume
+// calibration evidence after the Calibration feature removal.
 export const calibrationRepository = new InMemoryCalibrationRepository();
+const runtimeCalibrationRepository = new InMemoryCalibrationRepository();
 export const mixPresetRepository = new InMemoryMixPresetRepository();
 export const productRepository = new InMemoryProductRepository();
 export const productComponentRepository = new InMemoryProductComponentRepository();
@@ -191,12 +193,6 @@ export const persistenceCoordinator = new PersistenceCoordinator(
   persistenceWorkbookCodec,
 );
 
-export const materialCalibrationEvidenceProvider = async (materialId: string) => {
-  const records = await calibrationRepository.list();
-  const key = materialId.trim().toLocaleLowerCase();
-  return records.filter((record) => record.materialId.trim().toLocaleLowerCase() === key);
-};
-
 export const productComponentService = new ProductComponentService(
   productComponentRepository,
   productRepository,
@@ -230,7 +226,7 @@ export const plasterMoldOperationalPreviewService =
   new PlasterMoldOperationalPreviewService(
     plasterMoldYieldCalculatorService,
     materialRepository,
-    calibrationRepository,
+    runtimeCalibrationRepository,
   );
 export const moldService = new MoldService(
   moldRepository,
@@ -246,7 +242,6 @@ export const componentSourceAvailabilityService = new ComponentSourceAvailabilit
   materialRepository,
   productRepository,
   productStockRepository,
-  materialCalibrationEvidenceProvider,
 );
 export const componentCapacityService = new ComponentCapacityService(
   componentSourceAvailabilityService,
@@ -254,17 +249,15 @@ export const componentCapacityService = new ComponentCapacityService(
 export const materialBackedComponentCostService = new MaterialBackedComponentCostService(
   materialRepository,
   componentSourceAvailabilityService,
-  materialCalibrationEvidenceProvider,
 );
 
 export const materialService = new MaterialService(
   materialRepository,
-  materialCalibrationEvidenceProvider,
+  async () => [],
   productComponentService,
   plasterMoldYieldProfileService,
 );
 
-export const calibrationService = new CalibrationService(calibrationRepository, materialRepository);
 export const productService = new ProductService(
   productRepository,
   mixPresetRepository,
@@ -307,19 +300,19 @@ export const yieldRecipeSourceRecordingService =
 export const yieldLearningService = new YieldLearningService(
   yieldSampleRepository,
   materialRepository,
-  calibrationRepository,
+  runtimeCalibrationRepository,
 );
 export const yieldHistoryService = new YieldHistoryService(
   yieldSampleRepository,
   productRepository,
   materialRepository,
-  calibrationRepository,
+  runtimeCalibrationRepository,
 );
 export const fixedRecipeItemService = new FixedRecipeItemService(
   fixedRecipeItemRepository,
   productRepository,
   materialRepository,
-  calibrationRepository,
+  runtimeCalibrationRepository,
 );
 export const effectiveRecipeRequirementService = new EffectiveRecipeRequirementService(
   productRepository,
@@ -329,7 +322,7 @@ export const effectiveRecipeRequirementService = new EffectiveRecipeRequirementS
 export const recipeMaterialCostPreviewService = new RecipeMaterialCostPreviewService(
   effectiveRecipeRequirementService,
   materialRepository,
-  calibrationRepository,
+  runtimeCalibrationRepository,
 );
 export const productBackedComponentCostService = new ProductBackedComponentCostService(
   productRepository,
@@ -405,7 +398,7 @@ export const expectedBatchFinancialsService = new ExpectedBatchFinancialsService
 export const productionCapacityService = new ProductionCapacityService(
   productionRequirementService,
   materialRepository,
-  calibrationRepository,
+  runtimeCalibrationRepository,
 );
 export const assemblyCapacitySynthesisService = new AssemblyCapacitySynthesisService(
   productionCapacityService,

@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest';
 import App from './App';
 import type { Material } from './domain/materials';
 import type { Product } from './domain/products';
-import { CalibrationPage } from './ui/calibration/CalibrationPage';
 import { PricingPage } from './ui/pricing/PricingPage';
 import { ProductComponentsView } from './ui/products/ProductComponentsView';
 import { ProductsPage } from './ui/products/ProductsPage';
@@ -20,19 +19,11 @@ describe('React workspace smoke validation', () => {
     expect(html).toContain('Calculated purchase costing');
     expect(html).toContain('Normalized stock &amp; valuation');
     expect(html).toContain('Supplier / source');
+    expect(html).not.toContain('>Calibration<');
     expect(html).toContain('Products');
     expect(html).toContain('Yield');
     expect(html).toContain('Production');
     expect(html).toContain('Pricing');
-  });
-
-  it('renders the Calibration workspace without requiring browser-side effects', () => {
-    const html = renderToStaticMarkup(<CalibrationPage />);
-
-    expect(html).toContain('Calibration');
-    expect(html).toContain('Included in workbook exports');
-    expect(html).toContain('Choose the material');
-    expect(html).toContain('Loading calibration workspace');
   });
 
   it('renders the Products, Mix Presets, Components, and Finished stock workspace without browser-side effects', () => {

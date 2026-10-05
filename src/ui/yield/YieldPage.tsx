@@ -354,7 +354,7 @@ export function YieldPage() {
         if (error instanceof YieldHistoryServiceError && error.code === 'NO_SAMPLES') {
           notice = 'No yield samples have been recorded for this product yet.';
         } else if (error instanceof YieldHistoryServiceError && error.code === 'NO_VALID_SAMPLES') {
-          notice = 'Yield history exists, but no sample can currently produce learned requirements. Check material calibration and references.';
+          notice = 'Yield history exists, but no sample can currently produce learned requirements. Check material conversions and references.';
         } else {
           throw error;
         }
@@ -1355,7 +1355,7 @@ export function YieldPage() {
                         <div key={requirement.materialId}>
                           <span>{materialById.get(requirement.materialId.toLocaleLowerCase())?.name ?? requirement.materialId}</span>
                           <strong>{formatNumber(requirement.baseQuantityPerGoodPiece)} {requirement.baseUnit} / good piece</strong>
-                          <small>{requirement.conversionSource}{requirement.calibrationId ? ` · ${requirement.calibrationId}` : ''}</small>
+                          <small>{requirement.conversionSource} conversion</small>
                         </div>
                       ))}
                     </div>
