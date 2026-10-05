@@ -3,7 +3,6 @@ import { BrowserWorkbookExportCommand } from './application/persistence/BrowserW
 import { BrowserWorkbookImportCommand } from './application/persistence/BrowserWorkbookImportCommand';
 import { PublicGoogleSheetsImportCommand } from './application/persistence/PublicGoogleSheetsImportCommand';
 import { persistenceCoordinator } from './application/session';
-import { CalibrationPage } from './ui/calibration/CalibrationPage';
 import { MaterialsPage } from './ui/materials/MaterialsPage';
 import {
   PublicGoogleSheetsImportPanel,
@@ -29,14 +28,13 @@ import { ProductionPage } from './ui/production/ProductionPage';
 import { YieldPage } from './ui/yield/YieldPage';
 import { AppIcon, type AppIconName } from './ui/icons/AppIcon';
 
-type AppSection = 'materials' | 'calibration' | 'products' | 'yield' | 'production' | 'pricing';
+type AppSection = 'materials' | 'products' | 'yield' | 'production' | 'pricing';
 export type PersistenceUiClock = () => Date;
 
 const SIDEBAR_VISIBILITY_STORAGE_KEY = 'craft-business-manager.sidebar-visible';
 
 const APP_SECTIONS: readonly { id: AppSection; label: string; icon: AppIconName }[] = [
   { id: 'materials', label: 'Materials', icon: 'materials' },
-  { id: 'calibration', label: 'Calibration', icon: 'calibration' },
   { id: 'products', label: 'Products', icon: 'products' },
   { id: 'yield', label: 'Yield', icon: 'yield' },
   { id: 'production', label: 'Production', icon: 'production' },
@@ -324,7 +322,6 @@ export default function App({
       <section className="app-content">
         <div className="workspace-revision-boundary" data-workspace-revision={workspaceRevision} key={workspaceRevision}>
           {section === 'materials' && <MaterialsPage />}
-          {section === 'calibration' && <CalibrationPage />}
           {section === 'products' && <ProductsWorkspacePage />}
           {section === 'yield' && <YieldPage />}
           {section === 'production' && <ProductionPage onOpenProducts={() => selectSection('products')} />}
