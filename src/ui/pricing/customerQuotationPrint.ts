@@ -54,6 +54,21 @@ export function renderCustomerQuotationHtml(view: CustomerQuotationView): string
     ? `<div class="wide"><span>Address</span><strong>${escapeHtml(view.customer.address)}</strong></div>`
     : '';
 
+  const itemRows = view.items
+    .map(
+      (item) => `
+        <tr>
+          <td>
+            <strong>${escapeHtml(item.product.name)}</strong>
+            <small>${escapeHtml(item.product.id)} · ${escapeHtml(item.pricing.sourceLabel)}</small>
+          </td>
+          <td>${escapeHtml(item.product.quantity.toLocaleString('en-PH'))}</td>
+          <td>${escapeHtml(formatMoney(item.pricing.unitSellingPrice))}</td>
+          <td><strong>${escapeHtml(formatMoney(item.pricing.totalSellingPrice))}</strong></td>
+        </tr>`,
+    )
+    .join('');
+
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -92,6 +107,9 @@ export function renderCustomerQuotationHtml(view: CustomerQuotationView): string
     table { width: 100%; border-collapse: collapse; table-layout: fixed; }
     th, td { padding: 3mm; border-bottom: 1px solid #d8d3cc; vertical-align: top; }
     th { background: #f2efe9; color: #625c54; font-size: 7.5pt; letter-spacing: .05em; text-align: left; text-transform: uppercase; }
+    th:first-child { width: 46%; }
+    th:nth-child(2) { width: 14%; }
+    th:nth-child(3), th:nth-child(4) { width: 20%; }
     th:nth-child(2), th:nth-child(3), th:nth-child(4),
     td:nth-child(2), td:nth-child(3), td:nth-child(4) { text-align: right; }
     td strong { display: block; }
@@ -145,22 +163,12 @@ export function renderCustomerQuotationHtml(view: CustomerQuotationView): string
           <th>Amount</th>
         </tr>
       </thead>
-      <tbody>
-        <tr>
-          <td>
-            <strong>${escapeHtml(view.product.name)}</strong>
-            <small>${escapeHtml(view.product.id)} · ${escapeHtml(view.pricing.sourceLabel)}</small>
-          </td>
-          <td>${escapeHtml(view.product.quantity.toLocaleString('en-PH'))}</td>
-          <td>${escapeHtml(formatMoney(view.pricing.unitSellingPrice))}</td>
-          <td><strong>${escapeHtml(formatMoney(view.pricing.totalSellingPrice))}</strong></td>
-        </tr>
-      </tbody>
+      <tbody>${itemRows}</tbody>
     </table>
 
     <div class="totals">
-      <div class="total-row"><span>Subtotal</span><strong>${escapeHtml(formatMoney(view.pricing.totalSellingPrice))}</strong></div>
-      <div class="total-row grand"><span>Total</span><strong>${escapeHtml(formatMoney(view.pricing.totalSellingPrice))}</strong></div>
+      <div class="total-row"><span>Subtotal</span><strong>${escapeHtml(formatMoney(view.subtotal))}</strong></div>
+      <div class="total-row grand"><span>Total</span><strong>${escapeHtml(formatMoney(view.total))}</strong></div>
     </div>
   </section>
 
@@ -168,7 +176,7 @@ export function renderCustomerQuotationHtml(view: CustomerQuotationView): string
   ${view.terms ? `<section><h2>Terms & conditions</h2><div class="text-box">${escapeHtml(view.terms)}</div></section>` : ''}
 
   <footer class="footer-note">
-    This quotation is based on the selected saved selling price for the stated quantity. Internal cost, profit, margin, and production data are intentionally excluded.
+    This quotation is based on the selected saved selling price for each listed Product and quantity. Internal cost, profit, margin, and production data are intentionally excluded.
   </footer>
 </body>
 </html>`;

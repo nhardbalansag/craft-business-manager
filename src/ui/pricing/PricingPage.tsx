@@ -939,6 +939,8 @@ export function PricingPage() {
       <CustomerQuotationDialog
         open={quotationOpen}
         result={resolution}
+        products={products}
+        resolvePrice={(request) => productPriceResolutionService.resolve(request)}
         onClose={() => setQuotationOpen(false)}
       />
 
