@@ -204,7 +204,7 @@ export function ProductCatalog({
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search by name, ID, mix, or notes"
+            placeholder="Search by name, ID, or notes"
           />
         </label>
         <div className="product-category-filters" role="group" aria-label="Filter by category">
