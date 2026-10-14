@@ -316,6 +316,56 @@ describe('production planning interactions', () => {
   });
 });
 
+describe('multi-product production workflow', () => {
+  it('adds a second Product and combines its direct material requirements without modifying inventory', async () => {
+    await seed();
+    await session.productService.createProduct({
+      id: 'SECOND', name: 'Small Candle',
+      category: 'candle', safetyWasteRate: 0, isActive: true,
+    });
+    await session.fixedRecipeItemService.createItem({
+      id: 'RECIPE-SECOND', productId: 'SECOND',
+      materialId: 'WAX', quantityPerProduct: 7, unit: 'g', role: 'consumable',
+    });
+    const before = await session.completeSourceSnapshotService.snapshot();
+    await mount();
+    await click('Multiple products');
+    await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+    expect(container.querySelector('[aria-label="Multi-product production batch"]')).not.toBeNull();
+    await click('Add another product');
+    const second = container.querySelector<HTMLElement>('[aria-label="Production item 2"]')!;
+    const qty = second.querySelector<HTMLInputElement>('input[type="number"]')!;
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(qty, '2');
+      qty.dispatchEvent(new Event('input', { bubbles: true }));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+    const quantityInputs = Array.from(container.querySelectorAll<HTMLInputElement>(
+      '.multi-production-line input[type="number"]',
+    ));
+    const productInputs = Array.from(container.querySelectorAll<HTMLSelectElement>(
+      '.multi-production-line select[aria-label^="Production product"]',
+    ));
+    expect(quantityInputs.map((input) => input.value)).toEqual(['1', '2']);
+    expect(new Set(productInputs.map((input) => input.value))).toEqual(new Set(['CANDLE', 'SECOND']));
+    const gramsPerProduct: Record<string, number> = { CANDLE: 10, SECOND: 7 };
+    const expectedGrams = quantityInputs.reduce(
+      (total, input, index) =>
+        total + Number(input.value) * gramsPerProduct[productInputs[index].value],
+      0,
+    );
+    const combined = container.querySelector<HTMLElement>('[aria-label="Combined direct material requirements"]')!;
+    expect(combined.textContent).toContain(`${expectedGrams} g`);
+    expect(combined.textContent).toContain('50 g');
+    expect(container.textContent).toContain('3 pieces');
+    expect(await session.completeSourceSnapshotService.snapshot()).toEqual(before);
+    await click('Single product');
+    expect(container.querySelector('[aria-label="Batch setup"]')).not.toBeNull();
+  });
+});
+
 describe('planning input and capacity boundaries', () => {
   it('accepts zero but rejects blank, fractional, negative, non-finite and unsafe quantities', () => {
     expect(parsePlannedQuantity('0')).toBe(0);
