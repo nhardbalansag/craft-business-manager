@@ -164,19 +164,20 @@ describe('product workshop interactions', () => {
     expect(catalog().querySelector('.product-editor-context h2')?.textContent).toBe('Edit Updated star');
   });
 
-  it('explains cleared mixes and preserves a draft when the save service fails', async () => {
+  it('clears incompatible legacy preset references and preserves a draft when saving fails', async () => {
     await seed();
     await mount();
     await click('Edit Alpha candle');
     await fill(field('Category'), 'candle-pot');
-    expect(form().querySelector('.product-mix-notice')?.textContent).toContain('previous mix was cleared');
+    expect(form().querySelector('.product-mix-notice')).toBeNull();
     vi.spyOn(session.productService, 'updateProduct').mockRejectedValueOnce(new Error('Could not save'));
     await fill(field('Name'), 'Changed pot');
     await submit();
     expect(field('Name').value).toBe('Changed pot');
     expect(container.querySelector('[role="alert"]')?.textContent).toContain('Could not save');
     await submit();
-    expect((await session.productService.getProduct('ALPHA'))?.name).toBe('Changed pot');
+    expect(await session.productService.getProduct('ALPHA')).toMatchObject({ name: 'Changed pot', category: 'candle-pot' });
+    expect((await session.productService.getProduct('ALPHA'))?.mixPresetId).toBeUndefined();
   });
 
   it('keeps drafts when reselecting a product and asks before replacing them', async () => {
