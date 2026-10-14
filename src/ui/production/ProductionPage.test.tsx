@@ -332,7 +332,12 @@ describe('multi-product production workflow', () => {
     await click('Multiple products');
     await act(async () => { await Promise.resolve(); await Promise.resolve(); });
     expect(container.querySelector('[aria-label="Multi-product production batch"]')).not.toBeNull();
+    expect(container.querySelector('.multi-production-setup')).not.toBeNull();
+    expect(container.querySelector('.multi-production-lines')).not.toBeNull();
+    expect(container.textContent).toContain('1 product selected');
     await click('Add another product');
+    expect(container.querySelectorAll('.multi-production-line')).toHaveLength(2);
+    expect(container.textContent).toContain('2 products selected');
     const second = container.querySelector<HTMLElement>('[aria-label="Production item 2"]')!;
     const qty = second.querySelector<HTMLInputElement>('input[type="number"]')!;
     await act(async () => {
@@ -360,6 +365,9 @@ describe('multi-product production workflow', () => {
     expect(combined.textContent).toContain(`${expectedGrams} g`);
     expect(combined.textContent).toContain('50 g');
     expect(container.textContent).toContain('3 pieces');
+    expect(container.querySelector('.multi-production-summary')).not.toBeNull();
+    expect(container.querySelector('.multi-production-materials-panel')).not.toBeNull();
+    expect(container.querySelector('.multi-production-table-wrap')).not.toBeNull();
     expect(await session.completeSourceSnapshotService.snapshot()).toEqual(before);
     await click('Single product');
     expect(container.querySelector('[aria-label="Batch setup"]')).not.toBeNull();
