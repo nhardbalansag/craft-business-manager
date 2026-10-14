@@ -142,15 +142,6 @@
   border-color: var(--multi-accent);
   color: var(--multi-accent);
 }
-.multi-production-planning-note {
-  margin: 20px 0 0;
-  padding: 14px 16px;
-  border-left: 3px solid var(--mlc-leaf, #596f4a);
-  border-radius: 0 10px 10px 0;
-  background: var(--multi-soft);
-  color: var(--multi-muted);
-  line-height: 1.55;
-}
 .multi-production-loading { color: var(--multi-muted); }
 .multi-production-summary {
   background: linear-gradient(140deg, var(--multi-surface), var(--multi-soft));
