@@ -234,7 +234,6 @@ export function MultiProductProductionPlanner({
         {!inputsValid && <p className="feedback feedback-error" role="alert">Every product needs a positive whole-number quantity.</p>}
         {!unique && <p className="feedback feedback-error" role="alert">Each product may only appear once; change the quantity on its existing line.</p>}
         {sourceError && <p className="feedback feedback-error" role="alert">{sourceError}</p>}
-        <p className="production-section-help multi-production-planning-note">Planning only — nothing is deducted or reserved. Single-product detailed cost and assembly analysis remain available in Single product mode.</p>
       </div>
       {busy || sourceLoading ? <div className="panel multi-production-loading" role="status">Calculating combined material and Mold Formula requirements…</div> : summary && current ? <>
         <section className="panel multi-production-summary">
