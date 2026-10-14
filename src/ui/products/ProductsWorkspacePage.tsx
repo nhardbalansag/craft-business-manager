@@ -43,7 +43,7 @@ export function ProductsWorkspacePage() {
           onClick={() => setMode('catalog')}
         >
           <strong>Catalog &amp; recipes</strong>
-          <small>Products, mixes, components &amp; stock</small>
+          <small>Products, components &amp; stock</small>
         </button>
         <button
           type="button"
