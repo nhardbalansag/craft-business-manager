@@ -26,13 +26,13 @@ describe('React workspace smoke validation', () => {
     expect(html).toContain('Pricing');
   });
 
-  it('renders the Products, Mix Presets, Components, and Finished stock workspace without browser-side effects', () => {
+  it('renders the Products, Components, and Finished stock workspace without browser-side effects', () => {
     const html = renderToStaticMarkup(<ProductsPage />);
 
     expect(html).toContain('Your product workshop');
     expect(html).toContain('Add a product');
     expect(html).toContain('Product catalog');
-    expect(html).toContain('Mix presets');
+    expect(html).not.toContain('Mix presets');
     expect(html).toContain('Components');
     expect(html).toContain('Finished stock');
     expect(html).toContain('Safety waste (%)');
