@@ -167,7 +167,7 @@ export function MultiProductProductionPlanner({
   }
 
   const materialTable = (rows: NonNullable<typeof summary>['directMaterials'], label: string) =>
-    <div className="table-wrap" tabIndex={0} role="region" aria-label={label}>
+    <div className="table-wrap multi-production-table-wrap" tabIndex={0} role="region" aria-label={label}>
       <table className="responsive-table materials-table multi-production-table">
         <thead><tr><th>Material</th><th>Total required</th><th>On hand</th><th>Still needed</th></tr></thead>
         <tbody>
@@ -186,14 +186,15 @@ export function MultiProductProductionPlanner({
 
   return (
     <section className="multi-production-planner" aria-label="Multi-product production batch" aria-busy={busy || sourceLoading}>
-      <div className="panel">
-        <div className="panel-heading">
-          <div>
+      <div className="panel multi-production-setup">
+        <div className="panel-heading multi-production-heading">
+          <div className="multi-production-heading-copy">
             <p className="panel-kicker">MULTI-PRODUCT BATCH</p>
             <h2>Products to make</h2>
             <p>Choose each product, its finished-piece target, and an optional configured Mold Formula.</p>
+            <span className="multi-production-count">{lines.length} {lines.length === 1 ? 'product' : 'products'} selected</span>
           </div>
-          <button type="button" className="button button-secondary" onClick={addLine} disabled={!canAdd}>Add another product</button>
+          <button type="button" className="button button-secondary multi-production-add-button" onClick={addLine} disabled={!canAdd}>Add another product</button>
         </div>
         <div className="multi-production-lines">
           {lines.map((line, index) => {
@@ -201,7 +202,7 @@ export function MultiProductProductionPlanner({
               (mold) => canonical(mold.productId) === canonical(line.productId),
             );
             return <div className="multi-production-line" key={line.key} aria-label={`Production item ${index + 1}`}>
-              <span className="multi-production-line-number">{index + 1}</span>
+              <span className="multi-production-line-number" aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>
               <label className="field"><span>Product</span>
                 <select aria-label={`Production product ${index + 1}`} value={line.productId} onChange={(event) =>
                   updateLine(line.key, { productId: event.target.value, moldId: firstMold(event.target.value) })
@@ -223,7 +224,7 @@ export function MultiProductProductionPlanner({
                   {eligibleMolds.map((mold) => <option key={mold.id} value={mold.id}>{mold.name}</option>)}
                 </select>
               </label>
-              <button type="button" className="button button-secondary" disabled={lines.length === 1}
+              <button type="button" className="button button-secondary multi-production-remove" disabled={lines.length === 1}
                 onClick={() => setLines((current) => current.filter((row) => row.key !== line.key))}>
                 Remove
               </button>
@@ -233,43 +234,51 @@ export function MultiProductProductionPlanner({
         {!inputsValid && <p className="feedback feedback-error" role="alert">Every product needs a positive whole-number quantity.</p>}
         {!unique && <p className="feedback feedback-error" role="alert">Each product may only appear once; change the quantity on its existing line.</p>}
         {sourceError && <p className="feedback feedback-error" role="alert">{sourceError}</p>}
-        <p className="production-section-help">Planning only — nothing is deducted or reserved. Single-product detailed cost and assembly analysis remain available in Single product mode.</p>
+        <p className="production-section-help multi-production-planning-note">Planning only — nothing is deducted or reserved. Single-product detailed cost and assembly analysis remain available in Single product mode.</p>
       </div>
-      {busy || sourceLoading ? <div className="panel" role="status">Calculating combined material and Mold Formula requirements…</div> : summary && current ? <>
-        <section className="panel">
-          <div className="panel-heading">
-            <div><p className="panel-kicker">BATCH SUMMARY</p><h2>{summary.products} Products · {number(summary.finishedPieces)} pieces</h2></div>
-            <button type="button" className="button button-primary" onClick={handlePrint}>Print / Save as PDF</button>
+      {busy || sourceLoading ? <div className="panel multi-production-loading" role="status">Calculating combined material and Mold Formula requirements…</div> : summary && current ? <>
+        <section className="panel multi-production-summary">
+          <div className="panel-heading multi-production-heading">
+            <div className="multi-production-heading-copy">
+              <p className="panel-kicker">BATCH SUMMARY</p>
+              <h2>{summary.products} Products · {number(summary.finishedPieces)} pieces</h2>
+              <span className={`multi-production-status ${summary.ready ? 'is-ready' : 'is-warning'}`}>
+                {summary.ready ? 'Ready to prepare' : 'Review requirements'}
+              </span>
+            </div>
+            <button type="button" className="button button-primary multi-production-print-button" onClick={handlePrint}>Print / Save as PDF</button>
           </div>
-          <p>Combined results are {summary.ready ? 'ready' : 'partially resolved'}. Stock is checked once per material against the combined requirement, not repeatedly per product.</p>
+          <p className="multi-production-description">Stock is checked once per material against the combined requirement, not repeatedly per product.</p>
           {printError && <p role="alert" className="feedback feedback-error">{printError}</p>}
           {summary.warnings.length > 0 && <div className="feedback feedback-error" role="status">
             <strong>Check unresolved requirements</strong>
             <ul>{summary.warnings.map((warning, index) => <li key={index}>{warning}</li>)}</ul>
           </div>}
         </section>
-        <section className="panel" aria-label="Combined Product Yield materials">
+        <section className="panel multi-production-materials-panel" aria-label="Combined Product Yield materials">
           <p className="panel-kicker">AUTHORITATIVE PRODUCT / YIELD</p>
           <h2>Total direct materials to prepare</h2>
           <p>Includes each product’s recipe/Yield quantities and safety-waste rate. If any recipe is unresolved, these are known subtotals only.</p>
           {materialTable(summary.directMaterials, 'Combined direct material requirements')}
         </section>
-        <section className="panel" aria-label="Formula mixing groups">
+        <section className="panel multi-production-mixture-panel" aria-label="Formula mixing groups">
           <p className="panel-kicker">THEORETICAL MOLD FORMULAS</p>
           <h2>Mixtures to prepare</h2>
           <p>Same material identities and mixing ratios share a group. Different formulas remain separate. Each mold’s complete-pour rounding is preserved.</p>
           {summary.mixtureGroups.map((group, index) => (
             <div className="multi-production-group" key={group.key} aria-label={`Mixture group ${index + 1}`}>
-              <h3>Mixture group {index + 1}</h3>
-              <p>{group.products.map((entry) => `${entry.name} × ${entry.quantity} (${entry.pours} pours, ${entry.moldName})`).join(' · ')}</p>
-              <strong>{number(group.totalMixtureGrams)} g total mixture · {number(group.requiredPours)} complete pours</strong>
+              <div className="multi-production-group-heading">
+                <h3>Mixture group {index + 1}</h3>
+                <strong>{number(group.totalMixtureGrams)} g total mixture · {number(group.requiredPours)} complete pours</strong>
+              </div>
+              <p className="multi-production-group-products">{group.products.map((entry) => `${entry.name} × ${entry.quantity} (${entry.pours} pours, ${entry.moldName})`).join(' · ')}</p>
               <div className="multi-production-mixture-lines">{group.materials.map((row) =>
                 <span key={row.role}><strong>{row.role}</strong> {row.name}: {number(row.grams)} g</span>)}</div>
             </div>
           ))}
-          {summary.mixtureGroups.length === 0 && <p>No Mold Formula selected. Choose an active configured mold to calculate a theoretical mixture.</p>}
+          {summary.mixtureGroups.length === 0 && <p className="multi-production-empty">No Mold Formula selected. Choose an active configured mold to calculate a theoretical mixture.</p>}
         </section>
-        <section className="panel" aria-label="Combined theoretical material totals">
+        <section className="panel multi-production-materials-panel" aria-label="Combined theoretical material totals">
           <p className="panel-kicker">MOLD FORMULA STOCK PLANNING</p>
           <h2>Total formula materials to prepare</h2>
           <p><strong>{number(summary.formulaMixtureGrams)} g</strong> combined theoretical mixture across all groups. These totals are an alternative view and must not be added to the Product/Yield requirements above.</p>
