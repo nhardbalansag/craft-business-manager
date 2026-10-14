@@ -35,6 +35,35 @@ async function clickButton(label: string) {
 }
 
 describe('application navigation drawer', () => {
+  it('shows My Lovely Craft and the supplied botanical brand mark', async () => {
+    await mount();
+    const drawer = container.querySelector('#app-navigation-drawer')!;
+    expect(drawer.textContent).toContain('My Lovely Craft');
+    expect(drawer.textContent).toContain('Crafted with love');
+    expect(drawer.querySelector<HTMLImageElement>('.brand-mark img')?.getAttribute('src')).toBe('/brand/mlc-mark.webp');
+  });
+
+  it('switches appearance and remembers Light, Dark and System choices', async () => {
+    await mount();
+    const group = container.querySelector('[aria-label="Appearance theme"]')!;
+    expect(group.querySelector('[aria-pressed="true"]')?.textContent).toBe('System');
+    await clickButton('Dark');
+    expect(document.documentElement.dataset.theme).toBe('dark');
+    expect(window.localStorage.getItem('craft-business-manager.appearance')).toBe('dark');
+    await clickButton('Light');
+    expect(document.documentElement.dataset.theme).toBe('light');
+    expect(window.localStorage.getItem('craft-business-manager.appearance')).toBe('light');
+    await clickButton('System');
+    expect(group.querySelector('[aria-pressed="true"]')?.textContent).toBe('System');
+  });
+
+  it('restores a saved appearance preference at launch', async () => {
+    window.localStorage.setItem('craft-business-manager.appearance', 'dark');
+    await mount();
+    expect(document.documentElement.dataset.theme).toBe('dark');
+    expect(container.querySelector('[aria-label="Appearance theme"] [aria-pressed="true"]')?.textContent).toBe('Dark');
+  });
+
   it('renders the primary sections in a left drawer instead of a top header', async () => {
     await mount();
 

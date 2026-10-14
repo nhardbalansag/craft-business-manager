@@ -6,6 +6,7 @@ import './responsive.css';
 import './ui/icons/appIcons.css';
 import './appDrawer.css';
 import './appDrawerProfessional.css';
+import './brandingTheme.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
