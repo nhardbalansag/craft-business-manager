@@ -42,7 +42,6 @@ function button(text: string) {
 async function renderCatalog(overrides: Partial<ComponentProps<typeof ProductCatalog>> = {}) {
   const props: ComponentProps<typeof ProductCatalog> = {
     products: [product],
-    mixPresets: [],
     loading: false,
     loadFailed: false,
     disabled: false,

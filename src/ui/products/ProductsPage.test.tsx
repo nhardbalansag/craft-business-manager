@@ -164,19 +164,20 @@ describe('product workshop interactions', () => {
     expect(catalog().querySelector('.product-editor-context h2')?.textContent).toBe('Edit Updated star');
   });
 
-  it('explains cleared mixes and preserves a draft when the save service fails', async () => {
+  it('clears incompatible legacy preset references and preserves a draft when saving fails', async () => {
     await seed();
     await mount();
     await click('Edit Alpha candle');
     await fill(field('Category'), 'candle-pot');
-    expect(form().querySelector('.product-mix-notice')?.textContent).toContain('previous mix was cleared');
+    expect(form().querySelector('.product-mix-notice')).toBeNull();
     vi.spyOn(session.productService, 'updateProduct').mockRejectedValueOnce(new Error('Could not save'));
     await fill(field('Name'), 'Changed pot');
     await submit();
     expect(field('Name').value).toBe('Changed pot');
     expect(container.querySelector('[role="alert"]')?.textContent).toContain('Could not save');
     await submit();
-    expect((await session.productService.getProduct('ALPHA'))?.name).toBe('Changed pot');
+    expect(await session.productService.getProduct('ALPHA')).toMatchObject({ name: 'Changed pot', category: 'candle-pot' });
+    expect((await session.productService.getProduct('ALPHA'))?.mixPresetId).toBeUndefined();
   });
 
   it('keeps drafts when reselecting a product and asks before replacing them', async () => {
@@ -220,12 +221,12 @@ describe('product workshop interactions', () => {
     await mount();
     await click('Compact');
     expect(catalog().querySelector('.product-card-grid.is-compact')).not.toBeNull();
-    await fill(catalog().querySelector('input')!, 'Signature blend');
+    await fill(catalog().querySelector('input')!, 'Alpha');
     expect(catalog().querySelector('[aria-label="Candle"] .product-filter-count')?.textContent).toBe('1');
     expect(catalog().querySelector('[aria-label="Paintable art"] .product-filter-count')?.textContent).toBe('0');
     await click('Cards');
     expect(catalog().querySelectorAll('article')).toHaveLength(1);
-    expect(catalog().querySelector('input')?.value).toBe('Signature blend');
+    expect(catalog().querySelector('input')?.value).toBe('Alpha');
     await click('Edit Alpha candle');
     expect(field('Product ID').value).toBe('ALPHA');
   });
@@ -249,7 +250,6 @@ describe('product workshop interactions', () => {
     ).toEqual([
       'Product',
       'Category',
-      'Mix preset',
       'Material reserve',
       'Status',
       'Notes',
@@ -257,7 +257,6 @@ describe('product workshop interactions', () => {
     ]);
     expect(table.querySelectorAll('tbody tr')).toHaveLength(2);
     expect(table.textContent).toContain('Alpha candle');
-    expect(table.textContent).toContain('Signature blend');
     expect(table.textContent).toContain('5%');
     expect(table.textContent).toContain('Beta star');
 
@@ -362,10 +361,10 @@ describe('product workshop interactions', () => {
     expect(container.querySelector('[role="status"]')?.textContent).toContain('Product created');
   });
 
-  it('searches mix names, combines category filters, and recovers an empty search', async () => {
+  it('searches product names, combines category filters, and recovers an empty search', async () => {
     await seed();
     await mount();
-    await fill(catalog().querySelector('input')!, 'Signature blend');
+    await fill(catalog().querySelector('input')!, 'Alpha');
     expect(catalog().querySelectorAll('article')).toHaveLength(1);
     expect(catalog().textContent).toContain('Alpha candle');
     await click('Paintable art', catalog());
@@ -381,7 +380,7 @@ describe('product workshop interactions', () => {
     await click('Edit Alpha candle');
     expect((field('Product ID') as HTMLInputElement).readOnly).toBe(true);
     await fill(field('Category'), 'paintable-art');
-    expect(field('Mix preset').value).toBe('MIX');
+    expect(form().querySelector('[name="mixPresetId"]')).toBeNull();
     await fill(field('Name'), 'Updated candle');
     await submit();
     expect(await session.productService.getProduct('ALPHA')).toMatchObject({
@@ -391,7 +390,8 @@ describe('product workshop interactions', () => {
     });
     expect(await session.productService.listProducts()).toHaveLength(2);
     await fill(field('Category'), 'candle-pot');
-    expect(field('Mix preset').value).toBe('');
+    await submit();
+    expect((await session.productService.getProduct('ALPHA'))?.mixPresetId).toBeUndefined();
   });
 
   it('retains catalog filters and unsaved product fields across workspace views', async () => {
@@ -400,7 +400,7 @@ describe('product workshop interactions', () => {
     await click('Edit Beta star');
     await fill(field('Name'), 'Draft name');
     await fill(catalog().querySelector('input')!, 'Beta');
-    await navigate('Mix presets');
+    await navigate('Components');
     await navigate('Products');
     expect(field('Name').value).toBe('Draft name');
     expect(catalog().querySelector('input')?.value).toBe('Beta');
@@ -516,38 +516,26 @@ describe('product workshop interactions', () => {
     await click('Retry loading');
     expect(container.querySelector('.product-stock-editor')).not.toBeNull();
   });
-  it('searches presets by material name and restores an archived mix', async () => {
-    await seed();
-    await session.productService.updateProduct('ALPHA', { mixPresetId: undefined });
-    await mount();
-    await navigate('Mix presets');
-    const mixes = container.querySelector<HTMLElement>('#products-view-mixes')!;
-    await fill(mixes.querySelector<HTMLInputElement>('.search-field input')!, 'Soy wax');
-    expect(mixes.querySelectorAll('tbody tr')).toHaveLength(1);
-    await click('Archive', mixes);
-    expect((await session.mixPresetService.listMixPresets())[0]?.isActive).toBe(false);
-    await fill(mixes.querySelector<HTMLSelectElement>('[aria-label="Mix status filter"]')!, 'archived');
-    await click('Restore', mixes);
-    expect((await session.mixPresetService.listMixPresets())[0]?.isActive).toBe(true);
-  });
-
-  it('creates a reusable mix through the ratio editor', async () => {
+  it('hides Mix Presets UI but preserves legacy preset references on product edits', async () => {
     await seed();
     await mount();
-    await navigate('Mix presets');
-    const mixes = container.querySelector<HTMLElement>('#products-view-mixes')!;
-    const mixForm = mixes.querySelector('form')!;
-    const inputs = mixForm.querySelectorAll<HTMLInputElement>('input:not([type="checkbox"])');
-    expect(inputs[0]!.value).toBe('MIX-0001');
-    expect(inputs[0]!.readOnly).toBe(true);
-    await fill(inputs[1]!, 'New wax blend');
-    await fill(mixForm.querySelector<HTMLSelectElement>('[aria-label="Mix material 1"]')!, 'WAX');
-    await act(async () => mixForm.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })));
-    expect((await session.mixPresetService.listMixPresets()).find((item) => item.id === 'MIX-0001')).toMatchObject({
-      name: 'New wax blend',
-      lines: [{ materialId: 'WAX', parts: 100, role: 'primary' }],
+    const views = Array.from(container.querySelectorAll('nav[aria-label="Product workspace views"] button'));
+    expect(views.some((button) => button.textContent?.includes('Mix presets'))).toBe(false);
+    expect(container.querySelector('#products-view-mixes')).toBeNull();
+    expect(container.querySelector('[aria-label="Workshop summary"]')?.textContent).not.toContain('Mix presets');
+    expect(catalog().textContent).not.toContain('Signature blend');
+    await click('Table');
+    expect(catalog().querySelector('.product-catalog-table')?.textContent).not.toContain('Mix preset');
+    await click('Cards');
+    await click('Edit Alpha candle');
+    expect(form().querySelector('[name="mixPresetId"]')).toBeNull();
+    await fill(field('Name'), 'Renamed legacy candle');
+    await submit();
+    expect(await session.productService.getProduct('ALPHA')).toMatchObject({
+      name: 'Renamed legacy candle',
+      mixPresetId: 'MIX',
     });
-    expect(container.textContent).toContain('Mix preset created.');
+    expect((await session.mixPresetService.listMixPresets()).map((preset) => preset.id)).toContain('MIX');
   });
 
   it('reports a completed save separately from a failed catalog refresh', async () => {

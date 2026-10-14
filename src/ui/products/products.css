@@ -44,7 +44,7 @@
 .products-overview span { color: #6b645a; font-size: .84rem; }
 .products-overview strong { font-size: 2rem; line-height: 1; font-variant-numeric: tabular-nums; }
 .products-overview small { color: #6b645a; font-size: .76rem; }
-.products-workspace .workspace-switcher { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 0; padding: 6px; gap: 6px; }
+.products-workspace .workspace-switcher { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; padding: 6px; gap: 6px; }
 .products-workspace .workspace-switcher button { display: grid; gap: 4px; text-align: left; padding: 13px 18px; }
 .products-workspace .workspace-switcher small { font-size: .73rem; font-weight: 400; }
 .product-catalog-layout { display: grid; grid-template-columns: minmax(0, 1fr) 370px; gap: 22px; align-items: start; }

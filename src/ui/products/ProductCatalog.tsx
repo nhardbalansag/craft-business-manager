@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { MixPreset } from '../../domain/mixPresets';
 import { PRODUCT_CATEGORIES, PRODUCT_CATEGORY_RULES, type Product, type ProductCategory } from '../../domain/products';
 import { AppIcon } from '../icons/AppIcon';
 import { ProductLabelPrintDialog } from './ProductLabelPrintDialog';
@@ -7,7 +6,6 @@ import './productCatalogEditorSeparation.css';
 
 interface ProductCatalogProps {
   products: readonly Product[];
-  mixPresets: readonly MixPreset[];
   loading: boolean;
   loadFailed: boolean;
   disabled: boolean;
@@ -29,7 +27,6 @@ type ProductEditorIntent =
 
 export function ProductCatalog({
   products,
-  mixPresets,
   loading,
   loadFailed,
   disabled,
@@ -55,20 +52,18 @@ export function ProductCatalog({
   const editingProduct = products.find((product) => product.id === editingId);
   const editorIntent: ProductEditorIntent = editorOpen === undefined ? localEditorIntent : !editorOpen ? null
     : editingId ? { mode: 'edit', productName: editingProduct?.name ?? editingId, productId: editingId } : { mode: 'new' };
-  const mixById = useMemo(() => new Map(mixPresets.map((mix) => [mix.id.toLowerCase(), mix])), [mixPresets]);
   const matchingProducts = useMemo(() => {
     const search = query.trim().toLowerCase();
     return products
       .filter((product) => {
-        const mix = mixById.get(product.mixPresetId?.toLowerCase() ?? '');
         return (
           (status === 'all' || product.isActive === (status === 'active')) &&
-          [product.name, product.id, product.notes ?? '', product.mixPresetId ?? '', mix?.name ?? ''].some((value) =>
+          [product.name, product.id, product.notes ?? ''].some((value) =>
             value.toLowerCase().includes(search),
           )
         );
       });
-  }, [products, mixById, query, status]);
+  }, [products, query, status]);
   const visible = useMemo(() => matchingProducts
       .filter((product) => category === 'all' || category === product.category)
       .sort(
@@ -209,7 +204,7 @@ export function ProductCatalog({
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search by name, ID, mix, or notes"
+            placeholder="Search by name, ID, or notes"
           />
         </label>
         <div className="product-category-filters" role="group" aria-label="Filter by category">
@@ -301,7 +296,6 @@ export function ProductCatalog({
                 <tr>
                   <th scope="col">Product</th>
                   <th scope="col">Category</th>
-                  <th scope="col">Mix preset</th>
                   <th scope="col">Material reserve</th>
                   <th scope="col">Status</th>
                   <th scope="col">Notes</th>
@@ -310,7 +304,6 @@ export function ProductCatalog({
               </thead>
               <tbody>
                 {paginatedVisible.map((product) => {
-                  const mix = mixById.get(product.mixPresetId?.toLowerCase() ?? '');
                   return (
                     <tr
                       key={product.id}
@@ -332,10 +325,6 @@ export function ProductCatalog({
                         </div>
                       </td>
                       <td>{PRODUCT_CATEGORY_RULES[product.category].label}</td>
-                      <td>
-                        {mix?.name ?? product.mixPresetId ?? 'No mix preset'}
-                        {mix && !mix.isActive ? ' (archived)' : ''}
-                      </td>
                       <td>
                         {(product.safetyWasteRate * 100).toLocaleString(undefined, { maximumFractionDigits: 2 })}%
                       </td>
@@ -398,7 +387,6 @@ export function ProductCatalog({
         ) : (
           <div className={`product-card-grid ${density === 'compact' ? 'is-compact' : ''}`}>
             {paginatedVisible.map((product) => {
-              const mix = mixById.get(product.mixPresetId?.toLowerCase() ?? '');
               return (
                 <article
                   key={product.id}
@@ -423,13 +411,6 @@ export function ProductCatalog({
                     <span className="material-id">{product.id}</span>
                   </div>
                   <dl className="product-card-facts">
-                    <div>
-                      <dt>Mix preset</dt>
-                      <dd>
-                        {mix?.name ?? product.mixPresetId ?? 'No mix preset'}
-                        {mix && !mix.isActive ? ' (archived)' : ''}
-                      </dd>
-                    </div>
                     <div>
                       <dt>Material reserve</dt>
                       <dd>{(product.safetyWasteRate * 100).toLocaleString(undefined, { maximumFractionDigits: 2 })}%</dd>
