@@ -318,6 +318,7 @@ export const effectiveRecipeRequirementService = new EffectiveRecipeRequirementS
   productRepository,
   yieldHistoryService,
   fixedRecipeItemService,
+  materialRepository,
 );
 export const recipeMaterialCostPreviewService = new RecipeMaterialCostPreviewService(
   effectiveRecipeRequirementService,

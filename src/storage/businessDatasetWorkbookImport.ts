@@ -398,6 +398,10 @@ function reconstructProducts(document: WorkbookNeutralDocument): Product[] {
     if (mixPresetId !== undefined) product.mixPresetId = mixPresetId;
     const preferredYieldSampleId = optionalText(row, 'preferredYieldSampleId');
     if (preferredYieldSampleId !== undefined) product.preferredYieldSampleId = preferredYieldSampleId;
+    const candleWaxMaterialId = optionalText(row, 'candleWaxMaterialId');
+    const candleEssentialOilMaterialId = optionalText(row, 'candleEssentialOilMaterialId');
+    if (candleWaxMaterialId !== undefined) product.candleWaxMaterialId = candleWaxMaterialId;
+    if (candleEssentialOilMaterialId !== undefined) product.candleEssentialOilMaterialId = candleEssentialOilMaterialId;
     const notes = optionalText(row, 'notes');
     if (notes !== undefined) product.notes = notes;
     return product;
