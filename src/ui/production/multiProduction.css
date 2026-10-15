@@ -154,10 +154,8 @@
   margin: 10px 0 0;
   padding-left: 20px;
 }
-.multi-production-planner > .multi-production-materials-panel > .panel-kicker,
-.multi-production-planner > .multi-production-mixture-panel > .panel-kicker { margin-bottom: 8px; }
-.multi-production-planner > .multi-production-materials-panel > h2,
-.multi-production-planner > .multi-production-mixture-panel > h2 { margin: 0 0 10px; }
+.multi-production-planner > .multi-production-materials-panel > .panel-kicker { margin-bottom: 8px; }
+.multi-production-planner > .multi-production-materials-panel > h2 { margin: 0 0 10px; }
 .multi-production-table-wrap {
   min-height: 0;
   margin-top: 20px;
@@ -173,52 +171,6 @@
   display: block;
   margin-top: 4px;
   color: var(--multi-muted);
-}
-.multi-production-group {
-  display: grid;
-  gap: 12px;
-  margin: 18px 0 0;
-  padding: clamp(16px, 2.1vw, 24px);
-  border: 1px solid var(--multi-border);
-  border-radius: 16px;
-  background: var(--multi-soft);
-}
-.multi-production-group-heading {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 8px 18px;
-}
-.multi-production-group-heading h3 { margin: 0; font-size: 1.06rem; }
-.multi-production-group-heading > strong { color: var(--multi-accent); font-size: .91rem; }
-.multi-production-group-products {
-  margin: 0;
-  color: var(--multi-muted);
-  font-size: .88rem;
-  line-height: 1.6;
-  overflow-wrap: anywhere;
-}
-.multi-production-mixture-lines {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 4px;
-}
-.multi-production-mixture-lines > span {
-  padding: 10px 14px;
-  border: 1px solid var(--multi-border);
-  border-radius: 10px;
-  background: var(--multi-surface);
-  color: var(--multi-text);
-  font-size: .83rem;
-}
-.multi-production-mixture-lines > span strong { color: var(--mlc-leaf, #596f4a); text-transform: capitalize; }
-.multi-production-empty {
-  padding: 18px;
-  border: 1px dashed var(--multi-border);
-  border-radius: 12px;
-  background: var(--multi-soft);
 }
 .production-mode-tabs {
   display: flex;
@@ -279,8 +231,6 @@
   .multi-production-heading-copy { flex-basis: 100%; }
   .multi-production-add-button,
   .multi-production-print-button { width: 100%; }
-  .multi-production-group-heading { display: grid; }
-  .multi-production-mixture-lines { display: grid; grid-template-columns: minmax(0, 1fr); }
   .production-mode-tabs { width: 100%; }
   .production-mode-tabs .button { flex: 1 1 0; padding-inline: 8px; }
 }

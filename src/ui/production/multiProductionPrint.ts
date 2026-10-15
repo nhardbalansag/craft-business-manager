@@ -12,13 +12,6 @@ export function renderMultiProductionSheet(
   const table = (rows: MultiProductionSummary['directMaterials']) =>
     rows.length ? rows.map((row) => `<tr><td>${esc(row.name)}</td><td class="right">${num(row.required)} ${esc(row.unit)}</td><td class="right">${row.available === null ? 'Unresolved' : `${num(row.available)} ${esc(row.unit)}`}</td><td class="right">${row.shortage === null ? 'Check stock' : `${num(row.shortage)} ${esc(row.unit)}`}</td></tr>`).join('')
       : '<tr><td colspan="4">No derivable requirements.</td></tr>';
-  const groups = summary.mixtureGroups.map((group, idx) => `<section>
-    <h3>Mixture group ${idx + 1}</h3>
-    <p>${group.products.map((product) => `${esc(product.name)} (${num(product.quantity)} pcs, ${num(product.pours)} pours using ${esc(product.moldName)})`).join(' · ')}</p>
-    <p><strong>${num(group.totalMixtureGrams)} g total mixture</strong> · ${num(group.requiredPours)} combined complete pours</p>
-    <table><thead><tr><th>Role</th><th>Material</th><th class="right">Required</th></tr></thead>
-    <tbody>${group.materials.map((line) => `<tr><td>${esc(line.role)}</td><td>${esc(line.name)}</td><td class="right">${num(line.grams)} g</td></tr>`).join('')}</tbody></table>
-  </section>`).join('');
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Multi-product production batch</title>
   <style>
     @page { size: A4; margin: 13mm; }
@@ -45,11 +38,8 @@ export function renderMultiProductionSheet(
   <table><thead><tr><th>Product</th><th>ID</th><th class="right">Pieces</th><th>Recipe readiness</th></tr></thead><tbody>${products}</tbody></table>
   <h2>Total direct materials — combined Product/Yield requirements</h2>
   <table><thead><tr><th>Material</th><th class="right">Needed</th><th class="right">Stock</th><th class="right">Shortage</th></tr></thead><tbody>${table(summary.directMaterials)}</tbody></table>
-  <h2>Compatible Mold Formula mixing groups</h2>
-  <p>Separate groups must not be mixed. Complete-pour rounding is calculated independently for each Mold.</p>
-  ${groups || '<p>No Mold Formula selected. This is not evidence that a mixture is unnecessary.</p>'}
   <h2>Theoretical Mold Formula material purchasing totals</h2>
-  <p><strong>Combined theoretical mixture: ${num(summary.formulaMixtureGrams)} g</strong>. These stock totals include each Material only once.</p>
+  <p><strong>Combined theoretical mixture: ${num(summary.formulaMixtureGrams)} g</strong> for the selected molds. These stock totals include each Material only once; mixing requirements can differ by mold.</p>
   <table><thead><tr><th>Material</th><th class="right">Needed</th><th class="right">Stock</th><th class="right">Shortage</th></tr></thead><tbody>${table(summary.formulaMaterials)}</tbody></table>
   ${summary.warnings.length ? `<h2>Unresolved inputs / warnings</h2><ul>${summary.warnings.map(w=>`<li>${esc(w)}</li>`).join('')}</ul>` : ''}
   </body></html>`;

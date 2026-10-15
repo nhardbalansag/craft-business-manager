@@ -260,27 +260,10 @@ export function MultiProductProductionPlanner({
           <p>Includes each product’s recipe/Yield quantities and safety-waste rate. If any recipe is unresolved, these are known subtotals only.</p>
           {materialTable(summary.directMaterials, 'Combined direct material requirements')}
         </section>
-        <section className="panel multi-production-mixture-panel" aria-label="Formula mixing groups">
-          <p className="panel-kicker">THEORETICAL MOLD FORMULAS</p>
-          <h2>Mixtures to prepare</h2>
-          <p>Same material identities and mixing ratios share a group. Different formulas remain separate. Each mold’s complete-pour rounding is preserved.</p>
-          {summary.mixtureGroups.map((group, index) => (
-            <div className="multi-production-group" key={group.key} aria-label={`Mixture group ${index + 1}`}>
-              <div className="multi-production-group-heading">
-                <h3>Mixture group {index + 1}</h3>
-                <strong>{number(group.totalMixtureGrams)} g total mixture · {number(group.requiredPours)} complete pours</strong>
-              </div>
-              <p className="multi-production-group-products">{group.products.map((entry) => `${entry.name} × ${entry.quantity} (${entry.pours} pours, ${entry.moldName})`).join(' · ')}</p>
-              <div className="multi-production-mixture-lines">{group.materials.map((row) =>
-                <span key={row.role}><strong>{row.role}</strong> {row.name}: {number(row.grams)} g</span>)}</div>
-            </div>
-          ))}
-          {summary.mixtureGroups.length === 0 && <p className="multi-production-empty">No Mold Formula selected. Choose an active configured mold to calculate a theoretical mixture.</p>}
-        </section>
         <section className="panel multi-production-materials-panel" aria-label="Combined theoretical material totals">
           <p className="panel-kicker">MOLD FORMULA STOCK PLANNING</p>
           <h2>Total formula materials to prepare</h2>
-          <p><strong>{number(summary.formulaMixtureGrams)} g</strong> combined theoretical mixture across all groups. These totals are an alternative view and must not be added to the Product/Yield requirements above.</p>
+          <p><strong>{number(summary.formulaMixtureGrams)} g</strong> combined theoretical mixture for the selected molds. These totals are an alternative view and must not be added to the Product/Yield requirements above.</p>
           {materialTable(summary.formulaMaterials, 'Combined theoretical formula materials')}
         </section>
       </> : null}
