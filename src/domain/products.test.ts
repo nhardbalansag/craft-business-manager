@@ -24,6 +24,24 @@ function product(overrides: Partial<Product> = {}): Product {
   };
 }
 
+describe('candle fragrance pairing contract', () => {
+  it('requires a paired wax and essential oil only for candle Products', () => {
+    expect(() => validateProductContract(product({
+      category: 'candle', candleWaxMaterialId: 'WAX', candleEssentialOilMaterialId: 'OIL',
+    }))).not.toThrow();
+    for (const configured of [
+      product({ category: 'candle', candleWaxMaterialId: 'WAX' }),
+      product({ category: 'candle', candleEssentialOilMaterialId: 'OIL' }),
+      product({ category: 'candle', candleWaxMaterialId: 'WAX', candleEssentialOilMaterialId: 'WAX' }),
+      product({ candleWaxMaterialId: 'WAX', candleEssentialOilMaterialId: 'OIL' }),
+    ]) {
+      expect(() => validateProductContract(configured)).toThrow(
+        expect.objectContaining({ code: 'INVALID_CANDLE_OIL_CONFIGURATION' }),
+      );
+    }
+  });
+});
+
 describe('product categories', () => {
   it('exposes the locked Phase 2 categories', () => {
     expect(PRODUCT_CATEGORIES).toEqual(['paintable-art', 'candle-pot', 'candle']);
