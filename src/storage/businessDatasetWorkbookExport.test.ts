@@ -209,6 +209,18 @@ describe('BusinessDataset workbook export', () => {
     expect(validateWorkbookSchema(document)).toEqual([]);
   });
 
+  it('exports wax essential oil settings as an optional Material column', () => {
+    const dataset = datasetFixture();
+    const wax = dataset.materials.find((material) => material.id === 'MAT-A-PLASTER')!;
+    wax.group = 'wax';
+    wax.essentialOilPercent = 6;
+    const document = createBusinessDatasetWorkbookDocument(dataset, METADATA);
+    const materials = sheet(document, 'Materials');
+    expect(materials.columns).toContain('essentialOilPercent');
+    expect(materials.rows.find((row) => row.id === wax.id)?.essentialOilPercent).toBe(6);
+    expect(validateWorkbookSchema(document)).toEqual([]);
+  });
+
   it('writes exact explicit metadata without a hidden clock', () => {
     const document = createBusinessDatasetWorkbookDocument(datasetFixture(), METADATA);
     expect(sheet(document, '_Meta').rows).toEqual([
