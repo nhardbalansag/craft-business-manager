@@ -119,6 +119,41 @@ async function submit() {
 }
 
 describe('Yield workspace UI/UX', () => {
+  it('uses the saved wax oil percentage and explicitly adds estimated oil to candle yield inputs', async () => {
+    await session.materialRepository.replaceAll([
+      { ...plaster, id: 'WAX', name: 'Soy wax', group: 'wax', essentialOilPercent: 6 },
+      { ...plaster, id: 'OIL', name: 'Lavender essential oil', group: 'fragrance', packageCost: 500 },
+    ]);
+    await session.productRepository.replaceAll([{ ...product, id: 'CANDLE', name: 'Scented Candle', category: 'candle' }]);
+    await mount();
+    const panel = container.querySelector<HTMLElement>('[aria-label="Essential oil calculator"]')!;
+    expect(panel).not.toBeNull();
+    expect(panel.textContent).toContain('Select a wax material');
+    await fill(container.querySelector<HTMLSelectElement>('[aria-label="Yield material 1"]')!, 'WAX');
+    await fill(container.querySelector<HTMLInputElement>('[aria-label="Yield quantity 1"]')!, '200');
+    expect(panel.textContent).toContain('6%');
+    expect(panel.textContent).toContain('12 g');
+    expect(panel.textContent).toContain('212 g');
+    expect(container.querySelectorAll('.yield-input-row')).toHaveLength(1);
+    await click('Apply estimated oil to batch', panel);
+    expect(container.querySelectorAll('.yield-input-row')).toHaveLength(2);
+    expect(container.querySelector<HTMLSelectElement>('[aria-label="Yield material 2"]')?.value).toBe('OIL');
+    expect(container.querySelector<HTMLInputElement>('[aria-label="Yield quantity 2"]')?.value).toBe('12');
+    expect(container.textContent).toContain('Verify the actual grams before recording');
+    // The preview never creates Yield evidence until the user records the sample.
+    expect(await session.yieldSampleEvidenceService.listSamples()).toHaveLength(0);
+    await submit();
+    expect((await session.yieldSampleEvidenceService.listSamples())[0]?.materialInputs).toEqual([
+      { materialId: 'WAX', quantity: 200, unit: 'g' },
+      { materialId: 'OIL', quantity: 12, unit: 'g' },
+    ]);
+  });
+
+  it('does not show scented candle guidance for plaster products', async () => {
+    await seed();
+    await mount();
+    expect(container.querySelector('[aria-label="Essential oil calculator"]')).toBeNull();
+  });
   it('makes unavailable copied materials visible and requires a valid replacement', async () => {
     await seed();
     await session.materialRepository.replaceAll([plaster, { ...plaster, id: 'ARCHIVED', name: 'Old plaster', isActive: false }]);
