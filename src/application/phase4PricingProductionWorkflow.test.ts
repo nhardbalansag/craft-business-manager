@@ -116,6 +116,7 @@ function workflow() {
     productRepository,
     yieldHistoryService,
     fixedRecipeItemService,
+    materialRepository,
   );
   const recipeMaterialCostPreviewService = new RecipeMaterialCostPreviewService(
     effectiveRecipeRequirementService,
@@ -280,6 +281,52 @@ function materialComponentLine(
 }
 
 describe('Phase 4.6A integrated pricing / production workflow', () => {
+  it('Scenario H — changing wax essential oil percentage updates Production cost and profit-based Pricing without double counting', async () => {
+    const services = workflow();
+    await addMaterial(services, {
+      id: 'WAX', name: 'Soy wax', group: 'wax', baseUnit: 'g',
+      purchaseQuantity: 1, purchaseUnit: 'kg', packageCost: 200,
+      onHandQuantity: 10, onHandUnit: 'kg', isActive: true, essentialOilPercent: 6,
+    });
+    await addMaterial(services, {
+      id: 'OIL', name: 'Lavender essential oil', group: 'fragrance', baseUnit: 'g',
+      purchaseQuantity: 1, purchaseUnit: 'kg', packageCost: 2000,
+      onHandQuantity: 10, onHandUnit: 'kg', isActive: true,
+    });
+    await addProduct(services, {
+      id: 'SCENTED', name: 'Lavender candle', category: 'candle', safetyWasteRate: 0,
+      candleWaxMaterialId: 'WAX', candleEssentialOilMaterialId: 'OIL', isActive: true,
+    });
+    await addDirectItem(services, {
+      id: 'WAX-RECIPE', productId: 'SCENTED', materialId: 'WAX',
+      quantityPerProduct: 200, unit: 'g',
+    });
+    // Explicit historical oil recipe must be REPLACED rather than added.
+    await addDirectItem(services, {
+      id: 'OLD-OIL-RECIPE', productId: 'SCENTED', materialId: 'OIL',
+      quantityPerProduct: 50, unit: 'g',
+    });
+    await addProfile(services, {
+      productId: 'SCENTED', laborCostPerUnit: 0, overheadCostPerUnit: 0,
+      pricingPolicy: { method: 'profit-amount', value: 10 },
+    });
+    const before = await services.productPricingQuoteService.quoteProduct('SCENTED');
+    const physicalBefore = await services.physicalPlannedBatchProductionCostService.costPlannedBatch('SCENTED', 2);
+    expect(before.status).toBe('ready');
+    expect(before.fullyLoadedUnitCost.directMaterialCost?.lines.find((l) => l.materialId === 'OIL')?.plannedBaseQuantityPerProduct).toBe(12);
+    expect(before.totalFullyLoadedUnitCost).toBeCloseTo(64, 8);
+    expect(before.sellingPrice).toBeCloseTo(74, 8);
+    expect(physicalBefore.plannedProductionCost).toBeCloseTo(128, 8);
+    await services.materialService.updateMaterial('WAX', { essentialOilPercent: 10 });
+    const after = await services.productPricingQuoteService.quoteProduct('SCENTED');
+    const physicalAfter = await services.physicalPlannedBatchProductionCostService.costPlannedBatch('SCENTED', 2);
+    expect(after.fullyLoadedUnitCost.directMaterialCost?.lines.find((l) => l.materialId === 'OIL')?.plannedBaseQuantityPerProduct).toBe(20);
+    expect(after.totalFullyLoadedUnitCost).toBeCloseTo(80, 8);
+    expect(after.sellingPrice).toBeCloseTo(90, 8);
+    expect(after.profitPerUnit).toBeCloseTo(10, 8);
+    expect(physicalAfter.plannedProductionCost).toBeCloseTo(160, 8);
+  });
+
   it('Scenario A — validates learned/fixed paintable-art cost, safety reserve, adders, and fixed PHP profit', async () => {
     const services = workflow();
 
