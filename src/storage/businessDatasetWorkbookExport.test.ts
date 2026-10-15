@@ -221,6 +221,24 @@ describe('BusinessDataset workbook export', () => {
     expect(validateWorkbookSchema(document)).toEqual([]);
   });
 
+  it('exports candle wax and essential oil links in Product rows', () => {
+    const dataset = datasetFixture();
+    const candle = dataset.products.find((p) => p.id === 'product-z')!;
+    candle.candleWaxMaterialId = 'WAX';
+    candle.candleEssentialOilMaterialId = 'OIL';
+    // Referential verification requires real listed source materials.
+    const exemplar = dataset.materials.find((m) => m.id === 'MAT-A-PLASTER')!;
+    dataset.materials.push({
+      ...exemplar, id: 'WAX', name: 'Candle wax', group: 'wax', essentialOilPercent: 6,
+    }, {
+      ...exemplar, id: 'OIL', name: 'Lavender oil', group: 'fragrance', essentialOilPercent: undefined,
+    });
+    const exported = createBusinessDatasetWorkbookDocument(dataset, METADATA);
+    const row = sheet(exported, 'Products').rows.find((r) => r.id === candle.id);
+    expect(row?.candleWaxMaterialId).toBe('WAX');
+    expect(row?.candleEssentialOilMaterialId).toBe('OIL');
+  });
+
   it('writes exact explicit metadata without a hidden clock', () => {
     const document = createBusinessDatasetWorkbookDocument(datasetFixture(), METADATA);
     expect(sheet(document, '_Meta').rows).toEqual([

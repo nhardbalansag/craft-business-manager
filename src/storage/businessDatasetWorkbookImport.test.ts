@@ -341,6 +341,24 @@ describe('BusinessDataset workbook import', () => {
     expect(legacy.dataset.materials.find((material) => material.id === wax.id)?.essentialOilPercent).toBeUndefined();
   });
 
+  it('round-trips paired candle material references and imports older Product sheets without them', () => {
+    const doc = mutableDocument();
+    const products = mutableSheet(doc, 'Products');
+    const candle = products.rows.find((row) => row.id === 'product-z')!;
+    candle.candleWaxMaterialId = 'WAX';
+    candle.candleEssentialOilMaterialId = 'OIL';
+    const configured = expectSuccess(reconstructBusinessDatasetFromWorkbook(doc as WorkbookNeutralDocument));
+    expect(configured.dataset.products.find((p) => p.id === 'product-z')).toMatchObject({
+      candleWaxMaterialId: 'WAX', candleEssentialOilMaterialId: 'OIL',
+    });
+    products.columns = products.columns.filter((column) =>
+      column !== 'candleWaxMaterialId' && column !== 'candleEssentialOilMaterialId');
+    delete candle.candleWaxMaterialId;
+    delete candle.candleEssentialOilMaterialId;
+    const legacy = expectSuccess(reconstructBusinessDatasetFromWorkbook(doc as WorkbookNeutralDocument));
+    expect(legacy.dataset.products.find((p) => p.id === 'product-z')?.candleWaxMaterialId).toBeUndefined();
+  });
+
   it('preserves explicit zero and null pricing policy semantics', () => {
     const result = expectSuccess(
       reconstructBusinessDatasetFromWorkbook(mutableDocument() as WorkbookNeutralDocument),

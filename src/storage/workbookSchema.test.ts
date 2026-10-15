@@ -96,7 +96,7 @@ const EXPECTED_COLUMNS: Record<WorkbookSheetName, readonly string[]> = {
   MixPresets: ['id', 'name', 'basis', 'notes', 'isActive'],
   MixPresetCategories: ['mixPresetId', 'categoryOrder', 'category'],
   MixPresetLines: ['mixPresetId', 'lineOrder', 'materialId', 'role', 'parts'],
-  Products: ['id', 'name', 'category', 'mixPresetId', 'preferredYieldSampleId', 'safetyWasteRate', 'notes', 'isActive'],
+  Products: ['id', 'name', 'category', 'mixPresetId', 'preferredYieldSampleId', 'safetyWasteRate', 'notes', 'isActive', 'candleWaxMaterialId', 'candleEssentialOilMaterialId'],
   YieldSamples: [
     'id',
     'productId',
@@ -335,6 +335,14 @@ describe('Phase 5.1B workbook schema contract', () => {
     expect(validateWorkbookSchema(workbook)).toEqual([]);
     expect(isCurrentWorkbookSchema(workbook)).toBe(true);
     expect(() => assertWorkbookSchema(workbook)).not.toThrow();
+  });
+
+  it('accepts older Products sheets without the optional candle material pairing', () => {
+    const workbook = createValidWorkbook();
+    const products = sheet(workbook, 'Products');
+    products.columns = products.columns.filter((column) =>
+      column !== 'candleWaxMaterialId' && column !== 'candleEssentialOilMaterialId');
+    expect(validateWorkbookSchema(workbook)).toEqual([]);
   });
 
   it('accepts older Materials sheets without the optional candle fragrance setting', () => {

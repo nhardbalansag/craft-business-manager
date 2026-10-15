@@ -17,6 +17,8 @@ type ProductFormState = {
   name: string;
   category: ProductCategory;
   mixPresetId: string;
+  candleWaxMaterialId: string;
+  candleEssentialOilMaterialId: string;
   safetyWastePercent: string;
   notes: string;
 };
@@ -26,6 +28,8 @@ const EMPTY_PRODUCT_FORM: ProductFormState = {
   name: '',
   category: 'paintable-art',
   mixPresetId: '',
+  candleWaxMaterialId: '',
+  candleEssentialOilMaterialId: '',
   safetyWastePercent: '5',
   notes: '',
 };
@@ -40,6 +44,8 @@ function productToForm(product: Product): ProductFormState {
     name: product.name,
     category: product.category,
     mixPresetId: product.mixPresetId ?? '',
+    candleWaxMaterialId: product.candleWaxMaterialId ?? '',
+    candleEssentialOilMaterialId: product.candleEssentialOilMaterialId ?? '',
     safetyWastePercent: String(product.safetyWasteRate * 100),
     notes: product.notes ?? '',
   };
@@ -51,6 +57,8 @@ function formToProduct(form: ProductFormState, isActive: boolean): Product {
     name: form.name,
     category: form.category,
     mixPresetId: form.mixPresetId.trim() || undefined,
+    candleWaxMaterialId: form.category === 'candle' ? form.candleWaxMaterialId.trim() || undefined : undefined,
+    candleEssentialOilMaterialId: form.category === 'candle' ? form.candleEssentialOilMaterialId.trim() || undefined : undefined,
     safetyWasteRate: Number(form.safetyWastePercent) / 100,
     notes: form.notes,
     isActive,
@@ -123,6 +131,18 @@ export function ProductsPage() {
   if (!productForm.safetyWastePercent.trim()) productErrors.safetyWastePercent = 'Enter a material reserve percentage, including 0 for no reserve.';
   else if (!Number.isFinite(reservePercent) || reservePercent < 0 || reservePercent >= 100)
     productErrors.safetyWastePercent = 'Enter a percentage from 0 to less than 100.';
+  if (
+    productForm.category === 'candle' &&
+    Boolean(productForm.candleWaxMaterialId) !== Boolean(productForm.candleEssentialOilMaterialId)
+  ) productErrors.candleOilConfig = 'Select both wax and essential oil, or leave both blank.';
+  if (productForm.category === 'candle' && productForm.candleWaxMaterialId && productForm.candleEssentialOilMaterialId) {
+    const wax = materials.find((material) => material.id === productForm.candleWaxMaterialId);
+    const oil = materials.find((material) => material.id === productForm.candleEssentialOilMaterialId);
+    if (!wax?.isActive || wax.group !== 'wax' || wax.baseUnit !== 'g' || wax.essentialOilPercent === undefined ||
+        !oil?.isActive || oil.group !== 'fragrance' || oil.baseUnit !== 'g') {
+      productErrors.candleOilConfig = 'Choose an active gram-based wax with a configured essential oil percentage and an active gram-based fragrance material.';
+    }
+  }
   function visibleProductError(key: string) {
     return (productAttempted || productTouched.includes(key)) ? productErrors[key] : undefined;
   }
@@ -203,6 +223,8 @@ export function ProductsPage() {
           name: candidate.name,
           category: candidate.category,
           mixPresetId: candidate.mixPresetId,
+          candleWaxMaterialId: candidate.candleWaxMaterialId,
+          candleEssentialOilMaterialId: candidate.candleEssentialOilMaterialId,
           safetyWasteRate: candidate.safetyWasteRate,
           notes: candidate.notes,
         });
@@ -422,6 +444,8 @@ export function ProductsPage() {
                         ...productForm,
                         category: event.target.value as ProductCategory,
                         mixPresetId: keepsMix ? productForm.mixPresetId : '',
+                        candleWaxMaterialId: event.target.value === 'candle' ? productForm.candleWaxMaterialId : '',
+                        candleEssentialOilMaterialId: event.target.value === 'candle' ? productForm.candleEssentialOilMaterialId : '',
                       });
                     }}
                   >
@@ -453,6 +477,32 @@ export function ProductsPage() {
                   <small className="product-field-error" id="product-reserve-error">{visibleProductError('safetyWastePercent')}</small>
                 </label>
               </div>
+              {productForm.category === 'candle' && (
+                <div className="form-grid" aria-label="Scented candle material settings">
+                  <label className="field">
+                    <span>Wax for essential oil calculation</span>
+                    <select name="candleWaxMaterialId" value={productForm.candleWaxMaterialId}
+                      onChange={(event) => setProductForm({ ...productForm, candleWaxMaterialId: event.target.value })}>
+                      <option value="">No automatic oil calculation</option>
+                      {materials.filter((material) => material.isActive && material.group === 'wax' && material.baseUnit === 'g')
+                        .map((material) => <option key={material.id} value={material.id}>
+                          {material.name}{material.essentialOilPercent === undefined ? ' (percentage not set)' : ` · ${material.essentialOilPercent}% oil`}
+                        </option>)}
+                    </select>
+                  </label>
+                  <label className="field">
+                    <span>Essential oil for production costs</span>
+                    <select name="candleEssentialOilMaterialId" value={productForm.candleEssentialOilMaterialId}
+                      onChange={(event) => setProductForm({ ...productForm, candleEssentialOilMaterialId: event.target.value })}>
+                      <option value="">No essential oil selected</option>
+                      {materials.filter((material) => material.isActive && material.group === 'fragrance' && material.baseUnit === 'g')
+                        .map((material) => <option key={material.id} value={material.id}>{material.name}</option>)}
+                    </select>
+                  </label>
+                  <p className="field-wide product-editor-hint">The chosen wax percentage automatically determines the oil needed by Production and Pricing. Existing oil lines in Yield/recipes are replaced, not added twice; original Yield records stay unchanged.</p>
+                  {visibleProductError('candleOilConfig') && <p className="feedback feedback-error field-wide" role="alert">{visibleProductError('candleOilConfig')}</p>}
+                </div>
+              )}
               <div className="product-reserve-preview" aria-label="Material reserve preview">
                 <span>Material planning example</span>
                 <strong>{productErrors.safetyWastePercent ? 'Enter a valid reserve to preview' : `100 g base + ${reservePercent.toLocaleString(undefined, { maximumFractionDigits: 4 })} g reserve = ${(100 + reservePercent).toLocaleString(undefined, { maximumFractionDigits: 4 })} g planned`}</strong>

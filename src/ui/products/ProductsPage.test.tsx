@@ -107,6 +107,41 @@ async function seed() {
 }
 
 describe('product workshop interactions', () => {
+  it('saves selected candle wax and essential oil links used by Production and Pricing', async () => {
+    await seed();
+    await session.materialService.updateMaterial('WAX', { essentialOilPercent: 6 });
+    await session.materialService.createMaterial({
+      id: 'OIL', name: 'Lavender oil', group: 'fragrance', baseUnit: 'g',
+      purchaseQuantity: 1, purchaseUnit: 'kg', packageCost: 500,
+      onHandQuantity: 1, onHandUnit: 'kg', isActive: true,
+    });
+    await mount();
+    await click('Edit Alpha candle');
+    expect(form().textContent).toContain('Wax for essential oil calculation');
+    await fill(field('Wax for essential oil calculation'), 'WAX');
+    await fill(field('Essential oil for production costs'), 'OIL');
+    await submit();
+    expect(await session.productService.getProduct('ALPHA')).toMatchObject({
+      candleWaxMaterialId: 'WAX', candleEssentialOilMaterialId: 'OIL',
+    });
+    await click('Edit Alpha candle');
+    expect(field('Wax for essential oil calculation').value).toBe('WAX');
+    expect(field('Essential oil for production costs').value).toBe('OIL');
+    await fill(field('Category'), 'candle-pot');
+    await submit();
+    expect((await session.productService.getProduct('ALPHA'))?.candleWaxMaterialId).toBeUndefined();
+    expect((await session.productService.getProduct('ALPHA'))?.candleEssentialOilMaterialId).toBeUndefined();
+  });
+
+  it('does not allow only one candle material to be configured', async () => {
+    await seed();
+    await mount();
+    await click('Edit Alpha candle');
+    await fill(field('Wax for essential oil calculation'), 'WAX');
+    await submit();
+    expect(container.textContent).toContain('Select both wax and essential oil');
+    expect((await session.productService.getProduct('ALPHA'))?.candleWaxMaterialId).toBeUndefined();
+  });
   it('keeps editor context tied to the current draft until a switch is accepted', async () => {
     await seed();
     await mount();

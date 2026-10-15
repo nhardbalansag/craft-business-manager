@@ -59,6 +59,8 @@ function normalizeProduct(product: Product): Product {
     name: product.name.trim(),
     mixPresetId: product.mixPresetId?.trim() || undefined,
     preferredYieldSampleId: product.preferredYieldSampleId?.trim() || undefined,
+    candleWaxMaterialId: product.candleWaxMaterialId?.trim() || undefined,
+    candleEssentialOilMaterialId: product.candleEssentialOilMaterialId?.trim() || undefined,
     notes: product.notes?.trim() || undefined,
   };
 }

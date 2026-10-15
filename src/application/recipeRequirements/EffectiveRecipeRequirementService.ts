@@ -1,4 +1,6 @@
 import { FixedRecipeItemError } from '../../domain/fixedRecipeItems';
+import { resolveCandleOilRequirements } from '../../domain/candleOilRequirements';
+import type { MaterialRepository } from '../materials/MaterialRepository';
 import {
   synthesizeEffectiveRecipeRequirements,
   type EffectiveMaterialRequirement,
@@ -21,7 +23,8 @@ export type RecipeRequirementReadinessStatus = 'ready' | 'partial' | 'not-ready'
 export type RecipeRequirementIssueCode =
   | 'YIELD_HISTORY_NOT_DERIVABLE'
   | 'FIXED_ITEM_NOT_DERIVABLE'
-  | 'NO_REQUIREMENTS';
+  | 'NO_REQUIREMENTS'
+  | 'CANDLE_OIL_CONFIG_UNRESOLVED';
 
 export interface RecipeRequirementIssue {
   code: RecipeRequirementIssueCode;
@@ -75,6 +78,7 @@ export class EffectiveRecipeRequirementService {
     private readonly products: ProductRepository,
     private readonly yieldHistory: YieldHistoryService,
     private readonly fixedRecipes: FixedRecipeItemService,
+    private readonly materials?: Pick<MaterialRepository, 'list'>,
   ) {}
 
   async deriveForProduct(productId: string): Promise<EffectiveRecipeRequirementResult> {
@@ -130,7 +134,17 @@ export class EffectiveRecipeRequirementService {
       fixedRequirements,
     );
 
-    if (synthesized.requirements.length === 0) {
+    const candleOil = product.candleWaxMaterialId || product.candleEssentialOilMaterialId
+      ? this.materials
+        ? resolveCandleOilRequirements(product, synthesized.requirements, await this.materials.list())
+        : { requirements: synthesized.requirements, issue: 'Material source unavailable for candle essential oil costing.' }
+      : { requirements: synthesized.requirements, issue: null };
+    if (candleOil.issue) issues.push({
+      code: 'CANDLE_OIL_CONFIG_UNRESOLVED',
+      message: candleOil.issue,
+    });
+
+    if (candleOil.requirements.length === 0) {
       issues.push({
         code: 'NO_REQUIREMENTS',
         message: `Product ${product.id} has no currently derivable material requirements.`,
@@ -138,7 +152,7 @@ export class EffectiveRecipeRequirementService {
     }
 
     const status: RecipeRequirementReadinessStatus =
-      synthesized.requirements.length === 0 ? 'not-ready' : issues.length > 0 ? 'partial' : 'ready';
+      candleOil.requirements.length === 0 ? 'not-ready' : issues.length > 0 ? 'partial' : 'ready';
 
     return {
       productId: product.id,
@@ -146,7 +160,7 @@ export class EffectiveRecipeRequirementService {
       status,
       effectiveYieldSampleId: synthesized.effectiveYieldSampleId,
       skippedInvalidYieldSampleIds,
-      requirements: synthesized.requirements,
+      requirements: candleOil.requirements,
       issues,
     };
   }

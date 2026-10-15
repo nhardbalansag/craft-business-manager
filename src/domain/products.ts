@@ -50,6 +50,9 @@ export interface Product {
   category: ProductCategory;
   /** Optional reference only; mix-preset contract/validation is implemented in Phase 2.1B/2.1C. */
   mixPresetId?: string;
+  /** Optional explicit candle wax/fragrance pairing used for future costing. */
+  candleWaxMaterialId?: string;
+  candleEssentialOilMaterialId?: string;
   /** Optional user-selected Yield sample that should drive effective learning for this Product. */
   preferredYieldSampleId?: string;
   /** Planning reserve entered as a decimal rate, e.g. 0.05 = 5%. Must satisfy 0 <= rate < 1. */
@@ -66,6 +69,7 @@ export type ProductContractErrorCode =
   | 'INVALID_CATEGORY'
   | 'INVALID_MIX_PRESET_ID'
   | 'INVALID_PREFERRED_YIELD_SAMPLE_ID'
+  | 'INVALID_CANDLE_OIL_CONFIGURATION'
   | 'INVALID_SAFETY_WASTE_RATE'
   | 'INVALID_ACTIVE_STATE';
 
@@ -133,6 +137,20 @@ export function validateProductContract(product: Product): void {
       'INVALID_MIX_PRESET_ID',
       'Mix preset ID cannot be blank when provided.',
       product.mixPresetId,
+    );
+  }
+
+  if (
+    (product.candleWaxMaterialId !== undefined || product.candleEssentialOilMaterialId !== undefined) &&
+    (product.category !== 'candle' ||
+      !product.candleWaxMaterialId?.trim() ||
+      !product.candleEssentialOilMaterialId?.trim() ||
+      product.candleWaxMaterialId.trim().toLowerCase() === product.candleEssentialOilMaterialId.trim().toLowerCase())
+  ) {
+    throw new ProductContractError(
+      'INVALID_CANDLE_OIL_CONFIGURATION',
+      'Candle wax and essential oil must both be selected, distinct, and only set on candle Products.',
+      { wax: product.candleWaxMaterialId, oil: product.candleEssentialOilMaterialId },
     );
   }
 
