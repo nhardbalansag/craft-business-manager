@@ -366,6 +366,9 @@ describe('multi-product production workflow', () => {
     expect(combined.textContent).toContain('50 g');
     expect(container.textContent).toContain('3 pieces');
     expect(container.querySelector('.multi-production-summary')).not.toBeNull();
+    expect(container.querySelector('[aria-label="Formula mixing groups"]')).toBeNull();
+    expect(container.textContent).not.toContain('Mixtures to prepare');
+    expect(container.querySelector('[aria-label="Combined theoretical material totals"]')).not.toBeNull();
     expect(container.querySelector('.multi-production-materials-panel')).not.toBeNull();
     expect(container.querySelector('.multi-production-table-wrap')).not.toBeNull();
     expect(await session.completeSourceSnapshotService.snapshot()).toEqual(before);

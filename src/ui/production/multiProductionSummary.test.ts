@@ -82,13 +82,16 @@ describe('multi-product Production totals', () => {
     expect(summary.formulaMaterials.find(row => row.materialId === 'PLASTER')?.shortage).toBeNull();
   });
 
-  it('prints distinct formula groups, combined stock, and escapes user-editable Product names', () => {
+  it('prints combined stock without mixing groups and escapes user-editable Product names', () => {
     const first = entry('BEAR', 3, 40, 70, 52.5, 3.5);
     first.product = { ...first.product, name: 'Bear <Special>' };
     const summary = summarizeMultiProduction([first], materials);
     const html = renderMultiProductionSheet([first], summary);
     expect(html).toContain('Bear &lt;Special&gt;');
     expect(html).toContain('Total direct materials');
+    expect(html).toContain('Theoretical Mold Formula material purchasing totals');
+    expect(html).not.toContain('Compatible Mold Formula mixing groups');
+    expect(html).not.toContain('Mixture group 1');
     // The two paths are explicitly separate and must not be added together.
     expect(html).toContain('must NOT be added together');
     expect(html).toContain('52.5 g');
