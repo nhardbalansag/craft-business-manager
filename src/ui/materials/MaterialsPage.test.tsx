@@ -187,6 +187,22 @@ describe('Materials workspace interactions', () => {
     expect((await session.materialService.getMaterial('PLASTER'))?.name).toBe('Plaster of Paris');
   });
 
+  it('saves essential oil percentage on wax materials and clears it when changing groups', async () => {
+    await seed();
+    await mount();
+    await click('Edit Soy wax');
+    expect(field('Essential oil percentage').value).toBe('');
+    await fill(field('Essential oil percentage'), '6.5');
+    await submit();
+    expect((await session.materialService.getMaterial('WAX'))?.essentialOilPercent).toBe(6.5);
+    await click('Edit Soy wax');
+    expect(field('Essential oil percentage').value).toBe('6.5');
+    await fill(field('Group'), 'plaster');
+    expect(form().textContent).not.toContain('Essential oil percentage');
+    await submit();
+    expect((await session.materialService.getMaterial('WAX'))?.essentialOilPercent).toBeUndefined();
+  });
+
   it('does not interpret blank costs or stock counts as a known zero', async () => {
     await seed();
     await mount();
