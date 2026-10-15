@@ -335,6 +335,9 @@ function reconstructMaterials(document: WorkbookNeutralDocument): Material[] {
       isActive: booleanValue(row, 'isActive'),
     };
 
+    if (typeof row.essentialOilPercent === 'number') {
+      material.essentialOilPercent = row.essentialOilPercent;
+    }
     const manualConversion = row.manualBaseUnitsPerPurchaseUnit;
     if (typeof manualConversion === 'number') {
       material.manualBaseUnitsPerPurchaseUnit = manualConversion;

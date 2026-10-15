@@ -88,6 +88,24 @@ describe('material classification', () => {
   });
 });
 
+describe('candle wax essential oil configuration', () => {
+  it('accepts optional or zero-percent settings and rejects unsafe record shapes', () => {
+    expect(() => validateMaterialContract(material({ group: 'wax', essentialOilPercent: 6 }))).not.toThrow();
+    expect(() => validateMaterialContract(material({ group: 'wax', essentialOilPercent: 0 }))).not.toThrow();
+    for (const item of [
+      material({ essentialOilPercent: 6 }),
+      material({ group: 'wax', baseUnit: 'mL', purchaseUnit: 'mL', onHandUnit: 'mL', essentialOilPercent: 6 }),
+      material({ group: 'wax', essentialOilPercent: -1 }),
+      material({ group: 'wax', essentialOilPercent: 101 }),
+      material({ group: 'wax', essentialOilPercent: Number.NaN }),
+    ]) {
+      expect(() => validateMaterialContract(item)).toThrow(
+        expect.objectContaining({ code: 'INVALID_ESSENTIAL_OIL_PERCENT' }),
+      );
+    }
+  });
+});
+
 describe('material contract validation', () => {
   it('accepts a weight-based plaster material using standard units', () => {
     expect(() => validateMaterialContract(material())).not.toThrow();

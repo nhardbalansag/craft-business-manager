@@ -81,6 +81,7 @@ const EXPECTED_COLUMNS: Record<WorkbookSheetName, readonly string[]> = {
     'sourceNotes',
     'notes',
     'isActive',
+    'essentialOilPercent',
   ],
   Calibrations: [
     'id',
@@ -334,6 +335,13 @@ describe('Phase 5.1B workbook schema contract', () => {
     expect(validateWorkbookSchema(workbook)).toEqual([]);
     expect(isCurrentWorkbookSchema(workbook)).toBe(true);
     expect(() => assertWorkbookSchema(workbook)).not.toThrow();
+  });
+
+  it('accepts older Materials sheets without the optional candle fragrance setting', () => {
+    const workbook = createValidWorkbook();
+    const materials = sheet(workbook, 'Materials');
+    materials.columns = materials.columns.filter((column) => column !== 'essentialOilPercent');
+    expect(validateWorkbookSchema(workbook)).toEqual([]);
   });
 
   it('fails closed on missing canonical sheets and columns', () => {
