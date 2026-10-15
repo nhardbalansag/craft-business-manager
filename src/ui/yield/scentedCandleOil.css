@@ -1,0 +1,33 @@
+.scented-candle-oil {
+  display: grid;
+  gap: 12px;
+  margin-top: 20px;
+  padding: clamp(16px, 2.5vw, 24px);
+  border: 1px solid var(--mlc-line, #e0d7ca);
+  border-radius: 16px;
+  background: var(--mlc-soft, #faf7f2);
+  color: var(--mlc-ink, #35251e);
+}
+.scented-candle-oil-heading h4 { margin: 8px 0 6px; font-size: 1.08rem; }
+.scented-candle-oil-heading p { margin: 0; line-height: 1.5; }
+.scented-candle-oil-controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(185px, 1fr)); gap: 12px; }
+.scented-candle-oil-controls select { width: 100%; }
+.scented-candle-oil-totals { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.scented-candle-oil-totals > div {
+  display: grid;
+  gap: 5px;
+  padding: 12px 14px;
+  border: 1px solid var(--mlc-line, #e0d7ca);
+  border-radius: 10px;
+  background: var(--mlc-surface, #fff);
+}
+.scented-candle-oil-totals span { color: var(--mlc-muted, #786c61); font-size: .77rem; }
+.scented-candle-oil-totals strong { font-size: 1.05rem; font-variant-numeric: tabular-nums; }
+.scented-candle-oil-help,.scented-candle-oil-disclaimer { margin: 0; font-size: .84rem; line-height: 1.6; }
+.scented-candle-oil-cost { margin: 0; font-weight: 650; font-size: .86rem; }
+.scented-candle-oil-disclaimer { color: var(--mlc-muted, #786c61); }
+.scented-candle-oil .button { justify-self: start; min-height: 42px; }
+@media(max-width: 520px) {
+  .scented-candle-oil-totals { grid-template-columns: minmax(0, 1fr); }
+  .scented-candle-oil .button { width: 100%; }
+}

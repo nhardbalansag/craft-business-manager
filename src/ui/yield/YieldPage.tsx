@@ -30,6 +30,7 @@ import type {
 } from '../../domain/yieldRecipeSource';
 import type { YieldSample } from '../../domain/yieldSamples';
 import { YieldManualMode } from './YieldManualMode';
+import { ScentedCandleOilPanel } from './ScentedCandleOilPanel';
 import { YieldMoldFormulaMode } from './YieldMoldFormulaMode';
 import { YieldProductSearchPicker } from './YieldProductSearchPicker';
 import {
@@ -183,6 +184,7 @@ export function YieldPage() {
   const [formulaDraftSource, setFormulaDraftSource] =
     useState<PlasterMoldYieldDraft | null>(null);
   const [formulaDraftConfirmed, setFormulaDraftConfirmed] = useState(false);
+  const [oilEstimateMessage, setOilEstimateMessage] = useState('');
   const [busy, setBusy] = useState<'save' | 'delete' | 'preference' | null>(null);
   const mutationInFlight = useRef(false);
   const historyRequest = useRef(0);
@@ -524,6 +526,7 @@ export function YieldPage() {
   }
 
   function updateMaterialInput(key: string, changes: Partial<Omit<YieldInputForm, 'key'>>) {
+    setOilEstimateMessage('');
     setForm((current) => ({
       ...current,
       materialInputs: current.materialInputs.map((input) =>
@@ -542,6 +545,7 @@ export function YieldPage() {
   }
 
   function addMaterialInput() {
+    setOilEstimateMessage('');
     setForm((current) => ({
       ...current,
       materialInputs: [...current.materialInputs, newInput()],
@@ -550,6 +554,7 @@ export function YieldPage() {
   }
 
   function removeMaterialInput(key: string) {
+    setOilEstimateMessage('');
     setForm((current) => ({
       ...current,
       materialInputs: current.materialInputs.filter((input) => input.key !== key),
@@ -557,13 +562,49 @@ export function YieldPage() {
     if (formulaDraftSource) setFormulaDraftConfirmed(false);
   }
 
+  function applyEssentialOilToDraft(oilMaterialId: string, oilGrams: number) {
+    const oil = materialById.get(oilMaterialId.toLocaleLowerCase());
+    if (
+      !selectedProduct?.isActive || selectedProduct.category !== 'candle' ||
+      !oil?.isActive || oil.group !== 'fragrance' || oil.baseUnit !== 'g' ||
+      !Number.isFinite(oilGrams) || oilGrams <= 0
+    ) return;
+    // Add an estimate explicitly; never silently turn guidance into recorded actual evidence.
+    const quantity = String(Number(oilGrams.toFixed(6)));
+    setForm((current) => {
+      const oldIndex = current.materialInputs.findIndex((input) =>
+        input.materialId.toLocaleLowerCase() === oilMaterialId.toLocaleLowerCase());
+      const blankIndex = current.materialInputs.findIndex((input) =>
+        !input.materialId && !input.quantity.trim());
+      const index = oldIndex >= 0 ? oldIndex : blankIndex;
+      if (index < 0) {
+        return {
+          ...current,
+          materialInputs: [...current.materialInputs, {
+            ...newInput('g'), materialId: oil.id, quantity,
+          }],
+        };
+      }
+      return {
+        ...current,
+        materialInputs: current.materialInputs.map((input, rowIndex) => rowIndex === index
+          ? { ...input, materialId: oil.id, quantity, unit: 'g' }
+          : input),
+      };
+    });
+    if (formulaDraftSource) setFormulaDraftConfirmed(false);
+    setOilEstimateMessage('Essential oil estimate applied to batch materials. Verify the actual grams before recording.');
+  }
+
   function resetDraft() {
+    setOilEstimateMessage('');
     replaceDraft(emptyForm());
     setFeedback(null);
   }
 
   function changeRecipeSource(kind: YieldSelectableRecipeSourceKind) {
     if (kind === form.recipeSourceKind) return;
+    setOilEstimateMessage('');
 
     setFormulaDraftSource(null);
     setFormulaDraftConfirmed(false);
@@ -576,6 +617,7 @@ export function YieldPage() {
 
   function useSampleAsDraft(sample: YieldSample) {
     if (!selectedProduct?.isActive) return;
+    setOilEstimateMessage('');
     setFormulaDraftSource(null);
     setFormulaDraftConfirmed(false);
     setForm({
@@ -600,6 +642,7 @@ export function YieldPage() {
 
   function useFormulaAsDraft(draft: PlasterMoldYieldDraft) {
     if (!selectedProduct?.isActive) return;
+    setOilEstimateMessage('');
     setFormulaDraftSource(draft);
     setFormulaDraftConfirmed(false);
     setForm({
@@ -1153,6 +1196,17 @@ export function YieldPage() {
                 >
                   + Add material
                 </button>
+                {selectedProduct?.category === 'candle' && (
+                  <>
+                    <ScentedCandleOilPanel
+                      materials={materials}
+                      inputs={form.materialInputs}
+                      disabled={Boolean(busy) || !selectedProduct.isActive}
+                      onApply={applyEssentialOilToDraft}
+                    />
+                    {oilEstimateMessage && <p className="feedback feedback-success" role="status">{oilEstimateMessage}</p>}
+                  </>
+                )}
               </section>
 
               <section className="yield-form-section" aria-labelledby="yield-outcome-heading">

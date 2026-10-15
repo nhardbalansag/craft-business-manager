@@ -143,6 +143,8 @@ export const WORKBOOK_SHEETS: readonly WorkbookSheetContract[] = [
       column('sourceNotes', 'text', false, 'source.notes'),
       column('notes', 'text', false, 'notes'),
       column('isActive', 'boolean', true, 'isActive'),
+      // Additive, optional Materials column: legacy v5 workbooks may lack it.
+      column('essentialOilPercent', 'number', false, 'essentialOilPercent'),
     ],
     rowOrder: [{ key: 'id', mode: 'text-ci-exact' }],
   },
@@ -678,7 +680,7 @@ export function validateWorkbookSchema(input: unknown): WorkbookSchemaIssue[] {
     }
 
     for (const expected of contract.columns) {
-      if (!sheet.columns.includes(expected.key)) {
+      if (!sheet.columns.includes(expected.key) && !(sheet.name === 'Materials' && expected.key === 'essentialOilPercent')) {
         addIssue(issues, 'MISSING_REQUIRED_COLUMN', `Sheet ${sheet.name} is missing canonical column ${expected.key}.`, {
           sheetName: sheet.name,
           column: expected.key,

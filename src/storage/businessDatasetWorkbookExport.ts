@@ -159,6 +159,7 @@ function materialRows(dataset: BusinessDataset): Readonly<Record<string, unknown
     sourceNotes: optional(material.source?.notes),
     notes: optional(material.notes),
     isActive: material.isActive,
+    essentialOilPercent: optional(material.essentialOilPercent),
   }));
 }
 

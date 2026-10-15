@@ -327,6 +327,20 @@ describe('BusinessDataset workbook import', () => {
     });
   });
 
+  it('imports configured wax oil percentage and supports legacy Materials sheets without the column', () => {
+    const next = mutableDocument();
+    const materials = mutableSheet(next, 'Materials');
+    const wax = materials.rows.find((row) => row.id === 'MAT-A-PLASTER')!;
+    wax.group = 'wax';
+    wax.essentialOilPercent = 6;
+    const configured = expectSuccess(reconstructBusinessDatasetFromWorkbook(next as WorkbookNeutralDocument));
+    expect(configured.dataset.materials.find((material) => material.id === wax.id)?.essentialOilPercent).toBe(6);
+    materials.columns = materials.columns.filter((key) => key !== 'essentialOilPercent');
+    delete wax.essentialOilPercent;
+    const legacy = expectSuccess(reconstructBusinessDatasetFromWorkbook(next as WorkbookNeutralDocument));
+    expect(legacy.dataset.materials.find((material) => material.id === wax.id)?.essentialOilPercent).toBeUndefined();
+  });
+
   it('preserves explicit zero and null pricing policy semantics', () => {
     const result = expectSuccess(
       reconstructBusinessDatasetFromWorkbook(mutableDocument() as WorkbookNeutralDocument),

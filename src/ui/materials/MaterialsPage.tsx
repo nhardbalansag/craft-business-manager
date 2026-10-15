@@ -38,6 +38,7 @@ type MaterialFormState = {
   purchaseQuantity: string;
   purchaseUnit: MaterialPurchaseUnit;
   packageCost: string;
+  essentialOilPercent: string;
   manualBaseUnitsPerPurchaseUnit: string;
   onHandQuantity: string;
   onHandUnit: MaterialPurchaseUnit;
@@ -58,6 +59,7 @@ const EMPTY_FORM: MaterialFormState = {
   purchaseQuantity: '1',
   purchaseUnit: 'kg',
   packageCost: '0',
+  essentialOilPercent: '',
   manualBaseUnitsPerPurchaseUnit: '',
   onHandQuantity: '0',
   onHandUnit: 'g',
@@ -137,6 +139,7 @@ function materialToForm(material: Material): MaterialFormState {
     purchaseQuantity: String(material.purchaseQuantity),
     purchaseUnit: material.purchaseUnit,
     packageCost: String(material.packageCost),
+    essentialOilPercent: material.essentialOilPercent === undefined ? '' : String(material.essentialOilPercent),
     manualBaseUnitsPerPurchaseUnit:
       material.manualBaseUnitsPerPurchaseUnit === undefined ? '' : String(material.manualBaseUnitsPerPurchaseUnit),
     onHandQuantity: String(material.onHandQuantity),
@@ -160,6 +163,8 @@ function formToMaterial(form: MaterialFormState, isActive: boolean): Material {
     purchaseQuantity: form.purchaseQuantity.trim() === '' ? Number.NaN : Number(form.purchaseQuantity),
     purchaseUnit: form.purchaseUnit,
     packageCost: form.packageCost.trim() === '' ? Number.NaN : Number(form.packageCost),
+    essentialOilPercent: form.group === 'wax' && form.essentialOilPercent.trim() !== ''
+      ? Number(form.essentialOilPercent) : undefined,
     manualBaseUnitsPerPurchaseUnit:
       form.manualBaseUnitsPerPurchaseUnit.trim() === '' ? undefined : Number(form.manualBaseUnitsPerPurchaseUnit),
     onHandQuantity: form.onHandQuantity.trim() === '' ? Number.NaN : Number(form.onHandQuantity),
@@ -570,7 +575,11 @@ export function MaterialsPage() {
                 <select
                   value={form.group}
                   onChange={(event) =>
-                    setForm((current) => ({ ...current, group: event.target.value as MaterialGroup }))
+                    setForm((current) => ({
+                      ...current,
+                      group: event.target.value as MaterialGroup,
+                      essentialOilPercent: event.target.value === 'wax' ? current.essentialOilPercent : '',
+                    }))
                   }
                 >
                   {MATERIAL_GROUPS.map((group) => (
@@ -592,6 +601,23 @@ export function MaterialsPage() {
                 </select>
                 <small>Unit used for recipes and comparing stock quantities.</small>
               </label>
+
+              {form.group === 'wax' && (
+                <label className="field field-wide">
+                  <span>Essential oil percentage (% of wax weight)</span>
+                  <input
+                    aria-label="Essential oil percentage (% of wax weight)"
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="any"
+                    placeholder="e.g. 6"
+                    value={form.essentialOilPercent}
+                    onChange={(event) => setForm((current) => ({ ...current, essentialOilPercent: event.target.value }))}
+                  />
+                  <small>Optional. For 200 g of wax at 6%, Yield estimates 12 g of essential oil. Check the wax maker's fragrance load and the specific oil's candle-use limits; this is not a safety rating.</small>
+                </label>
+              )}
 
               <div className="field-group-title">Purchase package</div>
 
