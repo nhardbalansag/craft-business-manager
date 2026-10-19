@@ -63,3 +63,14 @@
   .product-editor-section { padding: 12px; }
   .product-section-heading { gap: 8px; }
 }
+
+/* Product thumbnails are workbook-safe compressed JPEG data URLs. */
+.product-image-editor { display: grid; grid-template-columns: minmax(115px, 170px) minmax(0, 1fr); gap: 16px; align-items: start; }
+.product-image-preview { width: 100%; aspect-ratio: 1; display: grid; place-items: center; overflow: hidden; border: 1px dashed #cab9a1; border-radius: 14px; background: #f8f4ed; }
+.product-image-preview img { width: 100%; height: 100%; object-fit: contain; }
+.product-image-preview span { color: #81776c; font-size: .78rem; text-align: center; padding: 10px; }
+.product-image-actions { display: grid; gap: 10px; min-width: 0; align-content: start; }
+.product-image-actions .button { justify-self: start; }
+.product-image-actions small { color: #786f65; line-height: 1.45; }
+.product-catalog-thumbnail { width: 46px; height: 46px; flex: 0 0 auto; border-radius: 10px; object-fit: contain; border: 1px solid #e2d8cb; background: #fff; }
+@media (max-width: 520px) { .product-image-editor { grid-template-columns: minmax(0, 1fr); } .product-image-preview { width: min(220px, 100%); } }

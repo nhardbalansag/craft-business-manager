@@ -1,4 +1,5 @@
 import type { CustomerQuotationView } from './customerQuotation';
+import { isValidProductImageDataUrl } from '../../domain/productImage';
 
 export type CustomerQuotationPrintWindow = Pick<
   Window,
@@ -59,6 +60,9 @@ export function renderCustomerQuotationHtml(view: CustomerQuotationView): string
       (item) => `
         <tr>
           <td>
+            ${item.product.imageDataUrl && isValidProductImageDataUrl(item.product.imageDataUrl)
+              ? `<img class="quotation-product-image" src="${escapeHtml(item.product.imageDataUrl)}" alt="Product image" />`
+              : ''}
             <strong>${escapeHtml(item.product.name)}</strong>
             <small>${escapeHtml(item.product.id)} · ${escapeHtml(item.pricing.sourceLabel)}</small>
           </td>
@@ -114,6 +118,8 @@ export function renderCustomerQuotationHtml(view: CustomerQuotationView): string
     td:nth-child(2), td:nth-child(3), td:nth-child(4) { text-align: right; }
     td strong { display: block; }
     td small { color: #777067; }
+    .quotation-product-image { display: block; width: 28mm; height: 28mm; object-fit: contain; margin-bottom: 2mm; border: 1px solid #e3ded6; border-radius: 2mm; background: #fff; break-inside: avoid; }
+    tr { break-inside: avoid; }
     .totals { width: 72mm; margin: 7mm 0 0 auto; }
     .total-row { display: flex; justify-content: space-between; gap: 8mm; padding: 2.5mm 0; border-bottom: 1px solid #ddd7ce; }
     .total-row.grand { padding-top: 4mm; border-bottom: 0; font-size: 13pt; font-weight: 800; }
@@ -197,6 +203,22 @@ export function printCustomerQuotation(
   printWindow.document.open();
   printWindow.document.write(renderCustomerQuotationHtml(view));
   printWindow.document.close();
-  printWindow.focus();
-  printWindow.print();
+  const pendingImages = Array.from(printWindow.document.images ?? []).filter(
+    (image) => !image.complete,
+  );
+  if (pendingImages.length === 0) {
+    printWindow.focus();
+    printWindow.print();
+    return;
+  }
+  // Wait for embedded images to finish loading before invoking print / Save as PDF.
+  void Promise.all(pendingImages.map((image) => new Promise<void>((resolve) => {
+    const done = () => resolve();
+    image.addEventListener('load', done, { once: true });
+    image.addEventListener('error', done, { once: true });
+    if (image.complete) resolve();
+  }))).then(() => {
+    printWindow.focus();
+    printWindow.print();
+  });
 }

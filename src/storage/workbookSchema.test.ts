@@ -96,7 +96,7 @@ const EXPECTED_COLUMNS: Record<WorkbookSheetName, readonly string[]> = {
   MixPresets: ['id', 'name', 'basis', 'notes', 'isActive'],
   MixPresetCategories: ['mixPresetId', 'categoryOrder', 'category'],
   MixPresetLines: ['mixPresetId', 'lineOrder', 'materialId', 'role', 'parts'],
-  Products: ['id', 'name', 'category', 'mixPresetId', 'preferredYieldSampleId', 'safetyWasteRate', 'notes', 'isActive', 'candleWaxMaterialId', 'candleEssentialOilMaterialId'],
+  Products: ['id', 'name', 'category', 'mixPresetId', 'preferredYieldSampleId', 'safetyWasteRate', 'notes', 'isActive', 'candleWaxMaterialId', 'candleEssentialOilMaterialId', 'imageDataUrl'],
   YieldSamples: [
     'id',
     'productId',

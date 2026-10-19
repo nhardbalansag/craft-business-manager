@@ -169,13 +169,13 @@ function normalizePrePreferredPhysicalProductsSheet(
 ): WorkbookNeutralSheet {
   if (candidate.name !== 'Products') return candidate;
 
-  // Older physical-v2 rows have no preferred Yield source. The two later
-  // optional candle-material columns may now appear on fixture-generated v2
-  // files, but their presence must not make the legacy shape unrecognizable.
+  // Older physical-v2 rows have no preferred Yield source. Additive optional
+  // candle-material and product-image columns can occur in fixture-generated v2
+  // documents, but must not invalidate the recognized legacy shape.
   // Keep the strict known-column allowlist rather than accepting arbitrary
   // corrupt Products schemas.
   const legacyCount = LEGACY_PRE_PREFERRED_PHYSICAL_PRODUCTS_COLUMNS.length;
-  const optionalCandleColumns = ['candleWaxMaterialId', 'candleEssentialOilMaterialId'];
+  const optionalCandleColumns = ['candleWaxMaterialId', 'candleEssentialOilMaterialId', 'imageDataUrl'];
   const actualExtras = candidate.columns.slice(legacyCount);
   const isRecognizedLegacyShape =
     candidate.columns.length >= legacyCount &&

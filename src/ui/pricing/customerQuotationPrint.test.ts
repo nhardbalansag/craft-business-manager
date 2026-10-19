@@ -81,6 +81,24 @@ describe('customerQuotationPrint', () => {
     expect(html).not.toContain('Margin');
   });
 
+  it('prints only safe embedded Product thumbnails and keeps other lines image-free', () => {
+    const photo = `data:image/jpeg;base64,/9j/${'AAAA'.repeat(25)}`;
+    const withImages = {
+      ...view, items: [
+        { ...view.items[0], product: { ...view.items[0].product, imageDataUrl: photo } },
+        view.items[1],
+      ],
+    };
+    const html = renderCustomerQuotationHtml(withImages);
+    expect(html).toContain('class="quotation-product-image"');
+    expect(html).toContain(`src="${photo}"`);
+    expect(html.match(/class="quotation-product-image"/g)).toHaveLength(1);
+    expect(html).toContain('Paintable Bear');
+    expect(renderCustomerQuotationHtml({
+      ...view, items: [{ ...view.items[0], product: { ...view.items[0].product, imageDataUrl: 'javascript:alert(1)' } }],
+    })).not.toContain('javascript:alert(1)');
+  });
+
   it('writes the document and invokes the browser print dialog', () => {
     const document = {
       open: vi.fn(),

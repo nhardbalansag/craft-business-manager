@@ -281,3 +281,6 @@
     padding: 10px 0;
   }
 }
+
+.customer-quotation-item-image { display: flex; gap: 12px; align-items: center; font-size: .76rem; color: #756c62; }
+.customer-quotation-item-image img { width: 76px; height: 76px; border: 1px solid #e2d9cc; background: #fff; border-radius: 10px; object-fit: contain; }

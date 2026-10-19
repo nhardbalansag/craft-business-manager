@@ -4,6 +4,7 @@ import { nextSequentialId } from '../../domain/identifiers';
 import type { Material } from '../../domain/materials';
 import type { MixPreset } from '../../domain/mixPresets';
 import { PRODUCT_CATEGORIES, PRODUCT_CATEGORY_RULES, type Product, type ProductCategory } from '../../domain/products';
+import { optimizeProductImage } from './productImageUpload';
 import { ProductCatalog } from './ProductCatalog';
 import { ProductComponentsView } from './ProductComponentsView';
 import { ProductStockView } from './ProductStockView';
@@ -19,6 +20,7 @@ type ProductFormState = {
   mixPresetId: string;
   candleWaxMaterialId: string;
   candleEssentialOilMaterialId: string;
+  imageDataUrl: string;
   safetyWastePercent: string;
   notes: string;
 };
@@ -30,6 +32,7 @@ const EMPTY_PRODUCT_FORM: ProductFormState = {
   mixPresetId: '',
   candleWaxMaterialId: '',
   candleEssentialOilMaterialId: '',
+  imageDataUrl: '',
   safetyWastePercent: '5',
   notes: '',
 };
@@ -46,6 +49,7 @@ function productToForm(product: Product): ProductFormState {
     mixPresetId: product.mixPresetId ?? '',
     candleWaxMaterialId: product.candleWaxMaterialId ?? '',
     candleEssentialOilMaterialId: product.candleEssentialOilMaterialId ?? '',
+    imageDataUrl: product.imageDataUrl ?? '',
     safetyWastePercent: String(product.safetyWasteRate * 100),
     notes: product.notes ?? '',
   };
@@ -60,6 +64,7 @@ function formToProduct(form: ProductFormState, isActive: boolean): Product {
     candleWaxMaterialId: form.category === 'candle' ? form.candleWaxMaterialId.trim() || undefined : undefined,
     candleEssentialOilMaterialId: form.category === 'candle' ? form.candleEssentialOilMaterialId.trim() || undefined : undefined,
     safetyWasteRate: Number(form.safetyWastePercent) / 100,
+    imageDataUrl: form.imageDataUrl || undefined,
     notes: form.notes,
     isActive,
   };
@@ -88,6 +93,9 @@ export function ProductsPage() {
   const productFormElement = useRef<HTMLFormElement>(null);
   const catalogReturnTarget = useRef<HTMLElement | null>(null);
   const [productFeedback, setProductFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [imageError, setImageError] = useState<string | null>(null);
+  const [imageProcessing, setImageProcessing] = useState(false);
+  const imageRequestVersion = useRef(0);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const mutationInFlight = useRef(false);
@@ -170,6 +178,8 @@ export function ProductsPage() {
   }, [pendingProduct]);
 
   function openProductEditor(product: Product | null) {
+    imageRequestVersion.current += 1;
+    setImageProcessing(false);
     // Keep the Components tab aligned with the product whose details are being edited.
     // Only change this context after a pending draft switch has been confirmed.
     if (product) setComponentProductId(product.id);
@@ -178,6 +188,7 @@ export function ProductsPage() {
     setProductAttempted(false);
     setEditingProductId(product?.id ?? null);
     setProductForm(product ? productToForm(product) : EMPTY_PRODUCT_FORM);
+    setImageError(null);
     setProductFeedback(null);
     setPendingProduct(undefined);
     productNameInput.current?.focus();
@@ -197,7 +208,27 @@ export function ProductsPage() {
     }
   }
 
+  async function loadImage(file: File | undefined) {
+    if (!file) return;
+    const version = ++imageRequestVersion.current;
+    setImageProcessing(true);
+    setImageError(null);
+    try {
+      const imageDataUrl = await optimizeProductImage(file);
+      if (imageRequestVersion.current !== version) return;
+      setProductForm((current) => ({ ...current, imageDataUrl }));
+      setProductFeedback(null);
+    } catch (error) {
+      if (imageRequestVersion.current === version) setImageError(errorMessage(error));
+    } finally {
+      if (imageRequestVersion.current === version) setImageProcessing(false);
+    }
+  }
+
   function resetProductForm() {
+    imageRequestVersion.current += 1;
+    setImageProcessing(false);
+    setImageError(null);
     setEditingProductId(null);
     setProductForm(EMPTY_PRODUCT_FORM);
     setProductFeedback(null);
@@ -206,7 +237,7 @@ export function ProductsPage() {
 
   async function submitProduct(event: FormEvent) {
     event.preventDefault();
-    if (mutationInFlight.current || loading || loadError) return;
+    if (mutationInFlight.current || loading || loadError || imageProcessing) return;
     setProductAttempted(true);
     const firstError = Object.keys(productErrors)[0];
     if (firstError) {
@@ -231,6 +262,7 @@ export function ProductsPage() {
           candleEssentialOilMaterialId: candidate.candleEssentialOilMaterialId,
           safetyWasteRate: candidate.safetyWasteRate,
           notes: candidate.notes,
+          imageDataUrl: candidate.imageDataUrl,
         });
         setProductForm(productToForm(updated));
         setProductFeedback({ type: 'success', message: 'Product updated.' });
@@ -418,7 +450,7 @@ export function ProductsPage() {
             </div>
           )}
 
-          <fieldset className="product-form-fields" disabled={busy || loading || Boolean(loadError)}>
+          <fieldset className="product-form-fields" disabled={busy || imageProcessing || loading || Boolean(loadError)}>
             <section className="product-editor-section" aria-labelledby="product-identity-heading">
               <div className="product-section-heading"><span aria-hidden="true">1</span><div><h3 id="product-identity-heading">Product identity</h3><p>Name the product; its stable ID is assigned automatically.</p></div></div>
               <div className="form-grid">
@@ -448,8 +480,52 @@ export function ProductsPage() {
                 </label>
               </div>
             </section>
+            <section className="product-editor-section" aria-labelledby="product-photo-heading">
+              <div className="product-section-heading">
+                <span aria-hidden="true">2</span>
+                <div>
+                  <h3 id="product-photo-heading">Product image <small>Optional</small></h3>
+                  <p>Upload a product photo to include beside the product in customer quotations.</p>
+                </div>
+              </div>
+              <div className="product-image-editor" aria-label="Product image editor">
+                <div className="product-image-preview">
+                  {productForm.imageDataUrl ? (
+                    <img src={productForm.imageDataUrl} alt={`Preview of ${productForm.name || 'product'}`} />
+                  ) : (
+                    <span>No product image</span>
+                  )}
+                </div>
+                <div className="product-image-actions">
+                  <label className="field">
+                    <span>{productForm.imageDataUrl ? 'Replace product image' : 'Upload product image'}</span>
+                    <input
+                      type="file"
+                      name="productImage"
+                      accept="image/jpeg,image/png,image/webp"
+                      aria-label="Upload product image"
+                      disabled={imageProcessing || busy}
+                      onChange={(event) => {
+                        const file = event.currentTarget.files?.[0];
+                        event.currentTarget.value = '';
+                        void loadImage(file);
+                      }}
+                    />
+                  </label>
+                  {productForm.imageDataUrl && (
+                    <button type="button" className="button button-secondary" disabled={imageProcessing} onClick={() => {
+                      setProductForm((current) => ({ ...current, imageDataUrl: '' }));
+                      setImageError(null);
+                    }}>Remove image</button>
+                  )}
+                  <small>JPG, PNG or WebP. Automatically optimized for the quotation and workbook (max 8 MB source).</small>
+                  {imageProcessing && <span role="status">Optimizing product image…</span>}
+                  {imageError && <span className="product-field-error" role="alert">{imageError}</span>}
+                </div>
+              </div>
+            </section>
             <section className="product-editor-section" aria-labelledby="product-recipe-heading">
-              <div className="product-section-heading"><span aria-hidden="true">2</span><div><h3 id="product-recipe-heading">Production setup</h3><p>Choose the category and extra material allowance.</p></div></div>
+              <div className="product-section-heading"><span aria-hidden="true">3</span><div><h3 id="product-recipe-heading">Production setup</h3><p>Choose the category and extra material allowance.</p></div></div>
               <div className="form-grid">
                 <label className="field">
                   <span>Category</span>
@@ -527,7 +603,7 @@ export function ProductsPage() {
               </div>
             </section>
             <section className="product-editor-section" aria-labelledby="product-notes-heading">
-              <div className="product-section-heading"><span aria-hidden="true">3</span><div><h3 id="product-notes-heading">Workshop notes <small>Optional</small></h3><p>Keep making instructions close to the product.</p></div></div>
+              <div className="product-section-heading"><span aria-hidden="true">4</span><div><h3 id="product-notes-heading">Workshop notes <small>Optional</small></h3><p>Keep making instructions close to the product.</p></div></div>
               <div className="form-grid">
                 <label className="field field-wide">
                   <span>Notes</span>
@@ -541,8 +617,8 @@ export function ProductsPage() {
             </section>
             <div className="product-editor-savebar">
               <span>{editingProductId ? `Product ${editingProductId}` : 'New products are added as active.'}</span>
-              <button className="button button-primary button-full" type="submit">
-                {busy ? 'Saving...' : editingProductId ? 'Save product' : 'Create product'}
+              <button className="button button-primary button-full" type="submit" disabled={imageProcessing || busy}>
+                {imageProcessing ? 'Optimizing image…' : busy ? 'Saving...' : editingProductId ? 'Save product' : 'Create product'}
               </button>
             </div>
           </fieldset>

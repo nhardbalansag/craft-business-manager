@@ -311,13 +311,13 @@ export function ProductCatalog({
                     >
                       <td>
                         <div className="product-table-identity">
-                          <span className={`product-category-icon category-${product.category}`} aria-hidden="true">
+                          {product.imageDataUrl ? <img className="product-catalog-thumbnail" src={product.imageDataUrl} alt="" /> : <span className={`product-category-icon category-${product.category}`} aria-hidden="true">
                             {product.category === 'candle'
                               ? <AppIcon name="flame" size={16} />
                               : product.category === 'candle-pot'
                                 ? <AppIcon name="jar" size={16} />
                                 : <AppIcon name="palette" size={16} />}
-                          </span>
+                          </span>}
                           <span>
                             <strong>{product.name}</strong>
                             <small className="material-id">{product.id}</small>
@@ -394,13 +394,13 @@ export function ProductCatalog({
                   aria-label={product.name}
                 >
                   <div className="product-card-top">
-                    <span className={`product-category-icon category-${product.category}`} aria-hidden="true">
+                    {product.imageDataUrl ? <img className="product-catalog-thumbnail" src={product.imageDataUrl} alt="" /> : <span className={`product-category-icon category-${product.category}`} aria-hidden="true">
                       {product.category === 'candle'
                         ? <AppIcon name="flame" size={18} />
                         : product.category === 'candle-pot'
                           ? <AppIcon name="jar" size={18} />
                           : <AppIcon name="palette" size={18} />}
-                    </span>
+                    </span>}
                     <span className={`status-pill ${product.isActive ? 'status-active' : ''}`}>
                       {product.isActive ? 'Active' : 'Archived'}
                     </span>

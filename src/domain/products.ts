@@ -1,3 +1,4 @@
+import { isValidProductImageDataUrl } from './productImage';
 import { SafetyWastePolicyError, validateSafetyWasteRate } from './safetyWastePolicy';
 
 export const PRODUCT_CATEGORIES = ['paintable-art', 'candle-pot', 'candle'] as const;
@@ -55,6 +56,8 @@ export interface Product {
   candleEssentialOilMaterialId?: string;
   /** Optional user-selected Yield sample that should drive effective learning for this Product. */
   preferredYieldSampleId?: string;
+  /** Optional optimized JPEG thumbnail data URL (short enough for an Excel workbook cell). */
+  imageDataUrl?: string;
   /** Planning reserve entered as a decimal rate, e.g. 0.05 = 5%. Must satisfy 0 <= rate < 1. */
   safetyWasteRate: number;
   notes?: string;
@@ -69,6 +72,7 @@ export type ProductContractErrorCode =
   | 'INVALID_CATEGORY'
   | 'INVALID_MIX_PRESET_ID'
   | 'INVALID_PREFERRED_YIELD_SAMPLE_ID'
+  | 'INVALID_IMAGE_DATA_URL'
   | 'INVALID_CANDLE_OIL_CONFIGURATION'
   | 'INVALID_SAFETY_WASTE_RATE'
   | 'INVALID_ACTIVE_STATE';
@@ -151,6 +155,14 @@ export function validateProductContract(product: Product): void {
       'INVALID_CANDLE_OIL_CONFIGURATION',
       'Candle wax and essential oil must both be selected, distinct, and only set on candle Products.',
       { wax: product.candleWaxMaterialId, oil: product.candleEssentialOilMaterialId },
+    );
+  }
+
+  if (product.imageDataUrl !== undefined && !isValidProductImageDataUrl(product.imageDataUrl)) {
+    throw new ProductContractError(
+      'INVALID_IMAGE_DATA_URL',
+      'Product image must be an optimized JPEG thumbnail with a valid base64 data URL no longer than 25,000 characters.',
+      product.imageDataUrl,
     );
   }
 
