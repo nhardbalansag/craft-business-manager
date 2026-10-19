@@ -442,6 +442,69 @@ describe('product workshop interactions', () => {
     expect((await session.productService.getProduct('BETA'))?.name).toBe('Beta star');
   });
 
+  it('opens Components for the currently edited Product without manually changing Product to compose', async () => {
+    await seed();
+    await session.productComponentRepository.replaceAll([{
+      id: 'COMP-BETA',
+      parentProductId: 'BETA',
+      sourceType: 'material',
+      sourceId: 'WAX',
+      role: 'accessory',
+      quantityPerParent: 2,
+    }]);
+    await mount();
+    await click('Edit Beta star');
+    expect(field('Product ID').value).toBe('BETA');
+    await navigate('Components');
+    expect(container.querySelector<HTMLSelectElement>('.composition-parent-panel select')?.value).toBe('BETA');
+    expect(container.querySelector('.component-summary-panel h2')?.textContent).toBe('Beta star');
+    expect(container.querySelector('.component-card-list')?.textContent).toContain('COMP-BETA');
+    expect(container.querySelector('.component-card-list')?.textContent).toContain('Soy wax');
+    // Component editing remains available for the automatically selected parent.
+    await click('Edit', container.querySelector('.component-card-list')!);
+    expect(container.querySelector('.component-editor-form')?.textContent).toContain('Save component');
+  });
+
+  it('follows the latest edited Product when returning to Components while keeping manual parent selection usable', async () => {
+    await seed();
+    await mount();
+    await click('Edit Beta star');
+    await navigate('Components');
+    const parent = () => container.querySelector<HTMLSelectElement>('.composition-parent-panel select')!;
+    expect(parent().value).toBe('BETA');
+    await fill(parent(), 'ALPHA');
+    expect(parent().value).toBe('ALPHA');
+    await navigate('Products');
+    // Returning from the editor shell to the catalog keeps the draft and lets us edit another product.
+    await click('Back to product catalog');
+    await click('Edit Alpha candle');
+    expect(field('Product ID').value).toBe('ALPHA');
+    await navigate('Components');
+    expect(parent().value).toBe('ALPHA');
+    expect(container.querySelector('.component-summary-panel h2')?.textContent).toBe('Alpha candle');
+    await navigate('Products');
+    await click('Back to product catalog');
+    await click('Edit Beta star');
+    await navigate('Components');
+    expect(parent().value).toBe('BETA');
+  });
+
+  it('makes components available for a newly saved Product immediately after creation', async () => {
+    await seed();
+    await mount();
+    await click('+ New product');
+    await fill(field('Name'), 'New gift set');
+    await fill(field('Safety waste (%)'), '5');
+    await submit();
+    const newId = field('Product ID').value;
+    expect(newId).not.toBe('');
+    expect((await session.productService.getProduct(newId))?.name).toBe('New gift set');
+    await navigate('Components');
+    expect(container.querySelector<HTMLSelectElement>('.composition-parent-panel select')?.value).toBe(newId);
+    expect(container.querySelector('.component-summary-panel h2')?.textContent).toBe('New gift set');
+    expect(container.querySelector('.component-summary-panel')?.textContent).toContain('No component lines yet');
+  });
+
   it('opens composition for the product selected in the catalog', async () => {
     await seed();
     await mount();
