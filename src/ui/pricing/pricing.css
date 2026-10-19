@@ -1697,3 +1697,189 @@
   border-top: 0;
   margin-bottom: 22px;
 }
+
+
+/* Visual-first Pricing: fewer default panels, larger photo, and clear next actions. */
+.pricing-workspace .pricing-product-selector {
+  padding: 26px;
+  border: 1px solid #e7ded3;
+  border-radius: 22px;
+  background: linear-gradient(125deg, #f7f1e9 0%, #fffdfa 58%, #f7faf4 100%);
+  box-shadow: 0 12px 34px rgba(68, 52, 32, .07);
+  align-items: flex-end;
+  gap: 28px;
+}
+.pricing-workspace .pricing-product-selector-identity { gap: 26px; align-items: center; }
+.pricing-workspace .pricing-product-reference-image {
+  flex: 0 0 236px;
+  width: 236px;
+  height: 236px;
+  padding: 10px;
+  border-radius: 19px;
+  border: 1px solid #e7ded3;
+  background: #fff;
+  box-shadow: 0 9px 25px rgba(66, 49, 28, .11);
+  object-fit: contain;
+}
+.pricing-workspace .pricing-product-selector-copy { gap: 12px; }
+.pricing-workspace .pricing-product-selector-copy .panel-kicker { margin: 0; }
+.pricing-workspace .pricing-product-selector-copy h2 {
+  font-size: clamp(1.55rem, 2.6vw, 2.4rem);
+  line-height: 1.13;
+  letter-spacing: -.045em;
+}
+.pricing-workspace .pricing-product-selector-copy p:not(.panel-kicker) { font-size: .87rem; }
+.pricing-workspace .pricing-product-selector-actions .button { min-height: 44px; white-space: nowrap; }
+.pricing-workspace .pricing-financial-source-summary {
+  padding: 16px 22px;
+  border-radius: 16px;
+  margin-bottom: 20px;
+  border-color: #e7dfd3;
+}
+.pricing-workspace .pricing-financial-summary-heading h2 { margin: 0; font-size: 1.12rem; }
+.pricing-workspace .pricing-financial-summary-heading .panel-kicker { margin-bottom: 5px; }
+.pricing-workspace .pricing-financial-summary-heading p:not(.panel-kicker) { font-size: .79rem; }
+.pricing-workspace > .pricing-quote-section { gap: 14px; margin-bottom: 16px; }
+.pricing-workspace .pricing-quote-heading { align-items: center; }
+.pricing-workspace .pricing-quote-heading h2 { margin: 3px 0 0; font-size: 1.25rem; }
+.pricing-workspace .pricing-hero-metrics { gap: 12px; }
+.pricing-workspace .pricing-hero-metrics > div {
+  gap: 9px;
+  padding: 20px 18px;
+  border: 1px solid #e4ddd3;
+  border-radius: 16px;
+  background: #fffefa;
+}
+.pricing-workspace .pricing-hero-metrics > .pricing-hero-price {
+  background: #eaf2e8;
+  border-color: #cfdccc;
+}
+.pricing-workspace .pricing-hero-metrics strong { font-size: clamp(1.15rem, 2vw, 1.6rem); letter-spacing: -.03em; }
+.pricing-workspace .pricing-hero-metrics > .pricing-hero-price strong { color: #315c38; }
+.pricing-cost-details {
+  border: 1px solid #e5dfd6;
+  border-radius: 15px;
+  background: #fffdfa;
+  overflow: hidden;
+}
+.pricing-cost-details > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px;
+  cursor: pointer;
+  list-style: none;
+  color: #4b433a;
+}
+.pricing-cost-details > summary::-webkit-details-marker { display: none; }
+.pricing-cost-details > summary > span:first-child { display: grid; gap: 3px; }
+.pricing-cost-details > summary strong { font-size: .88rem; }
+.pricing-cost-details > summary small { color: #928579; font-size: .72rem; }
+.pricing-cost-details .pricing-detail-chevron { font-size: 1.3rem; transition: transform .15s ease; }
+.pricing-cost-details[open] .pricing-detail-chevron { transform: rotate(180deg); }
+.pricing-cost-details[open] > summary { border-bottom: 1px solid #e9e2d8; }
+.pricing-cost-details > .pricing-quote-grid,
+.pricing-cost-details > .pricing-technical-details,
+.pricing-cost-details > .pricing-issues-panel { margin: 14px; }
+.pricing-quick-issue-alert {
+  margin: 0;
+  padding: 10px 14px;
+  border: 1px solid #e9d7b5;
+  border-radius: 11px;
+  background: #fff8e9;
+  color: #7b5a2f;
+  font-size: .83rem;
+}
+.pricing-workspace .pricing-overview {
+  display: block;
+  margin: 0 0 18px;
+  border: 1px solid #ebe4da;
+  border-radius: 13px;
+  background: #fbf9f5;
+}
+.pricing-workspace .pricing-overview > summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  cursor: pointer;
+  list-style: none;
+  color: #655b50;
+  font-size: .82rem;
+}
+.pricing-workspace .pricing-overview > summary::-webkit-details-marker { display: none; }
+.pricing-workspace .pricing-overview > summary strong { font-size: inherit; color: #3d372f; }
+.pricing-workspace .pricing-overview-hint { color: #887b6e; font-size: .75rem; white-space: nowrap; }
+.pricing-workspace .pricing-overview-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  padding: 0 12px 12px;
+}
+.pricing-workspace .pricing-overview-stats > div {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  background: #fff;
+  border: 1px solid #ebe4da;
+  border-radius: 11px;
+}
+.pricing-workspace .pricing-overview-stats span { color: #84776b; font-size: .7rem; }
+.pricing-workspace .pricing-overview-stats strong { font-size: 1.15rem; }
+.pricing-workspace .pricing-overview-stats small { font-size: .73rem; color: #92877c; }
+.pricing-quick-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 16px;
+}
+.pricing-workspace .pricing-quick-actions > section {
+  margin: 0;
+  min-width: 0;
+  padding: 20px;
+  gap: 16px;
+  border-radius: 17px;
+}
+.pricing-workspace .pricing-quick-actions .pricing-financial-summary-heading {
+  display: grid;
+  gap: 14px;
+  align-items: start;
+}
+.pricing-workspace .pricing-quick-actions .pricing-financial-summary-heading .button { width: fit-content; }
+.pricing-workspace .pricing-quick-actions .pricing-order-preview-summary-values,
+.pricing-workspace .pricing-quick-actions .pricing-tier-summary-values {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+.pricing-workspace .pricing-quick-actions .pricing-order-preview-summary-values > div,
+.pricing-workspace .pricing-quick-actions .pricing-tier-summary-values > div {
+  background: #f8f5f0;
+  border: 0;
+  padding: 12px;
+}
+.pricing-workspace .pricing-quick-actions .pricing-order-preview-summary-values strong,
+.pricing-workspace .pricing-quick-actions .pricing-tier-summary-values strong { font-size: 1.08rem; letter-spacing: -.02em; }
+
+@media (max-width: 1080px) {
+  .pricing-workspace .pricing-product-selector { align-items: stretch; flex-direction: column; }
+  .pricing-workspace .pricing-product-selector-actions { justify-content: flex-start; }
+}
+@media (max-width: 780px) {
+  .pricing-quick-actions { grid-template-columns: minmax(0, 1fr); }
+  .pricing-workspace .pricing-product-reference-image { flex-basis: 200px; width: 200px; height: 200px; }
+  .pricing-workspace .pricing-product-selector { padding: 18px; }
+  .pricing-workspace .pricing-product-selector-identity { gap: 18px; }
+  .pricing-workspace .pricing-product-selector-actions .button { width: 100%; }
+}
+@media (max-width: 520px) {
+  .pricing-workspace .pricing-product-selector-identity { flex-direction: column; align-items: stretch; }
+  .pricing-workspace .pricing-product-reference-image { flex: 0 0 auto; width: min(100%, 280px); height: 230px; align-self: center; }
+  .pricing-workspace .pricing-hero-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pricing-workspace .pricing-quick-actions .pricing-financial-summary-heading .button { width: 100%; }
+  .pricing-workspace .pricing-overview-stats { grid-template-columns: minmax(0, 1fr); }
+  .pricing-cost-details > .pricing-quote-grid,
+  .pricing-cost-details > .pricing-technical-details,
+  .pricing-cost-details > .pricing-issues-panel { margin: 10px; }
+}
