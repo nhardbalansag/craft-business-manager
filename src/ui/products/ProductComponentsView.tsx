@@ -21,6 +21,7 @@ type ProductComponentsViewProps = {
   materials: readonly Material[];
   catalogLoading: boolean;
   initialProductId?: string;
+  onSelectedProductChange?: (productId: string) => void;
 };
 
 type ComponentFormState = {
@@ -96,7 +97,7 @@ function PreviewBranch({ node }: { node: ProductCompositionPreviewNode }) {
   );
 }
 
-export function ProductComponentsView({ products, materials, catalogLoading, initialProductId }: ProductComponentsViewProps) {
+export function ProductComponentsView({ products, materials, catalogLoading, initialProductId, onSelectedProductChange }: ProductComponentsViewProps) {
   const initialParentId = products.find((product) => product.id === initialProductId)?.id ?? products.find((product) => product.isActive)?.id ?? products[0]?.id ?? '';
   const [sourceError, setSourceError] = useState<string | null>(null);
   const [selectedParentId, setSelectedParentId] = useState(initialParentId);
@@ -205,6 +206,7 @@ export function ProductComponentsView({ products, materials, catalogLoading, ini
 
   function changeParent(parentId: string) {
     setSelectedParentId(parentId);
+    onSelectedProductChange?.(parentId);
     resetForm();
   }
 
