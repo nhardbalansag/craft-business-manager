@@ -16,6 +16,7 @@ import {
 } from '../../domain/products';
 import { ProductPriceResolutionPanel } from './ProductPriceResolutionPanel';
 import { CustomerQuotationDialog } from './CustomerQuotationDialog';
+import { PricingEditorModal } from './PricingEditorModal';
 import { ProductPricingQuotePanel } from './ProductPricingQuotePanel';
 import { ProductPriceTierCatalogPanel } from './ProductPriceTierCatalogPanel';
 import {
@@ -97,6 +98,7 @@ export function PricingPage() {
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<ActiveFilter>('active');
   const [productCatalogOpen, setProductCatalogOpen] = useState(false);
+  const [financialSourceOpen, setFinancialSourceOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [workspaceError, setWorkspaceError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -206,6 +208,7 @@ export function PricingPage() {
 
       setSelectedProductId(initialProduct?.id ?? null);
       setForm(productFinancialProfileToForm(initialProfile));
+      setFinancialSourceOpen(false);
     } catch (error) {
       setWorkspaceError(errorMessage(error));
       setProducts([]);
@@ -341,6 +344,7 @@ export function PricingPage() {
     setResolutionLoading(false);
     setResolutionError(null);
     setQuotationOpen(false);
+    setFinancialSourceOpen(false);
     setSelectedProductId(product.id);
     setForm(
       productFinancialProfileToForm(
@@ -353,6 +357,19 @@ export function PricingPage() {
     setTierMutationError(null);
     setTierMutationFeedback(null);
     setProductCatalogOpen(false);
+  }
+
+  function openFinancialSource() {
+    if (!selectedProduct) return;
+    setFeedback(null);
+    setFinancialSourceOpen(true);
+  }
+
+  function closeFinancialSource() {
+    if (saving) return;
+    // Preserve the unsaved draft when dismissing; the summary still warns
+    // that saved economics do not include unsaved financial inputs.
+    setFinancialSourceOpen(false);
   }
 
   function openProductCatalog() {
@@ -399,6 +416,7 @@ export function PricingPage() {
         message: `Financial profile saved for ${selectedProduct.name}.`,
       });
       await loadQuote(selectedProduct.id);
+      setFinancialSourceOpen(false);
     } catch (error) {
       setFeedback({ type: 'error', message: errorMessage(error) });
     } finally {
@@ -591,12 +609,59 @@ export function PricingPage() {
         </div>
       </section>
 
-      <div className="pricing-layout pricing-layout-catalog-modal">
+      <section className="panel pricing-financial-source-summary" aria-label="Financial source summary">
+        <div className="pricing-financial-summary-heading">
+          <div>
+            <p className="panel-kicker">FINANCIAL SOURCE</p>
+            <h2>Financial source</h2>
+            <p>{selectedProduct
+              ? `Review the saved labor, overhead and pricing policy for ${selectedProduct.name}.`
+              : 'Select a Product to configure financial inputs.'}</p>
+          </div>
+          <button
+            className="button button-primary"
+            type="button"
+            aria-haspopup="dialog"
+            aria-expanded={financialSourceOpen}
+            aria-label={selectedProfile ? 'Edit Financial Source' : 'Set Financial Source'}
+            disabled={!selectedProduct || loading || Boolean(workspaceError)}
+            onClick={openFinancialSource}
+          >
+            <AppIcon name="pricing" size={17} />
+            {selectedProfile ? 'Edit Financial Source' : 'Set Financial Source'}
+          </button>
+        </div>
+        <div className="pricing-financial-summary-values">
+          <div><span>Saved labor / unit</span><strong>{formatPhp(selectedProfile?.laborCostPerUnit ?? null)}</strong></div>
+          <div><span>Saved overhead / unit</span><strong>{formatPhp(selectedProfile?.overheadCostPerUnit ?? null)}</strong></div>
+          <div><span>Saved pricing policy</span><strong>{selectedProfile ? pricingPolicyLabel(selectedProfile.pricingPolicy) : 'Not configured'}</strong></div>
+          <div><span>Source status</span><strong>{selectedProfile ? 'Saved' : 'Needs setup'}</strong></div>
+        </div>
+        {formDirty && (
+          <p className="pricing-financial-draft-warning" role="status">
+            Unsaved financial changes are preserved. Reopen Financial Source to save or reset them.
+          </p>
+        )}
+        {feedback && !financialSourceOpen && (
+          <div className={`feedback ${feedback.type === 'error' ? 'feedback-error' : 'feedback-success'}`} role="status">
+            {feedback.message}
+          </div>
+        )}
+      </section>
+
+      <PricingEditorModal
+        open={financialSourceOpen}
+        titleId="pricing-financial-source-title"
+        label="Financial Source"
+        onClose={closeFinancialSource}
+        closeDisabled={saving}
+        restoreFocusSelector={'[aria-label="Edit Financial Source"], [aria-label="Set Financial Source"]'}
+      >
         <form className="panel pricing-editor-panel" aria-label="Pricing financial profile" onSubmit={submitProfile}>
           <div className="panel-heading pricing-editor-heading">
             <div>
               <p className="panel-kicker">FINANCIAL SOURCE</p>
-              <h2>{selectedProduct ? selectedProduct.name : 'Select a Product'}</h2>
+              <h2 id="pricing-financial-source-title">{selectedProduct ? selectedProduct.name : 'Select a Product'}</h2>
             </div>
             <div className="pricing-editor-badges">
               {formDirty && <span className="pricing-draft-pill">Unsaved changes</span>}
@@ -762,6 +827,9 @@ export function PricingPage() {
           </div>
 
           <div className="pricing-editor-actions">
+            <button className="button button-quiet" type="button" disabled={saving} onClick={closeFinancialSource}>
+              Cancel
+            </button>
             <button className="button button-secondary" type="button" disabled={!formDirty || saving} onClick={resetDraft}>
               Reset changes
             </button>
@@ -776,7 +844,7 @@ export function PricingPage() {
             </div>
           )}
         </form>
-      </div>
+      </PricingEditorModal>
 
       {productCatalogOpen && (
         <div
@@ -955,16 +1023,25 @@ export function PricingPage() {
         </div>
       )}
 
-      <ProductPriceTierEditorPanel
-        product={selectedProduct}
-        tier={editingTier}
+      <PricingEditorModal
         open={tierEditorOpen}
-        saving={tierSaving}
-        error={tierMutationError}
-        fullyLoadedUnitCost={quote?.totalFullyLoadedUnitCost ?? null}
-        onSubmit={submitTier}
-        onCancel={closeTierEditor}
-      />
+        titleId="price-tier-editor-title"
+        label={editingTier ? `Edit tier ${editingTier.name}` : 'Create price tier'}
+        onClose={closeTierEditor}
+        closeDisabled={tierSaving}
+        restoreFocusSelector={'[aria-label="Tier pricing catalog"] button'}
+      >
+        <ProductPriceTierEditorPanel
+          product={selectedProduct}
+          tier={editingTier}
+          open={tierEditorOpen}
+          saving={tierSaving}
+          error={tierMutationError}
+          fullyLoadedUnitCost={quote?.totalFullyLoadedUnitCost ?? null}
+          onSubmit={submitTier}
+          onCancel={closeTierEditor}
+        />
+      </PricingEditorModal>
 
       <ProductPriceTierCatalogPanel
         productName={selectedProduct?.name ?? null}
