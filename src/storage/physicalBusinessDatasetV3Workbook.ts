@@ -1,3 +1,4 @@
+import { BROCHURE_IMAGE_COLUMN_NAMES } from '../domain/productBrochureImage';
 import {
   PHYSICAL_BUSINESS_DATASET_V3_SCHEMA_VERSION,
   extendBusinessDatasetV2,
@@ -175,7 +176,7 @@ function normalizePrePreferredPhysicalProductsSheet(
   // Keep the strict known-column allowlist rather than accepting arbitrary
   // corrupt Products schemas.
   const legacyCount = LEGACY_PRE_PREFERRED_PHYSICAL_PRODUCTS_COLUMNS.length;
-  const optionalCandleColumns = ['candleWaxMaterialId', 'candleEssentialOilMaterialId', 'imageDataUrl'];
+  const optionalCandleColumns = ['candleWaxMaterialId', 'candleEssentialOilMaterialId', 'imageDataUrl', ...BROCHURE_IMAGE_COLUMN_NAMES];
   const actualExtras = candidate.columns.slice(legacyCount);
   const isRecognizedLegacyShape =
     candidate.columns.length >= legacyCount &&

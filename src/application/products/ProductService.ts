@@ -60,6 +60,7 @@ function normalizeProduct(product: Product): Product {
     mixPresetId: product.mixPresetId?.trim() || undefined,
     preferredYieldSampleId: product.preferredYieldSampleId?.trim() || undefined,
     imageDataUrl: product.imageDataUrl || undefined,
+    brochureImageDataUrl: product.brochureImageDataUrl || undefined,
     candleWaxMaterialId: product.candleWaxMaterialId?.trim() || undefined,
     candleEssentialOilMaterialId: product.candleEssentialOilMaterialId?.trim() || undefined,
     notes: product.notes?.trim() || undefined,
