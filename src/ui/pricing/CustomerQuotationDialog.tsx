@@ -403,14 +403,6 @@ export function CustomerQuotationDialog({
                   {lines.length} {lines.length === 1 ? 'item' : 'items'} · {money(quotationTotal)}
                 </strong>
               </div>
-              <button
-                className="button button-secondary"
-                type="button"
-                onClick={addProduct}
-                disabled={!canAddProduct}
-              >
-                Add another product
-              </button>
             </div>
 
             <div className="customer-quotation-item-list">
@@ -546,6 +538,17 @@ export function CustomerQuotationDialog({
                   </article>
                 );
               })}
+            </div>
+
+            <div className="customer-quotation-add-product-row" aria-label="Add quotation product">
+              <button
+                className="button button-secondary customer-quotation-add-product-button"
+                type="button"
+                onClick={addProduct}
+                disabled={!canAddProduct}
+              >
+                + Add another product
+              </button>
             </div>
 
             {!canAddProduct && lines.length > 0 && (
