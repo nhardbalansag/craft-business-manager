@@ -162,7 +162,7 @@ export function validateProductContract(product: Product): void {
     throw new ProductContractError(
       'INVALID_IMAGE_DATA_URL',
       'Product image must be an optimized JPEG thumbnail with a valid base64 data URL no longer than 25,000 characters.',
-      product.imageDataUrl.length,
+      product.imageDataUrl,
     );
   }
 

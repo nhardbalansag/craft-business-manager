@@ -70,6 +70,27 @@ describe('customerQuotation', () => {
     });
   });
 
+  it('includes images for each matching Product without changing pricing or requiring images for others', () => {
+    const photo = `data:image/jpeg;base64,/9j/${'AAAA'.repeat(25)}`;
+    const resultView = buildCustomerQuotationView(
+      [
+        result(),
+        result({ productId: 'PROD-PLASTER', productName: 'Paintable Bear', quantity: 5, unitSellingPrice: 120, totalSellingPrice: 600 }),
+      ],
+      {
+        businessName: 'My Lovely Craft', quotationReference: 'QT-PHOTOS',
+        customerName: 'Event Client', generatedAtIso: '2026-10-06T00:00:00.000Z',
+      },
+      [
+        { id: 'PROD-CANDLE', name: 'Rose Candle', category: 'candle', safetyWasteRate: 0.05, isActive: true, imageDataUrl: photo },
+        { id: 'PROD-PLASTER', name: 'Paintable Bear', category: 'paintable-art', safetyWasteRate: 0.05, isActive: true },
+      ],
+    );
+    expect(resultView.items[0].product.imageDataUrl).toBe(photo);
+    expect(resultView.items[1].product.imageDataUrl).toBeUndefined();
+    expect(resultView.total).toBe(1620);
+  });
+
   it('combines multiple resolved Products into one quotation total', () => {
     const view = buildCustomerQuotationView(
       [

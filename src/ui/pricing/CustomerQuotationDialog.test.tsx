@@ -80,6 +80,23 @@ afterEach(async () => {
 });
 
 describe('CustomerQuotationDialog multi-product workflow', () => {
+  it('previews the saved photo for its corresponding quotation item', async () => {
+    const photo = `data:image/jpeg;base64,/9j/${'AAAA'.repeat(25)}`;
+    const withPhotos = products.map((p) => p.id === 'PROD-A' ? { ...p, imageDataUrl: photo } : p);
+    await act(async () => root.render(
+      <CustomerQuotationDialog
+        open
+        result={result('PROD-A', 'Rose Candle', 1, 70)}
+        products={withPhotos}
+        resolvePrice={async (request) => result(request.productId, 'Paintable Bear', request.quantity, 120)}
+        onClose={vi.fn()}
+      />,
+    ));
+    expect(container.querySelector<HTMLImageElement>('.customer-quotation-item-image img')?.src).toBe(photo);
+    expect(container.textContent).toContain('Included in printed quotation');
+  });
+
+
   it('adds a different Product, resolves its price, and prevents duplicate Product selection', async () => {
     const startingResult = result('PROD-A', 'Rose Candle', 1, 70);
     const resolvePrice = vi.fn(async (request: { productId: string; quantity: number }) =>

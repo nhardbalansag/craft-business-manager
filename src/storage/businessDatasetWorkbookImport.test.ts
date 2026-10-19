@@ -227,6 +227,27 @@ describe('BusinessDataset workbook import', () => {
     );
   });
 
+  it('round-trips optimized Product images with real XLSX bytes', () => {
+    const photo = `data:image/jpeg;base64,/9j/${'AAAA'.repeat(25)}`;
+    const source = datasetFixture();
+    source.products[0].imageDataUrl = photo;
+    const codec = new SheetJsWorkbookCodec();
+    const bytes = exportBusinessDatasetToXlsx(source, METADATA, codec);
+    const result = importBusinessDatasetFromXlsx(bytes, codec);
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.dataset.products[0].imageDataUrl).toBe(photo);
+  });
+
+  it('imports legacy Products sheets that have no imageDataUrl column', () => {
+    const workbook = mutableDocument();
+    const products = mutableSheet(workbook, 'Products');
+    products.columns = products.columns.filter((column) => column !== 'imageDataUrl');
+    products.rows.forEach((row) => { delete row.imageDataUrl; });
+    const result = reconstructBusinessDatasetFromWorkbook(workbook as WorkbookNeutralDocument);
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.dataset.products.every((p) => p.imageDataUrl === undefined)).toBe(true);
+  });
+
   it('accepts ArrayBuffer input through the real codec boundary', () => {
     const codec = new SheetJsWorkbookCodec();
     const bytes = exportBusinessDatasetToXlsx(datasetFixture(), METADATA, codec);

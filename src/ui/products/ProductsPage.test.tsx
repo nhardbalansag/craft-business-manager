@@ -4,6 +4,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as session from '../../application/session';
 import { ProductsPage } from './ProductsPage';
+import * as productImageUpload from './productImageUpload';
 
 let container: HTMLDivElement;
 let root: Root;
@@ -107,6 +108,53 @@ async function seed() {
 }
 
 describe('product workshop interactions', () => {
+  it('uploads, saves, reloads and removes a Product image without losing other fields', async () => {
+    const photo = `data:image/jpeg;base64,/9j/${'AAAA'.repeat(25)}`;
+    const optimizer = vi.spyOn(productImageUpload, 'optimizeProductImage').mockResolvedValue(photo);
+    await seed();
+    await mount();
+    await click('Edit Alpha candle');
+    const input = form().querySelector<HTMLInputElement>('[aria-label="Upload product image"]')!;
+    expect(input).not.toBeNull();
+    expect(form().querySelector('.product-image-preview')?.textContent).toContain('No product image');
+    const file = new File(['photo'], 'candle.png', { type: 'image/png' });
+    Object.defineProperty(input, 'files', { configurable: true, value: [file] });
+    await act(async () => {
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+      await Promise.resolve();
+    });
+    expect(optimizer).toHaveBeenCalledWith(file);
+    expect(form().querySelector<HTMLImageElement>('.product-image-preview img')?.src).toBe(photo);
+    await submit();
+    expect((await session.productService.getProduct('ALPHA'))?.imageDataUrl).toBe(photo);
+    await click('Back to product catalog');
+    expect(catalog().querySelector<HTMLImageElement>('[aria-label="Alpha candle"] img.product-catalog-thumbnail')?.src).toBe(photo);
+    await click('Edit Alpha candle');
+    expect(form().querySelector<HTMLImageElement>('.product-image-preview img')?.src).toBe(photo);
+    await click('Remove image');
+    await submit();
+    expect((await session.productService.getProduct('ALPHA'))?.imageDataUrl).toBeUndefined();
+    expect((await session.productService.getProduct('ALPHA'))?.name).toBe('Alpha candle');
+  });
+
+  it('shows an upload error and keeps the existing image when the new file cannot be processed', async () => {
+    const photo = `data:image/jpeg;base64,/9j/${'AAAA'.repeat(25)}`;
+    await seed();
+    await session.productService.updateProduct('BETA', { imageDataUrl: photo });
+    vi.spyOn(productImageUpload, 'optimizeProductImage').mockRejectedValue(new Error('Image is too large'));
+    await mount();
+    await click('Edit Beta star');
+    const input = form().querySelector<HTMLInputElement>('[aria-label="Upload product image"]')!;
+    Object.defineProperty(input, 'files', { configurable: true, value: [new File(['bad'], 'bad.png', { type: 'image/png' })] });
+    await act(async () => {
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+      await Promise.resolve();
+    });
+    expect(form().querySelector('[role="alert"]')?.textContent).toContain('Image is too large');
+    expect(form().querySelector<HTMLImageElement>('.product-image-preview img')?.src).toBe(photo);
+    expect((await session.productService.getProduct('BETA'))?.imageDataUrl).toBe(photo);
+  });
+
   it('saves selected candle wax and essential oil links used by Production and Pricing', async () => {
     await seed();
     await session.materialService.updateMaterial('WAX', { essentialOilPercent: 6 });

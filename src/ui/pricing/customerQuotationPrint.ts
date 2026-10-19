@@ -203,6 +203,22 @@ export function printCustomerQuotation(
   printWindow.document.open();
   printWindow.document.write(renderCustomerQuotationHtml(view));
   printWindow.document.close();
-  printWindow.focus();
-  printWindow.print();
+  const pendingImages = Array.from(printWindow.document.images ?? []).filter(
+    (image) => !image.complete,
+  );
+  if (pendingImages.length === 0) {
+    printWindow.focus();
+    printWindow.print();
+    return;
+  }
+  // Wait for embedded images to finish loading before invoking print / Save as PDF.
+  void Promise.all(pendingImages.map((image) => new Promise<void>((resolve) => {
+    const done = () => resolve();
+    image.addEventListener('load', done, { once: true });
+    image.addEventListener('error', done, { once: true });
+    if (image.complete) resolve();
+  }))).then(() => {
+    printWindow.focus();
+    printWindow.print();
+  });
 }

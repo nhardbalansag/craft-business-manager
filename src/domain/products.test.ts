@@ -42,6 +42,24 @@ describe('candle fragrance pairing contract', () => {
   });
 });
 
+describe('product quotation image contract', () => {
+  const photo = `data:image/jpeg;base64,/9j/${'AAAA'.repeat(25)}`;
+
+  it('accepts an optional compact JPEG image and rejects oversized, non-JPEG and unsafe URLs', () => {
+    expect(() => validateProductContract(product({ imageDataUrl: photo }))).not.toThrow();
+    for (const value of [
+      'https://example.org/image.png',
+      'data:image/svg+xml;base64,PHN2Zz48c2NyaXB0',
+      'data:image/png;base64,AAAA',
+      `data:image/jpeg;base64,${'AAAA'.repeat(6_251)}`,
+    ]) {
+      expect(() => validateProductContract(product({ imageDataUrl: value }))).toThrow(
+        expect.objectContaining({ code: 'INVALID_IMAGE_DATA_URL' }),
+      );
+    }
+  });
+});
+
 describe('product categories', () => {
   it('exposes the locked Phase 2 categories', () => {
     expect(PRODUCT_CATEGORIES).toEqual(['paintable-art', 'candle-pot', 'candle']);

@@ -84,6 +84,7 @@ export function customerQuotationSourceLabel(
 }
 
 function buildItem(result: ProductPriceResolutionResult, products: readonly Product[]): CustomerQuotationItemView {
+  const imageDataUrl = products.find((product) => product.id === result.productId)?.imageDataUrl;
   if (result.status !== 'ready') {
     throw new CustomerQuotationError(
       'PRICING_NOT_READY',
@@ -110,10 +111,7 @@ function buildItem(result: ProductPriceResolutionResult, products: readonly Prod
       id: result.productId,
       name: result.productName,
       quantity: result.quantity,
-      ...(products.find((product) => product.id === result.productId)?.imageDataUrl &&
-      isValidProductImageDataUrl(products.find((product) => product.id === result.productId)!.imageDataUrl)
-        ? { imageDataUrl: products.find((product) => product.id === result.productId)!.imageDataUrl }
-        : {}),
+      ...(isValidProductImageDataUrl(imageDataUrl) ? { imageDataUrl } : {}),
     },
     pricing: {
       sourceLabel: customerQuotationSourceLabel(result),

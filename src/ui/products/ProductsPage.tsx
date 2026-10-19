@@ -95,6 +95,7 @@ export function ProductsPage() {
   const [productFeedback, setProductFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [imageError, setImageError] = useState<string | null>(null);
   const [imageProcessing, setImageProcessing] = useState(false);
+  const imageRequestVersion = useRef(0);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const mutationInFlight = useRef(false);
@@ -177,6 +178,8 @@ export function ProductsPage() {
   }, [pendingProduct]);
 
   function openProductEditor(product: Product | null) {
+    imageRequestVersion.current += 1;
+    setImageProcessing(false);
     // Keep the Components tab aligned with the product whose details are being edited.
     // Only change this context after a pending draft switch has been confirmed.
     if (product) setComponentProductId(product.id);
@@ -207,20 +210,24 @@ export function ProductsPage() {
 
   async function loadImage(file: File | undefined) {
     if (!file) return;
+    const version = ++imageRequestVersion.current;
     setImageProcessing(true);
     setImageError(null);
     try {
       const imageDataUrl = await optimizeProductImage(file);
+      if (imageRequestVersion.current !== version) return;
       setProductForm((current) => ({ ...current, imageDataUrl }));
       setProductFeedback(null);
     } catch (error) {
-      setImageError(errorMessage(error));
+      if (imageRequestVersion.current === version) setImageError(errorMessage(error));
     } finally {
-      setImageProcessing(false);
+      if (imageRequestVersion.current === version) setImageProcessing(false);
     }
   }
 
   function resetProductForm() {
+    imageRequestVersion.current += 1;
+    setImageProcessing(false);
     setImageError(null);
     setEditingProductId(null);
     setProductForm(EMPTY_PRODUCT_FORM);
@@ -610,7 +617,7 @@ export function ProductsPage() {
             </section>
             <div className="product-editor-savebar">
               <span>{editingProductId ? `Product ${editingProductId}` : 'New products are added as active.'}</span>
-              <button className="button button-primary button-full" type="submit">
+              <button className="button button-primary button-full" type="submit" disabled={imageProcessing || busy}>
                 {imageProcessing ? 'Optimizing image…' : busy ? 'Saving...' : editingProductId ? 'Save product' : 'Create product'}
               </button>
             </div>
