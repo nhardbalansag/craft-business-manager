@@ -167,7 +167,7 @@ describe('Yield workspace UI/UX', () => {
     expect(image?.getAttribute('alt')).toBe('Product reference: Wild Animal Kit');
     await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="View full-size image of Wild Animal Kit"]')!.click());
     expect(document.body.querySelector<HTMLImageElement>('.product-image-zoom-canvas img')?.getAttribute('src')).toBe(otherPhoto);
-    await act(async () document.body.querySelector<HTMLButtonElement>('[aria-label="Close enlarged product image"]')!.click());
+    await act(async () => document.body.querySelector<HTMLButtonElement>('[aria-label="Close enlarged product image"]')!.click());
     expect(container.querySelector('[aria-label="Yield sample"]')).not.toBeNull();
   });
 
