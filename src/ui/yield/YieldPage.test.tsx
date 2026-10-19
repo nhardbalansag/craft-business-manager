@@ -119,6 +119,71 @@ async function submit() {
 }
 
 describe('Yield workspace UI/UX', () => {
+  it('keeps quick instructions and secondary statistics collapsed while leaving batch recording available', async () => {
+    await seed();
+    await mount();
+
+    const guide = container.querySelector<HTMLDetailsElement>('.yield-guide-disclosure')!;
+    const extraStats = container.querySelector<HTMLDetailsElement>('.yield-secondary-insights')!;
+    expect(guide).not.toBeNull();
+    expect(guide.open).toBe(false);
+    expect(extraStats).not.toBeNull();
+    expect(extraStats.open).toBe(false);
+    expect(container.querySelector('[aria-label="Yield sample"]')).not.toBeNull();
+    expect(container.querySelector('[aria-label="Yield draft completion"]')).not.toBeNull();
+    expect(container.querySelector('[aria-label="Yield history snapshot"]')?.textContent).toContain('Effective good yield');
+
+    await act(async () => guide.querySelector('summary')!.click());
+    expect(guide.open).toBe(true);
+    await act(async () => extraStats.querySelector('summary')!.click());
+    expect(extraStats.open).toBe(true);
+    expect(extraStats.textContent).toContain('Historical good-piece rate');
+  });
+
+  it('shows the Product reference photo if saved, and updates it when the chosen Product changes', async () => {
+    const photo = 'data:image/jpeg;base64,/9j/AAAA';
+    const otherPhoto = 'data:image/jpeg;base64,/9j/BBBB';
+    await session.materialRepository.replaceAll([plaster]);
+    await session.productRepository.replaceAll([
+      { ...product, imageDataUrl: photo },
+      { ...product, id: 'ART-ZZ', name: 'Wild Animal Kit', imageDataUrl: otherPhoto },
+    ]);
+    await mount();
+
+    const picker = container.querySelector<HTMLInputElement>('[aria-label="Search products for yield"]')!;
+    await act(async () => picker.focus());
+    await fill(picker, 'Paintable Star');
+    await act(async () => container.querySelector<HTMLButtonElement>('[role="option"]')!.click());
+
+    let image = container.querySelector<HTMLImageElement>('.yield-product-reference-image');
+    expect(image?.getAttribute('src')).toBe(photo);
+    expect(image?.getAttribute('alt')).toBe('Product reference: Paintable Star');
+
+    await act(async () => picker.focus());
+    await fill(picker, 'Wild Animal Kit');
+    await act(async () => container.querySelector<HTMLButtonElement>('[role="option"]')!.click());
+    image = container.querySelector<HTMLImageElement>('.yield-product-reference-image');
+    expect(image?.getAttribute('src')).toBe(otherPhoto);
+    expect(image?.getAttribute('alt')).toBe('Product reference: Wild Animal Kit');
+  });
+
+  it('supports missing images and the saved brochure-image fallback', async () => {
+    await session.materialRepository.replaceAll([plaster]);
+    await session.productRepository.replaceAll([{ ...product, imageDataUrl: undefined }]);
+    await mount();
+    expect(container.querySelector('.yield-product-reference-image')).toBeNull();
+    expect(container.querySelector('[aria-label="Yield sample"]')).not.toBeNull();
+
+    const brochure = 'data:image/jpeg;base64,/9j/CCCC';
+    await session.productRepository.replaceAll([{ ...product, brochureImageDataUrl: brochure }]);
+    await act(async () => {
+      root.unmount();
+    });
+    root = createRoot(container);
+    await mount();
+    expect(container.querySelector<HTMLImageElement>('.yield-product-reference-image')?.getAttribute('src')).toBe(brochure);
+  });
+
   it('shows the entire selected product name and ID in a full-width identity card and updates on selection', async () => {
     const longProduct = {
       ...product,
