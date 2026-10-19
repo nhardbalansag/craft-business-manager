@@ -163,6 +163,12 @@ export function ProductCatalog({
     onComponents(product);
   }
 
+  function viewProductPricing(product: Product) {
+    setViewProductId(null);
+    viewTriggerRef.current = null;
+    onPricing?.(product);
+  }
+
   function startNewProduct() {
     onNew();
     setEditorIntent({ mode: 'new' });
@@ -630,6 +636,7 @@ export function ProductCatalog({
           onClose={closeProductView}
           onEdit={() => editViewedProduct(viewingProduct)}
           onComponents={() => viewProductComponents(viewingProduct)}
+          onPricing={onPricing ? () => viewProductPricing(viewingProduct) : undefined}
           onBrochure={() => openBrochure(viewingProduct)}
         />
       )}
