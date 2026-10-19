@@ -231,16 +231,17 @@ describe('Pricing workspace UI/UX', () => {
 
     const selector = container.querySelector<HTMLElement>('[aria-label="Selected pricing Product"]')!;
     let photo = selector.querySelector<HTMLImageElement>('img.pricing-product-reference-image');
-    expect(photo?.getAttribute('src')).toBe(starImage);
-    expect(photo?.getAttribute('alt')).toBe('Product reference: Paintable Star');
-
-    await click('Open Product Catalog');
-    await click('Price Event Candle', container.querySelector<HTMLElement>('[role="dialog"]')!);
-
-    photo = selector.querySelector<HTMLImageElement>('img.pricing-product-reference-image');
-    expect(selector.querySelector('h2')?.textContent).toBe('Event Candle');
+    // The pricing workspace defaults to the first active Product by catalog order.
     expect(photo?.getAttribute('src')).toBe(candleImage);
     expect(photo?.getAttribute('alt')).toBe('Product reference: Event Candle');
+
+    await click('Open Product Catalog');
+    await click('Price Paintable Star', container.querySelector<HTMLElement>('[role="dialog"]')!);
+
+    photo = selector.querySelector<HTMLImageElement>('img.pricing-product-reference-image');
+    expect(selector.querySelector('h2')?.textContent).toBe('Paintable Star');
+    expect(photo?.getAttribute('src')).toBe(starImage);
+    expect(photo?.getAttribute('alt')).toBe('Product reference: Paintable Star');
   });
 
   it('keeps Pricing usable without a Product image and accepts only validated saved images', async () => {
