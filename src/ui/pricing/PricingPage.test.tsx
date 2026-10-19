@@ -299,18 +299,21 @@ describe('Pricing workspace UI/UX', () => {
   it('closes the tier editor modal on Escape and can reopen with a clean new tier form', async () => {
     await seed();
     await mount();
+    await click('Open Tier Pricing');
     await click('Create tier');
     expect(container.querySelector('[role="dialog"][aria-label="Create price tier"]')).not.toBeNull();
     const tierForm = container.querySelector<HTMLFormElement>('[aria-label="Price tier editor"]')!;
     await fill(field('Tier name', tierForm), 'Unsubmitted tier');
     await act(async () => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })));
     expect(container.querySelector('[aria-label="Price tier editor"]')).toBeNull();
+    expect(container.querySelector('[role="dialog"][aria-label="Tier Pricing"]')).not.toBeNull();
     expect(await session.productPriceTierService.listTiersByProduct('ART-001')).toHaveLength(0);
     await click('Create tier');
     const reopened = container.querySelector<HTMLFormElement>('[aria-label="Price tier editor"]')!;
     expect(field('Tier name', reopened).value).toBe('');
     await click('Close Create price tier');
     expect(container.querySelector('[role="dialog"][aria-label="Create price tier"]')).toBeNull();
+    expect(container.querySelector('[role="dialog"][aria-label="Tier Pricing"]')).not.toBeNull();
   });
 
   it('previews draft inputs, marks unsaved changes, and saves canonical markup source values', async () => {
