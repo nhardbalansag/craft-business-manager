@@ -132,7 +132,7 @@ describe('product workshop interactions', () => {
     expect((await session.productService.getProduct('ALPHA'))?.imageDataUrl).toBe(photo);
     expect((await session.productService.getProduct('ALPHA'))?.brochureImageDataUrl).toBe(highRes);
     await click('Back to product catalog');
-    expect(catalog().querySelector<HTMLImageElement>('[aria-label="Alpha candle"] img.product-catalog-thumbnail')?.src).toBe(photo);
+    expect(catalog().querySelector<HTMLImageElement>('.product-catalog-table tbody img.product-catalog-thumbnail')?.src).toBe(photo);
     await click('Edit Alpha candle');
     expect(form().querySelector<HTMLImageElement>('.product-image-preview img')?.src).toBe(photo);
     await click('Remove image');
@@ -323,7 +323,7 @@ describe('product workshop interactions', () => {
     await seed();
     await mount();
 
-    await click('Table');
+    expect(catalog().querySelector('[aria-label="Catalog layout"] button[aria-pressed="true"]')?.textContent).toBe('Table');
 
     const tableWrap = catalog().querySelector<HTMLElement>(
       '[aria-label="Product catalog table"]',
@@ -372,7 +372,7 @@ describe('product workshop interactions', () => {
 
     await mount();
 
-    expect(catalog().querySelectorAll('.product-catalog-card')).toHaveLength(10);
+    expect(catalog().querySelectorAll('[aria-label="Product catalog table"] tbody tr')).toHaveLength(10);
     expect(
       catalog().querySelector('[aria-label="Product catalog pagination"]')?.textContent,
     ).toContain('Showing 1–10 of 13 products');
@@ -385,7 +385,7 @@ describe('product workshop interactions', () => {
 
     await click('Next', catalog());
 
-    expect(catalog().querySelectorAll('.product-catalog-card')).toHaveLength(3);
+    expect(catalog().querySelectorAll('[aria-label="Product catalog table"] tbody tr')).toHaveLength(3);
     expect(
       catalog().querySelector('[aria-label="Product catalog pagination"]')?.textContent,
     ).toContain('Showing 11–13 of 13 products');
@@ -393,6 +393,8 @@ describe('product workshop interactions', () => {
       catalog().querySelector('[aria-label="Product page 2"]')?.getAttribute('aria-current'),
     ).toBe('page');
 
+    await click('Cards', catalog());
+    expect(catalog().querySelectorAll('.product-catalog-card')).toHaveLength(3);
     await click('Compact', catalog());
     expect(catalog().querySelector('.product-card-grid.is-compact')).not.toBeNull();
     expect(catalog().querySelectorAll('.product-catalog-card')).toHaveLength(3);
@@ -453,13 +455,13 @@ describe('product workshop interactions', () => {
     await seed();
     await mount();
     await fill(catalog().querySelector('input')!, 'Alpha');
-    expect(catalog().querySelectorAll('article')).toHaveLength(1);
+    expect(catalog().querySelectorAll('[aria-label="Product catalog table"] tbody tr')).toHaveLength(1);
     expect(catalog().textContent).toContain('Alpha candle');
     await click('Paintable art', catalog());
     expect(catalog().textContent).toContain('No matching products');
     expect(catalog().textContent).not.toContain('Make room for your first creation');
     await click('Clear filters', catalog());
-    expect(catalog().querySelectorAll('article')).toHaveLength(2);
+    expect(catalog().querySelectorAll('[aria-label="Product catalog table"] tbody tr')).toHaveLength(2);
   });
 
   it('edits without changing identity and preserves compatible mix selections', async () => {
@@ -572,7 +574,7 @@ describe('product workshop interactions', () => {
     await click('Archive Beta star');
     expect((await session.productService.getProduct('BETA'))?.isActive).toBe(false);
     await fill(catalog().querySelector('select')!, 'archived');
-    expect(catalog().querySelectorAll('article')).toHaveLength(1);
+    expect(catalog().querySelectorAll('[aria-label="Product catalog table"] tbody tr')).toHaveLength(1);
     await click('Restore Beta star');
     expect((await session.productService.getProduct('BETA'))?.isActive).toBe(true);
     expect(container.textContent).toContain('Beta star restored.');
@@ -634,7 +636,7 @@ describe('product workshop interactions', () => {
     expect(catalog().textContent).toContain('Catalog unavailable');
     expect(form().querySelector('fieldset')?.disabled).toBe(true);
     await click('Retry loading');
-    expect(catalog().querySelectorAll('article')).toHaveLength(2);
+    expect(catalog().querySelectorAll('[aria-label="Product catalog table"] tbody tr')).toHaveLength(2);
     expect(form().querySelector('fieldset')?.disabled).toBe(false);
   });
 

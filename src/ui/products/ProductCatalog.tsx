@@ -46,7 +46,7 @@ export function ProductCatalog({
   const [category, setCategory] = useState<ProductCategory | 'all'>('all');
   const [status, setStatus] = useState<'active' | 'archived' | 'all'>('active');
   const [sort, setSort] = useState<'name' | 'category'>('name');
-  const [density, setDensity] = useState<'cards' | 'compact' | 'table'>('cards');
+  const [density, setDensity] = useState<'cards' | 'compact' | 'table'>('table');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<10 | 25 | 50>(10);
   const [labelProduct, setLabelProduct] = useState<Product | null>(null);

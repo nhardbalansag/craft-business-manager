@@ -58,6 +58,26 @@ async function renderCatalog(overrides: Partial<ComponentProps<typeof ProductCat
 }
 
 describe('Product catalog / editor separation', () => {
+  it('opens in Table view by default and keeps Cards and Compact selectable', async () => {
+    await renderCatalog();
+    const catalog = container.querySelector('[aria-label="Product catalog"]')!;
+    const tableButton = button('Table');
+    const cardsButton = button('Cards');
+    const compactButton = button('Compact');
+    expect(tableButton.getAttribute('aria-pressed')).toBe('true');
+    expect(cardsButton.getAttribute('aria-pressed')).toBe('false');
+    expect(catalog.querySelector('[aria-label="Product catalog table"] tbody tr')).not.toBeNull();
+    await act(async () => cardsButton.click());
+    expect(cardsButton.getAttribute('aria-pressed')).toBe('true');
+    expect(catalog.querySelectorAll('.product-catalog-card')).toHaveLength(1);
+    await act(async () => compactButton.click());
+    expect(compactButton.getAttribute('aria-pressed')).toBe('true');
+    expect(catalog.querySelector('.product-card-grid.is-compact')).not.toBeNull();
+    await act(async () => tableButton.click());
+    expect(tableButton.getAttribute('aria-pressed')).toBe('true');
+    expect(catalog.querySelector('[aria-label="Product catalog table"] tbody tr')).not.toBeNull();
+  });
+
   it('keeps the collection as a catalog-only view until Add product is requested', async () => {
     const props = await renderCatalog();
     const catalog = container.querySelector('[aria-label="Product catalog"]')!;
@@ -96,7 +116,7 @@ describe('Product catalog / editor separation', () => {
     expect(editorNavigation?.textContent).toContain('Edit Paintable Star');
     expect(editorNavigation?.textContent).toContain('ART-STAR-01');
     expect(catalog.querySelector<HTMLElement>('.product-catalog-collection')?.hidden).toBe(true);
-    expect(catalog.querySelector('[aria-label="Paintable Star"]')).not.toBeNull();
+    expect(catalog.querySelector('[aria-label="Product catalog table"]')?.textContent).toContain('Paintable Star');
   });
 
   it('returns to the product catalog without discarding the parent-owned draft', async () => {

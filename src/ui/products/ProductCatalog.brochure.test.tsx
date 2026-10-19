@@ -55,6 +55,10 @@ async function click(button: HTMLElement) {
 describe('Product Catalog brochure entry points', () => {
   it('opens A4 brochure builder from the product card, without opening Edit or exposing notes', async () => {
     const onEdit = await mount();
+    const cards = Array.from(container.querySelectorAll<HTMLButtonElement>('[aria-label="Catalog layout"] button')).find(
+      (button) => button.textContent === 'Cards',
+    )!;
+    await click(cards);
     const trigger = queryButton('Print brochure for Pink Wedding Candle');
     expect(trigger.textContent).toContain('Brochure / PDF');
     await click(trigger);
