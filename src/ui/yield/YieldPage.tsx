@@ -926,9 +926,14 @@ export function YieldPage() {
               </select>
             </div>
             <div className="yield-product-context">
-              <div>
+              <div className="yield-selected-product-card" aria-label="Selected Yield product">
                 <span className="yield-context-label">Selected product</span>
-                <strong>{selectedProduct?.name ?? 'Select a product'}</strong>
+                <strong className="yield-selected-product-name">{selectedProduct?.name ?? 'Select a product'}</strong>
+                {selectedProduct && (
+                  <small className="yield-selected-product-details">
+                    {selectedProduct.id} · {PRODUCT_CATEGORY_RULES[selectedProduct.category].label}
+                  </small>
+                )}
                 <small>{selectedProduct ? PRODUCT_CATEGORY_RULES[selectedProduct.category].productionStyle : 'No production style'}</small>
               </div>
               <div>

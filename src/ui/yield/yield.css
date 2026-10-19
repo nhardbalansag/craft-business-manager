@@ -106,15 +106,15 @@
   margin-bottom: 20px;
   padding: 18px 20px;
   display: grid;
-  grid-template-columns: minmax(240px, 340px) minmax(0, 1fr);
-  gap: 22px;
-  align-items: end;
+  grid-template-columns: minmax(260px, 360px) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
 }
 
 .yield-product-context {
   min-width: 0;
   display: grid;
-  grid-template-columns: repeat(4, minmax(110px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -128,19 +128,43 @@
 }
 
 .yield-product-context strong {
-  overflow: hidden;
+  min-width: 0;
   color: var(--yield-ink);
   font-size: .92rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .yield-product-context small {
-  overflow: hidden;
+  min-width: 0;
   color: var(--yield-muted);
   font-size: .73rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+/* Give the selected identity the full available width instead of clipping it in a metric cell. */
+.yield-product-context .yield-selected-product-card {
+  grid-column: 1 / -1;
+  gap: 5px;
+  padding: 14px 16px;
+  border: 1px solid #cdbb9f;
+  background: #fff8ea;
+}
+
+.yield-product-context .yield-selected-product-name {
+  font-size: 1.17rem;
+  line-height: 1.35;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.yield-product-context .yield-selected-product-details {
+  font-size: .78rem;
+  font-weight: 700;
+  color: #695540;
 }
 
 .yield-context-label {
@@ -865,7 +889,7 @@
   }
 
   .yield-product-context {
-    grid-template-columns: repeat(2, minmax(120px, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .yield-draft-preview,

@@ -54,6 +54,25 @@ async function fill(input: HTMLInputElement, value: string) {
 }
 
 describe('YieldProductSearchPicker', () => {
+  it('renders full long names and identifiers in results and selected-product guidance', async () => {
+    const long = product(
+      'PRODUCT-CUSTOM-EVENT-2026',
+      'Large Custom Paintable Marine Wildlife Ocean Party Gift Collection',
+    );
+    const onSelect = vi.fn();
+    await act(async () => root.render(
+      <YieldProductSearchPicker products={[long]} selectedProductId={long.id} onSelect={onSelect} />,
+    ));
+    const hint = container.querySelector('.yield-product-search-field small')!;
+    expect(hint.textContent).toContain(long.name);
+    expect(hint.textContent).toContain(long.id);
+    const input = container.querySelector<HTMLInputElement>('[aria-label="Search products for yield"]')!;
+    await act(async () => input.focus());
+    const item = container.querySelector<HTMLElement>('[role="option"]')!;
+    expect(item.querySelector('strong')?.textContent).toBe(long.name);
+    expect(item.querySelector('small')?.textContent).toContain(long.id);
+  });
+
   it('shows a short product list and searches by product name, ID, and category', async () => {
     const onSelect = vi.fn();
     await act(async () => root.render(

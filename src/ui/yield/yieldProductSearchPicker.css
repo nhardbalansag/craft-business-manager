@@ -3,6 +3,13 @@
   min-width: 0;
 }
 
+.yield-product-picker .yield-product-search-field small {
+  display: block;
+  max-width: 100%;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
 .yield-product-search-field {
   gap: 7px;
 }
@@ -61,7 +68,7 @@
   top: calc(100% + 9px);
   left: 0;
   z-index: 35;
-  width: min(470px, calc(100vw - 48px));
+  width: min(560px, calc(100vw - 48px));
   overflow: hidden;
   border: 1px solid #d9d0c3;
   border-radius: 16px;
@@ -136,9 +143,9 @@
 
 .yield-product-search-result-main strong,
 .yield-product-search-result-main small {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  line-height: 1.4;
 }
 
 .yield-product-search-result-main strong {
