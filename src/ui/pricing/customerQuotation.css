@@ -314,3 +314,14 @@
   .quotation-product-picker-controls { grid-template-columns: minmax(0, 1fr); }
   .quotation-product-picker-controls > button { justify-self: start; }
 }
+
+/* Let product searching use a whole row while pricing fields remain below. */
+.customer-quotation-item-grid .customer-quotation-product-field { grid-column: 1 / -1; min-width: 0; }
+.customer-quotation-item-grid { grid-template-columns: minmax(110px, .7fr) minmax(180px, 1.3fr) minmax(125px, 1fr) minmax(125px, 1fr); }
+.quotation-product-picker-controls { grid-template-columns: minmax(170px, 1.4fr) minmax(130px, .9fr) minmax(115px, .7fr) auto; }
+@media (max-width: 1050px) {
+  .quotation-product-picker-controls, .customer-quotation-item-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 760px) {
+  .customer-quotation-item-grid, .quotation-product-picker-controls { grid-template-columns: minmax(0, 1fr); }
+}

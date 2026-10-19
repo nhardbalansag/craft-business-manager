@@ -13,11 +13,15 @@ export function searchQuotationProducts(
   products: readonly Product[],
   query: string,
   category: ProductCategory | 'all',
+  photoFilter: 'all' | 'with-image' | 'without-image' = 'all',
 ): Product[] {
   const keywords = normalize(query.trim()).split(/\s+/).filter(Boolean);
   return products
     .filter((product) => {
       if (!product.isActive || (category !== 'all' && product.category !== category)) return false;
+      const hasImage = isValidProductImageDataUrl(product.imageDataUrl);
+      if (photoFilter === 'with-image' && !hasImage) return false;
+      if (photoFilter === 'without-image' && hasImage) return false;
       const haystack = normalize([
         product.name,
         product.id,
@@ -52,6 +56,7 @@ export function QuotationProductPicker({
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<ProductCategory | 'all'>('all');
+  const [photoFilter, setPhotoFilter] = useState<'all' | 'with-image' | 'without-image'>('all');
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [activeIndex, setActiveIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -59,8 +64,8 @@ export function QuotationProductPicker({
   const listId = useId();
   const selected = products.find((product) => product.id === selectedProductId);
   const matches = useMemo(
-    () => searchQuotationProducts(products, query, category),
-    [products, query, category],
+    () => searchQuotationProducts(products, query, category, photoFilter),
+    [products, query, category, photoFilter],
   );
   const selectable = matches.filter(
     (product) => product.id === selectedProductId || !unavailableProductIds.has(product.id),
@@ -77,6 +82,7 @@ export function QuotationProductPicker({
     if (disabled) return;
     setQuery('');
     setCategory('all');
+    setPhotoFilter('all');
     setVisibleCount(PAGE_SIZE);
     setActiveIndex(-1);
     setOpen(true);
@@ -92,6 +98,7 @@ export function QuotationProductPicker({
     setOpen(false);
     setQuery('');
     setCategory('all');
+    setPhotoFilter('all');
     setVisibleCount(PAGE_SIZE);
     setActiveIndex(-1);
     if (product.id !== selectedProductId) onSelect(product.id);
@@ -197,13 +204,30 @@ export function QuotationProductPicker({
                 ))}
               </select>
             </label>
+            <label className="field">
+              <span>Photo</span>
+              <select
+                aria-label={'Filter quotation products by image for item ' + lineNumber}
+                value={photoFilter}
+                onChange={(event) => {
+                  setPhotoFilter(event.target.value as 'all' | 'with-image' | 'without-image');
+                  setVisibleCount(PAGE_SIZE);
+                  setActiveIndex(-1);
+                }}
+              >
+                <option value="all">Any photo</option>
+                <option value="with-image">With photo</option>
+                <option value="without-image">Without photo</option>
+              </select>
+            </label>
             <button
               className="button button-quiet"
               type="button"
-              disabled={!query && category === 'all'}
+              disabled={!query && category === 'all' && photoFilter === 'all'}
               onClick={() => {
                 setQuery('');
                 setCategory('all');
+                setPhotoFilter('all');
                 setVisibleCount(PAGE_SIZE);
                 setActiveIndex(-1);
                 inputRef.current?.focus();
