@@ -34,6 +34,8 @@ import {
 } from './productFinancialProfileForm';
 import { formatPhp, pricingPolicyLabel } from './productPricingQuoteView';
 import { AppIcon } from '../icons/AppIcon';
+import { isValidProductImageDataUrl } from '../../domain/productImage';
+import { isValidBrochureImageDataUrl } from '../../domain/productBrochureImage';
 import './pricing.css';
 
 type ActiveFilter = 'active' | 'archived' | 'all';
@@ -322,6 +324,14 @@ export function PricingPage({ preferredProductId, onSelectedProductChange }: Pri
     ? profileByProductId.get(comparable(selectedProduct.id)) ?? null
     : null;
 
+  // Prefer the small saved Product photo for UI rendering. Older Products may only
+  // have the print-quality brochure photo, so use that when needed.
+  const selectedProductImage = isValidProductImageDataUrl(selectedProduct?.imageDataUrl)
+    ? selectedProduct.imageDataUrl
+    : isValidBrochureImageDataUrl(selectedProduct?.brochureImageDataUrl)
+      ? selectedProduct.brochureImageDataUrl
+      : null;
+
   const savedForm = useMemo(
     () => productFinancialProfileToForm(selectedProfile),
     [selectedProfile],
@@ -567,7 +577,17 @@ export function PricingPage({ preferredProductId, onSelectedProductChange }: Pri
       </div>
 
       <section className="panel pricing-product-selector" aria-label="Selected pricing Product">
-        <div className="pricing-product-selector-copy">
+        <div className="pricing-product-selector-identity">
+          {selectedProduct && selectedProductImage && !loading && !workspaceError && (
+            <img
+              className="pricing-product-reference-image"
+              src={selectedProductImage}
+              alt={`Product reference: ${selectedProduct.name}`}
+              loading="lazy"
+              decoding="async"
+            />
+          )}
+          <div className="pricing-product-selector-copy">
           <p className="panel-kicker">SELECTED PRODUCT</p>
           {loading ? (
             <>
@@ -603,6 +623,7 @@ export function PricingPage({ preferredProductId, onSelectedProductChange }: Pri
               </p>
             </>
           )}
+          </div>
         </div>
         <div className="pricing-product-selector-actions">
           {workspaceError && (
