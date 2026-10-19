@@ -110,7 +110,10 @@ async function seed() {
 describe('product workshop interactions', () => {
   it('uploads, saves, reloads and removes a Product image without losing other fields', async () => {
     const photo = `data:image/jpeg;base64,/9j/${'AAAA'.repeat(25)}`;
-    const optimizer = vi.spyOn(productImageUpload, 'optimizeProductImage').mockResolvedValue(photo);
+    const highRes = 'data:image/jpeg;base64,' + 'AAAA'.repeat(20_000);
+    const optimizer = vi.spyOn(productImageUpload, 'optimizeProductImages').mockResolvedValue({
+      imageDataUrl: photo, brochureImageDataUrl: highRes,
+    });
     await seed();
     await mount();
     await click('Edit Alpha candle');
@@ -127,6 +130,7 @@ describe('product workshop interactions', () => {
     expect(form().querySelector<HTMLImageElement>('.product-image-preview img')?.src).toBe(photo);
     await submit();
     expect((await session.productService.getProduct('ALPHA'))?.imageDataUrl).toBe(photo);
+    expect((await session.productService.getProduct('ALPHA'))?.brochureImageDataUrl).toBe(highRes);
     await click('Back to product catalog');
     expect(catalog().querySelector<HTMLImageElement>('[aria-label="Alpha candle"] img.product-catalog-thumbnail')?.src).toBe(photo);
     await click('Edit Alpha candle');
@@ -134,6 +138,7 @@ describe('product workshop interactions', () => {
     await click('Remove image');
     await submit();
     expect((await session.productService.getProduct('ALPHA'))?.imageDataUrl).toBeUndefined();
+    expect((await session.productService.getProduct('ALPHA'))?.brochureImageDataUrl).toBeUndefined();
     expect((await session.productService.getProduct('ALPHA'))?.name).toBe('Alpha candle');
   });
 
@@ -141,7 +146,7 @@ describe('product workshop interactions', () => {
     const photo = `data:image/jpeg;base64,/9j/${'AAAA'.repeat(25)}`;
     await seed();
     await session.productService.updateProduct('BETA', { imageDataUrl: photo });
-    vi.spyOn(productImageUpload, 'optimizeProductImage').mockRejectedValue(new Error('Image is too large'));
+    vi.spyOn(productImageUpload, 'optimizeProductImages').mockRejectedValue(new Error('Image is too large'));
     await mount();
     await click('Edit Beta star');
     const input = form().querySelector<HTMLInputElement>('[aria-label="Upload product image"]')!;

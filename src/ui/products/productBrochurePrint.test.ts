@@ -43,6 +43,13 @@ describe('A4 My Lovely Craft brochure print', () => {
     expect(html).not.toContain('Profit / unit');
   });
 
+  it('prints the high-resolution photo instead of rejecting it under the old 25,000-character limit', () => {
+    const highRes = 'data:image/jpeg;base64,' + 'AAAA'.repeat(70_000);
+    const html = renderProductBrochureHtml({ ...view, imageDataUrl: highRes });
+    expect(html).toContain('src="' + highRes + '"');
+    expect(html).toContain('class="hero-photo"');
+  });
+
   it('escapes source content and does not print untrusted image URLs or internal notes', () => {
     const html = renderProductBrochureHtml({
       ...view, name: '<img onerror=alert(1)>', imageDataUrl: 'javascript:alert(1)',

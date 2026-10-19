@@ -1,3 +1,4 @@
+import { brochureImageParts } from '../domain/productBrochureImage';
 import { validateBusinessDatasetIntegrity, type BusinessDatasetValidationIssue } from '../domain/businessDatasetValidation';
 import type { BusinessDataset } from '../domain/types';
 import type { WorkbookCodec } from './workbookCodec';
@@ -218,6 +219,7 @@ function productRows(dataset: BusinessDataset): Readonly<Record<string, unknown>
     candleWaxMaterialId: optional(product.candleWaxMaterialId),
     candleEssentialOilMaterialId: optional(product.candleEssentialOilMaterialId),
     imageDataUrl: optional(product.imageDataUrl),
+    ...brochureImageParts(product.brochureImageDataUrl),
     safetyWasteRate: product.safetyWasteRate,
     notes: optional(product.notes),
     isActive: product.isActive,

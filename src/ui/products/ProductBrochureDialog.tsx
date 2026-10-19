@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { Product } from '../../domain/products';
 import { PRODUCT_CATEGORY_RULES } from '../../domain/products';
 import { isValidProductImageDataUrl } from '../../domain/productImage';
+import { isValidBrochureImageDataUrl } from '../../domain/productBrochureImage';
 import {
   loadProductBrochurePrices,
   type BrochurePriceOption,
@@ -41,7 +42,11 @@ export function ProductBrochureDialog({
   const dialogRef = useRef<HTMLElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const category = PRODUCT_CATEGORY_RULES[product.category];
-  const hasPhoto = isValidProductImageDataUrl(product.imageDataUrl);
+  const printPhoto = isValidBrochureImageDataUrl(product.brochureImageDataUrl)
+    ? product.brochureImageDataUrl
+    : isValidProductImageDataUrl(product.imageDataUrl) ? product.imageDataUrl : null;
+  const hasPhoto = printPhoto !== null;
+  const hasPrintQualityPhoto = isValidBrochureImageDataUrl(product.brochureImageDataUrl);
 
   useEffect(() => {
     let cancelled = false;
@@ -103,7 +108,7 @@ export function ProductBrochureDialog({
     name: product.name,
     categoryLabel: category.label,
     description,
-    imageDataUrl: hasPhoto ? product.imageDataUrl! : null,
+    imageDataUrl: printPhoto,
     prices: selected,
   };
 
@@ -167,9 +172,11 @@ export function ProductBrochureDialog({
             </label>
 
             <div className="product-brochure-photo-note">
-              {hasPhoto
-                ? 'The saved Product photo will be used.'
-                : 'No Product photo is uploaded yet. The brochure will have a blank-photo placeholder; edit the Product to add one.'}
+              {hasPrintQualityPhoto
+                ? 'High-resolution brochure photo ready for A4 printing.'
+                : hasPhoto
+                  ? 'This Product only has an old low-resolution thumbnail. Reupload the original photo under Edit Product to get a sharp brochure.'
+                  : 'No Product photo is uploaded yet. Edit the Product and upload a good-resolution photo for the brochure.'}
             </div>
 
             <fieldset className="product-brochure-prices" disabled={loading}>
@@ -221,7 +228,7 @@ export function ProductBrochureDialog({
               <p className="product-brochure-category">{category.label.toUpperCase()}</p>
               <div className="product-brochure-hero">
                 {hasPhoto
-                  ? <img src={product.imageDataUrl} alt={product.name} />
+                  ? <img src={printPhoto ?? undefined} alt={product.name} />
                   : <span>No product photo</span>}
               </div>
               <h3>{product.name}</h3>

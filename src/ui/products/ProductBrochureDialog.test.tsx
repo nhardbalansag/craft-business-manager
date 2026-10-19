@@ -84,6 +84,22 @@ describe('Product brochure editor and preview', () => {
     expect(props.loadPrices).toHaveBeenCalledWith('CLC-01');
   });
 
+  it('uses the larger brochure image for the preview and printed output, not the old thumbnail', async () => {
+    const highRes = 'data:image/jpeg;base64,' + 'AAAA'.repeat(30_000);
+    const onPrint = vi.fn();
+    await mount({ product: { ...product, brochureImageDataUrl: highRes }, onPrint });
+    expect(container.querySelector<HTMLImageElement>('.product-brochure-hero img')?.src).toBe(highRes);
+    expect(container.textContent).toContain('High-resolution brochure photo ready');
+    await act(async () => findButton('Print / Save as PDF').click());
+    expect(onPrint).toHaveBeenCalledWith(expect.objectContaining({ imageDataUrl: highRes }));
+  });
+
+  it('warns users when their product only has an old low-resolution thumbnail', async () => {
+    await mount();
+    expect(container.textContent).toContain('old low-resolution thumbnail');
+    expect(container.textContent).toContain('Reupload the original photo');
+  });
+
   it('lets the user choose three prices and gracefully displays not-ready pricing', async () => {
     await mount();
     const checkboxes = Array.from(container.querySelectorAll<HTMLInputElement>('.product-brochure-prices input[type="checkbox"]'));

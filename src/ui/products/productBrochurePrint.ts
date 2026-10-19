@@ -1,4 +1,5 @@
 import { isValidProductImageDataUrl } from '../../domain/productImage';
+import { isValidBrochureImageDataUrl } from '../../domain/productBrochureImage';
 import type { BrochurePriceOption } from './productBrochurePricing';
 
 export interface ProductBrochureView {
@@ -41,7 +42,8 @@ export function renderProductBrochureHtml(
   view: ProductBrochureView,
   brandMarkUrl = '/brand/mlc-mark.webp',
 ): string {
-  const photo = isValidProductImageDataUrl(view.imageDataUrl)
+  const photo = (isValidBrochureImageDataUrl(view.imageDataUrl) ||
+    isValidProductImageDataUrl(view.imageDataUrl))
     ? `<img class="hero-photo" alt="Product photo" src="${escapeHtml(view.imageDataUrl)}">`
     : '<div class="hero-placeholder">Product photo not yet available</div>';
   const prices = view.prices.slice(0, 3).filter((item) =>

@@ -1,3 +1,4 @@
+import { brochureImageFromParts } from '../domain/productBrochureImage';
 import { CURRENT_BUSINESS_DATASET_SCHEMA_VERSION } from '../domain/businessDataset';
 import {
   validateBusinessDatasetIntegrity,
@@ -404,6 +405,8 @@ function reconstructProducts(document: WorkbookNeutralDocument): Product[] {
     if (candleEssentialOilMaterialId !== undefined) product.candleEssentialOilMaterialId = candleEssentialOilMaterialId;
     const imageDataUrl = optionalText(row, 'imageDataUrl');
     if (imageDataUrl !== undefined) product.imageDataUrl = imageDataUrl;
+    const brochureImageDataUrl = brochureImageFromParts(row);
+    if (brochureImageDataUrl !== undefined) product.brochureImageDataUrl = brochureImageDataUrl;
     const notes = optionalText(row, 'notes');
     if (notes !== undefined) product.notes = notes;
     return product;

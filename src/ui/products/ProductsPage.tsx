@@ -4,7 +4,7 @@ import { nextSequentialId } from '../../domain/identifiers';
 import type { Material } from '../../domain/materials';
 import type { MixPreset } from '../../domain/mixPresets';
 import { PRODUCT_CATEGORIES, PRODUCT_CATEGORY_RULES, type Product, type ProductCategory } from '../../domain/products';
-import { optimizeProductImage } from './productImageUpload';
+import { optimizeProductImages } from './productImageUpload';
 import { ProductCatalog } from './ProductCatalog';
 import { ProductComponentsView } from './ProductComponentsView';
 import { ProductStockView } from './ProductStockView';
@@ -21,6 +21,7 @@ type ProductFormState = {
   candleWaxMaterialId: string;
   candleEssentialOilMaterialId: string;
   imageDataUrl: string;
+  brochureImageDataUrl: string;
   safetyWastePercent: string;
   notes: string;
 };
@@ -33,6 +34,7 @@ const EMPTY_PRODUCT_FORM: ProductFormState = {
   candleWaxMaterialId: '',
   candleEssentialOilMaterialId: '',
   imageDataUrl: '',
+  brochureImageDataUrl: '',
   safetyWastePercent: '5',
   notes: '',
 };
@@ -50,6 +52,7 @@ function productToForm(product: Product): ProductFormState {
     candleWaxMaterialId: product.candleWaxMaterialId ?? '',
     candleEssentialOilMaterialId: product.candleEssentialOilMaterialId ?? '',
     imageDataUrl: product.imageDataUrl ?? '',
+    brochureImageDataUrl: product.brochureImageDataUrl ?? '',
     safetyWastePercent: String(product.safetyWasteRate * 100),
     notes: product.notes ?? '',
   };
@@ -65,6 +68,7 @@ function formToProduct(form: ProductFormState, isActive: boolean): Product {
     candleEssentialOilMaterialId: form.category === 'candle' ? form.candleEssentialOilMaterialId.trim() || undefined : undefined,
     safetyWasteRate: Number(form.safetyWastePercent) / 100,
     imageDataUrl: form.imageDataUrl || undefined,
+    brochureImageDataUrl: form.brochureImageDataUrl || undefined,
     notes: form.notes,
     isActive,
   };
@@ -214,9 +218,9 @@ export function ProductsPage() {
     setImageProcessing(true);
     setImageError(null);
     try {
-      const imageDataUrl = await optimizeProductImage(file);
+      const { imageDataUrl, brochureImageDataUrl } = await optimizeProductImages(file);
       if (imageRequestVersion.current !== version) return;
-      setProductForm((current) => ({ ...current, imageDataUrl }));
+      setProductForm((current) => ({ ...current, imageDataUrl, brochureImageDataUrl }));
       setProductFeedback(null);
     } catch (error) {
       if (imageRequestVersion.current === version) setImageError(errorMessage(error));
@@ -263,6 +267,7 @@ export function ProductsPage() {
           safetyWasteRate: candidate.safetyWasteRate,
           notes: candidate.notes,
           imageDataUrl: candidate.imageDataUrl,
+          brochureImageDataUrl: candidate.brochureImageDataUrl,
         });
         setProductForm(productToForm(updated));
         setProductFeedback({ type: 'success', message: 'Product updated.' });
@@ -485,7 +490,7 @@ export function ProductsPage() {
                 <span aria-hidden="true">2</span>
                 <div>
                   <h3 id="product-photo-heading">Product image <small>Optional</small></h3>
-                  <p>Upload a product photo to include beside the product in customer quotations.</p>
+                  <p>Upload a product photo for quotations and a larger, clearer A4 brochure photo.</p>
                 </div>
               </div>
               <div className="product-image-editor" aria-label="Product image editor">
@@ -514,11 +519,14 @@ export function ProductsPage() {
                   </label>
                   {productForm.imageDataUrl && (
                     <button type="button" className="button button-secondary" disabled={imageProcessing} onClick={() => {
-                      setProductForm((current) => ({ ...current, imageDataUrl: '' }));
+                      imageRequestVersion.current += 1;
+                      setProductForm((current) => ({ ...current, imageDataUrl: '', brochureImageDataUrl: '' }));
                       setImageError(null);
                     }}>Remove image</button>
                   )}
-                  <small>JPG, PNG or WebP. Automatically optimized for the quotation and workbook (max 8 MB source).</small>
+                  <small>JPG, PNG or WebP (up to 8 MB). The app saves a small catalog thumbnail and a separate, sharper brochure photo in workbook-safe parts. Reupload older photos for better printing.</small>
+                  {productForm.brochureImageDataUrl && <small role="status">High-resolution brochure photo saved in this Product draft.</small>}
+                  {productForm.imageDataUrl && !productForm.brochureImageDataUrl && <small role="status">This Product has only an old small thumbnail. Reupload the original photo to improve brochure quality.</small>}
                   {imageProcessing && <span role="status">Optimizing product image…</span>}
                   {imageError && <span className="product-field-error" role="alert">{imageError}</span>}
                 </div>
