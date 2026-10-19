@@ -72,7 +72,7 @@ describe('ProductsWorkspacePage', () => {
     expect((await session.productService.getProduct('PRD-1'))?.name).toBe('Dinosaur Toy');
   });
 
-  it('places Pricing beside Products, Components and Finished stock and opens the selected Product', async () => {
+  it('places Yield and Pricing inside Products and opens the selected Product', async () => {
     await session.productRepository.replaceAll([product, { ...product, id: 'PRD-2', name: 'Rose Candle' }]);
     await act(async () => root.render(<ProductsWorkspacePage />));
     await flush();
@@ -81,7 +81,7 @@ describe('ProductsWorkspacePage', () => {
     expect(outerTabs.textContent).not.toContain('Pricing & quotations');
     const views = container.querySelector('[aria-label="Product workspace views"]')!;
     expect(Array.from(views.querySelectorAll('strong')).map((element) => element.textContent))
-      .toEqual(['Products', 'Components', 'Finished stock', 'Pricing']);
+      .toEqual(['Products', 'Yield', 'Components', 'Finished stock', 'Pricing']);
 
     await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="Edit Rose Candle"]')!.click());
     const name = container.querySelector<HTMLInputElement>('input[placeholder="Paintable star"]')!;
@@ -109,6 +109,78 @@ describe('ProductsWorkspacePage', () => {
     await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="Pricing for Dinosaur Toy"]')!.click());
     await flush();
     expect(container.querySelector('[aria-label="Selected pricing Product"] h2')?.textContent).toBe('Dinosaur Toy');
+  });
+
+  it('uses the current Products selection in Yield without a second product search', async () => {
+    await session.productRepository.replaceAll([product, { ...product, id: 'PRD-2', name: 'Rose Candle' }]);
+    await act(async () => root.render(<ProductsWorkspacePage />));
+    await flush();
+
+    const tabs = container.querySelector('[aria-label="Product workspace views"]')!;
+    await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="Edit Rose Candle"]')!.click());
+    await act(async () => tabs.querySelector<HTMLButtonElement>('[aria-controls="products-view-yield"]')!.click());
+    await flush();
+
+    const yieldPanel = container.querySelector<HTMLElement>('#products-view-yield')!;
+    expect(yieldPanel.hasAttribute('hidden')).toBe(false);
+    expect(yieldPanel.querySelector('[aria-label="Selected Yield product"]')?.textContent).toContain('Rose Candle');
+    expect(yieldPanel.querySelector('[aria-label="Selected Yield product"]')?.textContent).toContain('PRD-2');
+    expect(yieldPanel.querySelector('[aria-label="Search products for yield"]')).toBeNull();
+    expect(yieldPanel.querySelector('[aria-label="Yield sample"]')).not.toBeNull();
+
+    await act(async () => yieldPanel.querySelector<HTMLButtonElement>('.yield-change-product')!.click());
+    expect(container.querySelector('#products-view-products')?.hasAttribute('hidden')).toBe(false);
+    await act(async () => container.querySelector<HTMLButtonElement>('.product-editor-back')!.click());
+    await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="Edit Dinosaur Toy"]')!.click());
+    await act(async () => tabs.querySelector<HTMLButtonElement>('[aria-controls="products-view-yield"]')!.click());
+    await flush();
+    expect(yieldPanel.querySelector('[aria-label="Selected Yield product"]')?.textContent).toContain('Dinosaur Toy');
+    expect(yieldPanel.querySelector('[aria-label="Selected Yield product"]')?.textContent).toContain('PRD-1');
+
+    await act(async () => tabs.querySelector<HTMLButtonElement>('[aria-controls="products-view-pricing"]')!.click());
+    await flush();
+    expect(container.querySelector('[aria-label="Selected pricing Product"]')?.textContent).toContain('Dinosaur Toy');
+  });
+
+  it('keeps an unsaved Yield batch until an external Products selection is confirmed', async () => {
+    await session.productRepository.replaceAll([product, { ...product, id: 'PRD-2', name: 'Rose Candle' }]);
+    await act(async () => root.render(<ProductsWorkspacePage />));
+    await flush();
+
+    const tabs = container.querySelector('[aria-label="Product workspace views"]')!;
+    await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="Edit Dinosaur Toy"]')!.click());
+    await act(async () => tabs.querySelector<HTMLButtonElement>('[aria-controls="products-view-yield"]')!.click());
+    await flush();
+
+    const yieldPanel = container.querySelector<HTMLElement>('#products-view-yield')!;
+    const pieces = Array.from(yieldPanel.querySelectorAll<HTMLInputElement>('[type="number"]'))
+      .find((input) => input.closest('label')?.textContent?.includes('Good pieces'))!;
+    expect(pieces).toBeDefined();
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(pieces, '9');
+      pieces.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+
+    await act(async () => tabs.querySelector<HTMLButtonElement>('[aria-controls="products-view-products"]')!.click());
+    await act(async () => container.querySelector<HTMLButtonElement>('.product-editor-back')!.click());
+    await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="Edit Rose Candle"]')!.click());
+    await flush();
+
+    await act(async () => tabs.querySelector<HTMLButtonElement>('[aria-controls="products-view-yield"]')!.click());
+    await flush();
+    expect(yieldPanel.querySelector('[role="alert"]')?.textContent).toContain('Keep your unsaved batch?');
+    expect(pieces.value).toBe('9');
+    expect(yieldPanel.querySelector('[aria-label="Selected Yield product"]')?.textContent).toContain('Dinosaur Toy');
+
+    const keep = Array.from(yieldPanel.querySelectorAll<HTMLButtonElement>('.yield-draft-confirm button'))
+      .find((button) => button.textContent?.includes('Keep editing'))!;
+    await act(async () => keep.click());
+    await flush();
+    expect(yieldPanel.querySelector('[role="alert"]')?.textContent).not.toContain('Keep your unsaved batch?');
+    expect(pieces.value).toBe('9');
+    await act(async () => tabs.querySelector<HTMLButtonElement>('[aria-controls="products-view-pricing"]')!.click());
+    await flush();
+    expect(container.querySelector('[aria-label="Selected pricing Product"]')?.textContent).toContain('Dinosaur Toy');
   });
 
   it('makes the Mold and Storage workspace reachable from the Products section', async () => {
