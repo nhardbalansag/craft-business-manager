@@ -230,6 +230,7 @@ export const WORKBOOK_SHEETS: readonly WorkbookSheetContract[] = [
       column('isActive', 'boolean', true, 'isActive'),
       column('candleWaxMaterialId', 'text', false, 'candleWaxMaterialId'),
       column('candleEssentialOilMaterialId', 'text', false, 'candleEssentialOilMaterialId'),
+      column('imageDataUrl', 'text', false, 'imageDataUrl'),
     ],
     rowOrder: [{ key: 'id', mode: 'text-ci-exact' }],
   },
@@ -684,7 +685,7 @@ export function validateWorkbookSchema(input: unknown): WorkbookSchemaIssue[] {
     for (const expected of contract.columns) {
       if (!sheet.columns.includes(expected.key) && !(
         (sheet.name === 'Materials' && expected.key === 'essentialOilPercent') ||
-        (sheet.name === 'Products' && (expected.key === 'candleWaxMaterialId' || expected.key === 'candleEssentialOilMaterialId'))
+        (sheet.name === 'Products' && (expected.key === 'candleWaxMaterialId' || expected.key === 'candleEssentialOilMaterialId' || expected.key === 'imageDataUrl'))
       )) {
         addIssue(issues, 'MISSING_REQUIRED_COLUMN', `Sheet ${sheet.name} is missing canonical column ${expected.key}.`, {
           sheetName: sheet.name,

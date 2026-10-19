@@ -1,4 +1,6 @@
 import type { ProductPriceResolutionResult } from '../../application/pricing/ProductPriceResolutionService';
+import type { Product } from '../../domain/products';
+import { isValidProductImageDataUrl } from '../../domain/productImage';
 
 export interface CustomerQuotationDraft {
   businessName: string;
@@ -17,6 +19,7 @@ export interface CustomerQuotationItemView {
     id: string;
     name: string;
     quantity: number;
+    imageDataUrl?: string;
   };
   pricing: {
     sourceLabel: string;
@@ -80,7 +83,7 @@ export function customerQuotationSourceLabel(
   return result.selectedTier?.tier.name ?? result.selectedTierId ?? 'Selected price tier';
 }
 
-function buildItem(result: ProductPriceResolutionResult): CustomerQuotationItemView {
+function buildItem(result: ProductPriceResolutionResult, products: readonly Product[]): CustomerQuotationItemView {
   if (result.status !== 'ready') {
     throw new CustomerQuotationError(
       'PRICING_NOT_READY',
@@ -107,6 +110,10 @@ function buildItem(result: ProductPriceResolutionResult): CustomerQuotationItemV
       id: result.productId,
       name: result.productName,
       quantity: result.quantity,
+      ...(products.find((product) => product.id === result.productId)?.imageDataUrl &&
+      isValidProductImageDataUrl(products.find((product) => product.id === result.productId)!.imageDataUrl)
+        ? { imageDataUrl: products.find((product) => product.id === result.productId)!.imageDataUrl }
+        : {}),
     },
     pricing: {
       sourceLabel: customerQuotationSourceLabel(result),
@@ -123,6 +130,7 @@ export function buildCustomerQuotationView(
     | ProductPriceResolutionResult
     | readonly ProductPriceResolutionResult[],
   draft: CustomerQuotationDraft,
+  products: readonly Product[] = [],
 ): CustomerQuotationView {
   const results: ProductPriceResolutionResult[] = Array.isArray(resultOrResults)
     ? [...resultOrResults]
@@ -150,7 +158,7 @@ export function buildCustomerQuotationView(
     throw new CustomerQuotationError('INVALID_CUSTOMER_NAME', 'Customer name is required.');
   }
 
-  const items = results.map(buildItem);
+  const items = results.map((resolved) => buildItem(resolved, products));
   const subtotal = items.reduce(
     (sum, item) => sum + item.pricing.totalSellingPrice,
     0,

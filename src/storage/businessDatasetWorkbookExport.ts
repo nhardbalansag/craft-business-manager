@@ -217,6 +217,7 @@ function productRows(dataset: BusinessDataset): Readonly<Record<string, unknown>
     preferredYieldSampleId: optional(product.preferredYieldSampleId),
     candleWaxMaterialId: optional(product.candleWaxMaterialId),
     candleEssentialOilMaterialId: optional(product.candleEssentialOilMaterialId),
+    imageDataUrl: optional(product.imageDataUrl),
     safetyWasteRate: product.safetyWasteRate,
     notes: optional(product.notes),
     isActive: product.isActive,

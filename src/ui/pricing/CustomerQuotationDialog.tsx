@@ -1,3 +1,4 @@
+import { isValidProductImageDataUrl } from '../../domain/productImage';
 import {
   FormEvent,
   useEffect,
@@ -348,7 +349,7 @@ export function CustomerQuotationDialog({
       const view = buildCustomerQuotationView(readyResults, {
         ...draft,
         generatedAtIso: new Date().toISOString(),
-      });
+      }, products);
       printCustomerQuotation(view);
       setError(null);
     } catch (submitError) {
@@ -417,6 +418,7 @@ export function CustomerQuotationDialog({
                   line.result?.integratedQuote.tierPricing?.tiers ?? [];
                 const eligibleIds = new Set(line.result?.eligibleTierIds ?? []);
                 const sourceReady = line.result?.status === 'ready';
+                const itemProduct = products.find((product) => product.id === line.productId);
 
                 return (
                   <article
@@ -438,6 +440,12 @@ export function CustomerQuotationDialog({
                       )}
                     </div>
 
+                    {itemProduct?.imageDataUrl && isValidProductImageDataUrl(itemProduct.imageDataUrl) && (
+                      <div className="customer-quotation-item-image">
+                        <img src={itemProduct.imageDataUrl} alt={`Product image of ${itemProduct.name}`} />
+                        <span>Included in printed quotation</span>
+                      </div>
+                    )}
                     <div className="customer-quotation-item-grid">
                       <label className="field customer-quotation-product-field">
                         <span>Product</span>

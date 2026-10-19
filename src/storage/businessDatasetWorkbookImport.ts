@@ -402,6 +402,8 @@ function reconstructProducts(document: WorkbookNeutralDocument): Product[] {
     const candleEssentialOilMaterialId = optionalText(row, 'candleEssentialOilMaterialId');
     if (candleWaxMaterialId !== undefined) product.candleWaxMaterialId = candleWaxMaterialId;
     if (candleEssentialOilMaterialId !== undefined) product.candleEssentialOilMaterialId = candleEssentialOilMaterialId;
+    const imageDataUrl = optionalText(row, 'imageDataUrl');
+    if (imageDataUrl !== undefined) product.imageDataUrl = imageDataUrl;
     const notes = optionalText(row, 'notes');
     if (notes !== undefined) product.notes = notes;
     return product;

@@ -305,6 +305,8 @@ function productField(errorCodeValue: string | undefined): string | undefined {
       return 'mixPresetId';
     case 'INVALID_PREFERRED_YIELD_SAMPLE_ID':
       return 'preferredYieldSampleId';
+    case 'INVALID_IMAGE_DATA_URL':
+      return 'imageDataUrl';
     case 'INVALID_SAFETY_WASTE_RATE':
       return 'safetyWasteRate';
     case 'INVALID_ACTIVE_STATE':
