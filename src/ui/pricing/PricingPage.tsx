@@ -549,12 +549,6 @@ export function PricingPage() {
         <span className="session-badge"><span className="status-dot" />Included in workbook exports</span>
       </div>
 
-      <div className="pricing-overview" aria-label="Pricing catalog summary">
-        <div><span>Products</span><strong>{products.length}</strong><small>{activeCount} active</small></div>
-        <div><span>Profiles saved</span><strong>{configuredCount}</strong><small>Authoritative financial inputs</small></div>
-        <div><span>Need setup</span><strong>{unconfiguredCount}</strong><small>No financial profile yet</small></div>
-      </div>
-
       <section className="panel pricing-product-selector" aria-label="Selected pricing Product">
         <div className="pricing-product-selector-copy">
           <p className="panel-kicker">SELECTED PRODUCT</p>
@@ -612,6 +606,21 @@ export function PricingPage() {
           </button>
         </div>
       </section>
+
+      <ProductPricingQuotePanel
+        productName={selectedProduct?.name ?? null}
+        quote={quote}
+        loading={quoteLoading}
+        error={quoteError}
+        hasUnsavedChanges={formDirty}
+        onRefresh={selectedProduct ? () => void loadQuote(selectedProduct.id) : undefined}
+      />
+
+      <div className="pricing-overview" aria-label="Pricing catalog summary">
+        <div><span>Products</span><strong>{products.length}</strong><small>{activeCount} active</small></div>
+        <div><span>Profiles saved</span><strong>{configuredCount}</strong><small>Authoritative financial inputs</small></div>
+        <div><span>Need setup</span><strong>{unconfiguredCount}</strong><small>No financial profile yet</small></div>
+      </div>
 
       <section className="panel pricing-financial-source-summary" aria-label="Financial source summary">
         <div className="pricing-financial-summary-heading">
@@ -1067,15 +1076,6 @@ export function PricingPage() {
           </section>
         </div>
       )}
-
-      <ProductPricingQuotePanel
-        productName={selectedProduct?.name ?? null}
-        quote={quote}
-        loading={quoteLoading}
-        error={quoteError}
-        hasUnsavedChanges={formDirty}
-        onRefresh={selectedProduct ? () => void loadQuote(selectedProduct.id) : undefined}
-      />
 
       <PricingEditorModal
         open={orderPreviewOpen}

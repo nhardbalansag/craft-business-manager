@@ -139,6 +139,10 @@ describe('React workspace smoke validation', () => {
     expect(html).not.toContain('Tier pricing catalog');
     expect(html).not.toContain('Order quantity (finished units)');
     expect(html).toContain('UNIT ECONOMICS');
+    expect(html.indexOf('UNIT ECONOMICS')).toBeGreaterThan(html.indexOf('SELECTED PRODUCT'));
+    expect(html.indexOf('UNIT ECONOMICS')).toBeLessThan(html.indexOf('FINANCIAL SOURCE'));
+    expect(html.indexOf('UNIT ECONOMICS')).toBeLessThan(html.indexOf('ORDER PRICE PREVIEW'));
+    expect(html.indexOf('UNIT ECONOMICS')).toBeLessThan(html.indexOf('TIER PRICING'));
     expect(html).toContain('Saved pricing result');
     expect(html).toContain('Total unit cost');
     expect(html).toContain('Selling price');

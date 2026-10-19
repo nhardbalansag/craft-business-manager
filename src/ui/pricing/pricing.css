@@ -1659,3 +1659,11 @@
   .pricing-source-modal .tier-catalog-section { padding: 16px 14px 24px; }
   .pricing-tier-modal-feedback { margin: 12px 14px 0; }
 }
+
+/* Show Unit Economics as the first Product detail immediately below selection. */
+.pricing-workspace > .pricing-quote-section {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+  margin-bottom: 22px;
+}

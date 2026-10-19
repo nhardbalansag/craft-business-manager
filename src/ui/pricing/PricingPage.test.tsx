@@ -215,6 +215,26 @@ describe('Pricing workspace UI/UX', () => {
     expect(form()).not.toBeNull();
   });
 
+  it('keeps Unit Economics immediately below Product selection and before other Pricing summaries', async () => {
+    await seed();
+    await mount();
+    const selector = container.querySelector('[aria-label="Selected pricing Product"]');
+    const quote = container.querySelector('[aria-label="Unit economics pricing calculator"]');
+    const overview = container.querySelector('[aria-label="Pricing catalog summary"]');
+    const financial = container.querySelector('[aria-label="Financial source summary"]');
+    const order = container.querySelector('[aria-label="Order price preview summary"]');
+    const tiers = container.querySelector('[aria-label="Tier pricing summary"]');
+    expect(selector?.nextElementSibling).toBe(quote);
+    expect(quote?.nextElementSibling).toBe(overview);
+    expect(overview?.nextElementSibling).toBe(financial);
+    expect(financial?.nextElementSibling).toBe(order);
+    expect(order?.nextElementSibling).toBe(tiers);
+    expect(quote?.textContent).toContain('Total unit cost');
+    expect(quote?.textContent).toContain('Selling price');
+    expect(quote?.textContent).toContain('Profit / unit');
+    expect(quote?.textContent).toContain('Effective margin');
+  });
+
   it('keeps Product Catalog hidden until opened as a modal and closes it after Product selection', async () => {
     const secondProduct: Product = {
       id: 'CND-002',
@@ -253,6 +273,11 @@ describe('Pricing workspace UI/UX', () => {
 
     expect(container.querySelector('[role="dialog"]')).toBeNull();
     expect(form()).toBeNull();
+    const selectedProductSection = container.querySelector('[aria-label="Selected pricing Product"]');
+    const unitEconomics = container.querySelector('[aria-label="Unit economics pricing calculator"]');
+    expect(selectedProductSection?.nextElementSibling).toBe(unitEconomics);
+    expect(unitEconomics?.textContent).toContain('UNIT ECONOMICS');
+    expect(unitEconomics?.textContent).toContain('Saved pricing result');
     expect(container.querySelector('[aria-label="Financial source summary"]')?.textContent).toContain('Event Candle');
     expect(container.querySelector('[aria-label="Selected pricing Product"]')?.textContent).toContain(
       'CND-002',
