@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { productService } from '../../application/session';
+import { PricingPage } from '../pricing/PricingPage';
 import type { Product } from '../../domain/products';
 import { PhysicalIdentificationWorkspace } from './PhysicalIdentificationWorkspace';
 import { ProductsPage } from './ProductsPage';
 
-type ProductsWorkspaceMode = 'catalog' | 'physical';
+type ProductsWorkspaceMode = 'catalog' | 'physical' | 'pricing';
 
 function message(error: unknown): string {
   return error instanceof Error ? error.message : 'Products could not be loaded for physical identification.';
@@ -55,6 +56,16 @@ export function ProductsWorkspacePage() {
           <strong>Molds &amp; storage</strong>
           <small>Physical IDs, locations, formulas &amp; labels</small>
         </button>
+        <button
+          type="button"
+          className={mode === 'pricing' ? 'active' : ''}
+          aria-pressed={mode === 'pricing'}
+          aria-controls="products-pricing-area"
+          onClick={() => setMode('pricing')}
+        >
+          <strong>Pricing &amp; quotations</strong>
+          <small>Financial source, unit economics, tiers &amp; customer quotations</small>
+        </button>
       </nav>
 
       <div id="products-catalog-area" hidden={mode !== 'catalog'}>
@@ -73,6 +84,9 @@ export function ProductsWorkspacePage() {
         ) : (
           <PhysicalIdentificationWorkspace products={products} />
         ))}
+      </div>
+      <div id="products-pricing-area" className="products-pricing-area" hidden={mode !== 'pricing'}>
+        {mode === 'pricing' && <PricingPage />}
       </div>
     </section>
   );

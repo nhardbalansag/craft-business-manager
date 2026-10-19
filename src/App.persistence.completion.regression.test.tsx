@@ -281,7 +281,9 @@ describe('Phase 5.5C3 persistence UX regression and Phase 5.5 completion gate', 
     const recovered = datasetWithMaterial('RECOVERED', 'Recovered final material');
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     await mount({ uiClock: sequenceClock('2026-09-17T02:00:00.000Z', '2026-09-17T02:30:00.000Z') });
-    await click('Pricing');
+    await click('Products');
+    await click('Pricing & quotations');
+    expect(container.querySelector('[aria-label="Selected pricing Product"]')).not.toBeNull();
     await applyWorkbook('known-good.xlsx', realWorkbookBytes(knownGood));
 
     const cases = [
@@ -304,7 +306,7 @@ describe('Phase 5.5C3 persistence UX regression and Phase 5.5 completion gate', 
         expect(details).toContain('Browser import does not create, discover, or manage a Phase 5.4B pre-save transport backup');
       }
       expect(revision()).toBe('1');
-      expect(activeNavigation()).toBe('Pricing');
+      expect(activeNavigation()).toBe('Products');
       expect(statusCard('Active imported workbook').textContent).toContain('known-good.xlsx');
       expect(statusCard('Active imported workbook').textContent).not.toContain(name);
       expect(await session.completeSourceSnapshotService.snapshot()).toEqual(knownGood);
@@ -313,7 +315,7 @@ describe('Phase 5.5C3 persistence UX regression and Phase 5.5 completion gate', 
     await applyWorkbook('recovered.xlsx', realWorkbookBytes(recovered));
     expect(rejectionText()).toBe('');
     expect(revision()).toBe('2');
-    expect(activeNavigation()).toBe('Pricing');
+    expect(activeNavigation()).toBe('Products');
     expect(statusCard('Active imported workbook').textContent).toContain('recovered.xlsx');
     expect(await session.completeSourceSnapshotService.snapshot()).toEqual(recovered);
   });

@@ -72,6 +72,40 @@ describe('ProductsWorkspacePage', () => {
     expect((await session.productService.getProduct('PRD-1'))?.name).toBe('Dinosaur Toy');
   });
 
+  it('moves the full Pricing tools into a third Products tab while preserving a catalog draft', async () => {
+    await act(async () => root.render(<ProductsWorkspacePage />));
+    await flush();
+
+    const areas = container.querySelector<HTMLElement>('[aria-label="Products workshop areas"]')!;
+    const pricing = areas.querySelector<HTMLButtonElement>('[aria-controls="products-pricing-area"]')!;
+    expect(pricing.textContent).toContain('Pricing & quotations');
+    expect(pricing.getAttribute('aria-pressed')).toBe('false');
+    expect(container.querySelector('[aria-label="Selected pricing Product"]')).toBeNull();
+
+    await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="Edit Dinosaur Toy"]')!.click());
+    const name = container.querySelector<HTMLInputElement>('input[placeholder="Paintable star"]')!;
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(name, 'Draft dinosaur');
+      name.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+
+    await act(async () => pricing.click());
+    await flush();
+    expect(pricing.getAttribute('aria-pressed')).toBe('true');
+    expect(container.querySelector('#products-catalog-area')?.hasAttribute('hidden')).toBe(true);
+    expect(container.querySelector('#products-pricing-area')?.hasAttribute('hidden')).toBe(false);
+    expect(container.querySelector('[aria-label="Selected pricing Product"]')).not.toBeNull();
+    expect(container.querySelector('[aria-label="Financial source summary"]')).not.toBeNull();
+    expect(container.querySelector('[aria-label="Tier pricing summary"]')).not.toBeNull();
+    expect(container.textContent).toContain('Open Order Price Preview');
+    expect((await session.productService.getProduct('PRD-1'))?.name).toBe('Dinosaur Toy');
+
+    await act(async () => areas.querySelector<HTMLButtonElement>('[aria-controls="products-catalog-area"]')!.click());
+    expect(pricing.getAttribute('aria-pressed')).toBe('false');
+    expect(container.querySelector('[aria-label="Selected pricing Product"]')).toBeNull();
+    expect(name.value).toBe('Draft dinosaur');
+  });
+
   it('makes the Mold and Storage workspace reachable from the Products section', async () => {
     await act(async () => root.render(<ProductsWorkspacePage />));
     await flush();

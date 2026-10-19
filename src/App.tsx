@@ -22,13 +22,12 @@ import {
   recordSuccessfulWorkbookExport,
   recordSuccessfulWorkbookImport,
 } from './ui/persistence/workbookPersistenceSession';
-import { PricingPage } from './ui/pricing/PricingPage';
 import { ProductsWorkspacePage } from './ui/products/ProductsWorkspacePage';
 import { ProductionPage } from './ui/production/ProductionPage';
 import { YieldPage } from './ui/yield/YieldPage';
 import { AppIcon, type AppIconName } from './ui/icons/AppIcon';
 
-type AppSection = 'materials' | 'products' | 'yield' | 'production' | 'pricing';
+type AppSection = 'materials' | 'products' | 'yield' | 'production';
 export type PersistenceUiClock = () => Date;
 
 const SIDEBAR_VISIBILITY_STORAGE_KEY = 'craft-business-manager.sidebar-visible';
@@ -54,7 +53,6 @@ const APP_SECTIONS: readonly { id: AppSection; label: string; icon: AppIconName 
   { id: 'products', label: 'Products', icon: 'products' },
   { id: 'yield', label: 'Yield', icon: 'yield' },
   { id: 'production', label: 'Production', icon: 'production' },
-  { id: 'pricing', label: 'Pricing', icon: 'pricing' },
 ];
 
 export interface AppProps {
@@ -381,7 +379,6 @@ export default function App({
           {section === 'products' && <ProductsWorkspacePage />}
           {section === 'yield' && <YieldPage />}
           {section === 'production' && <ProductionPage onOpenProducts={() => selectSection('products')} />}
-          {section === 'pricing' && <PricingPage />}
         </div>
       </section>
     </main>

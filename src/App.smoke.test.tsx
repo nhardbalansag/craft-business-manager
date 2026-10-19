@@ -6,6 +6,7 @@ import type { Product } from './domain/products';
 import { PricingPage } from './ui/pricing/PricingPage';
 import { ProductComponentsView } from './ui/products/ProductComponentsView';
 import { ProductsPage } from './ui/products/ProductsPage';
+import { ProductsWorkspacePage } from './ui/products/ProductsWorkspacePage';
 import { ProductStockView } from './ui/products/ProductStockView';
 import { ProductionPage } from './ui/production/ProductionPage';
 import { YieldPage } from './ui/yield/YieldPage';
@@ -23,7 +24,8 @@ describe('React workspace smoke validation', () => {
     expect(html).toContain('Products');
     expect(html).toContain('Yield');
     expect(html).toContain('Production');
-    expect(html).toContain('Pricing');
+    const navigation = html.slice(html.indexOf('aria-label="Application sections"'));
+    expect(navigation).not.toContain('>Pricing</button>');
   });
 
   it('renders the Products, Components, and Finished stock workspace without browser-side effects', () => {
@@ -36,6 +38,14 @@ describe('React workspace smoke validation', () => {
     expect(html).toContain('Components');
     expect(html).toContain('Finished stock');
     expect(html).toContain('Safety waste (%)');
+  });
+
+  it('places the entire Pricing workspace under the Products workshop tabs', () => {
+    const html = renderToStaticMarkup(<ProductsWorkspacePage />);
+    expect(html).toContain('Pricing &amp; quotations');
+    expect(html).toContain('aria-controls="products-pricing-area"');
+    expect(html).toContain('id="products-pricing-area"');
+    expect(html).not.toContain('aria-label="Selected pricing Product"');
   });
 
   it('renders the Product composition editor shell with an active parent Product', () => {
