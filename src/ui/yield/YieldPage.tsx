@@ -156,11 +156,22 @@ function recipeSourceLabel(source: ResolvedYieldRecipeSource): string {
   return 'Manual';
 }
 
-export function YieldPage() {
+export interface YieldPageProps {
+  /** Product already selected in Products, Pricing or another product workspace tab. */
+  preferredProductId?: string | null;
+  /** Keep the Product workspace selection aligned with Yield changes. */
+  onSelectedProductChange?: (productId: string) => void;
+  /** When embedded under Products, show one route back instead of a second picker. */
+  onOpenProducts?: () => void;
+}
+
+export function YieldPage({ preferredProductId, onSelectedProductChange, onOpenProducts }: YieldPageProps = {}) {
+  const preferredProductRef = useRef(preferredProductId);
+  preferredProductRef.current = preferredProductId;
   const [products, setProducts] = useState<Product[]>([]);
   const [materials, setMaterials] = useState<Material[]>([]);
   const [mixPresets, setMixPresets] = useState<MixPreset[]>([]);
-  const [selectedProductId, setSelectedProductId] = useState('');
+  const [selectedProductId, setSelectedProductId] = useState(preferredProductId ?? '');
   const [history, setHistory] = useState<YieldSample[]>([]);
   const [historyRecipeSources, setHistoryRecipeSources] = useState<
     Record<string, ResolvedYieldRecipeSource>
@@ -280,6 +291,17 @@ export function YieldPage() {
     if (pendingAction) draftWarning.current?.focus();
   }, [pendingAction]);
 
+  // A Product selected on the catalog tab follows Yield automatically. A dirty
+  // batch is never overwritten: the normal Yield draft confirmation is reused.
+  useEffect(() => {
+    if (!preferredProductId || preferredProductId === selectedProductId ||
+      !products.some((product) => product.id === preferredProductId)) return;
+    if (pendingAction?.kind === 'product' && pendingAction.id === preferredProductId) return;
+    if (mutationInFlight.current) return;
+    if (draftDirty) setPendingAction({ kind: 'product', id: preferredProductId });
+    else setSelectedProductId(preferredProductId);
+  }, [preferredProductId, selectedProductId, products, draftDirty, pendingAction]);
+
   const loadHistory = useCallback(async (productId: string) => {
     const request = ++historyRequest.current;
     setHistory([]);
@@ -381,6 +403,8 @@ export function YieldPage() {
       setMixPresets(nextMixes);
       setKnownSampleIds(nextSamples.map((sample) => sample.id));
       setSelectedProductId((current) => {
+        const preferred = preferredProductRef.current;
+        if (preferred && nextProducts.some((product) => product.id === preferred)) return preferred;
         if (current && nextProducts.some((product) => product.id === current)) return current;
         return nextProducts.find((product) => product.isActive)?.id ?? nextProducts[0]?.id ?? '';
       });
@@ -680,7 +704,10 @@ export function YieldPage() {
 
   function performDraftAction(action: DraftAction) {
     setPendingAction(null);
-    if (action.kind === 'product') setSelectedProductId(action.id);
+    if (action.kind === 'product') {
+      setSelectedProductId(action.id);
+      onSelectedProductChange?.(action.id);
+    }
     else if (action.kind === 'copy') useSampleAsDraft(action.sample);
     else if (action.kind === 'formula') useFormulaAsDraft(action.draft);
     else resetDraft();
@@ -912,6 +939,11 @@ export function YieldPage() {
       ) : (
         <>
           <div className="yield-product-bar panel">
+            {onOpenProducts ? (
+              <button type="button" className="button button-secondary yield-change-product" onClick={onOpenProducts}>
+                <AppIcon name="products" size={18} /> Change product in Products
+              </button>
+            ) : (
             <div className="yield-product-picker-shell">
               <YieldProductSearchPicker
                 products={products}
@@ -934,6 +966,7 @@ export function YieldPage() {
                 ))}
               </select>
             </div>
+            )}
             <div className="yield-product-context">
               <div className="yield-selected-product-card" aria-label="Selected Yield product">
                 {selectedProduct && selectedProductImage && (
@@ -1042,7 +1075,12 @@ export function YieldPage() {
       ? `Using the Mold Formula from ${pendingAction.draft.moldName} will replace the current draft.`
       : 'Resetting will clear your current draft.'}</p>
                   <div>
-                    <button type="button" className="button button-primary" disabled={Boolean(busy)} onClick={() => { setPendingAction(null); focusSection(batchHeading.current); }}>Keep editing</button>
+                    <button type="button" className="button button-primary" disabled={Boolean(busy)} onClick={() => {
+                      // Keep both tabs pointed at the draft's original product.
+                      if (pendingAction.kind === 'product') onSelectedProductChange?.(selectedProductId);
+                      setPendingAction(null);
+                      focusSection(batchHeading.current);
+                    }}>Keep editing</button>
                     <button type="button" className="button button-quiet" disabled={Boolean(busy)} onClick={() => performDraftAction(pendingAction)}>Discard draft and continue</button>
                   </div>
                 </div>

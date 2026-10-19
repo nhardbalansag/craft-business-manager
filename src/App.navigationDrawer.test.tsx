@@ -75,10 +75,10 @@ describe('application navigation drawer', () => {
     expect(drawer?.textContent).toContain('Materials');
     expect(drawer?.textContent).not.toContain('Calibration');
     expect(drawer?.textContent).toContain('Products');
-    expect(drawer?.textContent).toContain('Yield');
+    expect(drawer?.textContent).not.toContain('Yield');
     expect(drawer?.textContent).toContain('Production');
     expect(Array.from(drawer!.querySelectorAll('.app-drawer-nav button')).map((button) => button.textContent?.trim()))
-      .toEqual(['Materials', 'Products', 'Yield', 'Production']);
+      .toEqual(['Materials', 'Products', 'Production']);
     expect(drawer?.querySelector('[aria-label="Workbook tools"]')).not.toBeNull();
   });
 

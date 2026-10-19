@@ -24,10 +24,9 @@ import {
 } from './ui/persistence/workbookPersistenceSession';
 import { ProductsWorkspacePage } from './ui/products/ProductsWorkspacePage';
 import { ProductionPage } from './ui/production/ProductionPage';
-import { YieldPage } from './ui/yield/YieldPage';
 import { AppIcon, type AppIconName } from './ui/icons/AppIcon';
 
-type AppSection = 'materials' | 'products' | 'yield' | 'production';
+type AppSection = 'materials' | 'products' | 'production';
 export type PersistenceUiClock = () => Date;
 
 const SIDEBAR_VISIBILITY_STORAGE_KEY = 'craft-business-manager.sidebar-visible';
@@ -51,7 +50,6 @@ function prefersDarkAppearance(): boolean {
 const APP_SECTIONS: readonly { id: AppSection; label: string; icon: AppIconName }[] = [
   { id: 'materials', label: 'Materials', icon: 'materials' },
   { id: 'products', label: 'Products', icon: 'products' },
-  { id: 'yield', label: 'Yield', icon: 'yield' },
   { id: 'production', label: 'Production', icon: 'production' },
 ];
 
@@ -377,7 +375,6 @@ export default function App({
         <div className="workspace-revision-boundary" data-workspace-revision={workspaceRevision} key={workspaceRevision}>
           {section === 'materials' && <MaterialsPage />}
           {section === 'products' && <ProductsWorkspacePage />}
-          {section === 'yield' && <YieldPage />}
           {section === 'production' && <ProductionPage onOpenProducts={() => selectSection('products')} />}
         </div>
       </section>

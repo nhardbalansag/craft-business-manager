@@ -350,13 +350,14 @@ describe('Phase 5.5C3 persistence UX regression and Phase 5.5 completion gate', 
     expect((await session.validatedAtomicDatasetHydrationService.hydrate(live)).status).toBe('hydrated');
     const { capture, adapter } = downloadHarness({ failDispatchOnce: true });
     await mount({ exportCommand: realExportCommand(adapter), uiClock: sequenceClock('2026-09-17T02:40:00.000Z') });
+    await click('Products');
     await click('Yield');
 
     await click('Download workbook');
     expect(container.querySelector('.workbook-export-panel [role="alert"]')?.textContent).toContain('browser download could not be started');
     expect(statusCard('Last downloaded workbook copy').textContent).toContain('No workbook copy has been downloaded successfully');
     expect(revision()).toBe('0');
-    expect(activeNavigation()).toBe('Yield');
+    expect(activeNavigation()).toBe('Products');
     expect(capture.dispatches).toHaveLength(0);
     expect(capture.revoked).toEqual(['blob:phase-5-5c3-1']);
 
@@ -365,7 +366,7 @@ describe('Phase 5.5C3 persistence UX regression and Phase 5.5 completion gate', 
     expect(capture.revoked).toEqual(['blob:phase-5-5c3-1', 'blob:phase-5-5c3-2']);
     expect(statusCard('Last downloaded workbook copy').textContent).toContain('craft-business-manager-2026-09-17-021530.xlsx');
     expect(revision()).toBe('0');
-    expect(activeNavigation()).toBe('Yield');
+    expect(activeNavigation()).toBe('Products');
     expect(await session.completeSourceSnapshotService.snapshot()).toEqual(live);
 
     const pageText = container.textContent ?? '';

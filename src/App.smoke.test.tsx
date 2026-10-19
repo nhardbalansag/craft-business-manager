@@ -22,7 +22,7 @@ describe('React workspace smoke validation', () => {
     expect(html).toContain('Supplier / source');
     expect(html).not.toContain('>Calibration<');
     expect(html).toContain('Products');
-    expect(html).toContain('Yield');
+    expect(html).not.toContain('>Yield</button>');
     expect(html).toContain('Production');
     const navigation = html.slice(html.indexOf('aria-label="Application sections"'));
     expect(navigation).not.toContain('>Pricing</button>');
@@ -40,8 +40,10 @@ describe('React workspace smoke validation', () => {
     expect(html).toContain('Safety waste (%)');
   });
 
-  it('places Pricing beside Products, Components and Finished stock, not in the outer tabs', () => {
+  it('places Yield and Pricing inside the Product workspace, not in the outer tabs', () => {
     const html = renderToStaticMarkup(<ProductsWorkspacePage />);
+    expect(html).toContain('aria-controls="products-view-yield"');
+    expect(html).toContain('id="products-view-yield"');
     expect(html).toContain('aria-controls="products-view-pricing"');
     expect(html).toContain('id="products-view-pricing"');
     expect(html).not.toContain('id="products-pricing-area"');
