@@ -240,7 +240,7 @@ describe('App Phase 5.5C1 persistence session status', () => {
     await choose(workbookFile('active-import.xlsx'));
     await click('Apply import');
     await click('Products');
-    await click('Pricing & quotations');
+    await click('Pricing');
     await click('Download workbook');
 
     expect(statusCard('Active imported workbook').textContent).toContain('active-import.xlsx');
