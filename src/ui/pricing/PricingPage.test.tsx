@@ -204,8 +204,10 @@ describe('Pricing workspace UI/UX', () => {
     expect(container.textContent).not.toContain('Create a Product first');
 
     await act(async () => release([product]));
-    expect(form()).not.toBeNull();
+    expect(form()).toBeNull();
     expect(container.textContent).toContain('Paintable Star');
+    await click('Set Financial Source');
+    expect(form()).not.toBeNull();
   });
 
   it('keeps Product Catalog hidden until opened as a modal and closes it after Product selection', async () => {
@@ -245,7 +247,8 @@ describe('Pricing workspace UI/UX', () => {
     });
 
     expect(container.querySelector('[role="dialog"]')).toBeNull();
-    expect(form()?.textContent).toContain('Event Candle');
+    expect(form()).toBeNull();
+    expect(container.querySelector('[aria-label="Financial source summary"]')?.textContent).toContain('Event Candle');
     expect(container.querySelector('[aria-label="Selected pricing Product"]')?.textContent).toContain(
       'CND-002',
     );
@@ -266,9 +269,50 @@ describe('Pricing workspace UI/UX', () => {
     expect(container.querySelector('[role="dialog"]')).toBeNull();
   });
 
+  it('opens Financial Source as a dialog, preserves unsaved input on Escape, and returns focus', async () => {
+    await seed();
+    await mount();
+    expect(form()).toBeNull();
+    const trigger = container.querySelector<HTMLButtonElement>('[aria-label="Set Financial Source"]')!;
+    await act(async () => trigger.focus());
+    await click('Set Financial Source');
+    const dialog = container.querySelector<HTMLElement>('[role="dialog"][aria-label="Financial Source"]')!;
+    expect(dialog).not.toBeNull();
+    expect(dialog.getAttribute('aria-modal')).toBe('true');
+    expect(document.activeElement?.getAttribute('aria-label')).toBe('Close Financial Source');
+    await fill(field('Labor cost per unit'), '17');
+    await act(async () => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })));
+    expect(form()).toBeNull();
+    expect(document.activeElement).toBe(trigger);
+    expect(container.querySelector('[aria-label="Financial source summary"]')?.textContent).toContain('Unsaved financial changes are preserved');
+    await click('Set Financial Source');
+    expect(field('Labor cost per unit').value).toBe('17');
+    await click('Cancel', form()!);
+    expect(form()).toBeNull();
+  });
+
+  it('closes the tier editor modal on Escape and can reopen with a clean new tier form', async () => {
+    await seed();
+    await mount();
+    await click('Create tier');
+    expect(container.querySelector('[role="dialog"][aria-label="Create price tier"]')).not.toBeNull();
+    const tierForm = container.querySelector<HTMLFormElement>('[aria-label="Price tier editor"]')!;
+    await fill(field('Tier name', tierForm), 'Unsubmitted tier');
+    await act(async () => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })));
+    expect(container.querySelector('[aria-label="Price tier editor"]')).toBeNull();
+    expect(await session.productPriceTierService.listTiersByProduct('ART-001')).toHaveLength(0);
+    await click('Create tier');
+    const reopened = container.querySelector<HTMLFormElement>('[aria-label="Price tier editor"]')!;
+    expect(field('Tier name', reopened).value).toBe('');
+    await click('Close Create price tier');
+    expect(container.querySelector('[role="dialog"][aria-label="Create price tier"]')).toBeNull();
+  });
+
   it('previews draft inputs, marks unsaved changes, and saves canonical markup source values', async () => {
     await seed();
     await mount();
+    expect(form()).toBeNull();
+    await click('Set Financial Source');
 
     const saveButton = form()!.querySelector<HTMLButtonElement>('button[type="submit"]')!;
     expect(saveButton.disabled).toBe(true);
@@ -310,6 +354,7 @@ describe('Pricing workspace UI/UX', () => {
     }]);
 
     await mount();
+    await click('Edit Financial Source');
 
     expect((field('Labor cost per unit') as HTMLInputElement).value).toBe('12');
     await fill(field('Labor cost per unit'), '25');
@@ -338,6 +383,8 @@ describe('Pricing workspace UI/UX', () => {
 
     await click('Retry loading');
 
+    expect(form()).toBeNull();
+    await click('Set Financial Source');
     expect(form()).not.toBeNull();
     expect(container.textContent).toContain('Paintable Star');
   });
@@ -414,6 +461,8 @@ describe('Pricing workspace UI/UX', () => {
       '[aria-label="Price tier editor"]',
     );
     expect(tierForm).not.toBeNull();
+    expect(tierForm!.closest('[role="dialog"]')?.getAttribute('aria-modal')).toBe('true');
+    expect(tierForm!.closest('[role="dialog"]')?.getAttribute('aria-labelledby')).toBe('price-tier-editor-title');
 
     await fill(field('Tier name', tierForm!), 'Bulk 20+');
     await fill(field('Tier kind', tierForm!), 'bulk');
@@ -433,6 +482,7 @@ describe('Pricing workspace UI/UX', () => {
 
     const created = await session.productPriceTierService.listTiersByProduct('ART-001');
     expect(created).toHaveLength(1);
+    expect(container.querySelector('[aria-label="Price tier editor"]')).toBeNull();
     expect(created[0]).toMatchObject({
       id: 'TIER-0001',
       name: 'Bulk 20+',
@@ -448,6 +498,7 @@ describe('Pricing workspace UI/UX', () => {
     const editForm = container.querySelector<HTMLFormElement>(
       '[aria-label="Price tier editor"]',
     )!;
+    expect(editForm.closest('[role="dialog"]')?.getAttribute('aria-modal')).toBe('true');
     expect(editForm.textContent).toContain('TIER-0001');
     await fill(field('Tier name', editForm), 'Bulk 25+');
     await fill(field('Profit per unit', editForm), '8');
