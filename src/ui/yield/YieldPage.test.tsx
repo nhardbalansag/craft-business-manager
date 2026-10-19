@@ -119,6 +119,47 @@ async function submit() {
 }
 
 describe('Yield workspace UI/UX', () => {
+  it('shows the entire selected product name and ID in a full-width identity card and updates on selection', async () => {
+    const longProduct = {
+      ...product,
+      id: 'ART-LONG-2026',
+      name: 'Custom Paintable Sea Creatures and Wild Animals Birthday Party Collection',
+    };
+    await session.materialRepository.replaceAll([plaster]);
+    await session.productRepository.replaceAll([product, longProduct]);
+    await mount();
+
+    const current = container.querySelector<HTMLElement>('[aria-label="Selected Yield product"]')!;
+    expect(current).not.toBeNull();
+    expect(current.classList.contains('yield-selected-product-card')).toBe(true);
+    expect(current.querySelector('.yield-selected-product-name')?.textContent).toBe('Paintable Star');
+    expect(current.querySelector('.yield-selected-product-details')?.textContent).toContain('ART-001');
+    const picker = container.querySelector<HTMLInputElement>('[aria-label="Search products for yield"]')!;
+    await act(async () => picker.focus());
+    await fill(picker, 'Sea Creatures');
+    const choice = container.querySelector<HTMLButtonElement>('[role="option"]')!;
+    expect(choice.textContent).toContain(longProduct.name);
+    await act(async () => choice.click());
+    expect(current.querySelector('.yield-selected-product-name')?.textContent).toBe(longProduct.name);
+    expect(current.querySelector('.yield-selected-product-details')?.textContent).toContain('ART-LONG-2026');
+    expect(current.querySelector('.yield-selected-product-details')?.textContent).toContain('Paintable');
+    expect(container.querySelector<HTMLSelectElement>('.yield-product-native-select')?.value).toBe(longProduct.id);
+  });
+
+  it('keeps selected product readable when an archived product is active in history view', async () => {
+    await session.materialRepository.replaceAll([plaster]);
+    await session.productRepository.replaceAll([{
+      ...product,
+      name: 'Historical Custom Party Candle and Plaster Product with a Long Name',
+      isActive: false,
+    }]);
+    await mount();
+    const selected = container.querySelector<HTMLElement>('[aria-label="Selected Yield product"]')!;
+    expect(selected.querySelector('.yield-selected-product-name')?.textContent).toContain('Historical Custom');
+    expect(selected.querySelector('.yield-selected-product-details')?.textContent).toContain('ART-001');
+    expect(container.querySelector('.yield-product-context')?.textContent).toContain('Archived');
+  });
+
   it('uses the saved wax oil percentage and explicitly adds estimated oil to candle yield inputs', async () => {
     await session.materialRepository.replaceAll([
       { ...plaster, id: 'WAX', name: 'Soy wax', group: 'wax', essentialOilPercent: 6 },
