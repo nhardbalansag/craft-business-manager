@@ -1638,3 +1638,24 @@
   .pricing-order-preview-summary-values { grid-template-columns: minmax(0, 1fr); }
   .pricing-source-modal .pricing-resolution-section { padding: 16px 14px 24px; }
 }
+
+/* Tier Pricing: small overview on page, full catalog in the existing wide dialog. */
+.pricing-tier-summary { display: grid; gap: 14px; min-width: 0; padding: 20px 22px; margin-bottom: 24px; }
+.pricing-tier-summary .pricing-financial-summary-heading .button { display: inline-flex; justify-content: center; align-items: center; gap: 8px; flex: 0 0 auto; }
+.pricing-tier-summary-values { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 11px; }
+.pricing-tier-summary-values > div { display: grid; gap: 5px; min-width: 0; padding: 12px 14px; background: #faf8f4; border: 1px solid #e6dfd4; border-radius: 12px; }
+.pricing-tier-summary-values span { color: #83776c; font-size: .71rem; font-weight: 750; }
+.pricing-tier-summary-values strong { color: #3f362e; font-size: .88rem; overflow-wrap: anywhere; }
+.pricing-tier-summary-status { margin: 0; color: #756c62; line-height: 1.45; font-size: .81rem; }
+.pricing-source-modal .tier-catalog-section { margin: 0; padding: 20px 22px 26px; border-top: 0; }
+.pricing-tier-modal-feedback { margin: 16px 22px 0; }
+@media (max-width: 780px) {
+  .pricing-tier-summary-values { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 520px) {
+  .pricing-tier-summary .pricing-financial-summary-heading { flex-direction: column; align-items: stretch; }
+  .pricing-tier-summary .pricing-financial-summary-heading .button { width: 100%; }
+  .pricing-tier-summary-values { grid-template-columns: minmax(0, 1fr); }
+  .pricing-source-modal .tier-catalog-section { padding: 16px 14px 24px; }
+  .pricing-tier-modal-feedback { margin: 12px 14px 0; }
+}

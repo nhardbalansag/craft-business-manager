@@ -113,6 +113,7 @@ export function PricingPage() {
   const [resolutionError, setResolutionError] = useState<string | null>(null);
   const [quotationOpen, setQuotationOpen] = useState(false);
   const [orderPreviewOpen, setOrderPreviewOpen] = useState(false);
+  const [tierPricingOpen, setTierPricingOpen] = useState(false);
   const [tierEditorOpen, setTierEditorOpen] = useState(false);
   const [editingTier, setEditingTier] = useState<ProductPriceTier | null>(null);
   const [tierSaving, setTierSaving] = useState(false);
@@ -347,6 +348,7 @@ export function PricingPage() {
     setQuotationOpen(false);
     setOrderPreviewOpen(false);
     setFinancialSourceOpen(false);
+    setTierPricingOpen(false);
     setSelectedProductId(product.id);
     setForm(
       productFinancialProfileToForm(
@@ -442,8 +444,19 @@ export function PricingPage() {
   }
 
 
+  function openTierPricing() {
+    if (!selectedProduct) return;
+    setTierPricingOpen(true);
+  }
+
+  function closeTierPricing() {
+    if (archivingTierId) return;
+    setTierPricingOpen(false);
+  }
+
   function startCreateTier() {
     if (!selectedProduct?.isActive) return;
+    setTierPricingOpen(false);
     setEditingTier(null);
     setTierMutationError(null);
     setTierMutationFeedback(null);
@@ -451,6 +464,7 @@ export function PricingPage() {
   }
 
   function startEditTier(tier: ProductPriceTier) {
+    setTierPricingOpen(false);
     setEditingTier(tier);
     setTierMutationError(null);
     setTierMutationFeedback(null);
@@ -462,6 +476,7 @@ export function PricingPage() {
     setTierEditorOpen(false);
     setEditingTier(null);
     setTierMutationError(null);
+    setTierPricingOpen(true);
   }
 
   async function submitTier(value: ProductPriceTierEditorValue) {
@@ -485,6 +500,7 @@ export function PricingPage() {
 
       setTierEditorOpen(false);
       setEditingTier(null);
+      setTierPricingOpen(true);
       setTierMutationFeedback(
         editingTier
           ? `Price tier ${saved.name} updated.`
@@ -687,6 +703,46 @@ export function PricingPage() {
                 : selectedProduct
                   ? 'Order price preview not ready yet.'
                   : 'Select a Product to preview an order.'}
+          {formDirty && ' Unsaved financial changes are not included.'}
+        </p>
+      </section>
+
+      <section className="panel pricing-tier-summary" aria-label="Tier pricing summary">
+        <div className="pricing-financial-summary-heading">
+          <div>
+            <p className="panel-kicker">TIER PRICING</p>
+            <h2>Tier pricing</h2>
+            <p>Review and manage Package, Bulk and Custom price tiers without scrolling through the catalog.</p>
+          </div>
+          <button
+            className="button button-primary"
+            type="button"
+            aria-label="Open Tier Pricing"
+            aria-haspopup="dialog"
+            aria-expanded={tierPricingOpen}
+            disabled={!selectedProduct || loading || Boolean(workspaceError)}
+            onClick={openTierPricing}
+          >
+            <AppIcon name="pricing" size={17} />
+            Open Tier Pricing
+          </button>
+        </div>
+        <div className="pricing-tier-summary-values">
+          <div><span>Saved tiers</span><strong>{quote?.tierPricing?.tiers.length ?? 0}</strong></div>
+          <div><span>Active tiers</span><strong>{quote?.tierPricing?.tiers.filter((line) => line.tier.isActive).length ?? 0}</strong></div>
+          <div><span>Economics ready</span><strong>{quote?.tierPricing?.tiers.filter((line) => line.status === 'ready').length ?? 0}</strong></div>
+          <div><span>Default / Single</span><strong>{formatPhp(quote?.tierPricing?.defaultSellingPrice ?? null)}</strong></div>
+        </div>
+        <p className="pricing-tier-summary-status" role="status">
+          {quoteLoading
+            ? 'Loading tier economics…'
+            : quoteError
+              ? 'Tier pricing needs attention. Open the catalog for details.'
+              : selectedProduct
+                ? quote?.tierPricing?.tiers.length
+                  ? 'Saved tier alternatives are available.'
+                  : 'No price tiers saved for this Product yet.'
+                : 'Select a Product to view its price tiers.'}
           {formDirty && ' Unsaved financial changes are not included.'}
         </p>
       </section>
@@ -1063,12 +1119,12 @@ export function PricingPage() {
         onClose={() => setQuotationOpen(false)}
       />
 
-      {tierMutationFeedback && (
+      {!tierPricingOpen && !tierEditorOpen && tierMutationFeedback && (
         <div className="feedback feedback-success tier-mutation-feedback" role="status">
           {tierMutationFeedback}
         </div>
       )}
-      {tierMutationError && !tierEditorOpen && (
+      {!tierPricingOpen && !tierEditorOpen && tierMutationError && (
         <div className="feedback feedback-error tier-mutation-feedback" role="status">
           {tierMutationError}
         </div>
@@ -1080,7 +1136,7 @@ export function PricingPage() {
         label={editingTier ? `Edit tier ${editingTier.name}` : 'Create price tier'}
         onClose={closeTierEditor}
         closeDisabled={tierSaving}
-        restoreFocusSelector={'[aria-label="Tier pricing catalog"] button'}
+        restoreFocusSelector={'[aria-label="Open Tier Pricing"]'}
       >
         <ProductPriceTierEditorPanel
           product={selectedProduct}
@@ -1094,18 +1150,38 @@ export function PricingPage() {
         />
       </PricingEditorModal>
 
-      <ProductPriceTierCatalogPanel
-        productName={selectedProduct?.name ?? null}
-        quote={quote?.tierPricing ?? null}
-        loading={quoteLoading}
-        error={quote?.integrationIssues[0]?.message ?? quoteError}
-        hasUnsavedChanges={formDirty}
-        onRefresh={selectedProduct ? () => void loadQuote(selectedProduct.id) : undefined}
-        onCreateTier={selectedProduct?.isActive ? startCreateTier : undefined}
-        onEditTier={startEditTier}
-        onArchiveTier={archiveTier}
-        archivingTierId={archivingTierId}
-      />
+      <PricingEditorModal
+        open={tierPricingOpen}
+        titleId="tier-pricing-catalog-heading"
+        label="Tier Pricing"
+        onClose={closeTierPricing}
+        closeDisabled={Boolean(archivingTierId)}
+        restoreFocusSelector={'[aria-label="Open Tier Pricing"]'}
+        wide
+      >
+        {tierMutationFeedback && (
+          <div className="feedback feedback-success pricing-tier-modal-feedback" role="status">
+            {tierMutationFeedback}
+          </div>
+        )}
+        {tierMutationError && (
+          <div className="feedback feedback-error pricing-tier-modal-feedback" role="alert">
+            {tierMutationError}
+          </div>
+        )}
+        <ProductPriceTierCatalogPanel
+          productName={selectedProduct?.name ?? null}
+          quote={quote?.tierPricing ?? null}
+          loading={quoteLoading}
+          error={quote?.integrationIssues[0]?.message ?? quoteError}
+          hasUnsavedChanges={formDirty}
+          onRefresh={selectedProduct ? () => void loadQuote(selectedProduct.id) : undefined}
+          onCreateTier={selectedProduct?.isActive ? startCreateTier : undefined}
+          onEditTier={startEditTier}
+          onArchiveTier={archiveTier}
+          archivingTierId={archivingTierId}
+        />
+      </PricingEditorModal>
     </section>
   );
 }
