@@ -176,7 +176,7 @@ describe('ProductsWorkspacePage', () => {
       .find((button) => button.textContent?.includes('Keep editing'))!;
     await act(async () => keep.click());
     await flush();
-    expect(yieldPanel.querySelector('[role="alert"]')?.textContent).not.toContain('Keep your unsaved batch?');
+    expect(yieldPanel.querySelector('.yield-draft-confirm')).toBeNull();
     expect(pieces.value).toBe('9');
     await act(async () => tabs.querySelector<HTMLButtonElement>('[aria-controls="products-view-pricing"]')!.click());
     await flush();
