@@ -11,6 +11,7 @@ import type {
   ProductPriceResolutionResult,
 } from '../../application/pricing/ProductPriceResolutionService';
 import type { Product } from '../../domain/products';
+import { QuotationProductPicker } from './QuotationProductPicker';
 import {
   buildCustomerQuotationView,
   customerQuotationSourceLabel,
@@ -447,31 +448,16 @@ export function CustomerQuotationDialog({
                       </div>
                     )}
                     <div className="customer-quotation-item-grid">
-                      <label className="field customer-quotation-product-field">
-                        <span>Product</span>
-                        <select
-                          required
-                          value={line.productId}
+                      <div className="customer-quotation-product-field">
+                        <QuotationProductPicker
+                          products={activeProducts}
+                          selectedProductId={line.productId}
+                          unavailableProductIds={usedProductIds}
+                          lineNumber={index + 1}
                           disabled={line.loading}
-                          onChange={(event) =>
-                            changeProduct(line, event.target.value)
-                          }
-                        >
-                          <option value="">Select a Product</option>
-                          {activeProducts.map((product) => (
-                            <option
-                              key={product.id}
-                              value={product.id}
-                              disabled={
-                                product.id !== line.productId &&
-                                usedProductIds.has(product.id)
-                              }
-                            >
-                              {product.name} · {product.id}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
+                          onSelect={(productId) => changeProduct(line, productId)}
+                        />
+                      </div>
 
                       <label className="field">
                         <span>Quantity</span>
