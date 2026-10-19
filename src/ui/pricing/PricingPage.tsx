@@ -88,7 +88,14 @@ function pricingMethodSummary(form: ProductFinancialProfileFormState): string {
   return `${form.pricingMethod === 'markup-percent' ? 'Markup' : 'Target margin'} · ${form.pricingValue}%`;
 }
 
-export function PricingPage() {
+interface PricingPageProps {
+  preferredProductId?: string | null;
+  onSelectedProductChange?: (productId: string) => void;
+}
+
+export function PricingPage({ preferredProductId, onSelectedProductChange }: PricingPageProps = {}) {
+  const preferredProductRef = useRef(preferredProductId);
+  preferredProductRef.current = preferredProductId;
   const [products, setProducts] = useState<Product[]>([]);
   const [profiles, setProfiles] = useState<ProductFinancialProfile[]>([]);
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
@@ -201,7 +208,8 @@ export function PricingPage() {
       setProducts(nextProducts);
       setProfiles(nextProfiles);
 
-      const initialProduct = nextProducts.find((product) => product.isActive) ?? nextProducts[0] ?? null;
+      const initialProduct = nextProducts.find((product) => product.id === preferredProductRef.current)
+        ?? nextProducts.find((product) => product.isActive) ?? nextProducts[0] ?? null;
       const initialProfile = initialProduct
         ? nextProfiles.find(
             (profile) => comparable(profile.productId) === comparable(initialProduct.id),
@@ -335,6 +343,7 @@ export function PricingPage() {
   const unconfiguredCount = Math.max(products.length - configuredCount, 0);
 
   function selectProduct(product: Product) {
+    onSelectedProductChange?.(product.id);
     quoteRequestVersion.current += 1;
     resolutionRequestVersion.current += 1;
     setQuote(null);
@@ -362,6 +371,14 @@ export function PricingPage() {
     setTierMutationFeedback(null);
     setProductCatalogOpen(false);
   }
+
+  // Follow Product selection across Catalog, Components, Finished stock, and Pricing.
+  // Pricing remains mounted while its tab is hidden so same-Product drafts survive switching.
+  useEffect(() => {
+    if (!preferredProductId || preferredProductId === selectedProductId) return;
+    const product = products.find((item) => item.id === preferredProductId);
+    if (product) selectProduct(product);
+  }, [preferredProductId, selectedProductId, products]);
 
   function openOrderPricePreview() {
     if (!selectedProduct) return;
