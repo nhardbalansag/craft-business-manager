@@ -111,8 +111,10 @@ export function ProductsPage() {
   const draftWarning = useRef<HTMLDivElement>(null);
   // undefined means no pending switch; null means a new product was requested.
   const [pendingProduct, setPendingProduct] = useState<Product | null | undefined>(undefined);
-  const [componentProductId, setComponentProductId] = useState('');
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
+  // These workspaces stay mounted while hidden. Refresh any cached Product lists
+  // whenever the catalog successfully creates a new Product.
+  const [productCatalogRevision, setProductCatalogRevision] = useState(0);
   const [pricingVisited, setPricingVisited] = useState(false);
   const [yieldVisited, setYieldVisited] = useState(false);
 
@@ -194,7 +196,6 @@ export function ProductsPage() {
     // Keep the Components tab aligned with the product whose details are being edited.
     // Only change this context after a pending draft switch has been confirmed.
     if (product) {
-      setComponentProductId(product.id);
       setSelectedProductId(product.id);
     }
     setEditorOpen(true);
@@ -213,7 +214,6 @@ export function ProductsPage() {
     catalogReturnTarget.current = document.activeElement as HTMLElement;
     setEditorOpen(true);
     if (product && product.id === editingProductId) {
-      setComponentProductId(product.id);
       setSelectedProductId(product.id);
       productNameInput.current?.focus();
     } else if (productDirty) {
@@ -286,8 +286,8 @@ export function ProductsPage() {
         const created = await productService.createProduct(formToProduct({ ...productForm, id: generatedProductId }, true));
         setProductFeedback({ type: 'success', message: 'Product created.' });
         setEditingProductId(created.id);
-        setComponentProductId(created.id);
         setSelectedProductId(created.id);
+        setProductCatalogRevision((revision) => revision + 1);
         setProductForm(productToForm(created));
       }
       await reload();
@@ -303,9 +303,6 @@ export function ProductsPage() {
   }
 
   function navigateToComponents() {
-    if (selectedProductId && products.some((product) => product.id === selectedProductId)) {
-      setComponentProductId(selectedProductId);
-    }
     setView('components');
   }
 
@@ -432,7 +429,6 @@ export function ProductsPage() {
           onPricing={(product) => navigateToPricing(product.id)}
           onComponents={(product) => {
             setSelectedProductId(product.id);
-            setComponentProductId(product.id);
             setView('components');
           }}
           onToggleActive={(product) => void archiveProduct(product)}
@@ -675,6 +671,7 @@ export function ProductsPage() {
         {yieldVisited && (
           <YieldPage
             preferredProductId={selectedProductId}
+            productCatalogRevision={productCatalogRevision}
             onSelectedProductChange={setSelectedProductId}
             onOpenProducts={() => setView('products')}
           />
@@ -686,7 +683,7 @@ export function ProductsPage() {
             products={products}
             materials={materials}
             catalogLoading={loading}
-            initialProductId={componentProductId}
+            initialProductId={selectedProductId ?? undefined}
             onSelectedProductChange={setSelectedProductId}
           />
         </div>
@@ -705,6 +702,7 @@ export function ProductsPage() {
         {pricingVisited && (
           <PricingPage
             preferredProductId={selectedProductId}
+            productCatalogRevision={productCatalogRevision}
             onSelectedProductChange={setSelectedProductId}
           />
         )}
