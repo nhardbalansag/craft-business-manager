@@ -10,6 +10,7 @@ import { ProductComponentsView } from './ProductComponentsView';
 import { ProductStockView } from './ProductStockView';
 import { PricingPage } from '../pricing/PricingPage';
 import { AppIcon } from '../icons/AppIcon';
+import { ProductImageZoom } from './ProductImageZoom';
 import { YieldPage } from '../yield/YieldPage';
 import './products.css';
 import './productEditorWorkflow.css';
@@ -523,7 +524,7 @@ export function ProductsPage() {
               <div className="product-image-editor" aria-label="Product image editor">
                 <div className="product-image-preview">
                   {productForm.imageDataUrl ? (
-                    <img src={productForm.imageDataUrl} alt={`Preview of ${productForm.name || 'product'}`} />
+                    <ProductImageZoom product={{ name: productForm.name || 'product', imageDataUrl: productForm.imageDataUrl, brochureImageDataUrl: productForm.brochureImageDataUrl }} alt={`Preview of ${productForm.name || 'product'}`} />
                   ) : (
                     <span>No product image</span>
                   )}

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { PRODUCT_CATEGORY_RULES, type Product } from '../../domain/products';
 import { isValidProductImageDataUrl } from '../../domain/productImage';
+import { ProductImageZoom } from './ProductImageZoom';
 import './productDetailsDialog.css';
 
 interface ProductDetailsDialogProps {
@@ -102,7 +103,7 @@ export function ProductDetailsDialog({
         <div className="product-view-layout">
           <div className="product-view-photo" aria-label="Product photo">
             {imageDataUrl ? (
-              <img src={imageDataUrl} alt={product.name} />
+              <ProductImageZoom product={product} alt={product.name} />
             ) : (
               <span>No product photo uploaded</span>
             )}

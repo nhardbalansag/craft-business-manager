@@ -6,6 +6,7 @@ import {
 import type { ProductComponent } from '../../domain/productComponents';
 import type { ProductStock } from '../../domain/productStock';
 import type { Product } from '../../domain/products';
+import { ProductImageZoom } from './ProductImageZoom';
 import { AppIcon } from '../icons/AppIcon';
 import {
   buildProductStockRows,
@@ -204,6 +205,15 @@ export function ProductStockView({ products, catalogLoading, initialProductId, o
             )}
           </div>
 
+          {selectedRow && (
+            <div className="stock-product-reference" aria-label="Selected finished stock Product photo">
+              <ProductImageZoom
+                product={products.find((product) => product.id === selectedRow.productId) ?? { name: selectedRow.productName }}
+                imageClassName="stock-product-reference-photo"
+              />
+              <div><strong>{selectedRow.productName}</strong><small>{selectedRow.productId}</small></div>
+            </div>
+          )}
           <div className="form-grid">
             <label className="field field-wide">
               <span>Product</span>

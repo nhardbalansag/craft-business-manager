@@ -242,6 +242,10 @@ describe('Pricing workspace UI/UX', () => {
     expect(selector.querySelector('h2')?.textContent).toBe('Paintable Star');
     expect(photo?.getAttribute('src')).toBe(starImage);
     expect(photo?.getAttribute('alt')).toBe('Product reference: Paintable Star');
+    await act(async () => selector.querySelector<HTMLButtonElement>('[aria-label="View full-size image of Paintable Star"]')!.click());
+    expect(document.body.querySelector<HTMLImageElement>('.product-image-zoom-canvas img')?.getAttribute('src')).toBe(starImage);
+    await act(async () => document.body.querySelector<HTMLButtonElement>('[aria-label="Close enlarged product image"]')!.click());
+    expect(selector.querySelector('h2')?.textContent).toBe('Paintable Star');
   });
 
   it('keeps Pricing usable without a Product image and accepts only validated saved images', async () => {

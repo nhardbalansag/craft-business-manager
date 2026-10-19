@@ -11,6 +11,7 @@ import {
 } from '../../domain/productComponents';
 import type { Product } from '../../domain/products';
 import { AppIcon } from '../icons/AppIcon';
+import { ProductImageZoom } from './ProductImageZoom';
 import {
   buildProductCompositionPreview,
   type ProductCompositionPreviewNode,
@@ -295,6 +296,15 @@ export function ProductComponentsView({ products, materials, catalogLoading, ini
             </span>
           )}
         </div>
+        {selectedParent && (
+          <div className="component-product-reference" aria-label="Selected component Product photo">
+            <ProductImageZoom product={selectedParent} imageClassName="component-product-reference-photo" />
+            <div>
+              <strong>{selectedParent.name}</strong>
+              <small>{selectedParent.id}</small>
+            </div>
+          </div>
+        )}
         <label className="field">
           <span>Product to compose</span>
           <select value={selectedParentId} onChange={(event) => changeParent(event.target.value)}>
