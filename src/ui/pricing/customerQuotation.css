@@ -325,3 +325,22 @@
 @media (max-width: 760px) {
   .customer-quotation-item-grid, .quotation-product-picker-controls { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Add another Product after the final quotation item, within easy reach while composing. */
+.customer-quotation-add-product-row {
+  display: flex;
+  width: 100%;
+  margin-top: 2px;
+}
+
+.customer-quotation-add-product-button {
+  width: 100%;
+  min-height: 46px;
+  border: 1px dashed #b9a38b;
+  border-radius: 11px;
+  font-weight: 750;
+}
+.customer-quotation-add-product-button:not(:disabled):hover {
+  border-color: #80593a;
+  background: #f4ede3;
+}

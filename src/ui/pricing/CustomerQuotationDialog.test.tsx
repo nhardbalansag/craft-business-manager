@@ -126,10 +126,18 @@ describe('CustomerQuotationDialog multi-product workflow', () => {
     expect(dialog.textContent).toContain('1 item');
     expect(dialog.textContent).toContain('₱70.00');
 
-    const addButton = Array.from(dialog.querySelectorAll('button')).find(
-      (button) => button.textContent?.trim() === 'Add another product',
-    )!;
+    const itemList = dialog.querySelector<HTMLElement>('.customer-quotation-item-list')!;
+    const addRow = dialog.querySelector<HTMLElement>('.customer-quotation-add-product-row')!;
+    const addButton = addRow.querySelector<HTMLButtonElement>('button')!;
+    expect(itemList.nextElementSibling).toBe(addRow);
+    expect(addRow.nextElementSibling?.className).not.toContain('customer-quotation-item-list');
+    expect(addButton.textContent).toContain('Add another product');
+    expect(addButton.disabled).toBe(false);
+    expect(dialog.querySelector('.customer-quotation-section-heading button')).toBeNull();
     await act(async () => addButton.click());
+    expect(itemList.children).toHaveLength(2);
+    expect(itemList.nextElementSibling).toBe(addRow);
+    expect(addButton.disabled).toBe(false);
 
     const secondItem = dialog.querySelector<HTMLElement>(
       '[aria-label="Quotation item 2"]',
@@ -155,5 +163,17 @@ describe('CustomerQuotationDialog multi-product workflow', () => {
     expect(secondItem.textContent).toContain('₱120.00');
     expect(dialog.textContent).toContain('2 items');
     expect(dialog.textContent).toContain('₱190.00');
+    expect(addButton.disabled).toBe(true);
+    expect(dialog.querySelector('.customer-quotation-all-products-note')?.textContent)
+      .toContain('All active Products are already included');
+
+    // Removing an item frees a Product slot and the button remains at the bottom.
+    const removeSecond = secondItem.querySelector<HTMLButtonElement>(
+      '[aria-label="Remove quotation item 2"]',
+    )!;
+    await act(async () => removeSecond.click());
+    expect(itemList.children).toHaveLength(1);
+    expect(itemList.nextElementSibling).toBe(addRow);
+    expect(addButton.disabled).toBe(false);
   });
 });
