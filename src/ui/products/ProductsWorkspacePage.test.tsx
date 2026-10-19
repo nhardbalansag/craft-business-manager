@@ -53,6 +53,61 @@ async function flush() {
 }
 
 describe('ProductsWorkspacePage', () => {
+  it('puts Back to product catalog beside Save product and preserves an unsaved edit', async () => {
+    await act(async () => root.render(<ProductsWorkspacePage />));
+    await flush();
+
+    await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="Edit Dinosaur Toy"]')!.click());
+    const actions = container.querySelector<HTMLElement>('.product-editor-savebar-actions')!;
+    const bottomBack = actions.querySelector<HTMLButtonElement>('.product-editor-bottom-back')!;
+    const save = actions.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+    expect(bottomBack.textContent).toContain('Back to product catalog');
+    expect(bottomBack.type).toBe('button');
+    expect(save.textContent).toContain('Save product');
+    expect(bottomBack.nextElementSibling).toBe(save);
+
+    const name = container.querySelector<HTMLInputElement>('input[placeholder="Paintable star"]')!;
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(name, 'Draft dinosaur');
+      name.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await act(async () => bottomBack.click());
+    expect(container.querySelector('.product-catalog.is-editor-shell-open')).toBeNull();
+    expect(container.querySelector('.product-resume-draft')?.textContent).toContain('Continue your unsaved draft');
+    expect((await session.productService.getProduct('PRD-1'))?.name).toBe('Dinosaur Toy');
+
+    await act(async () => container.querySelector<HTMLButtonElement>('.product-resume-draft button')!.click());
+    expect(name.value).toBe('Draft dinosaur');
+    expect(container.querySelector('.product-catalog.is-editor-shell-open')).not.toBeNull();
+  });
+
+  it('puts Back to product catalog beside Create product without submitting an unfinished new item', async () => {
+    await act(async () => root.render(<ProductsWorkspacePage />));
+    await flush();
+    await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="+ New product"]')!.click());
+
+    const actions = container.querySelector<HTMLElement>('.product-editor-savebar-actions')!;
+    const back = actions.querySelector<HTMLButtonElement>('.product-editor-bottom-back')!;
+    const create = actions.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+    expect(back.type).toBe('button');
+    expect(back.textContent).toContain('Back to product catalog');
+    expect(create.textContent).toContain('Create product');
+    expect(back.nextElementSibling).toBe(create);
+
+    const name = container.querySelector<HTMLInputElement>('input[placeholder="Paintable star"]')!;
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(name, 'Draft new candle');
+      name.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await act(async () => back.click());
+    expect(container.querySelector('.product-catalog.is-editor-shell-open')).toBeNull();
+    expect(container.querySelector('.product-resume-draft')?.textContent).toContain('A new product is in progress');
+    expect(await session.productService.listProducts()).toHaveLength(1);
+
+    await act(async () => container.querySelector<HTMLButtonElement>('.product-resume-draft button')!.click());
+    expect(name.value).toBe('Draft new candle');
+  });
+
   it('preserves the product draft and catalog layout when visiting molds and storage', async () => {
     await act(async () => root.render(<ProductsWorkspacePage />));
     await flush();
