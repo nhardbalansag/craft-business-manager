@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { PRODUCT_CATEGORIES, PRODUCT_CATEGORY_RULES, type Product, type ProductCategory } from '../../domain/products';
 import { AppIcon } from '../icons/AppIcon';
+import { ProductImageZoom } from './ProductImageZoom';
+import { isValidProductImageDataUrl } from '../../domain/productImage';
+import { isValidBrochureImageDataUrl } from '../../domain/productBrochureImage';
 import { ProductLabelPrintDialog } from './ProductLabelPrintDialog';
 import { ProductDetailsDialog } from './ProductDetailsDialog';
 import { ProductBrochureDialog } from './ProductBrochureDialog';
@@ -366,7 +369,7 @@ export function ProductCatalog({
                     >
                       <td>
                         <div className="product-table-identity">
-                          {product.imageDataUrl ? <img className="product-catalog-thumbnail" src={product.imageDataUrl} alt="" /> : <span className={`product-category-icon category-${product.category}`} aria-hidden="true">
+                          {(isValidProductImageDataUrl(product.imageDataUrl) || isValidBrochureImageDataUrl(product.brochureImageDataUrl)) ? <ProductImageZoom product={product} imageClassName="product-catalog-thumbnail" /> : <span className={`product-category-icon category-${product.category}`} aria-hidden="true">
                             {product.category === 'candle'
                               ? <AppIcon name="flame" size={16} />
                               : product.category === 'candle-pot'
@@ -472,7 +475,7 @@ export function ProductCatalog({
                   aria-label={product.name}
                 >
                   <div className="product-card-top">
-                    {product.imageDataUrl ? <img className="product-catalog-thumbnail" src={product.imageDataUrl} alt="" /> : <span className={`product-category-icon category-${product.category}`} aria-hidden="true">
+                    {(isValidProductImageDataUrl(product.imageDataUrl) || isValidBrochureImageDataUrl(product.brochureImageDataUrl)) ? <ProductImageZoom product={product} imageClassName="product-catalog-thumbnail" /> : <span className={`product-category-icon category-${product.category}`} aria-hidden="true">
                       {product.category === 'candle'
                         ? <AppIcon name="flame" size={18} />
                         : product.category === 'candle-pot'
