@@ -1,7 +1,10 @@
-/// <reference types="vite/client" />
+// Frontend tsconfig intentionally excludes Node types; Vitest itself runs in Node.
+// @ts-expect-error -- node:fs is provided by the Vitest runtime
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import productsStyles from './products.css?raw';
-import brandStyles from '../../brandingTheme.css?raw';
+
+const productsStyles = readFileSync(new URL('./products.css', import.meta.url), 'utf8');
+const brandStyles = readFileSync(new URL('../../brandingTheme.css', import.meta.url), 'utf8');
 
 describe('Products tab brand colors', () => {
   it('uses the shared botanical leaf brand tokens rather than a black selected tab', () => {
