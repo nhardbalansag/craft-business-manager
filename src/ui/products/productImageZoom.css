@@ -94,3 +94,30 @@
   .product-image-zoom-canvas img { max-height: calc(100dvh - 155px); }
   .product-image-zoom-caption { padding: 9px 12px; font-size: .72rem; }
 }
+
+/* Keep existing view-specific image dimensions when wrapped in a zoom button. */
+.pricing-product-selector-identity > .product-image-zoom-trigger,
+.yield-selected-product-card > .product-image-zoom-trigger { align-self: center; }
+.product-image-preview > .product-image-zoom-trigger,
+.product-view-photo > .product-image-zoom-trigger { width: 100%; height: 100%; }
+.product-image-preview > .product-image-zoom-trigger img,
+.product-view-photo > .product-image-zoom-trigger img { width: 100%; height: 100%; object-fit: contain; }
+.component-product-reference,
+.stock-product-reference { display: flex; gap: 14px; align-items: center; min-width: 0; }
+.component-product-reference > div,
+.stock-product-reference > div { min-width: 0; display: grid; gap: 4px; }
+.component-product-reference strong,
+.stock-product-reference strong { overflow-wrap: anywhere; color: #29251f; }
+.component-product-reference small,
+.stock-product-reference small { color: #81776c; }
+.component-product-reference-photo,
+.stock-product-reference-photo {
+  display: block; width: 96px; height: 96px; padding: 6px; box-sizing: border-box;
+  object-fit: contain; background: #fff; border: 1px solid #e4dacf; border-radius: 13px;
+  box-shadow: 0 4px 16px rgba(48, 38, 30, .08);
+}
+.stock-product-reference { padding-bottom: 12px; }
+@media (max-width: 520px) {
+  .component-product-reference-photo,
+  .stock-product-reference-photo { width: 78px; height: 78px; }
+}
