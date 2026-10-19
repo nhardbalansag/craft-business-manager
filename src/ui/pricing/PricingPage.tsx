@@ -607,21 +607,6 @@ export function PricingPage() {
         </div>
       </section>
 
-      <ProductPricingQuotePanel
-        productName={selectedProduct?.name ?? null}
-        quote={quote}
-        loading={quoteLoading}
-        error={quoteError}
-        hasUnsavedChanges={formDirty}
-        onRefresh={selectedProduct ? () => void loadQuote(selectedProduct.id) : undefined}
-      />
-
-      <div className="pricing-overview" aria-label="Pricing catalog summary">
-        <div><span>Products</span><strong>{products.length}</strong><small>{activeCount} active</small></div>
-        <div><span>Profiles saved</span><strong>{configuredCount}</strong><small>Authoritative financial inputs</small></div>
-        <div><span>Need setup</span><strong>{unconfiguredCount}</strong><small>No financial profile yet</small></div>
-      </div>
-
       <section className="panel pricing-financial-source-summary" aria-label="Financial source summary">
         <div className="pricing-financial-summary-heading">
           <div>
@@ -661,6 +646,21 @@ export function PricingPage() {
           </div>
         )}
       </section>
+
+      <ProductPricingQuotePanel
+        productName={selectedProduct?.name ?? null}
+        quote={quote}
+        loading={quoteLoading}
+        error={quoteError}
+        hasUnsavedChanges={formDirty}
+        onRefresh={selectedProduct ? () => void loadQuote(selectedProduct.id) : undefined}
+      />
+
+      <div className="pricing-overview" aria-label="Pricing catalog summary">
+        <div><span>Products</span><strong>{products.length}</strong><small>{activeCount} active</small></div>
+        <div><span>Profiles saved</span><strong>{configuredCount}</strong><small>Authoritative financial inputs</small></div>
+        <div><span>Need setup</span><strong>{unconfiguredCount}</strong><small>No financial profile yet</small></div>
+      </div>
 
       <section className="panel pricing-order-preview-summary" aria-label="Order price preview summary">
         <div className="pricing-financial-summary-heading">

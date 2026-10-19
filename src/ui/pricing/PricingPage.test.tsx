@@ -215,7 +215,7 @@ describe('Pricing workspace UI/UX', () => {
     expect(form()).not.toBeNull();
   });
 
-  it('keeps Unit Economics immediately below Product selection and before other Pricing summaries', async () => {
+  it('shows Financial Source first below Product selection, before Unit Economics and other summaries', async () => {
     await seed();
     await mount();
     const selector = container.querySelector('[aria-label="Selected pricing Product"]');
@@ -224,11 +224,13 @@ describe('Pricing workspace UI/UX', () => {
     const financial = container.querySelector('[aria-label="Financial source summary"]');
     const order = container.querySelector('[aria-label="Order price preview summary"]');
     const tiers = container.querySelector('[aria-label="Tier pricing summary"]');
-    expect(selector?.nextElementSibling).toBe(quote);
+    expect(selector?.nextElementSibling).toBe(financial);
+    expect(financial?.nextElementSibling).toBe(quote);
     expect(quote?.nextElementSibling).toBe(overview);
-    expect(overview?.nextElementSibling).toBe(financial);
-    expect(financial?.nextElementSibling).toBe(order);
+    expect(overview?.nextElementSibling).toBe(order);
     expect(order?.nextElementSibling).toBe(tiers);
+    expect(financial?.textContent).toContain('FINANCIAL SOURCE');
+    expect(financial?.textContent).toContain('Set Financial Source');
     expect(quote?.textContent).toContain('Total unit cost');
     expect(quote?.textContent).toContain('Selling price');
     expect(quote?.textContent).toContain('Profit / unit');
@@ -275,7 +277,9 @@ describe('Pricing workspace UI/UX', () => {
     expect(form()).toBeNull();
     const selectedProductSection = container.querySelector('[aria-label="Selected pricing Product"]');
     const unitEconomics = container.querySelector('[aria-label="Unit economics pricing calculator"]');
-    expect(selectedProductSection?.nextElementSibling).toBe(unitEconomics);
+    const financialSource = container.querySelector('[aria-label="Financial source summary"]');
+    expect(selectedProductSection?.nextElementSibling).toBe(financialSource);
+    expect(financialSource?.nextElementSibling).toBe(unitEconomics);
     expect(unitEconomics?.textContent).toContain('UNIT ECONOMICS');
     expect(unitEconomics?.textContent).toContain('Saved pricing result');
     expect(container.querySelector('[aria-label="Financial source summary"]')?.textContent).toContain('Event Candle');

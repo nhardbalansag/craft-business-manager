@@ -1660,7 +1660,7 @@
   .pricing-tier-modal-feedback { margin: 12px 14px 0; }
 }
 
-/* Show Unit Economics as the first Product detail immediately below selection. */
+/* Financial Source leads Pricing details; Unit Economics follows it without a redundant divider. */
 .pricing-workspace > .pricing-quote-section {
   margin-top: 0;
   padding-top: 0;
