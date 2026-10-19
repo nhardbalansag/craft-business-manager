@@ -34,6 +34,7 @@ import {
 } from './productFinancialProfileForm';
 import { formatPhp, pricingPolicyLabel } from './productPricingQuoteView';
 import { AppIcon } from '../icons/AppIcon';
+import { ProductImageZoom } from '../products/ProductImageZoom';
 import { isValidProductImageDataUrl } from '../../domain/productImage';
 import { isValidBrochureImageDataUrl } from '../../domain/productBrochureImage';
 import './pricing.css';
@@ -575,13 +576,7 @@ export function PricingPage({ preferredProductId, onSelectedProductChange }: Pri
       <section className="panel pricing-product-selector" aria-label="Selected pricing Product">
         <div className="pricing-product-selector-identity">
           {selectedProduct && selectedProductImage && !loading && !workspaceError && (
-            <img
-              className="pricing-product-reference-image"
-              src={selectedProductImage}
-              alt={`Product reference: ${selectedProduct.name}`}
-              loading="lazy"
-              decoding="async"
-            />
+            <ProductImageZoom product={selectedProduct} imageClassName="pricing-product-reference-image" />
           )}
           <div className="pricing-product-selector-copy">
           <p className="panel-kicker">YOUR PRODUCT</p>
