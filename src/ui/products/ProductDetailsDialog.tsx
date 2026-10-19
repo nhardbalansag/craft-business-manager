@@ -8,6 +8,7 @@ interface ProductDetailsDialogProps {
   onClose: () => void;
   onEdit: () => void;
   onComponents: () => void;
+  onPricing?: () => void;
   onBrochure?: () => void;
 }
 
@@ -17,6 +18,7 @@ export function ProductDetailsDialog({
   onClose,
   onEdit,
   onComponents,
+  onPricing,
   onBrochure,
 }: ProductDetailsDialogProps) {
   const dialogRef = useRef<HTMLElement>(null);
@@ -140,6 +142,9 @@ export function ProductDetailsDialog({
 
         <div className="product-view-actions">
           <button type="button" className="button button-quiet" onClick={onComponents}>View components</button>
+          {onPricing && (
+            <button type="button" className="button button-secondary" onClick={onPricing}>View pricing</button>
+          )}
           {onBrochure && (
             <button type="button" className="button button-secondary" onClick={onBrochure}>Print brochure / PDF</button>
           )}
