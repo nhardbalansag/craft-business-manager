@@ -7,7 +7,7 @@ const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), selec
  * supports Escape/backdrop dismiss, and returns focus to the invoking control.
  */
 export function PricingEditorModal({
-  open, titleId, label, onClose, closeDisabled = false, restoreFocusSelector, children,
+  open, titleId, label, onClose, closeDisabled = false, restoreFocusSelector, wide = false, children,
 }: {
   open: boolean;
   titleId: string;
@@ -15,6 +15,7 @@ export function PricingEditorModal({
   onClose: () => void;
   closeDisabled?: boolean;
   restoreFocusSelector: string;
+  wide?: boolean;
   children: ReactNode;
 }) {
   const dialogRef = useRef<HTMLElement>(null);
@@ -76,7 +77,7 @@ export function PricingEditorModal({
     >
       <section
         ref={dialogRef}
-        className="pricing-source-modal"
+        className={`pricing-source-modal${wide ? ' pricing-source-modal-wide' : ''}`}
         role="dialog"
         aria-modal="true"
         aria-label={label}

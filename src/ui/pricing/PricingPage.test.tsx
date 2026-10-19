@@ -553,6 +553,56 @@ describe('Pricing workspace UI/UX', () => {
     ).toBe(false);
   });
 
+  it('opens Order Price Preview as a scrollable dialog with Escape, focus return, and persistent quantity', async () => {
+    await seed();
+    await mount();
+    const trigger = container.querySelector<HTMLButtonElement>('[aria-label="Open Order Price Preview"]')!;
+    expect(trigger).not.toBeNull();
+    expect(trigger.disabled).toBe(false);
+    expect(container.querySelector('.pricing-resolution-section')).toBeNull();
+    expect(container.querySelector('[aria-label="Order price preview summary"]')?.textContent).toContain('Default / Single');
+
+    await act(async () => trigger.focus());
+    await click('Open Order Price Preview');
+    const dialog = container.querySelector<HTMLElement>('[role="dialog"][aria-label="Order Price Preview"]');
+    expect(dialog).not.toBeNull();
+    expect(dialog?.getAttribute('aria-labelledby')).toBe('pricing-order-preview-heading');
+    expect(document.activeElement?.getAttribute('aria-label')).toBe('Close Order Price Preview');
+
+    await fill(field('Order quantity', dialog!), '15');
+    expect(container.querySelector('[aria-label="Order price preview summary"]')?.textContent).toContain('15');
+    await act(async () => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })));
+    expect(container.querySelector('.pricing-resolution-section')).toBeNull();
+    expect(document.activeElement).toBe(trigger);
+    await click('Open Order Price Preview');
+    expect((field('Order quantity', container.querySelector('[role="dialog"][aria-label="Order Price Preview"]')!) as HTMLInputElement).value).toBe('15');
+    await click('Close Order Price Preview');
+    expect(container.querySelector('[role="dialog"][aria-label="Order Price Preview"]')).toBeNull();
+  });
+
+  it('opens the quotation from Order Price Preview without stacking two dialogs', async () => {
+    await seed();
+    vi.spyOn(session.productPriceResolutionService, 'resolve').mockImplementation(async (request) =>
+      resolutionFixture(request.quantity, request.selectedTierId),
+    );
+    await mount();
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    await click('Open Order Price Preview');
+    const modal = container.querySelector<HTMLElement>('[role="dialog"][aria-label="Order Price Preview"]')!;
+    const quotationButton = Array.from(modal.querySelectorAll('button')).find((button) =>
+      button.textContent?.trim() === 'Customer quotation',
+    );
+    expect(quotationButton).toBeDefined();
+    await act(async () => quotationButton!.click());
+    expect(container.querySelector('[role="dialog"][aria-label="Order Price Preview"]')).toBeNull();
+    expect(container.querySelector('[aria-label="Customer quotation form"]')).not.toBeNull();
+    expect(container.querySelectorAll('[role="dialog"]')).toHaveLength(1);
+  });
+
   it('resolves Default first, then manually previews a quantity-eligible tier through TP8C', async () => {
     await seed();
     const resolveSpy = vi
@@ -568,10 +618,14 @@ describe('Pricing workspace UI/UX', () => {
       await Promise.resolve();
     });
 
+    expect(container.querySelector('.pricing-resolution-section')).toBeNull();
+    expect(container.querySelector('[aria-label="Order price preview summary"]')).not.toBeNull();
+    await click('Open Order Price Preview');
     const preview = container.querySelector<HTMLElement>(
       '.pricing-resolution-section',
     );
     expect(preview).not.toBeNull();
+    expect(preview?.closest('[role="dialog"]')?.getAttribute('aria-modal')).toBe('true');
 
     const defaultRadio = preview!.querySelector<HTMLInputElement>(
       'input[value="default"]',
@@ -615,6 +669,7 @@ describe('Pricing workspace UI/UX', () => {
     expect(preview!.textContent).toContain(
       'Production projections continue to use Default / Single pricing',
     );
+    expect(container.querySelector('[aria-label="Order price preview summary"]')?.textContent).toContain('PHP 800.00');
   });
 
 });
