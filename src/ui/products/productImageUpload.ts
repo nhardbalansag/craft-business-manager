@@ -24,8 +24,9 @@ export async function optimizeProductImages(file: File): Promise<OptimizedProduc
     });
     if (!image.naturalWidth || !image.naturalHeight) throw new Error('The selected image has invalid dimensions.');
     const canvas = document.createElement('canvas');
-    const context = canvas.getContext('2d');
-    if (!context) throw new Error('Your browser does not support image resizing.');
+    const candidateContext = canvas.getContext('2d');
+    if (!candidateContext) throw new Error('Your browser does not support image resizing.');
+    const context: CanvasRenderingContext2D = candidateContext;
 
     function encode(sides: readonly number[], qualities: readonly number[], validator: (value: unknown) => value is string): string {
       for (const side of sides) {

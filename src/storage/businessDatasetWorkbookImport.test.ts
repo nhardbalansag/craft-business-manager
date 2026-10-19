@@ -273,7 +273,9 @@ describe('BusinessDataset workbook import', () => {
 
   it('imports older Products workbook columns without the high-resolution chunk fields', () => {
     const dataset = datasetFixture();
-    const doc = createBusinessDatasetWorkbookDocument(dataset, METADATA);
+    const doc = structuredClone(createBusinessDatasetWorkbookDocument(dataset, METADATA)) as {
+      sheets: Array<{ name: string; columns: string[]; rows: Array<Record<string, unknown>> }>;
+    };
     const productSheet = doc.sheets.find((sheet) => sheet.name === 'Products')!;
     productSheet.columns = productSheet.columns.filter((column) => !BROCHURE_IMAGE_COLUMN_NAMES.includes(column));
     productSheet.rows.forEach((row) => {
