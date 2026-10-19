@@ -1,54 +1,9 @@
-.pricing-workspace { padding-top: 34px; }
-
-.pricing-source-note {
+.pricing-workspace { padding-top: 16px; }
+.pricing-export-status {
   display: flex;
-  gap: 10px;
-  align-items: flex-start;
-  margin: -6px 0 16px;
-  padding: 13px 15px;
-  border: 1px solid #e0d5c5;
-  border-radius: 14px;
-  background: #fff8ea;
-  color: #746248;
-  font-size: .84rem;
-  line-height: 1.5;
+  justify-content: flex-end;
+  margin-bottom: 12px;
 }
-.pricing-source-note strong { color: #58462f; flex: 0 0 auto; }
-
-.pricing-workflow {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-  margin-bottom: 14px;
-}
-.pricing-workflow > div {
-  display: flex;
-  gap: 10px;
-  align-items: flex-start;
-  padding: 13px 14px;
-  border: 1px solid #e3ddd4;
-  border-radius: 14px;
-  background: #faf7f1;
-}
-.pricing-workflow > div > span {
-  width: 28px;
-  height: 28px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: 0 0 auto;
-  border-radius: 999px;
-  background: #ebe5db;
-  color: #6e655c;
-  font-size: .75rem;
-  font-weight: 900;
-}
-.pricing-workflow > div > div { display: grid; gap: 3px; }
-.pricing-workflow strong { color: #4a433c; font-size: .83rem; }
-.pricing-workflow small { color: #8b8176; line-height: 1.4; }
-.pricing-workflow > div.current { border-color: #bfa98e; background: #fffaf1; }
-.pricing-workflow > div.current > span { background: #8d7459; color: #fff; }
-.pricing-workflow > div.complete > span { background: #e4efe1; color: #426340; }
 
 .pricing-overview {
   display: grid;
@@ -590,10 +545,8 @@
 }
 
 @media (max-width: 760px) {
-  .pricing-source-note,
   .pricing-quote-heading,
   .pricing-unsaved-note { flex-direction: column; }
-  .pricing-workflow,
   .pricing-overview,
   .pricing-filters,
   .pricing-unit-guide,
