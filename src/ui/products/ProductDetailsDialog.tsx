@@ -107,7 +107,7 @@ export function ProductDetailsDialog({
           <div className="product-view-content">
             <div className="product-view-status-line">
               <span className="product-view-category">{category.label}</span>
-              <span className={\`status-pill \${product.isActive ? 'status-active' : ''}\`}>
+              <span className={'status-pill ' + (product.isActive ? 'status-active' : '')}>
                 {product.isActive ? 'Active' : 'Archived'}
               </span>
             </div>
