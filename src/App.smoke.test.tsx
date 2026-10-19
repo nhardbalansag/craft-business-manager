@@ -106,7 +106,8 @@ describe('React workspace smoke validation', () => {
     const html = renderToStaticMarkup(<YieldPage />);
 
     expect(html).toContain('Yield &amp; history');
-    expect(html).toContain('Included in workbook exports');
+    expect(html).not.toContain('Included in workbook exports');
+    expect(html).toContain('View cost breakdown');
     expect(html).toContain('Choose the product');
     expect(html).toContain('Record the real batch');
     expect(html).toContain('Review effective learning');
