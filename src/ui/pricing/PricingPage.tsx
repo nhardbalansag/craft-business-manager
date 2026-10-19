@@ -93,10 +93,11 @@ function pricingMethodSummary(form: ProductFinancialProfileFormState): string {
 
 interface PricingPageProps {
   preferredProductId?: string | null;
+  productCatalogRevision?: number;
   onSelectedProductChange?: (productId: string) => void;
 }
 
-export function PricingPage({ preferredProductId, onSelectedProductChange }: PricingPageProps = {}) {
+export function PricingPage({ preferredProductId, productCatalogRevision = 0, onSelectedProductChange }: PricingPageProps = {}) {
   const preferredProductRef = useRef(preferredProductId);
   preferredProductRef.current = preferredProductId;
   const [products, setProducts] = useState<Product[]>([]);
@@ -238,8 +239,10 @@ export function PricingPage({ preferredProductId, onSelectedProductChange }: Pri
   }, []);
 
   useEffect(() => {
+    // Pricing stays mounted when its tab is hidden. Refresh the saved Product
+    // list after the catalog creates a new item before following the selection.
     void loadWorkspace();
-  }, [loadWorkspace]);
+  }, [loadWorkspace, productCatalogRevision]);
 
   useEffect(() => {
     if (!productCatalogOpen) return;
