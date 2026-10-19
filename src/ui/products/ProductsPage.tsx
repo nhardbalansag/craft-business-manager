@@ -9,6 +9,7 @@ import { ProductCatalog } from './ProductCatalog';
 import { ProductComponentsView } from './ProductComponentsView';
 import { ProductStockView } from './ProductStockView';
 import { PricingPage } from '../pricing/PricingPage';
+import { AppIcon } from '../icons/AppIcon';
 import { YieldPage } from '../yield/YieldPage';
 import './products.css';
 import './productEditorWorkflow.css';
@@ -651,9 +652,20 @@ export function ProductsPage() {
             </section>
             <div className="product-editor-savebar">
               <span>{editingProductId ? `Product ${editingProductId}` : 'New products are added as active.'}</span>
-              <button className="button button-primary button-full" type="submit" disabled={imageProcessing || busy}>
-                {imageProcessing ? 'Optimizing image…' : busy ? 'Saving...' : editingProductId ? 'Save product' : 'Create product'}
-              </button>
+              <div className="product-editor-savebar-actions">
+                <button
+                  className="button button-secondary product-editor-bottom-back"
+                  type="button"
+                  disabled={busy || imageProcessing || loading}
+                  onClick={backToCatalog}
+                >
+                  <AppIcon name="arrow-left" size={17} />
+                  Back to product catalog
+                </button>
+                <button className="button button-primary button-full" type="submit" disabled={imageProcessing || busy}>
+                  {imageProcessing ? 'Optimizing image…' : busy ? 'Saving...' : editingProductId ? 'Save product' : 'Create product'}
+                </button>
+              </div>
             </div>
           </fieldset>
         </form>
