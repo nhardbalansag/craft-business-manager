@@ -160,13 +160,15 @@ function recipeSourceLabel(source: ResolvedYieldRecipeSource): string {
 export interface YieldPageProps {
   /** Product already selected in Products, Pricing or another product workspace tab. */
   preferredProductId?: string | null;
+  /** A saved Product was added after Yield's local Product list was loaded. */
+  productCatalogRevision?: number;
   /** Keep the Product workspace selection aligned with Yield changes. */
   onSelectedProductChange?: (productId: string) => void;
   /** When embedded under Products, show one route back instead of a second picker. */
   onOpenProducts?: () => void;
 }
 
-export function YieldPage({ preferredProductId, onSelectedProductChange, onOpenProducts }: YieldPageProps = {}) {
+export function YieldPage({ preferredProductId, productCatalogRevision = 0, onSelectedProductChange, onOpenProducts }: YieldPageProps = {}) {
   const preferredProductRef = useRef(preferredProductId);
   preferredProductRef.current = preferredProductId;
   const [products, setProducts] = useState<Product[]>([]);
@@ -404,9 +406,12 @@ export function YieldPage({ preferredProductId, onSelectedProductChange, onOpenP
       setMixPresets(nextMixes);
       setKnownSampleIds(nextSamples.map((sample) => sample.id));
       setSelectedProductId((current) => {
+        // Keep a still-valid current batch while the new Product catalog loads.
+        // The preferredProductId effect requests a guarded switch if this
+        // Product has unsaved Yield evidence.
+        if (current && nextProducts.some((product) => product.id === current)) return current;
         const preferred = preferredProductRef.current;
         if (preferred && nextProducts.some((product) => product.id === preferred)) return preferred;
-        if (current && nextProducts.some((product) => product.id === current)) return current;
         return nextProducts.find((product) => product.isActive)?.id ?? nextProducts[0]?.id ?? '';
       });
     } catch (error) {
@@ -418,7 +423,7 @@ export function YieldPage({ preferredProductId, onSelectedProductChange, onOpenP
 
   useEffect(() => {
     void loadMasters();
-  }, [loadMasters]);
+  }, [loadMasters, productCatalogRevision]);
 
   useEffect(() => {
     void loadHistory(selectedProductId);
@@ -429,7 +434,7 @@ export function YieldPage({ preferredProductId, onSelectedProductChange, onOpenP
     setHistorySort('newest');
     setHistoryOutcome('all');
     return () => { historyRequest.current += 1; };
-  }, [loadHistory, products, selectedProductId]);
+  }, [loadHistory, selectedProductId]);
 
   const effectiveId = effective?.sample.id ?? null;
   const skippedIds = useMemo(
