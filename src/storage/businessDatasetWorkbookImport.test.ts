@@ -235,7 +235,7 @@ describe('BusinessDataset workbook import', () => {
     const bytes = exportBusinessDatasetToXlsx(source, METADATA, codec);
     const result = importBusinessDatasetFromXlsx(bytes, codec);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.dataset.products[0].imageDataUrl).toBe(photo);
+    if (result.ok) expect(result.dataset.products.find((p) => p.id === source.products[0].id)?.imageDataUrl).toBe(photo);
   });
 
   it('imports legacy Products sheets that have no imageDataUrl column', () => {
