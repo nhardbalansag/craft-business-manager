@@ -121,54 +121,39 @@ describe('React workspace smoke validation', () => {
     expect(html).not.toContain('Expected profit');
   });
 
-  it('renders a compact Pricing workspace without the introductory header or workflow strip', () => {
+  it('renders a clean Pricing dashboard with optional detailed costs and full modal actions', () => {
     const html = renderToStaticMarkup(<PricingPage />);
 
     expect(html).not.toContain('PHASE 4 · PRICING');
     expect(html).not.toContain('Pricing &amp; unit economics');
-    expect(html).not.toContain('Source + derived view.');
-    expect(html).not.toContain('pricing-workflow');
-    expect(html).not.toContain('Choose the product');
-    expect(html).not.toContain('Set financial inputs');
-    expect(html).not.toContain('Review saved unit economics');
-    expect(html).toContain('Included in workbook exports');
-    expect(html).toContain('Open Product Catalog');
-    expect(html).not.toContain('Search Products');
-    expect(html).toContain('FINANCIAL SOURCE');
+    expect(html).not.toContain('Included in workbook exports');
+    expect(html).toContain('YOUR PRODUCT');
+    expect(html).toContain('Change product');
+    expect(html).toContain('Financial source');
     expect(html).toContain('Set Financial Source');
-    expect(html).not.toContain('pricing-financial-summary-values');
-    expect(html).not.toContain('Saved labor / unit');
-    expect(html).not.toContain('Saved overhead / unit');
-    expect(html).not.toContain('Saved pricing policy');
-    expect(html).not.toContain('Source status');
-    // Source inputs are intentionally rendered only when the editor modal opens.
-    expect(html).not.toContain('Labor cost per unit (PHP)');
-    expect(html).not.toContain('DRAFT INPUT PREVIEW');
-    expect(html).toContain('ORDER PRICE PREVIEW');
-    expect(html).toContain('Open Order Price Preview');
-    expect(html).toContain('Open Tier Pricing');
-    expect(html).not.toContain('Tier pricing catalog');
-    expect(html).not.toContain('Order quantity (finished units)');
-    expect(html).toContain('UNIT ECONOMICS');
-    expect(html.indexOf('FINANCIAL SOURCE')).toBeGreaterThan(html.indexOf('SELECTED PRODUCT'));
-    expect(html.indexOf('FINANCIAL SOURCE')).toBeLessThan(html.indexOf('UNIT ECONOMICS'));
-    expect(html.indexOf('UNIT ECONOMICS')).toBeLessThan(html.indexOf('ORDER PRICE PREVIEW'));
-    expect(html.indexOf('UNIT ECONOMICS')).toBeLessThan(html.indexOf('TIER PRICING'));
     expect(html).toContain('Saved pricing result');
-    expect(html).toContain('Total unit cost');
+    expect(html).toContain('Unit cost');
     expect(html).toContain('Selling price');
     expect(html).toContain('Profit / unit');
-    expect(html).toContain('Effective margin');
-    expect(html).toContain('COST COMPOSITION');
-    expect(html).toContain('Direct materials');
-    expect(html).toContain('Safety reserve');
-    expect(html).toContain('Purchased components');
-    expect(html).toContain('Handmade Product components');
-    expect(html).toContain('Pricing policy');
-    expect(html).toContain('Profit per unit');
-    expect(html).toContain('Effective markup');
-    expect(html).toContain('Cost trace details');
-    expect(html).toContain('READINESS &amp; ISSUES');
-    expect(html).toContain('Pricing readiness');
+    expect(html).toContain('Margin');
+    expect(html).toContain('View cost breakdown');
+    expect(html).toContain('pricing-cost-details');
+    expect(html).toContain('pricing-overview');
+    expect(html).toContain('pricing-quick-actions');
+    expect(html).toContain('ORDER &amp; QUOTATION');
+    expect(html).toContain('BULK &amp; CUSTOM');
+    expect(html).toContain('Open Order Price Preview');
+    expect(html).toContain('Open Tier Pricing');
+
+    // Details and modals remain in the system, but are not expanded by default.
+    expect(html).not.toContain('class="pricing-cost-details" open');
+    expect(html).not.toContain('class="pricing-overview" aria-label="Pricing catalog summary" open');
+    expect(html).not.toContain('Labor cost per unit (PHP)');
+    expect(html).not.toContain('Order quantity (finished units)');
+    expect(html).not.toContain('Tier pricing catalog');
+
+    expect(html.indexOf('Financial source')).toBeGreaterThan(html.indexOf('YOUR PRODUCT'));
+    expect(html.indexOf('Financial source')).toBeLessThan(html.indexOf('UNIT ECONOMICS'));
+    expect(html.indexOf('UNIT ECONOMICS')).toBeLessThan(html.indexOf('ORDER &amp; QUOTATION'));
   });
 });

@@ -196,7 +196,7 @@ describe('Pricing workspace UI/UX', () => {
 
     await mount();
 
-    expect(container.textContent).toContain('Included in workbook exports');
+    expect(container.querySelector('.pricing-export-status')).toBeNull();
     expect(container.querySelector('[aria-label="Pricing workflow"]')).toBeNull();
     expect(container.querySelector('.page-heading-row')).toBeNull();
     expect(container.querySelector('.pricing-source-note')).toBeNull();
@@ -275,14 +275,44 @@ describe('Pricing workspace UI/UX', () => {
     expect(selector?.nextElementSibling).toBe(financial);
     expect(financial?.nextElementSibling).toBe(quote);
     expect(quote?.nextElementSibling).toBe(overview);
-    expect(overview?.nextElementSibling).toBe(order);
+    const quickActions = container.querySelector('[aria-label="Pricing next steps"]');
+    expect(overview?.nextElementSibling).toBe(quickActions);
+    expect(order?.parentElement).toBe(quickActions);
     expect(order?.nextElementSibling).toBe(tiers);
-    expect(financial?.textContent).toContain('FINANCIAL SOURCE');
+    expect(financial?.textContent).toContain('Financial source');
+    expect((overview as HTMLDetailsElement)?.open).toBe(false);
+    expect((container.querySelector('.pricing-cost-details') as HTMLDetailsElement)?.open).toBe(false);
     expect(financial?.textContent).toContain('Set Financial Source');
     expect(quote?.textContent).toContain('Total unit cost');
     expect(quote?.textContent).toContain('Selling price');
     expect(quote?.textContent).toContain('Profit / unit');
     expect(quote?.textContent).toContain('Effective margin');
+  });
+
+  it('prioritizes four pricing numbers and hides cost accounting and catalog totals until requested', async () => {
+    await seed();
+    await mount();
+
+    const hero = container.querySelector('[aria-label="Pricing result summary"]')!;
+    expect(Array.from(hero.children)).toHaveLength(4);
+    expect(hero.textContent).toContain('Selling price');
+    expect(hero.textContent).toContain('Unit cost');
+    expect(hero.textContent).toContain('Profit / unit');
+    expect(hero.textContent).toContain('Margin');
+
+    const details = container.querySelector<HTMLDetailsElement>('.pricing-cost-details')!;
+    expect(details.open).toBe(false);
+    expect(details.textContent).toContain('Direct materials');
+    expect(details.textContent).toContain('Pricing policy');
+
+    const totals = container.querySelector<HTMLDetailsElement>('[aria-label="Pricing catalog summary"]')!;
+    expect(totals.open).toBe(false);
+    expect(totals.querySelector('.pricing-overview-stats')).not.toBeNull();
+
+    await act(async () => details.querySelector<HTMLElement>('summary')!.click());
+    expect(details.open).toBe(true);
+    await act(async () => totals.querySelector<HTMLElement>('summary')!.click());
+    expect(totals.open).toBe(true);
   });
 
   it('keeps Product Catalog hidden until opened as a modal and closes it after Product selection', async () => {
@@ -302,7 +332,7 @@ describe('Pricing workspace UI/UX', () => {
     });
 
     expect(container.querySelector('[role="dialog"]')).toBeNull();
-    expect(container.textContent).toContain('Open Product Catalog');
+    expect(container.textContent).toContain('Change product');
 
     await click('Open Product Catalog');
 
@@ -330,7 +360,7 @@ describe('Pricing workspace UI/UX', () => {
     expect(financialSource?.nextElementSibling).toBe(unitEconomics);
     expect(unitEconomics?.textContent).toContain('UNIT ECONOMICS');
     expect(unitEconomics?.textContent).toContain('Saved pricing result');
-    expect(container.querySelector('[aria-label="Financial source summary"]')?.textContent).toContain('Event Candle');
+    expect(container.querySelector('[aria-label="Financial source summary"]')?.textContent).toContain('Set costs and selling price');
     expect(container.querySelector('[aria-label="Selected pricing Product"]')?.textContent).toContain(
       'CND-002',
     );
@@ -721,7 +751,7 @@ describe('Pricing workspace UI/UX', () => {
     expect(trigger).not.toBeNull();
     expect(trigger.disabled).toBe(false);
     expect(container.querySelector('.pricing-resolution-section')).toBeNull();
-    expect(container.querySelector('[aria-label="Order price preview summary"]')?.textContent).toContain('Default / Single');
+    expect(container.querySelector('[aria-label="Order price preview summary"]')?.textContent).toContain('Order total');
 
     await act(async () => trigger.focus());
     await click('Open Order Price Preview');

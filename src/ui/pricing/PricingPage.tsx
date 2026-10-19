@@ -572,10 +572,6 @@ export function PricingPage({ preferredProductId, onSelectedProductChange }: Pri
 
   return (
     <section className="materials-workspace pricing-workspace">
-      <div className="pricing-export-status">
-        <span className="session-badge"><span className="status-dot" />Included in workbook exports</span>
-      </div>
-
       <section className="panel pricing-product-selector" aria-label="Selected pricing Product">
         <div className="pricing-product-selector-identity">
           {selectedProduct && selectedProductImage && !loading && !workspaceError && (
@@ -588,11 +584,11 @@ export function PricingPage({ preferredProductId, onSelectedProductChange }: Pri
             />
           )}
           <div className="pricing-product-selector-copy">
-          <p className="panel-kicker">SELECTED PRODUCT</p>
+          <p className="panel-kicker">YOUR PRODUCT</p>
           {loading ? (
             <>
               <h2>Loading pricing workspace</h2>
-              <p>Reading Product identities and current financial profile source records.</p>
+              <p>Loading product details…</p>
             </>
           ) : workspaceError ? (
             <>
@@ -610,7 +606,7 @@ export function PricingPage({ preferredProductId, onSelectedProductChange }: Pri
               <p>
                 {selectedProduct.id} · {PRODUCT_CATEGORY_RULES[selectedProduct.category].label}
                 {' · '}
-                {selectedProfile ? 'Financial profile saved' : 'Financial profile needs setup'}
+                {selectedProfile ? 'Costs saved' : 'Costs not set'}
               </p>
             </>
           ) : (
@@ -636,11 +632,12 @@ export function PricingPage({ preferredProductId, onSelectedProductChange }: Pri
             className="button button-primary"
             type="button"
             onClick={openProductCatalog}
+            aria-label="Open Product Catalog"
             aria-haspopup="dialog"
             aria-expanded={productCatalogOpen}
           >
             <AppIcon name="products" size={17} />
-            Open Product Catalog
+            Change product
           </button>
         </div>
       </section>
@@ -648,11 +645,8 @@ export function PricingPage({ preferredProductId, onSelectedProductChange }: Pri
       <section className="panel pricing-financial-source-summary" aria-label="Financial source summary">
         <div className="pricing-financial-summary-heading">
           <div>
-            <p className="panel-kicker">FINANCIAL SOURCE</p>
             <h2>Financial source</h2>
-            <p>{selectedProduct
-              ? `Review the saved labor, overhead and pricing policy for ${selectedProduct.name}.`
-              : 'Select a Product to configure financial inputs.'}</p>
+            <p>{selectedProfile ? 'Costs and pricing saved' : 'Set costs and selling price'}</p>
           </div>
           <button
             className="button button-primary"
@@ -688,105 +682,75 @@ export function PricingPage({ preferredProductId, onSelectedProductChange }: Pri
         onRefresh={selectedProduct ? () => void loadQuote(selectedProduct.id) : undefined}
       />
 
-      <div className="pricing-overview" aria-label="Pricing catalog summary">
-        <div><span>Products</span><strong>{products.length}</strong><small>{activeCount} active</small></div>
-        <div><span>Profiles saved</span><strong>{configuredCount}</strong><small>Authoritative financial inputs</small></div>
-        <div><span>Need setup</span><strong>{unconfiguredCount}</strong><small>No financial profile yet</small></div>
+      <details className="pricing-overview" aria-label="Pricing catalog summary">
+        <summary>
+          <span>Catalog: <strong>{configuredCount} of {products.length}</strong> products have costs set</span>
+          <span className="pricing-overview-hint">View totals</span>
+        </summary>
+        <div className="pricing-overview-stats">
+          <div><span>Products</span><strong>{products.length}</strong><small>{activeCount} active</small></div>
+          <div><span>Profiles saved</span><strong>{configuredCount}</strong><small>Financial inputs saved</small></div>
+          <div><span>Need setup</span><strong>{unconfiguredCount}</strong><small>No financial profile yet</small></div>
+        </div>
+      </details>
+
+      <div className="pricing-quick-actions" aria-label="Pricing next steps">
+        <section className="panel pricing-order-preview-summary" aria-label="Order price preview summary">
+          <div className="pricing-financial-summary-heading">
+            <div>
+              <p className="panel-kicker">ORDER & QUOTATION</p>
+              <h2>Order price</h2>
+            </div>
+            <button
+              className="button button-primary"
+              type="button"
+              aria-label="Open Order Price Preview"
+              aria-haspopup="dialog"
+              aria-expanded={orderPreviewOpen}
+              disabled={!selectedProduct || loading || Boolean(workspaceError)}
+              onClick={openOrderPricePreview}
+            >
+              <AppIcon name="pricing" size={17} />
+              Open Order Price Preview
+            </button>
+          </div>
+          <div className="pricing-order-preview-summary-values">
+            <div><span>Units</span><strong>{resolutionQuantity.trim() || '—'}</strong></div>
+            <div><span>Order total</span><strong>{formatPhp(resolution?.totalSellingPrice ?? null)}</strong></div>
+          </div>
+          {(resolutionError || quoteError) && (
+            <p className="pricing-order-preview-summary-status" role="status">Price needs attention. Open preview for details.</p>
+          )}
+        </section>
+
+        <section className="panel pricing-tier-summary" aria-label="Tier pricing summary">
+          <div className="pricing-financial-summary-heading">
+            <div>
+              <p className="panel-kicker">BULK & CUSTOM</p>
+              <h2>Price tiers</h2>
+            </div>
+            <button
+              className="button button-primary"
+              type="button"
+              aria-label="Open Tier Pricing"
+              aria-haspopup="dialog"
+              aria-expanded={tierPricingOpen}
+              disabled={!selectedProduct || loading || Boolean(workspaceError)}
+              onClick={openTierPricing}
+            >
+              <AppIcon name="pricing" size={17} />
+              Open Tier Pricing
+            </button>
+          </div>
+          <div className="pricing-tier-summary-values">
+            <div><span>Saved tiers</span><strong>{quote?.tierPricing?.tiers.length ?? 0}</strong></div>
+            <div><span>Default price</span><strong>{formatPhp(quote?.tierPricing?.defaultSellingPrice ?? null)}</strong></div>
+          </div>
+          {quoteError && (
+            <p className="pricing-tier-summary-status" role="status">Tier prices need attention.</p>
+          )}
+        </section>
       </div>
-
-      <section className="panel pricing-order-preview-summary" aria-label="Order price preview summary">
-        <div className="pricing-financial-summary-heading">
-          <div>
-            <p className="panel-kicker">ORDER PRICE PREVIEW</p>
-            <h2>Order price preview</h2>
-            <p>Check quantity-based pricing and choose a tier in a modal, without leaving the Pricing overview.</p>
-          </div>
-          <button
-            className="button button-primary"
-            type="button"
-            aria-label="Open Order Price Preview"
-            aria-haspopup="dialog"
-            aria-expanded={orderPreviewOpen}
-            disabled={!selectedProduct || loading || Boolean(workspaceError)}
-            onClick={openOrderPricePreview}
-          >
-            <AppIcon name="pricing" size={17} />
-            Open Order Price Preview
-          </button>
-        </div>
-        <div className="pricing-order-preview-summary-values">
-          <div>
-            <span>Finished units</span>
-            <strong>{resolutionQuantity.trim() || '—'}</strong>
-          </div>
-          <div>
-            <span>Selected pricing source</span>
-            <strong>{selectedTierId === null
-              ? 'Default / Single'
-              : resolution?.selectedTier?.tier.name ?? selectedTierId}</strong>
-          </div>
-          <div>
-            <span>Unit selling price</span>
-            <strong>{formatPhp(resolution?.unitSellingPrice ?? null)}</strong>
-          </div>
-          <div>
-            <span>Order selling price</span>
-            <strong>{formatPhp(resolution?.totalSellingPrice ?? null)}</strong>
-          </div>
-        </div>
-        <p className="pricing-order-preview-summary-status" role="status">
-          {resolutionLoading || quoteLoading
-            ? 'Resolving current order pricing…'
-            : resolutionError || quoteError
-              ? 'Order pricing needs attention. Open the preview for details.'
-              : resolution?.status === 'ready'
-                ? 'Saved pricing preview ready.'
-                : selectedProduct
-                  ? 'Order price preview not ready yet.'
-                  : 'Select a Product to preview an order.'}
-          {formDirty && ' Unsaved financial changes are not included.'}
-        </p>
-      </section>
-
-      <section className="panel pricing-tier-summary" aria-label="Tier pricing summary">
-        <div className="pricing-financial-summary-heading">
-          <div>
-            <p className="panel-kicker">TIER PRICING</p>
-            <h2>Tier pricing</h2>
-            <p>Review and manage Package, Bulk and Custom price tiers without scrolling through the catalog.</p>
-          </div>
-          <button
-            className="button button-primary"
-            type="button"
-            aria-label="Open Tier Pricing"
-            aria-haspopup="dialog"
-            aria-expanded={tierPricingOpen}
-            disabled={!selectedProduct || loading || Boolean(workspaceError)}
-            onClick={openTierPricing}
-          >
-            <AppIcon name="pricing" size={17} />
-            Open Tier Pricing
-          </button>
-        </div>
-        <div className="pricing-tier-summary-values">
-          <div><span>Saved tiers</span><strong>{quote?.tierPricing?.tiers.length ?? 0}</strong></div>
-          <div><span>Active tiers</span><strong>{quote?.tierPricing?.tiers.filter((line) => line.tier.isActive).length ?? 0}</strong></div>
-          <div><span>Economics ready</span><strong>{quote?.tierPricing?.tiers.filter((line) => line.status === 'ready').length ?? 0}</strong></div>
-          <div><span>Default / Single</span><strong>{formatPhp(quote?.tierPricing?.defaultSellingPrice ?? null)}</strong></div>
-        </div>
-        <p className="pricing-tier-summary-status" role="status">
-          {quoteLoading
-            ? 'Loading tier economics…'
-            : quoteError
-              ? 'Tier pricing needs attention. Open the catalog for details.'
-              : selectedProduct
-                ? quote?.tierPricing?.tiers.length
-                  ? 'Saved tier alternatives are available.'
-                  : 'No price tiers saved for this Product yet.'
-                : 'Select a Product to view its price tiers.'}
-          {formDirty && ' Unsaved financial changes are not included.'}
-        </p>
-      </section>
 
       <PricingEditorModal
         open={financialSourceOpen}
