@@ -360,7 +360,7 @@ describe('Pricing workspace UI/UX', () => {
     expect(financialSource?.nextElementSibling).toBe(unitEconomics);
     expect(unitEconomics?.textContent).toContain('UNIT ECONOMICS');
     expect(unitEconomics?.textContent).toContain('Saved pricing result');
-    expect(container.querySelector('[aria-label="Financial source summary"]')?.textContent).toContain('Event Candle');
+    expect(container.querySelector('[aria-label="Financial source summary"]')?.textContent).toContain('Set costs and selling price');
     expect(container.querySelector('[aria-label="Selected pricing Product"]')?.textContent).toContain(
       'CND-002',
     );
