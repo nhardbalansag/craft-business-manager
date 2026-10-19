@@ -529,38 +529,9 @@ export function PricingPage() {
 
   return (
     <section className="materials-workspace pricing-workspace">
-      <div className="page-heading-row">
-        <div>
-          <p className="eyebrow">PHASE 4 · PRICING</p>
-          <h1>Pricing & unit economics</h1>
-          <p className="page-lead">
-            Set the financial inputs you control, then review the saved fully loaded unit cost, selling price, profit, markup, and margin for each Product.
-          </p>
-        </div>
-        <div className="session-badge"><span className="status-dot" />Included in workbook exports</div>
+      <div className="pricing-export-status">
+        <span className="session-badge"><span className="status-dot" />Included in workbook exports</span>
       </div>
-
-      <div className="pricing-source-note">
-        <strong>Source + derived view.</strong>
-        <span>
-          Labor, overhead, pricing policy, and notes are editable source data. The unit-economics result is read-only and always comes from the saved authoritative Product state.
-        </span>
-      </div>
-
-      <section className="pricing-workflow" aria-label="Pricing workflow">
-        <div className={selectedProduct ? 'complete' : 'current'}>
-          <span>1</span>
-          <div><strong>Choose the product</strong><small>Find the Product you want to price.</small></div>
-        </div>
-        <div className={selectedProduct ? 'current' : ''}>
-          <span>2</span>
-          <div><strong>Set financial inputs</strong><small>Enter labor, overhead, and an optional selling-price policy.</small></div>
-        </div>
-        <div className={selectedProduct && !formDirty ? 'current' : ''}>
-          <span>3</span>
-          <div><strong>Review saved unit economics</strong><small>Inspect cost, selling price, profit, and readiness issues.</small></div>
-        </div>
-      </section>
 
       <div className="pricing-overview" aria-label="Pricing catalog summary">
         <div><span>Products</span><strong>{products.length}</strong><small>{activeCount} active</small></div>

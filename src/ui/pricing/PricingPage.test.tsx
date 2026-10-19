@@ -187,7 +187,7 @@ async function submit() {
 }
 
 describe('Pricing workspace UI/UX', () => {
-  it('shows truthful loading guidance and the three-step pricing workflow', async () => {
+  it('shows a compact Pricing workspace without introductory labels or a workflow strip', async () => {
     await seed();
     let release!: (value: Product[]) => void;
     vi.spyOn(session.productService, 'listProducts').mockImplementationOnce(
@@ -197,9 +197,14 @@ describe('Pricing workspace UI/UX', () => {
     await mount();
 
     expect(container.textContent).toContain('Included in workbook exports');
-    expect(container.querySelector('[aria-label="Pricing workflow"]')?.textContent).toContain('Choose the product');
-    expect(container.querySelector('[aria-label="Pricing workflow"]')?.textContent).toContain('Set financial inputs');
-    expect(container.querySelector('[aria-label="Pricing workflow"]')?.textContent).toContain('Review saved unit economics');
+    expect(container.querySelector('[aria-label="Pricing workflow"]')).toBeNull();
+    expect(container.querySelector('.page-heading-row')).toBeNull();
+    expect(container.querySelector('.pricing-source-note')).toBeNull();
+    expect(container.textContent).not.toContain('PHASE 4 · PRICING');
+    expect(container.textContent).not.toContain('Pricing & unit economics');
+    expect(container.textContent).not.toContain('Choose the product');
+    expect(container.textContent).not.toContain('Set financial inputs');
+    expect(container.textContent).not.toContain('Review saved unit economics');
     expect(container.textContent).toContain('Loading pricing workspace');
     expect(container.textContent).not.toContain('Create a Product first');
 

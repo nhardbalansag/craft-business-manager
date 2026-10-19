@@ -111,15 +111,17 @@ describe('React workspace smoke validation', () => {
     expect(html).not.toContain('Expected profit');
   });
 
-  it('renders the enhanced Phase 4 pricing workflow and saved unit-economics shell without browser-side effects', () => {
+  it('renders a compact Pricing workspace without the introductory header or workflow strip', () => {
     const html = renderToStaticMarkup(<PricingPage />);
 
-    expect(html).toContain('PHASE 4 · PRICING');
-    expect(html).toContain('Pricing &amp; unit economics');
+    expect(html).not.toContain('PHASE 4 · PRICING');
+    expect(html).not.toContain('Pricing &amp; unit economics');
+    expect(html).not.toContain('Source + derived view.');
+    expect(html).not.toContain('pricing-workflow');
+    expect(html).not.toContain('Choose the product');
+    expect(html).not.toContain('Set financial inputs');
+    expect(html).not.toContain('Review saved unit economics');
     expect(html).toContain('Included in workbook exports');
-    expect(html).toContain('Choose the product');
-    expect(html).toContain('Set financial inputs');
-    expect(html).toContain('Review saved unit economics');
     expect(html).toContain('Open Product Catalog');
     expect(html).not.toContain('Search Products');
     expect(html).toContain('FINANCIAL SOURCE');
