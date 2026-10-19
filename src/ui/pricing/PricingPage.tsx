@@ -112,6 +112,7 @@ export function PricingPage() {
   const [resolutionLoading, setResolutionLoading] = useState(false);
   const [resolutionError, setResolutionError] = useState<string | null>(null);
   const [quotationOpen, setQuotationOpen] = useState(false);
+  const [orderPreviewOpen, setOrderPreviewOpen] = useState(false);
   const [tierEditorOpen, setTierEditorOpen] = useState(false);
   const [editingTier, setEditingTier] = useState<ProductPriceTier | null>(null);
   const [tierSaving, setTierSaving] = useState(false);
@@ -344,6 +345,7 @@ export function PricingPage() {
     setResolutionLoading(false);
     setResolutionError(null);
     setQuotationOpen(false);
+    setOrderPreviewOpen(false);
     setFinancialSourceOpen(false);
     setSelectedProductId(product.id);
     setForm(
@@ -357,6 +359,21 @@ export function PricingPage() {
     setTierMutationError(null);
     setTierMutationFeedback(null);
     setProductCatalogOpen(false);
+  }
+
+  function openOrderPricePreview() {
+    if (!selectedProduct) return;
+    setOrderPreviewOpen(true);
+  }
+
+  function closeOrderPricePreview() {
+    setOrderPreviewOpen(false);
+  }
+
+  function openQuotationFromPreview() {
+    // There must be only one active modal: close the preview before quotation.
+    setOrderPreviewOpen(false);
+    setQuotationOpen(true);
   }
 
   function openFinancialSource() {
@@ -647,6 +664,60 @@ export function PricingPage() {
             {feedback.message}
           </div>
         )}
+      </section>
+
+      <section className="panel pricing-order-preview-summary" aria-label="Order price preview summary">
+        <div className="pricing-financial-summary-heading">
+          <div>
+            <p className="panel-kicker">ORDER PRICE PREVIEW</p>
+            <h2>Order price preview</h2>
+            <p>Check quantity-based pricing and choose a tier in a modal, without leaving the Pricing overview.</p>
+          </div>
+          <button
+            className="button button-primary"
+            type="button"
+            aria-label="Open Order Price Preview"
+            aria-haspopup="dialog"
+            aria-expanded={orderPreviewOpen}
+            disabled={!selectedProduct || loading || Boolean(workspaceError)}
+            onClick={openOrderPricePreview}
+          >
+            <AppIcon name="pricing" size={17} />
+            Open Order Price Preview
+          </button>
+        </div>
+        <div className="pricing-order-preview-summary-values">
+          <div>
+            <span>Finished units</span>
+            <strong>{resolutionQuantity.trim() || '—'}</strong>
+          </div>
+          <div>
+            <span>Selected pricing source</span>
+            <strong>{selectedTierId === null
+              ? 'Default / Single'
+              : resolution?.selectedTier?.tier.name ?? selectedTierId}</strong>
+          </div>
+          <div>
+            <span>Unit selling price</span>
+            <strong>{formatPhp(resolution?.unitSellingPrice ?? null)}</strong>
+          </div>
+          <div>
+            <span>Order selling price</span>
+            <strong>{formatPhp(resolution?.totalSellingPrice ?? null)}</strong>
+          </div>
+        </div>
+        <p className="pricing-order-preview-summary-status" role="status">
+          {resolutionLoading || quoteLoading
+            ? 'Resolving current order pricing…'
+            : resolutionError || quoteError
+              ? 'Order pricing needs attention. Open the preview for details.'
+              : resolution?.status === 'ready'
+                ? 'Saved pricing preview ready.'
+                : selectedProduct
+                  ? 'Order price preview not ready yet.'
+                  : 'Select a Product to preview an order.'}
+          {formDirty && ' Unsaved financial changes are not included.'}
+        </p>
       </section>
 
       <PricingEditorModal
@@ -979,30 +1050,39 @@ export function PricingPage() {
         onRefresh={selectedProduct ? () => void loadQuote(selectedProduct.id) : undefined}
       />
 
-      <ProductPriceResolutionPanel
-        productName={selectedProduct?.name ?? null}
-        quantity={resolutionQuantity}
-        selectedTierId={selectedTierId}
-        result={resolution}
-        loading={resolutionLoading || quoteLoading}
-        error={resolutionError ?? quoteError}
-        hasUnsavedChanges={formDirty}
-        onQuantityChange={setResolutionQuantity}
-        onSelectPricingSource={setSelectedTierId}
-        onRefresh={
-          selectedProduct && quote
-            ? () =>
-                void loadResolution(
-                  selectedProduct.id,
-                  resolutionQuantity,
-                  selectedTierId,
-                )
-            : undefined
-        }
-        onCreateQuotation={
-          resolution?.status === 'ready' ? () => setQuotationOpen(true) : undefined
-        }
-      />
+      <PricingEditorModal
+        open={orderPreviewOpen}
+        titleId="pricing-order-preview-heading"
+        label="Order Price Preview"
+        onClose={closeOrderPricePreview}
+        restoreFocusSelector={'[aria-label="Open Order Price Preview"]'}
+        wide
+      >
+        <ProductPriceResolutionPanel
+          productName={selectedProduct?.name ?? null}
+          quantity={resolutionQuantity}
+          selectedTierId={selectedTierId}
+          result={resolution}
+          loading={resolutionLoading || quoteLoading}
+          error={resolutionError ?? quoteError}
+          hasUnsavedChanges={formDirty}
+          onQuantityChange={setResolutionQuantity}
+          onSelectPricingSource={setSelectedTierId}
+          onRefresh={
+            selectedProduct && quote
+              ? () =>
+                  void loadResolution(
+                    selectedProduct.id,
+                    resolutionQuantity,
+                    selectedTierId,
+                  )
+              : undefined
+          }
+          onCreateQuotation={
+            resolution?.status === 'ready' ? openQuotationFromPreview : undefined
+          }
+        />
+      </PricingEditorModal>
 
       <CustomerQuotationDialog
         open={quotationOpen}
