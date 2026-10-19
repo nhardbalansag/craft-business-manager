@@ -8,6 +8,7 @@ interface ProductDetailsDialogProps {
   onClose: () => void;
   onEdit: () => void;
   onComponents: () => void;
+  onBrochure?: () => void;
 }
 
 /** Read-only, customer-neutral summary of authoritative saved Product data. */
@@ -16,6 +17,7 @@ export function ProductDetailsDialog({
   onClose,
   onEdit,
   onComponents,
+  onBrochure,
 }: ProductDetailsDialogProps) {
   const dialogRef = useRef<HTMLElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -138,6 +140,9 @@ export function ProductDetailsDialog({
 
         <div className="product-view-actions">
           <button type="button" className="button button-quiet" onClick={onComponents}>View components</button>
+          {onBrochure && (
+            <button type="button" className="button button-secondary" onClick={onBrochure}>Print brochure / PDF</button>
+          )}
           <button type="button" className="button button-primary" onClick={onEdit}>Edit product</button>
         </div>
       </section>
