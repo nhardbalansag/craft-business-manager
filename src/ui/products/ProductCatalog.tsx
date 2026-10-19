@@ -3,6 +3,7 @@ import { PRODUCT_CATEGORIES, PRODUCT_CATEGORY_RULES, type Product, type ProductC
 import { AppIcon } from '../icons/AppIcon';
 import { ProductLabelPrintDialog } from './ProductLabelPrintDialog';
 import { ProductDetailsDialog } from './ProductDetailsDialog';
+import { ProductBrochureDialog } from './ProductBrochureDialog';
 import './productCatalogEditorSeparation.css';
 
 interface ProductCatalogProps {
@@ -50,10 +51,13 @@ export function ProductCatalog({
   const [pageSize, setPageSize] = useState<10 | 25 | 50>(10);
   const [labelProduct, setLabelProduct] = useState<Product | null>(null);
   const [viewProductId, setViewProductId] = useState<string | null>(null);
+  const [brochureProductId, setBrochureProductId] = useState<string | null>(null);
   const viewTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const brochureReturnRef = useRef<HTMLButtonElement | null>(null);
   const [localEditorIntent, setEditorIntent] = useState<ProductEditorIntent>(null);
   const editingProduct = products.find((product) => product.id === editingId);
   const viewingProduct = products.find((product) => product.id === viewProductId) ?? null;
+  const brochureProduct = products.find((product) => product.id === brochureProductId) ?? null;
   const editorIntent: ProductEditorIntent = editorOpen === undefined ? localEditorIntent : !editorOpen ? null
     : editingId ? { mode: 'edit', productName: editingProduct?.name ?? editingId, productId: editingId } : { mode: 'new' };
   const matchingProducts = useMemo(() => {
@@ -127,6 +131,19 @@ export function ProductCatalog({
     setViewProductId(null);
     if (viewTriggerRef.current?.isConnected) viewTriggerRef.current.focus();
     viewTriggerRef.current = null;
+  }
+
+  function openBrochure(product: Product, trigger?: HTMLButtonElement) {
+    brochureReturnRef.current = trigger ?? viewTriggerRef.current;
+    viewTriggerRef.current = null;
+    setViewProductId(null);
+    setBrochureProductId(product.id);
+  }
+
+  function closeBrochure() {
+    setBrochureProductId(null);
+    if (brochureReturnRef.current?.isConnected) brochureReturnRef.current.focus();
+    brochureReturnRef.current = null;
   }
 
   function editViewedProduct(product: Product) {
@@ -398,6 +415,15 @@ export function ProductCatalog({
                             type="button"
                             className="text-button"
                             disabled={disabled}
+                            aria-label={`Print brochure for ${product.name}`}
+                            onClick={(event) => openBrochure(product, event.currentTarget)}
+                          >
+                            Brochure / PDF
+                          </button>
+                          <button
+                            type="button"
+                            className="text-button"
+                            disabled={disabled}
                             aria-label={`Print label for ${product.name}`}
                             onClick={() => setLabelProduct(product)}
                           >
@@ -485,6 +511,15 @@ export function ProductCatalog({
                       onClick={() => onComponents(product)}
                     >
                       Components
+                    </button>
+                    <button
+                      type="button"
+                      className="text-button"
+                      disabled={disabled}
+                      aria-label={`Print brochure for ${product.name}`}
+                      onClick={(event) => openBrochure(product, event.currentTarget)}
+                    >
+                      Brochure / PDF
                     </button>
                     <button
                       type="button"
@@ -580,6 +615,13 @@ export function ProductCatalog({
           onClose={closeProductView}
           onEdit={() => editViewedProduct(viewingProduct)}
           onComponents={() => viewProductComponents(viewingProduct)}
+          onBrochure={() => openBrochure(viewingProduct)}
+        />
+      )}
+      {brochureProduct && (
+        <ProductBrochureDialog
+          product={brochureProduct}
+          onClose={closeBrochure}
         />
       )}
       {labelProduct && <ProductLabelPrintDialog product={labelProduct} onClose={() => setLabelProduct(null)} />}
