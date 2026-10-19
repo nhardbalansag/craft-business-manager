@@ -238,6 +238,89 @@ describe('ProductsWorkspacePage', () => {
     expect(container.querySelector('[aria-label="Selected pricing Product"]')?.textContent).toContain('Dinosaur Toy');
   });
 
+  it('selects a newly saved Product across already-visited Yield, Components and Pricing tabs', async () => {
+    await act(async () => root.render(<ProductsWorkspacePage />));
+    await flush();
+    const tabs = container.querySelector('[aria-label="Product workspace views"]')!;
+    const tab = async (name: string) => {
+      await act(async () => tabs.querySelector<HTMLButtonElement>(`[aria-controls="products-view-${name}"]`)!.click());
+      await flush();
+    };
+
+    // All workspaces cache Dinosaur Toy before the new Product exists.
+    await tab('yield');
+    expect(container.querySelector('[aria-label="Selected Yield product"]')?.textContent).toContain('Dinosaur Toy');
+    await tab('pricing');
+    expect(container.querySelector('[aria-label="Selected pricing Product"]')?.textContent).toContain('Dinosaur Toy');
+    await tab('components');
+    expect(container.querySelector<HTMLSelectElement>('.composition-parent-panel select')?.value).toBe('PRD-1');
+
+    await tab('products');
+    await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="+ New product"]')!.click());
+    const form = container.querySelector<HTMLFormElement>('[aria-label="Product details"]')!;
+    const name = form.querySelector<HTMLInputElement>('input[name="name"]')!;
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(name, 'Fresh Rose Candle');
+      name.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await act(async () => form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })));
+    await flush();
+    const created = (await session.productService.listProducts()).find((item) => item.name === 'Fresh Rose Candle')!;
+    expect(created?.id).toBeTruthy();
+    expect(container.querySelector('.product-editor-state')?.textContent).toContain('All changes saved');
+
+    await tab('yield');
+    expect(container.querySelector('[aria-label="Selected Yield product"]')?.textContent).toContain('Fresh Rose Candle');
+    expect(container.querySelector('[aria-label="Selected Yield product"]')?.textContent).toContain(created.id);
+    await tab('components');
+    expect(container.querySelector<HTMLSelectElement>('.composition-parent-panel select')?.value).toBe(created.id);
+    expect(container.querySelector('.composition-parent-panel')?.textContent).toContain('Fresh Rose Candle');
+    await tab('pricing');
+    expect(container.querySelector('[aria-label="Selected pricing Product"]')?.textContent).toContain('Fresh Rose Candle');
+    expect(container.querySelector('[aria-label="Selected pricing Product"]')?.textContent).toContain(created.id);
+  });
+
+  it('does not lose an unfinished Yield batch when saving and selecting a new Product', async () => {
+    await act(async () => root.render(<ProductsWorkspacePage />));
+    await flush();
+    const tabs = container.querySelector('[aria-label="Product workspace views"]')!;
+    const tab = async (name: string) => {
+      await act(async () => tabs.querySelector<HTMLButtonElement>(`[aria-controls="products-view-${name}"]`)!.click());
+      await flush();
+    };
+    await tab('yield');
+    const yieldPanel = container.querySelector<HTMLElement>('#products-view-yield')!;
+    const goodPieces = Array.from(yieldPanel.querySelectorAll<HTMLInputElement>('input[type="number"]'))
+      .find((input) => input.closest('label')?.textContent?.includes('Good pieces'))!;
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(goodPieces, '7');
+      goodPieces.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await tab('products');
+    await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="+ New product"]')!.click());
+    const form = container.querySelector<HTMLFormElement>('[aria-label="Product details"]')!;
+    const name = form.querySelector<HTMLInputElement>('input[name="name"]')!;
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(name, 'Ocean Theme');
+      name.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await act(async () => form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })));
+    await flush();
+
+    await tab('yield');
+    expect(yieldPanel.querySelector('.yield-draft-confirm')?.textContent).toContain('Keep your unsaved batch?');
+    expect(yieldPanel.querySelector('[aria-label="Selected Yield product"]')?.textContent).toContain('Dinosaur Toy');
+    expect(goodPieces.value).toBe('7');
+
+    // Explicitly confirming a switch is the only way the old evidence draft is replaced.
+    const discard = Array.from(yieldPanel.querySelectorAll<HTMLButtonElement>('.yield-draft-confirm button'))
+      .find((button) => button.textContent?.includes('Discard draft and continue'))!;
+    await act(async () => discard.click());
+    await flush();
+    expect(yieldPanel.querySelector('.yield-draft-confirm')).toBeNull();
+    expect(yieldPanel.querySelector('[aria-label="Selected Yield product"]')?.textContent).toContain('Ocean Theme');
+  });
+
   it('makes the Mold and Storage workspace reachable from the Products section', async () => {
     await act(async () => root.render(<ProductsWorkspacePage />));
     await flush();
