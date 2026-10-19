@@ -288,6 +288,36 @@ describe('Pricing workspace UI/UX', () => {
     );
   });
 
+  it('hides saved financial metrics on the Pricing summary but preserves all inputs in the Financial Source modal', async () => {
+    await seed();
+    await session.productFinancialProfileRepository.replaceAll([{
+      productId: 'ART-001',
+      laborCostPerUnit: 12,
+      overheadCostPerUnit: 3,
+      pricingPolicy: { method: 'profit-amount', value: 20 },
+      notes: 'Saved financial source',
+    }]);
+    await mount();
+
+    const summary = container.querySelector<HTMLElement>('[aria-label="Financial source summary"]')!;
+    expect(summary).not.toBeNull();
+    expect(summary.querySelector('.pricing-financial-summary-values')).toBeNull();
+    for (const label of ['Saved labor / unit', 'Saved overhead / unit', 'Saved pricing policy', 'Source status']) {
+      expect(summary.textContent).not.toContain(label);
+    }
+    expect(summary.textContent).toContain('Edit Financial Source');
+
+    await click('Edit Financial Source');
+    const modal = container.querySelector<HTMLElement>('[role="dialog"][aria-label="Financial Source"]')!;
+    expect(modal).not.toBeNull();
+    expect(modal.textContent).toContain('Per-unit operating costs');
+    expect(modal.textContent).toContain('Saved policy');
+    expect((field('Labor cost per unit') as HTMLInputElement).value).toBe('12');
+    expect((field('Overhead cost per unit') as HTMLInputElement).value).toBe('3');
+    expect((field('Profit per unit (PHP)') as HTMLInputElement).value).toBe('20');
+    expect(modal.querySelector<HTMLButtonElement>('button[type="submit"]')).not.toBeNull();
+  });
+
   it('closes the Product Catalog modal with Escape', async () => {
     await seed();
     await mount();
