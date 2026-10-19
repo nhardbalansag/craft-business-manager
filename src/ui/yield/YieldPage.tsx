@@ -20,6 +20,8 @@ import { isMaterialCupWeightBridge } from '../../domain/materials';
 import type { MixPreset } from '../../domain/mixPresets';
 import type { Product } from '../../domain/products';
 import { PRODUCT_CATEGORY_RULES } from '../../domain/products';
+import { isValidProductImageDataUrl } from '../../domain/productImage';
+import { isValidBrochureImageDataUrl } from '../../domain/productBrochureImage';
 import {
   SUPPORTED_UNITS,
   areUnitsCompatible,
@@ -203,6 +205,13 @@ export function YieldPage() {
     () => products.find((product) => product.id === selectedProductId) ?? null,
     [products, selectedProductId],
   );
+
+  // Reuse the saved catalog photo, preferring the lightweight UI thumbnail.
+  const selectedProductImage = isValidProductImageDataUrl(selectedProduct?.imageDataUrl)
+    ? selectedProduct.imageDataUrl
+    : isValidBrochureImageDataUrl(selectedProduct?.brochureImageDataUrl)
+      ? selectedProduct.brochureImageDataUrl
+      : null;
 
   const activeMaterials = useMemo(
     () => materials.filter((material) => material.isActive),
@@ -844,11 +853,8 @@ export function YieldPage() {
     <section className="materials-workspace yield-workspace" aria-labelledby="yield-heading">
       <div className="page-heading-row yield-page-heading">
         <div>
-          <p className="eyebrow">PHASE 2 · REAL PRODUCTION EVIDENCE</p>
           <h1 id="yield-heading">Yield &amp; history</h1>
-          <p className="page-lead">
-            Record what a real batch consumed and how many good or rejected pieces it produced. Choose a preferred historical sample when it best represents normal production, or leave selection automatic to use the newest currently derivable sample.
-          </p>
+          <p className="page-lead">Record a batch. See your yield. Improve the next one.</p>
         </div>
         <div
           className="session-badge"
@@ -858,6 +864,8 @@ export function YieldPage() {
         </div>
       </div>
 
+      <details className="yield-guide-disclosure">
+        <summary><AppIcon name="check-circle" size={17} /> How yield works <AppIcon name="chevron-down" size={16} /></summary>
       <ol className="yield-guide panel" aria-label="Yield workflow">
         <li>
           <span className="yield-step-number">1</span>
@@ -872,6 +880,7 @@ export function YieldPage() {
           <div><strong>Review effective learning</strong><small>The newest derivable sample becomes the active per-good-piece evidence.</small></div>
         </li>
       </ol>
+      </details>
 
       {loading ? (
         <div className="panel yield-state-panel" role="status" aria-live="polite">
@@ -927,29 +936,27 @@ export function YieldPage() {
             </div>
             <div className="yield-product-context">
               <div className="yield-selected-product-card" aria-label="Selected Yield product">
-                <span className="yield-context-label">Selected product</span>
-                <strong className="yield-selected-product-name">{selectedProduct?.name ?? 'Select a product'}</strong>
-                {selectedProduct && (
-                  <small className="yield-selected-product-details">
-                    {selectedProduct.id} · {PRODUCT_CATEGORY_RULES[selectedProduct.category].label}
-                  </small>
+                {selectedProduct && selectedProductImage && (
+                  <img
+                    className="yield-product-reference-image"
+                    src={selectedProductImage}
+                    alt={`Product reference: ${selectedProduct.name}`}
+                    loading="lazy"
+                    decoding="async"
+                  />
                 )}
-                <small>{selectedProduct ? PRODUCT_CATEGORY_RULES[selectedProduct.category].productionStyle : 'No production style'}</small>
-              </div>
-              <div>
-                <span className="yield-context-label">Recipe sources</span>
-                <strong>2</strong>
-                <small>Manual or Mold Formula</small>
-              </div>
-              <div>
-                <span className="yield-context-label">Evidence</span>
-                <strong>{history.length}</strong>
-                <small>{effectiveId ? `effective: ${effectiveId}` : 'no effective sample yet'}</small>
-              </div>
-              <div>
-                <span className="yield-context-label">Status</span>
-                <strong>{selectedProduct?.isActive ? 'Active' : 'Archived'}</strong>
-                <small>{selectedProduct?.isActive ? 'ready for new evidence' : 'history view only'}</small>
+                <div className="yield-selected-product-copy">
+                  <span className="yield-context-label">YOUR PRODUCT</span>
+                  <strong className="yield-selected-product-name">{selectedProduct?.name ?? 'Select a product'}</strong>
+                  {selectedProduct && (
+                    <small className="yield-selected-product-details">
+                      {selectedProduct.id} · {PRODUCT_CATEGORY_RULES[selectedProduct.category].label}
+                    </small>
+                  )}
+                  <span className={`yield-product-availability ${selectedProduct?.isActive ? 'is-active' : ''}`}>
+                    {selectedProduct?.isActive ? 'Ready for batches' : 'Archived · history only'}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -958,30 +965,44 @@ export function YieldPage() {
             {historyLoading || historyError ? (
               <div className="yield-insight-card yield-insights-message" role="status">
                 <strong>{historyLoading ? 'Loading batch evidence...' : 'Evidence summary unavailable'}</strong>
-                <small>{historyLoading ? 'Reading history for the selected product.' : 'Retry history below to refresh the summary.'}</small>
+                <small>{historyLoading ? 'Reading saved batches.' : 'Retry from history below.'}</small>
               </div>
-            ) : <>
-            <div className="yield-insight-card">
-              <span>Recorded batches</span>
-              <strong>{historySnapshot.totalSamples}</strong>
-              <small>{historySnapshot.latest ? `Latest ${formatDate(historySnapshot.latest.recordedAt)}` : 'No evidence yet'}</small>
-            </div>
-            <div className="yield-insight-card is-primary">
-              <span>Effective good yield</span>
-              <strong>{effectiveGoodYield === null ? '—' : `${formatNumber(effectiveGoodYield * 100, 2)}%`}</strong>
-              <small>{effectiveId ? `From ${effectiveId}` : 'Waiting for derivable evidence'}</small>
-            </div>
-            <div className="yield-insight-card">
-              <span>Historical good-piece rate</span>
-              <strong>{historySnapshot.goodRate === null ? '—' : `${formatNumber(historySnapshot.goodRate * 100, 2)}%`}</strong>
-              <small>{historySnapshot.goodPieces} good · {historySnapshot.rejectedPieces} rejected</small>
-            </div>
-            <div className={`yield-insight-card ${skippedIds.size > 0 ? 'needs-attention' : ''}`}>
-              <span>Evidence needing attention</span>
-              <strong>{skippedIds.size}</strong>
-              <small>{skippedIds.size > 0 ? 'Newer sample(s) skipped from learning' : 'No skipped newer evidence'}</small>
-            </div>
-            </>}
+            ) : (
+              <>
+                <div className="yield-insight-card is-primary">
+                  <span>Effective good yield</span>
+                  <strong>{effectiveGoodYield === null ? '—' : `${formatNumber(effectiveGoodYield * 100, 2)}%`}</strong>
+                  <small>{effectiveId ? `Sample ${effectiveId}` : 'Record a batch to begin'}</small>
+                </div>
+                <div className="yield-insight-card">
+                  <span>Recorded batches</span>
+                  <strong>{historySnapshot.totalSamples}</strong>
+                  <small>{historySnapshot.latest ? `Latest ${formatDate(historySnapshot.latest.recordedAt)}` : 'No batches yet'}</small>
+                </div>
+                {skippedIds.size > 0 && (
+                  <div className="yield-insight-card needs-attention" role="status">
+                    <span>Needs attention</span>
+                    <strong>{skippedIds.size}</strong>
+                    <small>Newer batches cannot be used for learning</small>
+                  </div>
+                )}
+                <details className="yield-secondary-insights">
+                  <summary>More yield statistics <AppIcon name="chevron-down" size={16} /></summary>
+                  <div className="yield-secondary-insights-grid">
+                    <div className="yield-insight-card">
+                      <span>Historical good-piece rate</span>
+                      <strong>{historySnapshot.goodRate === null ? '—' : `${formatNumber(historySnapshot.goodRate * 100, 2)}%`}</strong>
+                      <small>{historySnapshot.goodPieces} good · {historySnapshot.rejectedPieces} rejected</small>
+                    </div>
+                    <div className="yield-insight-card">
+                      <span>Evidence needing attention</span>
+                      <strong>{skippedIds.size}</strong>
+                      <small>{skippedIds.size > 0 ? 'Newer sample(s) skipped from learning' : 'No skipped newer evidence'}</small>
+                    </div>
+                  </div>
+                </details>
+              </>
+            )}
           </section>
 
           <nav className="yield-section-nav" aria-label="Yield sections">
@@ -995,7 +1016,7 @@ export function YieldPage() {
               <div className="yield-column-heading">
                 <span className="yield-column-label">BATCH INPUT</span>
                 <h2 ref={batchHeading} tabIndex={-1} id="yield-evidence-column-heading">Batch evidence</h2>
-                <p>Enter this batch's actual consumption and piece counts. Draft values become evidence when you record the sample.</p>
+                <p>Enter actual materials and finished pieces.</p>
               </div>
 
             <form className="panel material-form yield-form" aria-busy={Boolean(busy)} aria-label="Yield sample" onSubmit={submitSample}>
@@ -1050,7 +1071,7 @@ export function YieldPage() {
                   <strong>{completeMaterialInputs}/{form.materialInputs.length}</strong>
                 </div>
               </div>
-              <p className="yield-draft-help">
+              {!draftReady && <p className="yield-draft-help">
                 {draftReady
                   ? 'This draft has the minimum evidence needed to record the batch.'
                   : form.recipeSourceKind === 'mold-formula' && formulaDraftSource === null
@@ -1058,14 +1079,14 @@ export function YieldPage() {
                     : formulaDraftSource && !formulaDraftConfirmed
                       ? 'Complete Actual measurement confirmation in the Mold Formula source area after checking the real batch quantities.'
                       : 'Use a valid date, complete each active material line, and enter whole-piece counts. The Sample ID is assigned automatically.'}
-              </p>
+              </p>}
 
               <section className="yield-form-section" aria-labelledby="yield-batch-reference-heading">
                 <div className="yield-section-heading">
                   <span className="yield-section-number">1</span>
                   <div>
                     <h3 id="yield-batch-reference-heading">Batch reference</h3>
-                    <p>Identify when the batch happened and which recipe source guided it.</p>
+                    <p>When and how you made it.</p>
                   </div>
                 </div>
                 <div className="form-grid">
@@ -1132,7 +1153,7 @@ export function YieldPage() {
                   <span className="yield-section-number">2</span>
                   <div>
                     <h3 id="yield-materials-heading">Materials actually consumed</h3>
-                    <p>Use measured batch consumption, including material lost to rejects, spills, or process waste.</p>
+                    <p>What you actually used.</p>
                   </div>
                   <span className="yield-line-count">{completeMaterialInputs}/{form.materialInputs.length} complete</span>
                 </div>
@@ -1219,7 +1240,7 @@ export function YieldPage() {
                   <span className="yield-section-number">3</span>
                   <div>
                     <h3 id="yield-outcome-heading">Batch outcome</h3>
-                    <p>Count saleable pieces separately from rejected pieces so the learned requirement reflects real yield.</p>
+                    <p>How many turned out well?</p>
                   </div>
                 </div>
                 <div className="form-grid yield-outcome-grid">
@@ -1284,7 +1305,7 @@ export function YieldPage() {
               <div className="yield-column-heading">
                 <span className="yield-column-label">SAVED RESULTS</span>
                 <h2 ref={learningHeading} tabIndex={-1} id="yield-learning-column-heading">Effective learning</h2>
-                <p>Review learned requirements from recorded samples. Editing the batch draft does not change these saved results.</p>
+                <p>Results from your saved batches.</p>
               </div>
               <section className="panel effective-yield-card" aria-label="Effective yield learning">
                 <div className="panel-heading">
@@ -1299,7 +1320,9 @@ export function YieldPage() {
                   )}
                 </div>
                 {renderFeedback('learning')}
-                <p className="yield-notice">{effectiveNotice}</p>
+                {(!effective || effective.preferredSampleUnavailable || skippedIds.size > 0) && (
+                  <p className="yield-notice">{effectiveNotice}</p>
+                )}
                 {effective?.preferredSampleId && (
                   <div className="yield-preference-actions">
                     <button
@@ -1324,10 +1347,8 @@ export function YieldPage() {
                       <div><span>Good yield</span><strong>{effectiveGoodYield === null ? '—' : `${formatNumber(effectiveGoodYield * 100, 2)}%`}</strong></div>
                       <div><span>Defect rate</span><strong>{formatNumber(effective.learning.defectRate * 100, 2)}%</strong></div>
                     </div>
-                    <div className="learned-requirements-heading">
-                      <strong>Material required per good piece</strong>
-                      <span>Derived from this effective batch</span>
-                    </div>
+                    <details className="yield-learned-details">
+                      <summary><strong>Materials per good piece</strong><span>{effective.learning.materialRequirements.length} materials <AppIcon name="chevron-down" size={16} /></span></summary>
                     <div className="learned-requirements">
                       {effective.learning.materialRequirements.map((requirement) => (
                         <div key={requirement.materialId}>
@@ -1337,6 +1358,7 @@ export function YieldPage() {
                         </div>
                       ))}
                     </div>
+                    </details>
                   </>
                 )}
               </section>
@@ -1346,7 +1368,7 @@ export function YieldPage() {
                   <div>
                     <p className="panel-kicker">IMMUTABLE HISTORY</p>
                     <h2 ref={historyHeading} tabIndex={-1}>Recorded batches</h2>
-                    <p className="yield-history-subtitle">Compare outcomes, reuse a previous setup for a new batch, or correct evidence deliberately.</p>
+                    <p className="yield-history-subtitle">Find or reuse previous batches.</p>
                   </div>
                   <div className="material-count"><strong>{history.length}</strong><span>samples</span></div>
                 </div>
