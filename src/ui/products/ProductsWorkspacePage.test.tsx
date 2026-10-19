@@ -105,7 +105,7 @@ describe('ProductsWorkspacePage', () => {
     expect(name.value).toBe('Draft rose');
 
     // Direct Pricing action changes the shared Product without searching in the Pricing catalog.
-    await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="Back to product catalog"]')!.click());
+    await act(async () => container.querySelector<HTMLButtonElement>('.product-editor-back')!.click());
     await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="Pricing for Dinosaur Toy"]')!.click());
     await flush();
     expect(container.querySelector('[aria-label="Selected pricing Product"] h2')?.textContent).toBe('Dinosaur Toy');
