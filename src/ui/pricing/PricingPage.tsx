@@ -629,12 +629,6 @@ export function PricingPage() {
             {selectedProfile ? 'Edit Financial Source' : 'Set Financial Source'}
           </button>
         </div>
-        <div className="pricing-financial-summary-values">
-          <div><span>Saved labor / unit</span><strong>{formatPhp(selectedProfile?.laborCostPerUnit ?? null)}</strong></div>
-          <div><span>Saved overhead / unit</span><strong>{formatPhp(selectedProfile?.overheadCostPerUnit ?? null)}</strong></div>
-          <div><span>Saved pricing policy</span><strong>{selectedProfile ? pricingPolicyLabel(selectedProfile.pricingPolicy) : 'Not configured'}</strong></div>
-          <div><span>Source status</span><strong>{selectedProfile ? 'Saved' : 'Needs setup'}</strong></div>
-        </div>
         {formDirty && (
           <p className="pricing-financial-draft-warning" role="status">
             Unsaved financial changes are preserved. Reopen Financial Source to save or reset them.
