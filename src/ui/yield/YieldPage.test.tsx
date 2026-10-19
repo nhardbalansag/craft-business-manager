@@ -496,7 +496,8 @@ describe('Yield workspace UI/UX', () => {
     expect(
       container.querySelector('[aria-label="Yield Mix preset"]'),
     ).toBeNull();
-    expect(container.textContent).toContain('Manual or Mold Formula');
+    expect(container.querySelector('[aria-label="Recipe source"]')?.textContent).toContain('Manual');
+    expect(container.querySelector('[aria-label="Recipe source"]')?.textContent).toContain('Mold formula');
   });
 
   it('copies a legacy Mix-preset Yield sample into a Manual draft', async () => {
@@ -746,7 +747,7 @@ describe('Yield workspace UI/UX', () => {
 
     await mount();
 
-    expect(container.textContent).toContain('history view only');
+    expect(container.querySelector('[aria-label="Selected Yield product"]')?.textContent).toContain('Archived · history only');
     expect(container.textContent).toContain('Archived products keep their history');
     expect(container.querySelector<HTMLButtonElement>('button[type="submit"]')?.disabled).toBe(true);
     expect(history()!.textContent).toContain('YS-ARCHIVED');
