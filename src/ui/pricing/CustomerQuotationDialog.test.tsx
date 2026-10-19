@@ -130,7 +130,7 @@ describe('CustomerQuotationDialog multi-product workflow', () => {
     const addRow = dialog.querySelector<HTMLElement>('.customer-quotation-add-product-row')!;
     const addButton = addRow.querySelector<HTMLButtonElement>('button')!;
     expect(itemList.nextElementSibling).toBe(addRow);
-    expect(addRow.nextElementSibling?.className).not.toContain('customer-quotation-item-list');
+    expect(addRow.parentElement).toBe(itemList.parentElement);
     expect(addButton.textContent).toContain('Add another product');
     expect(addButton.disabled).toBe(false);
     expect(dialog.querySelector('.customer-quotation-section-heading button')).toBeNull();
