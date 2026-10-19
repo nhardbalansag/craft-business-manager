@@ -9,10 +9,11 @@ import { ProductCatalog } from './ProductCatalog';
 import { ProductComponentsView } from './ProductComponentsView';
 import { ProductStockView } from './ProductStockView';
 import { PricingPage } from '../pricing/PricingPage';
+import { YieldPage } from '../yield/YieldPage';
 import './products.css';
 import './productEditorWorkflow.css';
 
-type WorkspaceView = 'products' | 'components' | 'stock' | 'pricing';
+type WorkspaceView = 'products' | 'yield' | 'components' | 'stock' | 'pricing';
 
 type ProductFormState = {
   id: string;
@@ -111,6 +112,7 @@ export function ProductsPage() {
   const [componentProductId, setComponentProductId] = useState('');
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [pricingVisited, setPricingVisited] = useState(false);
+  const [yieldVisited, setYieldVisited] = useState(false);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -305,6 +307,11 @@ export function ProductsPage() {
     setView('components');
   }
 
+  function navigateToYield() {
+    setYieldVisited(true);
+    setView('yield');
+  }
+
   function navigateToPricing(productId?: string) {
     if (productId) setSelectedProductId(productId);
     setPricingVisited(true);
@@ -339,7 +346,7 @@ export function ProductsPage() {
         <div>
           <p className="eyebrow">WORKSHOP / PRODUCTS</p>
           <h1>Your product workshop</h1>
-          <p className="page-lead">Build your collection, manage components, track finished stock, and configure pricing.</p>
+          <p className="page-lead">Manage products, record real batch yield, and review components, stock and pricing in one place.</p>
         </div>
         <div className="session-badge">Catalog &amp; recipe setup</div>
       </div>
@@ -365,6 +372,7 @@ export function ProductsPage() {
         {(
           [
             { id: 'products', title: 'Products', hint: 'Your collection' },
+            { id: 'yield', title: 'Yield', hint: 'Batches & history' },
             { id: 'components', title: 'Components', hint: 'Assembly setup' },
             { id: 'stock', title: 'Finished stock', hint: 'Ready to assemble' },
             { id: 'pricing', title: 'Pricing', hint: 'Quotes & unit economics' },
@@ -378,7 +386,8 @@ export function ProductsPage() {
             aria-pressed={view === item.id}
             aria-controls={`products-view-${item.id}`}
             onClick={() => {
-              if (item.id === 'components') navigateToComponents();
+              if (item.id === 'yield') navigateToYield();
+              else if (item.id === 'components') navigateToComponents();
               else if (item.id === 'pricing') navigateToPricing();
               else setView(item.id);
             }}
@@ -648,6 +657,15 @@ export function ProductsPage() {
             </div>
           </fieldset>
         </form>
+      </div>
+      <div id="products-view-yield" className="products-yield-area" hidden={view !== 'yield'}>
+        {yieldVisited && (
+          <YieldPage
+            preferredProductId={selectedProductId}
+            onSelectedProductChange={setSelectedProductId}
+            onOpenProducts={() => setView('products')}
+          />
+        )}
       </div>
       {view === 'components' && (
         <div id="products-view-components">
