@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { PRODUCT_CATEGORIES, PRODUCT_CATEGORY_RULES, type Product, type ProductCategory } from '../../domain/products';
 import { AppIcon } from '../icons/AppIcon';
 import { ProductLabelPrintDialog } from './ProductLabelPrintDialog';
+import { ProductDetailsDialog } from './ProductDetailsDialog';
 import './productCatalogEditorSeparation.css';
 
 interface ProductCatalogProps {
@@ -48,8 +49,11 @@ export function ProductCatalog({
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<10 | 25 | 50>(10);
   const [labelProduct, setLabelProduct] = useState<Product | null>(null);
+  const [viewProductId, setViewProductId] = useState<string | null>(null);
+  const viewTriggerRef = useRef<HTMLButtonElement | null>(null);
   const [localEditorIntent, setEditorIntent] = useState<ProductEditorIntent>(null);
   const editingProduct = products.find((product) => product.id === editingId);
+  const viewingProduct = products.find((product) => product.id === viewProductId) ?? null;
   const editorIntent: ProductEditorIntent = editorOpen === undefined ? localEditorIntent : !editorOpen ? null
     : editingId ? { mode: 'edit', productName: editingProduct?.name ?? editingId, productId: editingId } : { mode: 'new' };
   const matchingProducts = useMemo(() => {
@@ -112,6 +116,29 @@ export function ProductCatalog({
     setQuery('');
     setCategory('all');
     setStatus('active');
+  }
+
+  function showProduct(product: Product, trigger: HTMLButtonElement) {
+    viewTriggerRef.current = trigger;
+    setViewProductId(product.id);
+  }
+
+  function closeProductView() {
+    setViewProductId(null);
+    if (viewTriggerRef.current?.isConnected) viewTriggerRef.current.focus();
+    viewTriggerRef.current = null;
+  }
+
+  function editViewedProduct(product: Product) {
+    setViewProductId(null);
+    viewTriggerRef.current = null;
+    startEditProduct(product);
+  }
+
+  function viewProductComponents(product: Product) {
+    setViewProductId(null);
+    viewTriggerRef.current = null;
+    onComponents(product);
   }
 
   function startNewProduct() {
@@ -342,6 +369,15 @@ export function ProductCatalog({
                         <div className="product-table-actions">
                           <button
                             type="button"
+                            className="button button-secondary"
+                            disabled={disabled}
+                            aria-label={`View ${product.name}`}
+                            onClick={(event) => showProduct(product, event.currentTarget)}
+                          >
+                            View
+                          </button>
+                          <button
+                            type="button"
                             className="button button-quiet"
                             disabled={disabled}
                             aria-label={`Edit ${product.name}`}
@@ -423,6 +459,15 @@ export function ProductCatalog({
                     </details>
                   )}
                   <div className="product-card-actions">
+                    <button
+                      type="button"
+                      className="button button-secondary"
+                      disabled={disabled}
+                      aria-label={`View ${product.name}`}
+                      onClick={(event) => showProduct(product, event.currentTarget)}
+                    >
+                      View product
+                    </button>
                     <button
                       type="button"
                       className="button button-quiet"
@@ -529,6 +574,14 @@ export function ProductCatalog({
         )}
       </div>
 
+      {viewingProduct && (
+        <ProductDetailsDialog
+          product={viewingProduct}
+          onClose={closeProductView}
+          onEdit={() => editViewedProduct(viewingProduct)}
+          onComponents={() => viewProductComponents(viewingProduct)}
+        />
+      )}
       {labelProduct && <ProductLabelPrintDialog product={labelProduct} onClose={() => setLabelProduct(null)} />}
     </section>
   );
