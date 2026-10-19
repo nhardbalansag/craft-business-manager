@@ -40,11 +40,11 @@ describe('React workspace smoke validation', () => {
     expect(html).toContain('Safety waste (%)');
   });
 
-  it('places the entire Pricing workspace under the Products workshop tabs', () => {
+  it('places Pricing beside Products, Components and Finished stock, not in the outer tabs', () => {
     const html = renderToStaticMarkup(<ProductsWorkspacePage />);
-    expect(html).toContain('Pricing &amp; quotations');
-    expect(html).toContain('aria-controls="products-pricing-area"');
-    expect(html).toContain('id="products-pricing-area"');
+    expect(html).toContain('aria-controls="products-view-pricing"');
+    expect(html).toContain('id="products-view-pricing"');
+    expect(html).not.toContain('id="products-pricing-area"');
     expect(html).not.toContain('aria-label="Selected pricing Product"');
   });
 
