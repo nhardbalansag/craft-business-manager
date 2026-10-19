@@ -215,6 +215,54 @@ describe('Pricing workspace UI/UX', () => {
     expect(form()).not.toBeNull();
   });
 
+  it('shows the current Product image in Pricing and updates the reference when a different Product is selected', async () => {
+    const starImage = 'data:image/jpeg;base64,/9j/AAAA';
+    const candleImage = 'data:image/jpeg;base64,/9j/BBBB';
+    const candle: Product = {
+      id: 'CND-002',
+      name: 'Event Candle',
+      category: 'candle',
+      safetyWasteRate: 0.03,
+      isActive: true,
+      imageDataUrl: candleImage,
+    };
+    await session.productRepository.replaceAll([{ ...product, imageDataUrl: starImage }, candle]);
+    await mount();
+
+    const selector = container.querySelector<HTMLElement>('[aria-label="Selected pricing Product"]')!;
+    let photo = selector.querySelector<HTMLImageElement>('img.pricing-product-reference-image');
+    // The pricing workspace defaults to the first active Product by catalog order.
+    expect(photo?.getAttribute('src')).toBe(candleImage);
+    expect(photo?.getAttribute('alt')).toBe('Product reference: Event Candle');
+
+    await click('Open Product Catalog');
+    await click('Price Paintable Star', container.querySelector<HTMLElement>('[role="dialog"]')!);
+
+    photo = selector.querySelector<HTMLImageElement>('img.pricing-product-reference-image');
+    expect(selector.querySelector('h2')?.textContent).toBe('Paintable Star');
+    expect(photo?.getAttribute('src')).toBe(starImage);
+    expect(photo?.getAttribute('alt')).toBe('Product reference: Paintable Star');
+  });
+
+  it('keeps Pricing usable without a Product image and accepts only validated saved images', async () => {
+    await session.productRepository.replaceAll([{ ...product, imageDataUrl: 'javascript:alert(1)' }]);
+    await mount();
+    const selector = container.querySelector<HTMLElement>('[aria-label="Selected pricing Product"]')!;
+    expect(selector.querySelector('.pricing-product-reference-image')).toBeNull();
+    expect(selector.textContent).toContain('Paintable Star');
+    expect(container.querySelector('[aria-label="Financial source summary"]')).not.toBeNull();
+  });
+
+  it('falls back to the saved brochure photo when a Product thumbnail is absent', async () => {
+    const brochureImage = 'data:image/jpeg;base64,/9j/CCCC';
+    await session.productRepository.replaceAll([{ ...product, brochureImageDataUrl: brochureImage }]);
+    await mount();
+
+    const photo = container.querySelector<HTMLImageElement>('.pricing-product-reference-image');
+    expect(photo?.getAttribute('src')).toBe(brochureImage);
+    expect(photo?.getAttribute('alt')).toBe('Product reference: Paintable Star');
+  });
+
   it('shows Financial Source first below Product selection, before Unit Economics and other summaries', async () => {
     await seed();
     await mount();
