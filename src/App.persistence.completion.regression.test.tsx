@@ -282,7 +282,7 @@ describe('Phase 5.5C3 persistence UX regression and Phase 5.5 completion gate', 
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     await mount({ uiClock: sequenceClock('2026-09-17T02:00:00.000Z', '2026-09-17T02:30:00.000Z') });
     await click('Products');
-    await click('Pricing & quotations');
+    await click('Pricing');
     expect(container.querySelector('[aria-label="Selected pricing Product"]')).not.toBeNull();
     await applyWorkbook('known-good.xlsx', realWorkbookBytes(knownGood));
 

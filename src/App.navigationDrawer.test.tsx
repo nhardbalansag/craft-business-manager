@@ -147,9 +147,9 @@ describe('application navigation drawer', () => {
     expect(productsButton?.getAttribute('aria-current')).toBe('page');
     expect(container.querySelector('.app-shell-with-drawer')?.classList.contains('is-drawer-open')).toBe(false);
     expect(container.textContent).toContain('Your product workshop');
-    const productsTabs = container.querySelector('[aria-label="Products workshop areas"]')!;
-    expect(productsTabs.textContent).toContain('Pricing & quotations');
-    await act(async () => productsTabs.querySelector<HTMLButtonElement>('[aria-controls="products-pricing-area"]')!.click());
+    const productsTabs = container.querySelector('[aria-label="Product workspace views"]')!;
+    expect(productsTabs.textContent).toContain('Pricing');
+    await act(async () => productsTabs.querySelector<HTMLButtonElement>('[aria-controls="products-view-pricing"]')!.click());
     expect(container.querySelector('[aria-label="Selected pricing Product"]')).not.toBeNull();
     expect(productsButton?.getAttribute('aria-current')).toBe('page');
     expect(drawerPricingEntries()).toHaveLength(0);
