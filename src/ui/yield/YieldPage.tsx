@@ -42,6 +42,7 @@ import {
 import { PlasterMoldYieldDraftAssist } from './PlasterMoldYieldDraftAssist';
 import type { PlasterMoldYieldDraft } from './plasterMoldYieldDraft';
 import { AppIcon } from '../icons/AppIcon';
+import { ProductImageZoom } from '../products/ProductImageZoom';
 import './yield.css';
 import './yieldEnhancement.css';
 import './plasterMoldYieldDraftAssist.css';
@@ -970,13 +971,7 @@ export function YieldPage({ preferredProductId, onSelectedProductChange, onOpenP
             <div className="yield-product-context">
               <div className="yield-selected-product-card" aria-label="Selected Yield product">
                 {selectedProduct && selectedProductImage && (
-                  <img
-                    className="yield-product-reference-image"
-                    src={selectedProductImage}
-                    alt={`Product reference: ${selectedProduct.name}`}
-                    loading="lazy"
-                    decoding="async"
-                  />
+                  <ProductImageZoom product={selectedProduct} imageClassName="yield-product-reference-image" />
                 )}
                 <div className="yield-selected-product-copy">
                   <span className="yield-context-label">YOUR PRODUCT</span>
