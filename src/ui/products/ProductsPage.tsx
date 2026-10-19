@@ -8,10 +8,11 @@ import { optimizeProductImages } from './productImageUpload';
 import { ProductCatalog } from './ProductCatalog';
 import { ProductComponentsView } from './ProductComponentsView';
 import { ProductStockView } from './ProductStockView';
+import { PricingPage } from '../pricing/PricingPage';
 import './products.css';
 import './productEditorWorkflow.css';
 
-type WorkspaceView = 'products' | 'components' | 'stock';
+type WorkspaceView = 'products' | 'components' | 'stock' | 'pricing';
 
 type ProductFormState = {
   id: string;
@@ -108,6 +109,8 @@ export function ProductsPage() {
   // undefined means no pending switch; null means a new product was requested.
   const [pendingProduct, setPendingProduct] = useState<Product | null | undefined>(undefined);
   const [componentProductId, setComponentProductId] = useState('');
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
+  const [pricingVisited, setPricingVisited] = useState(false);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -186,7 +189,10 @@ export function ProductsPage() {
     setImageProcessing(false);
     // Keep the Components tab aligned with the product whose details are being edited.
     // Only change this context after a pending draft switch has been confirmed.
-    if (product) setComponentProductId(product.id);
+    if (product) {
+      setComponentProductId(product.id);
+      setSelectedProductId(product.id);
+    }
     setEditorOpen(true);
     setProductTouched([]);
     setProductAttempted(false);
@@ -204,6 +210,7 @@ export function ProductsPage() {
     setEditorOpen(true);
     if (product && product.id === editingProductId) {
       setComponentProductId(product.id);
+      setSelectedProductId(product.id);
       productNameInput.current?.focus();
     } else if (productDirty) {
       setPendingProduct(product);
@@ -276,6 +283,7 @@ export function ProductsPage() {
         setProductFeedback({ type: 'success', message: 'Product created.' });
         setEditingProductId(created.id);
         setComponentProductId(created.id);
+        setSelectedProductId(created.id);
         setProductForm(productToForm(created));
       }
       await reload();
@@ -291,12 +299,16 @@ export function ProductsPage() {
   }
 
   function navigateToComponents() {
-    // An explicit Product edit takes priority over a previous manual composition choice.
-    // A new unsaved Product has no persisted components yet; keep the last valid choice.
-    if (editingProductId && products.some((product) => product.id === editingProductId)) {
-      setComponentProductId(editingProductId);
+    if (selectedProductId && products.some((product) => product.id === selectedProductId)) {
+      setComponentProductId(selectedProductId);
     }
     setView('components');
+  }
+
+  function navigateToPricing(productId?: string) {
+    if (productId) setSelectedProductId(productId);
+    setPricingVisited(true);
+    setView('pricing');
   }
 
   async function archiveProduct(product: Product) {
@@ -327,7 +339,7 @@ export function ProductsPage() {
         <div>
           <p className="eyebrow">WORKSHOP / PRODUCTS</p>
           <h1>Your product workshop</h1>
-          <p className="page-lead">Build your collection, manage components, and track finished stock.</p>
+          <p className="page-lead">Build your collection, manage components, track finished stock, and configure pricing.</p>
         </div>
         <div className="session-badge">Catalog &amp; recipe setup</div>
       </div>
@@ -355,6 +367,7 @@ export function ProductsPage() {
             { id: 'products', title: 'Products', hint: 'Your collection' },
             { id: 'components', title: 'Components', hint: 'Assembly setup' },
             { id: 'stock', title: 'Finished stock', hint: 'Ready to assemble' },
+            { id: 'pricing', title: 'Pricing', hint: 'Quotes & unit economics' },
           ] as const
         ).map((item) => (
           <button
@@ -366,6 +379,7 @@ export function ProductsPage() {
             aria-controls={`products-view-${item.id}`}
             onClick={() => {
               if (item.id === 'components') navigateToComponents();
+              else if (item.id === 'pricing') navigateToPricing();
               else setView(item.id);
             }}
           >
@@ -403,7 +417,10 @@ export function ProductsPage() {
           onResume={resumeProductDraft}
           onNew={() => requestProductEditor(null)}
           onEdit={requestProductEditor}
+          onSelect={(product) => setSelectedProductId(product.id)}
+          onPricing={(product) => navigateToPricing(product.id)}
           onComponents={(product) => {
+            setSelectedProductId(product.id);
             setComponentProductId(product.id);
             setView('components');
           }}
@@ -639,14 +656,28 @@ export function ProductsPage() {
             materials={materials}
             catalogLoading={loading}
             initialProductId={componentProductId}
+            onSelectedProductChange={setSelectedProductId}
           />
         </div>
       )}
       {view === 'stock' && (
         <div id="products-view-stock">
-          <ProductStockView products={products} catalogLoading={loading} />
+          <ProductStockView
+            products={products}
+            catalogLoading={loading}
+            initialProductId={selectedProductId}
+            onSelectedProductChange={setSelectedProductId}
+          />
         </div>
       )}
+      <div id="products-view-pricing" className="products-pricing-area" hidden={view !== 'pricing'}>
+        {pricingVisited && (
+          <PricingPage
+            preferredProductId={selectedProductId}
+            onSelectedProductChange={setSelectedProductId}
+          />
+        )}
+      </div>
     </section>
   );
 }
