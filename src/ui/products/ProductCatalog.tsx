@@ -13,6 +13,8 @@ interface ProductCatalogProps {
   disabled: boolean;
   editingId: string | null;
   onEdit: (product: Product) => void;
+  onSelect?: (product: Product) => void;
+  onPricing?: (product: Product) => void;
   onNew: () => void;
   onComponents: (product: Product) => void;
   onToggleActive: (product: Product) => void;
@@ -34,6 +36,8 @@ export function ProductCatalog({
   disabled,
   editingId,
   onEdit,
+  onSelect,
+  onPricing,
   onNew,
   onComponents,
   onToggleActive,
@@ -125,6 +129,7 @@ export function ProductCatalog({
   function showProduct(product: Product, trigger: HTMLButtonElement) {
     viewTriggerRef.current = trigger;
     setViewProductId(product.id);
+    onSelect?.(product);
   }
 
   function closeProductView() {
@@ -411,6 +416,11 @@ export function ProductCatalog({
                           >
                             Components
                           </button>
+                          {onPricing && (
+                            <button type="button" className="text-button" disabled={disabled} aria-label={`Pricing for ${product.name}`} onClick={() => onPricing(product)}>
+                              Pricing
+                            </button>
+                          )}
                           <button
                             type="button"
                             className="text-button"
@@ -512,6 +522,11 @@ export function ProductCatalog({
                     >
                       Components
                     </button>
+                    {onPricing && (
+                      <button type="button" className="text-button" disabled={disabled} aria-label={`Pricing for ${product.name}`} onClick={() => onPricing(product)}>
+                        Pricing
+                      </button>
+                    )}
                     <button
                       type="button"
                       className="text-button"
