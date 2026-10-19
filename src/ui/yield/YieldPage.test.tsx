@@ -132,9 +132,16 @@ describe('Yield workspace UI/UX', () => {
     const current = container.querySelector<HTMLElement>('[aria-label="Selected Yield product"]')!;
     expect(current).not.toBeNull();
     expect(current.classList.contains('yield-selected-product-card')).toBe(true);
+    expect(current.querySelector('.yield-selected-product-name')?.textContent).toBe(longProduct.name);
+    expect(current.querySelector('.yield-selected-product-details')?.textContent).toContain(longProduct.id);
+    const picker = container.querySelector<HTMLInputElement>('[aria-label="Search products for yield"]')!;
+    await act(async () => picker.focus());
+    await fill(picker, 'Paintable Star');
+    const firstChoice = container.querySelector<HTMLButtonElement>('[role="option"]')!;
+    expect(firstChoice.textContent).toContain('Paintable Star');
+    await act(async () => firstChoice.click());
     expect(current.querySelector('.yield-selected-product-name')?.textContent).toBe('Paintable Star');
     expect(current.querySelector('.yield-selected-product-details')?.textContent).toContain('ART-001');
-    const picker = container.querySelector<HTMLInputElement>('[aria-label="Search products for yield"]')!;
     await act(async () => picker.focus());
     await fill(picker, 'Sea Creatures');
     const choice = container.querySelector<HTMLButtonElement>('[role="option"]')!;
