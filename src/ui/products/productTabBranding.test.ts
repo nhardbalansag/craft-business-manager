@@ -1,8 +1,7 @@
-import { readFileSync } from 'node:fs';
+/// <reference types="vite/client" />
 import { describe, expect, it } from 'vitest';
-
-const productsStyles = readFileSync(new URL('./products.css', import.meta.url), 'utf8');
-const brandStyles = readFileSync(new URL('../../brandingTheme.css', import.meta.url), 'utf8');
+import productsStyles from './products.css?raw';
+import brandStyles from '../../brandingTheme.css?raw';
 
 describe('Products tab brand colors', () => {
   it('uses the shared botanical leaf brand tokens rather than a black selected tab', () => {
