@@ -131,9 +131,16 @@ describe('Product catalog read-only View action', () => {
 
   it('offers View in cards, compact and table layouts including archived products', async () => {
     await mount();
+    expect(button('View Custom Lavender Event Candle').textContent).toContain('View');
+    const cardsButton = Array.from(container.querySelectorAll<HTMLButtonElement>('[aria-label="Catalog layout"] button')).find(
+      (el) => el.textContent === 'Cards',
+    )!;
+    await click(cardsButton);
     expect(button('View Custom Lavender Event Candle').textContent).toContain('View product');
-    await click(container.querySelector<HTMLButtonElement>('[aria-label="Catalog layout"] button[aria-pressed="false"]')!);
-    // The first not-pressed layout is Compact.
+    const compactButton = Array.from(container.querySelectorAll<HTMLButtonElement>('[aria-label="Catalog layout"] button')).find(
+      (el) => el.textContent === 'Compact',
+    )!;
+    await click(compactButton);
     expect(button('View Custom Lavender Event Candle')).not.toBeNull();
     const tableButton = Array.from(container.querySelectorAll<HTMLButtonElement>('[aria-label="Catalog layout"] button')).find(
       (el) => el.textContent === 'Table',
