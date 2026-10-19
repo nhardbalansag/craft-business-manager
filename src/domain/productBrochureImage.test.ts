@@ -17,7 +17,7 @@ describe('High-resolution brochure image workbook splitting', () => {
     expect(jpeg.length).toBeGreaterThan(300_000);
     expect(isValidBrochureImageDataUrl(jpeg)).toBe(true);
     const chunks = brochureImageParts(jpeg);
-    expect(Object.keys(chunks)).toEqual(BROCHURE_IMAGE_COLUMN_NAMES);
+    expect(Object.keys(chunks)).toEqual(BROCHURE_IMAGE_COLUMN_NAMES.slice(0, Math.ceil(jpeg.length / BROCHURE_IMAGE_PART_SIZE)));
     const values = Object.values(chunks).filter((value): value is string => typeof value === 'string');
     expect(values).toHaveLength(Math.ceil(jpeg.length / BROCHURE_IMAGE_PART_SIZE));
     expect(values.every((value) => value.length <= BROCHURE_IMAGE_PART_SIZE)).toBe(true);
@@ -27,7 +27,7 @@ describe('High-resolution brochure image workbook splitting', () => {
 
   it('handles missing optional images and rejects partial, oversized or untrusted data', () => {
     expect(brochureImageFromParts({})).toBeUndefined();
-    expect(Object.values(brochureImageParts(undefined)).every((value) => value === null)).toBe(true);
+    expect(brochureImageParts(undefined)).toEqual({});
     expect(isValidBrochureImageDataUrl(header + 'AAAA'.repeat(125_000))).toBe(false);
     expect(isValidBrochureImageDataUrl('javascript:alert(1)')).toBe(false);
     expect(isValidBrochureImageDataUrl('data:image/svg+xml;base64,AAAA')).toBe(false);

@@ -16,14 +16,15 @@ export function isValidBrochureImageDataUrl(value: unknown): value is string {
     JPEG_DATA_URL.test(value);
 }
 
-export function brochureImageParts(dataUrl: string | undefined): Record<string, string | null> {
-  if (dataUrl !== undefined && !isValidBrochureImageDataUrl(dataUrl)) {
+export function brochureImageParts(dataUrl: string | undefined): Record<string, string> {
+  if (dataUrl === undefined) return {};
+  if (!isValidBrochureImageDataUrl(dataUrl)) {
     throw new Error('Brochure image must be a valid JPEG within the export size limit.');
   }
-  return Object.fromEntries(BROCHURE_IMAGE_COLUMN_NAMES.map((column, index) => [
-    column,
-    dataUrl?.slice(index * BROCHURE_IMAGE_PART_SIZE, (index + 1) * BROCHURE_IMAGE_PART_SIZE) || null,
-  ]));
+  return Object.fromEntries(BROCHURE_IMAGE_COLUMN_NAMES.flatMap((column, index) => {
+    const part = dataUrl.slice(index * BROCHURE_IMAGE_PART_SIZE, (index + 1) * BROCHURE_IMAGE_PART_SIZE);
+    return part ? [[column, part]] : [];
+  }));
 }
 
 export function brochureImageFromParts(row: Readonly<Record<string, unknown>>): string | undefined {
