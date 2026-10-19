@@ -60,6 +60,22 @@ describe('product quotation image contract', () => {
   });
 });
 
+describe('high-resolution product brochure image contract', () => {
+  const valid = 'data:image/jpeg;base64,' + 'AAAA'.repeat(50_000);
+  it('permits dedicated high-resolution JPEGs and rejects unsafe or oversized uploads', () => {
+    expect(() => validateProductContract(product({ brochureImageDataUrl: valid }))).not.toThrow();
+    for (const invalid of [
+      'https://example.com/large.jpg',
+      'data:image/svg+xml;base64,AAAA',
+      'data:image/jpeg;base64,' + 'AAAA'.repeat(121_000),
+    ]) {
+      expect(() => validateProductContract(product({ brochureImageDataUrl: invalid }))).toThrow(
+        expect.objectContaining({ code: 'INVALID_BROCHURE_IMAGE_DATA_URL' }),
+      );
+    }
+  });
+});
+
 describe('product categories', () => {
   it('exposes the locked Phase 2 categories', () => {
     expect(PRODUCT_CATEGORIES).toEqual(['paintable-art', 'candle-pot', 'candle']);

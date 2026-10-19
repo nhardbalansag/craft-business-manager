@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CURRENT_BUSINESS_DATASET_SCHEMA_VERSION } from '../domain/businessDataset';
+import { BROCHURE_IMAGE_COLUMN_NAMES } from '../domain/productBrochureImage';
 import type { BusinessDataset } from '../domain/types';
 import {
   createBusinessDatasetWorkbookDocument,
@@ -246,6 +247,41 @@ describe('BusinessDataset workbook import', () => {
     const result = reconstructBusinessDatasetFromWorkbook(workbook as WorkbookNeutralDocument);
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.dataset.products.every((p) => p.imageDataUrl === undefined)).toBe(true);
+  });
+
+  it('persists separate high-resolution photos across XLSX export/import and preserves thumbnails', () => {
+    const highRes = 'data:image/jpeg;base64,' + 'AAAA'.repeat(75_000);
+    const thumb = 'data:image/jpeg;base64,' + 'AAAA'.repeat(25);
+    const dataset = datasetFixture();
+    dataset.products[0].brochureImageDataUrl = highRes;
+    dataset.products[0].imageDataUrl = thumb;
+    const sheetDoc = createBusinessDatasetWorkbookDocument(dataset, METADATA);
+    const productSheet = sheetDoc.sheets.find((sheet) => sheet.name === 'Products')!;
+    expect(productSheet.columns).toContain(BROCHURE_IMAGE_COLUMN_NAMES.at(-1));
+    const matchingRow = productSheet.rows.find((row) => row.id === dataset.products[0].id)!;
+    expect(matchingRow.imageDataUrl).toBe(thumb);
+    expect(String(matchingRow[BROCHURE_IMAGE_COLUMN_NAMES[0]])).toHaveLength(24_000);
+    const codec = new SheetJsWorkbookCodec();
+    const exported = exportBusinessDatasetToXlsx(dataset, METADATA, codec);
+    const result = importBusinessDatasetFromXlsx(exported, codec);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.dataset.products.find((p) => p.id === dataset.products[0].id)?.brochureImageDataUrl).toBe(highRes);
+      expect(result.dataset.products.find((p) => p.id === dataset.products[0].id)?.imageDataUrl).toBe(thumb);
+    }
+  });
+
+  it('imports older Products workbook columns without the high-resolution chunk fields', () => {
+    const dataset = datasetFixture();
+    const doc = createBusinessDatasetWorkbookDocument(dataset, METADATA);
+    const productSheet = doc.sheets.find((sheet) => sheet.name === 'Products')!;
+    productSheet.columns = productSheet.columns.filter((column) => !BROCHURE_IMAGE_COLUMN_NAMES.includes(column));
+    productSheet.rows.forEach((row) => {
+      for (const key of BROCHURE_IMAGE_COLUMN_NAMES) delete row[key];
+    });
+    const result = reconstructBusinessDatasetFromWorkbook(doc);
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.dataset.products.every((p) => p.brochureImageDataUrl === undefined)).toBe(true);
   });
 
   it('accepts ArrayBuffer input through the real codec boundary', () => {

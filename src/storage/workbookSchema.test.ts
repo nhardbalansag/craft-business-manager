@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { BUSINESS_DATASET_SOURCE_COLLECTION_KEYS } from '../domain/businessDataset';
+import { BROCHURE_IMAGE_COLUMN_NAMES } from '../domain/productBrochureImage';
 import {
   CANONICAL_WORKBOOK_SHEET_NAMES,
   CRAFT_BUSINESS_WORKBOOK_FORMAT_ID,
@@ -96,7 +97,7 @@ const EXPECTED_COLUMNS: Record<WorkbookSheetName, readonly string[]> = {
   MixPresets: ['id', 'name', 'basis', 'notes', 'isActive'],
   MixPresetCategories: ['mixPresetId', 'categoryOrder', 'category'],
   MixPresetLines: ['mixPresetId', 'lineOrder', 'materialId', 'role', 'parts'],
-  Products: ['id', 'name', 'category', 'mixPresetId', 'preferredYieldSampleId', 'safetyWasteRate', 'notes', 'isActive', 'candleWaxMaterialId', 'candleEssentialOilMaterialId', 'imageDataUrl'],
+  Products: ['id', 'name', 'category', 'mixPresetId', 'preferredYieldSampleId', 'safetyWasteRate', 'notes', 'isActive', 'candleWaxMaterialId', 'candleEssentialOilMaterialId', 'imageDataUrl', ...BROCHURE_IMAGE_COLUMN_NAMES],
   YieldSamples: [
     'id',
     'productId',
