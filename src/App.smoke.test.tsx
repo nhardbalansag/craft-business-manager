@@ -122,13 +122,15 @@ describe('React workspace smoke validation', () => {
     expect(html).toContain('Review saved unit economics');
     expect(html).toContain('Open Product Catalog');
     expect(html).not.toContain('Search Products');
-    expect(html).toContain('Labor cost per unit (PHP)');
-    expect(html).toContain('Overhead cost per unit (PHP)');
-    expect(html).toContain('Pricing method');
+    expect(html).toContain('FINANCIAL SOURCE');
+    expect(html).toContain('Set Financial Source');
+    expect(html).toContain('Saved labor / unit');
+    expect(html).toContain('Saved overhead / unit');
+    expect(html).toContain('Saved pricing policy');
     expect(html).toContain('Not configured');
-    expect(html).toContain('Save financial profile');
-    expect(html).toContain('DRAFT INPUT PREVIEW');
-    expect(html).toContain('human percentages');
+    // Source inputs are intentionally rendered only when the editor modal opens.
+    expect(html).not.toContain('Labor cost per unit (PHP)');
+    expect(html).not.toContain('DRAFT INPUT PREVIEW');
     expect(html).toContain('UNIT ECONOMICS');
     expect(html).toContain('Saved pricing result');
     expect(html).toContain('Total unit cost');

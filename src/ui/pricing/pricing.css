@@ -1632,3 +1632,35 @@
     padding-right: 16px;
   }
 }
+
+/* Compact saved Financial Source, with editing in scrollable dialogs */
+.pricing-financial-source-summary { display: grid; gap: 16px; min-width: 0; margin-bottom: 24px; padding: 20px 22px; }
+.pricing-financial-summary-heading { display: flex; justify-content: space-between; align-items: center; gap: 20px; }
+.pricing-financial-summary-heading > div { min-width: 0; }
+.pricing-financial-summary-heading h2 { margin: 4px 0; font-size: 1.23rem; letter-spacing: -.025em; }
+.pricing-financial-summary-heading p:not(.panel-kicker) { margin: 0; color: #7a7066; font-size: .83rem; line-height: 1.5; }
+.pricing-financial-summary-heading .button { display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.pricing-financial-summary-values { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 11px; }
+.pricing-financial-summary-values > div { display: grid; gap: 6px; min-width: 0; padding: 13px 14px; border: 1px solid #e6dfd4; border-radius: 12px; background: #faf8f4; }
+.pricing-financial-summary-values span { color: #83776c; font-size: .71rem; font-weight: 750; }
+.pricing-financial-summary-values strong { color: #3f362e; font-size: .88rem; overflow-wrap: anywhere; }
+.pricing-financial-draft-warning { margin: 0; padding: 10px 13px; border-radius: 10px; background: #fff8e6; color: #75603e; font-size: .81rem; }
+.pricing-source-modal-backdrop { position: fixed; inset: 0; z-index: 1300; display: grid; place-items: center; padding: 20px; background: rgba(38, 31, 24, .55); backdrop-filter: blur(3px); }
+.pricing-source-modal { width: min(780px, 100%); max-height: min(92dvh, 970px); min-width: 0; overflow-y: auto; overscroll-behavior: contain; background: #fffdf9; border-radius: 18px; box-shadow: 0 24px 70px rgba(42, 31, 20, .3); }
+.pricing-source-modal-toolbar { display: flex; align-items: center; justify-content: flex-end; padding: 13px 18px; position: sticky; top: 0; z-index: 2; border-bottom: 1px solid #ebe4da; background: #fffdf9; }
+.pricing-source-modal .pricing-editor-panel, .pricing-source-modal .tier-editor-panel { position: static; top: auto; width: 100%; border: 0; box-shadow: none; border-radius: 0; margin: 0; padding: 23px 26px 26px; }
+@media (max-width: 780px) {
+  .pricing-financial-summary-values { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pricing-financial-summary-heading { align-items: flex-start; }
+}
+@media (max-width: 520px) {
+  .pricing-financial-summary-heading { flex-direction: column; }
+  .pricing-financial-summary-heading .button { width: 100%; justify-content: center; }
+  .pricing-financial-summary-values { grid-template-columns: minmax(0, 1fr); }
+  .pricing-source-modal-backdrop { padding: 0; align-items: end; }
+  .pricing-source-modal { width: 100%; max-height: 95dvh; border-radius: 18px 18px 0 0; }
+  .pricing-source-modal .pricing-editor-panel, .pricing-source-modal .tier-editor-panel { padding: 17px 16px 24px; }
+  .pricing-source-modal .pricing-product-context { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pricing-source-modal .pricing-method-guide { grid-template-columns: 1fr; }
+  .pricing-source-modal .pricing-editor-actions { flex-wrap: wrap; }
+}
