@@ -51,7 +51,7 @@
 .products-overview span { color: #6b645a; font-size: .84rem; }
 .products-overview strong { font-size: 2rem; line-height: 1; font-variant-numeric: tabular-nums; }
 .products-overview small { color: #6b645a; font-size: .76rem; }
-.products-workspace .workspace-switcher { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 0; padding: 6px; gap: 6px; }
+.products-workspace .workspace-switcher { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); margin: 0; padding: 6px; gap: 6px; }
 .products-workspace .workspace-switcher button { display: grid; gap: 4px; text-align: left; padding: 13px 18px; }
 .products-workspace .workspace-switcher small { font-size: .73rem; font-weight: 400; }
 .product-catalog-layout { display: grid; grid-template-columns: minmax(0, 1fr) 370px; gap: 22px; align-items: start; }
@@ -660,4 +660,34 @@
   .product-page-size select {
     width: 100%;
   }
+}
+
+
+/* Yield belongs to Products: keep one shared Product selection and five compact tabs. */
+.products-workspace > .products-yield-area { min-width: 0; width: 100%; padding-bottom: 24px; }
+.products-yield-area .yield-workspace { width: 100%; min-width: 0; padding-top: 6px; }
+.products-yield-area .yield-page-heading { margin-top: 0; }
+.products-yield-area .yield-product-bar {
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+.products-yield-area .yield-product-context { flex: 1 1 400px; min-width: 0; }
+.products-yield-area .yield-change-product {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+}
+@media (max-width: 1140px) {
+  .products-workspace .workspace-switcher { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 760px) {
+  .products-yield-area .yield-product-bar { flex-direction: column-reverse; align-items: stretch; }
+  .products-yield-area .yield-change-product { width: 100%; justify-content: center; }
+  .products-yield-area .yield-product-context { flex: 1 1 auto; }
+  .products-workspace .workspace-switcher { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
