@@ -170,6 +170,9 @@ export function ProductsPage() {
   }, [pendingProduct]);
 
   function openProductEditor(product: Product | null) {
+    // Keep the Components tab aligned with the product whose details are being edited.
+    // Only change this context after a pending draft switch has been confirmed.
+    if (product) setComponentProductId(product.id);
     setEditorOpen(true);
     setProductTouched([]);
     setProductAttempted(false);
@@ -185,6 +188,7 @@ export function ProductsPage() {
     catalogReturnTarget.current = document.activeElement as HTMLElement;
     setEditorOpen(true);
     if (product && product.id === editingProductId) {
+      setComponentProductId(product.id);
       productNameInput.current?.focus();
     } else if (productDirty) {
       setPendingProduct(product);
@@ -234,6 +238,7 @@ export function ProductsPage() {
         const created = await productService.createProduct(formToProduct({ ...productForm, id: generatedProductId }, true));
         setProductFeedback({ type: 'success', message: 'Product created.' });
         setEditingProductId(created.id);
+        setComponentProductId(created.id);
         setProductForm(productToForm(created));
       }
       await reload();
@@ -246,6 +251,15 @@ export function ProductsPage() {
       mutationInFlight.current = false;
       setBusy(false);
     }
+  }
+
+  function navigateToComponents() {
+    // An explicit Product edit takes priority over a previous manual composition choice.
+    // A new unsaved Product has no persisted components yet; keep the last valid choice.
+    if (editingProductId && products.some((product) => product.id === editingProductId)) {
+      setComponentProductId(editingProductId);
+    }
+    setView('components');
   }
 
   async function archiveProduct(product: Product) {
@@ -313,7 +327,10 @@ export function ProductsPage() {
             className={view === item.id ? 'active' : ''}
             aria-pressed={view === item.id}
             aria-controls={`products-view-${item.id}`}
-            onClick={() => setView(item.id)}
+            onClick={() => {
+              if (item.id === 'components') navigateToComponents();
+              else setView(item.id);
+            }}
           >
             <strong>{item.title}</strong>
             <small>{item.hint}</small>
