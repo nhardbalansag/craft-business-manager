@@ -24,7 +24,7 @@ describe('A4 My Lovely Craft brochure print', () => {
   it('renders the reference-inspired branding, image, customer copy and actual three price columns', () => {
     const html = renderProductBrochureHtml(view);
     expect(html).toContain('@page { size: A4 portrait; margin: 0; }');
-    expect(html).toContain('MY LOVELY CRAFT');
+    expect(html).toContain('<h1 class="brand-name">My Lovely Craft</h1>');
     expect(html).toContain('/brand/mlc-mark.webp');
     expect(html).toContain('Blush Round Candle');
     expect(html).toContain(photo);
