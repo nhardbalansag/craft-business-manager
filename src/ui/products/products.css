@@ -1,9 +1,10 @@
 .products-workspace { padding-top: 34px; }
-.products-workshop-shell > .workspace-switcher { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: min(1460px, calc(100% - 40px)); margin: 24px auto 0; }
+.products-workshop-shell > .workspace-switcher { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: min(1460px, calc(100% - 40px)); margin: 24px auto 0; }
 .products-workshop-shell > .workspace-switcher button { display: grid; gap: 5px; padding: 14px 18px; text-align: left; }
 .products-workshop-shell > .workspace-switcher small { font-size: .76rem; font-weight: 400; line-height: 1.5; }
 .products-workshop-shell > [hidden] { display: none !important; }
-.products-physical-area { width: min(1460px, calc(100% - 40px)); margin: 0 auto; padding-bottom: 40px; }
+.products-physical-area, .products-pricing-area { width: min(1460px, calc(100% - 40px)); margin: 0 auto; padding-bottom: 40px; }
+.products-pricing-area .pricing-workspace { width: 100%; padding-top: 16px; }
 .product-catalog-heading-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .product-filter-count { display: inline-block; min-width: 20px; margin-left: 5px; padding: 2px 5px; border-radius: 6px; background: #ece5d9; font-variant-numeric: tabular-nums; }
 .product-results-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin: 16px 0; }
@@ -25,8 +26,13 @@
 .product-draft-warning > div { display: flex; flex-wrap: wrap; gap: 8px; }
 .product-details-form { scroll-margin-top: 100px; }
 @media (max-width: 760px) {
-  .products-workshop-shell > .workspace-switcher, .products-physical-area { width: calc(100% - 24px); }
+  .products-workshop-shell > .workspace-switcher, .products-physical-area, .products-pricing-area { width: calc(100% - 24px); }
   .products-workshop-shell > .workspace-switcher button { padding: 12px; min-width: 0; }
+}
+@media (max-width: 540px) {
+  .products-workshop-shell > .workspace-switcher { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 760px) {
   .is-compact .product-catalog-card { grid-template-columns: minmax(0, 1fr); gap: 10px; }
   .product-catalog-heading-actions { width: 100%; }
   .product-catalog-heading-actions button { flex: 1; }

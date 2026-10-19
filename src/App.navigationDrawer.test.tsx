@@ -77,7 +77,8 @@ describe('application navigation drawer', () => {
     expect(drawer?.textContent).toContain('Products');
     expect(drawer?.textContent).toContain('Yield');
     expect(drawer?.textContent).toContain('Production');
-    expect(drawer?.textContent).toContain('Pricing');
+    expect(Array.from(drawer!.querySelectorAll('.app-drawer-nav button')).map((button) => button.textContent?.trim()))
+      .toEqual(['Materials', 'Products', 'Yield', 'Production']);
     expect(drawer?.querySelector('[aria-label="Workbook tools"]')).not.toBeNull();
   });
 
@@ -146,5 +147,16 @@ describe('application navigation drawer', () => {
     expect(productsButton?.getAttribute('aria-current')).toBe('page');
     expect(container.querySelector('.app-shell-with-drawer')?.classList.contains('is-drawer-open')).toBe(false);
     expect(container.textContent).toContain('Your product workshop');
+    const productsTabs = container.querySelector('[aria-label="Products workshop areas"]')!;
+    expect(productsTabs.textContent).toContain('Pricing & quotations');
+    await act(async () => productsTabs.querySelector<HTMLButtonElement>('[aria-controls="products-pricing-area"]')!.click());
+    expect(container.querySelector('[aria-label="Selected pricing Product"]')).not.toBeNull();
+    expect(productsButton?.getAttribute('aria-current')).toBe('page');
+    expect(drawerPricingEntries()).toHaveLength(0);
   });
 });
+
+function drawerPricingEntries() {
+  return Array.from(container.querySelectorAll<HTMLButtonElement>('.app-drawer-nav button'))
+    .filter((button) => button.textContent?.trim() === 'Pricing');
+}
