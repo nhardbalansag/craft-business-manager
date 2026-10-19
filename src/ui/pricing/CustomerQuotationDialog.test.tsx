@@ -134,21 +134,16 @@ describe('CustomerQuotationDialog multi-product workflow', () => {
     const secondItem = dialog.querySelector<HTMLElement>(
       '[aria-label="Quotation item 2"]',
     )!;
-    const productSelect = Array.from(
-      secondItem.querySelectorAll<HTMLSelectElement>('select'),
-    )[0]!;
+    await act(async () => secondItem.querySelector<HTMLButtonElement>(
+      '[aria-label="Find product for quotation item 2"]',
+    )!.click());
+    expect(secondItem.querySelector('[role="listbox"]')?.textContent).not.toContain('Rose Candle');
+    expect(secondItem.textContent).toContain('already in quotation');
 
-    const duplicateOption = Array.from(productSelect.options).find(
-      (option) => option.value === 'PROD-A',
-    )!;
-    expect(duplicateOption.disabled).toBe(true);
-
+    await act(async () => secondItem.querySelector<HTMLButtonElement>(
+      '[role="option"]',
+    )!.click());
     await act(async () => {
-      Object.getOwnPropertyDescriptor(
-        HTMLSelectElement.prototype,
-        'value',
-      )!.set!.call(productSelect, 'PROD-B');
-      productSelect.dispatchEvent(new Event('change', { bubbles: true }));
       await Promise.resolve();
       await Promise.resolve();
     });
