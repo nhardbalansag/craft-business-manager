@@ -94,6 +94,28 @@ describe('Product catalog read-only View action', () => {
     expect(document.activeElement?.getAttribute('aria-label')).toBe('Close product view');
   });
 
+  it('opens full-size saved images from the Product table and cards without activating View/Edit', async () => {
+    const brochure = 'data:image/jpeg;base64,/9j/BBBB';
+    const props = await mount({ products: [{ ...candle, brochureImageDataUrl: brochure }, archived] });
+
+    const thumbnail = container.querySelector<HTMLButtonElement>('[aria-label="View full-size image of Custom Lavender Event Candle"]')!;
+    expect(thumbnail).not.toBeNull();
+    await click(thumbnail);
+    expect(document.body.querySelector('[role="dialog"].product-image-zoom-dialog img')?.getAttribute('src')).toBe(brochure);
+    expect(dialog()).toBeNull();
+    expect(props.onEdit).not.toHaveBeenCalled();
+
+    await click(document.body.querySelector<HTMLButtonElement>('[aria-label="Close enlarged product image"]')!);
+    const cardsButton = Array.from(container.querySelectorAll<HTMLButtonElement>('[aria-label="Catalog layout"] button')).find(
+      (el) => el.textContent === 'Cards',
+    )!;
+    await click(cardsButton);
+    await click(container.querySelector<HTMLButtonElement>('[aria-label="View full-size image of Custom Lavender Event Candle"]')!);
+    expect(document.body.querySelector('[role="dialog"].product-image-zoom-dialog')).not.toBeNull();
+    await click(document.body.querySelector<HTMLButtonElement>('[aria-label="Close enlarged product image"]')!);
+    expect(props.onEdit).not.toHaveBeenCalled();
+  });
+
   it('closes with Escape and backdrop click and returns focus to the original View button', async () => {
     await mount();
     const trigger = button('View Custom Lavender Event Candle');
