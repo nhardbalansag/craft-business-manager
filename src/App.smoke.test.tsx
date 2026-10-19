@@ -135,6 +135,8 @@ describe('React workspace smoke validation', () => {
     expect(html).not.toContain('DRAFT INPUT PREVIEW');
     expect(html).toContain('ORDER PRICE PREVIEW');
     expect(html).toContain('Open Order Price Preview');
+    expect(html).toContain('Open Tier Pricing');
+    expect(html).not.toContain('Tier pricing catalog');
     expect(html).not.toContain('Order quantity (finished units)');
     expect(html).toContain('UNIT ECONOMICS');
     expect(html).toContain('Saved pricing result');
