@@ -46,8 +46,9 @@ export function renderProductBrochureHtml(
     isValidProductImageDataUrl(view.imageDataUrl))
     ? `<img class="hero-photo" alt="Product photo" src="${escapeHtml(view.imageDataUrl)}">`
     : '<div class="hero-placeholder">Product photo not yet available</div>';
-  const prices = view.prices.slice(0, 3).filter((item) =>
-    Number.isFinite(item.unitPrice) && item.unitPrice >= 0);
+  const prices = view.prices.filter((item) =>
+    Number.isFinite(item.unitPrice) && item.unitPrice >= 0 &&
+    Number.isSafeInteger(item.quantity) && item.quantity >= 1).slice(0, 3);
   const pricing = prices.length > 0
     ? `<section class="pricing">
         <h3>PRICE &amp; PACKAGES</h3>
@@ -56,6 +57,7 @@ export function renderProductBrochureHtml(
             <span class="price-label">${escapeHtml(item.label)}</span>
             <strong>${escapeHtml(money(item.unitPrice))}</strong>
             <span class="price-unit">per piece</span>
+            <span class="price-minimum">${item.quantity === 1 ? '1 piece' : `Min. ${item.quantity} pcs`}</span>
           </div>`).join('')}</div>
       </section>`
     : '<p class="price-inquiry">CONTACT US FOR PRICING &amp; CUSTOM ORDERS</p>';
@@ -72,14 +74,14 @@ export function renderProductBrochureHtml(
     html { background: #f2efed; }
     body { margin: 0; color: #513328; font-family: Georgia, 'Times New Roman', serif; }
     .screen-note { max-width: 210mm; margin: 12px auto; padding: 12px 18px; background: #fff5e7; font: 13px Arial, sans-serif; color: #6f5440; }
-    .sheet { position: relative; width: 210mm; min-height: 297mm; margin: 0 auto 14mm; padding: 10mm 13mm 12mm; background: #fff; display: flex; flex-direction: column; align-items: center; text-align: center; overflow: hidden; box-shadow: 0 2mm 10mm rgba(0,0,0,.08); }
+    .sheet { position: relative; box-sizing: border-box; width: 210mm; height: 297mm; margin: 0 auto 14mm; padding: 10mm 13mm 12mm; background: #fff; display: flex; flex-direction: column; align-items: center; text-align: center; overflow: hidden; box-shadow: 0 2mm 10mm rgba(0,0,0,.08); }
     header { width: 100%; text-align: center; }
     .brand-icon { display: block; width: 28mm; height: 18mm; object-fit: contain; margin: 0 auto 1.2mm; }
     .brand-name { margin: 0; color: #6b361f; font: bold 15pt Georgia, serif; letter-spacing: .20em; text-transform: uppercase; }
     .brand-services { color: #b37879; font: 8pt Arial, sans-serif; letter-spacing: .15em; text-transform: uppercase; margin: 1mm 0 2.5mm; }
     .rule { width: 100%; border-bottom: 1px solid #dfb8b8; }
     .category { margin: 4mm 0 0; color: #b07883; font: 9pt Arial, sans-serif; letter-spacing: .18em; text-transform: uppercase; }
-    .photo-area { display: flex; justify-content: center; align-items: center; width: 100%; height: 127mm; flex: 0 0 127mm; margin-top: 3mm; }
+    .photo-area { display: flex; justify-content: center; align-items: center; width: 100%; height: 127mm; min-height: 74mm; flex: 1 1 127mm; margin-top: 3mm; }
     .hero-photo { display: block; width: 100%; height: 100%; object-fit: contain; }
     .hero-placeholder { display: grid; place-items: center; width: 100%; height: 95%; background: #faf6f3; color: #997b77; font: 11pt Arial, sans-serif; }
     .product-copy { width: 100%; }
@@ -87,11 +89,13 @@ export function renderProductBrochureHtml(
     .description { margin: 0 auto; max-width: 155mm; min-height: 9mm; color: #83716b; font: italic 10.5pt/1.4 Georgia, serif; white-space: pre-wrap; overflow-wrap: anywhere; }
     .pricing { width: 100%; margin-top: 5mm; }
     .pricing h3 { margin: 0 0 3mm; color: #b77883; font: 9pt Arial, sans-serif; letter-spacing: .12em; }
-    .price-grid { display: grid; grid-template-columns: repeat(${prices.length}, minmax(0, 1fr)); background: #fbefef; }
-    .price-card { min-width: 0; padding: 3.5mm 2mm 3mm; display: flex; flex-direction: column; align-items: center; gap: 1.5mm; }
-    .price-label { font: 8pt Arial, sans-serif; color: #8f7272; letter-spacing: .075em; overflow-wrap: anywhere; }
-    .price-card strong { color: #bd7d85; font: bold 15pt Georgia, serif; }
+    .price-grid { display: grid; width: 100%; grid-template-columns: repeat(${prices.length}, minmax(0, 1fr)); background: #fbefef; border-radius: 2mm; overflow: hidden; }
+    .price-card { min-width: 0; padding: 3.5mm 2mm 3mm; display: flex; flex-direction: column; align-items: center; gap: 1.3mm; border-right: 1px solid #ead6d6; }
+    .price-card:last-child { border-right: 0; }
+    .price-label { max-width: 100%; font: bold 8pt/1.3 Arial, sans-serif; color: #8f7272; letter-spacing: .04em; overflow-wrap: anywhere; }
+    .price-card strong { max-width: 100%; color: #bd7d85; font: bold 15pt/1.15 Georgia, serif; overflow-wrap: anywhere; }
     .price-unit { font: 7pt Arial, sans-serif; color: #9e8c8a; }
+    .price-minimum { font: bold 7pt Arial, sans-serif; color: #81656a; }
     .price-inquiry { width: 100%; color: #bd7d85; font: 9pt Arial, sans-serif; letter-spacing: .10em; padding: 4mm 0; margin: 5mm 0; background: #fbefef; }
     .product-code { margin: 4mm 0 0; color: #987d76; font: 8pt Arial, sans-serif; letter-spacing: .09em; overflow-wrap: anywhere; }
     footer { width: 100%; margin-top: auto; padding-top: 8mm; color: #b8828d; font: 7.5pt Arial, sans-serif; letter-spacing: .10em; }
