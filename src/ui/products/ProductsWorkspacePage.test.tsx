@@ -443,7 +443,7 @@ describe('ProductsWorkspacePage', () => {
     // The current saved pricing quote is invalidated by successful Yield persistence.
     await tab('pricing');
     const authoritative = await session.productPricingQuoteIntegrationService.quoteProduct('PRD-1');
-    expect(authoritative.fullyLoadedUnitCost.directMaterialCost.baseDirectMaterialCostSubtotal).toBeGreaterThan(0);
+    expect(authoritative.fullyLoadedUnitCost.directMaterialCost?.baseDirectMaterialCostSubtotal).toBeGreaterThan(0);
     expect(directCost()).not.toBe(previous);
     expect(directCost()).toBe('PHP 10.00');
     expect(container.querySelector('[aria-label="Selected pricing Product"]')?.textContent).toContain('Dinosaur Toy');
