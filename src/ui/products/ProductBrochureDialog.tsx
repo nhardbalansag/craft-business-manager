@@ -50,16 +50,21 @@ export function ProductBrochureDialog({
   const hasPrintQualityPhoto = isValidBrochureImageDataUrl(product.brochureImageDataUrl);
 
   useEffect(() => {
+    setDescription('');
+    setPrintError(null);
+  }, [product.id]);
+
+  useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setOptions([]);
     setSelectedIds([]);
     setPriceError(null);
-    setDescription('');
-    setPrintError(null);
     void loadPrices(product.id).then((prices) => {
       if (cancelled) return;
-      const valid = prices.filter((option) => Number.isFinite(option.unitPrice) && option.unitPrice >= 0);
+      const valid = prices.filter((option) =>
+        Number.isFinite(option.unitPrice) && option.unitPrice >= 0 &&
+        Number.isSafeInteger(option.quantity) && option.quantity >= 1);
       setOptions(valid);
       setSelectedIds(valid.slice(0, 3).map((price) => price.id));
     }).catch((error: unknown) => {
