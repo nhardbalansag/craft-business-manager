@@ -113,6 +113,71 @@ describe('Product brochure editor and preview', () => {
     expect(preview).not.toContain('₱22.00');
   });
 
+  it('renders separate readable preview cards with correct package minimums and responsive column counts', async () => {
+    await mount();
+    const preview = container.querySelector<HTMLElement>('[aria-label="Brochure preview"]')!;
+    const list = preview.querySelector<HTMLElement>('.product-brochure-preview-tiers')!;
+    expect(list.style.gridTemplateColumns).toBe('repeat(3, minmax(0, 1fr))');
+    expect(list.querySelectorAll('.product-brochure-preview-tier')).toHaveLength(3);
+    expect(list.querySelectorAll('.product-brochure-preview-tier-minimum')[0]?.textContent).toBe('1 piece');
+    expect(list.querySelectorAll('.product-brochure-preview-tier-minimum')[1]?.textContent).toBe('Min. 30 pcs');
+    expect(list.querySelectorAll('.product-brochure-preview-tier-unit')[2]?.textContent).toBe('per piece');
+    const intro = container.querySelector('.product-brochure-prices-intro')!;
+    expect(intro.textContent).toContain('3 of 3 selected');
+
+    const checkboxes = Array.from(container.querySelectorAll<HTMLInputElement>('.product-brochure-prices input[type="checkbox"]'));
+    await act(async () => checkboxes[1].click());
+    expect(preview.querySelector<HTMLElement>('.product-brochure-preview-tiers')!.style.gridTemplateColumns).toBe('repeat(2, minmax(0, 1fr))');
+    expect(preview.querySelectorAll('.product-brochure-preview-tier')).toHaveLength(2);
+    expect(intro.textContent).toContain('2 of 3 selected');
+    await act(async () => findButton('Clear selection').click());
+    expect(preview.querySelector('.product-brochure-preview-tiers')).toBeNull();
+    expect(preview.textContent).toContain('CONTACT US FOR PRICING');
+    expect(intro.textContent).toContain('0 of 3 selected');
+  });
+
+  it('keeps the public description when retrying a temporary price loading failure', async () => {
+    const loadPrices = vi.fn()
+      .mockRejectedValueOnce(new Error('Pricing service temporarily unavailable'))
+      .mockResolvedValueOnce(prices);
+    await mount({ loadPrices });
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain('Pricing service temporarily unavailable');
+
+    const textarea = container.querySelector<HTMLTextAreaElement>('[aria-label="Brochure description"]')!;
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(textarea, 'Hand-poured for wedding sponsors');
+      textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await act(async () => {
+      findButton('Retry loading prices').click();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(loadPrices).toHaveBeenCalledTimes(2);
+    expect(textarea.value).toBe('Hand-poured for wedding sponsors');
+    expect(container.querySelector('.product-brochure-preview')?.textContent).toContain('Hand-poured for wedding sponsors');
+    expect(container.querySelectorAll('.product-brochure-preview-tier')).toHaveLength(3);
+    expect(container.querySelector('[role="alert"]')).toBeNull();
+  });
+
+  it('shows long package names without leaking internal notes and prints exactly the selected options', async () => {
+    const specials = [
+      { id: 'custom', label: 'CUSTOM WEDDING PRINCIPAL SPONSOR PACKAGE', quantity: 25, unitPrice: 179.50, detail: 'Custom presentation' },
+      { id: 'bulk', label: 'EVENT TABLE GIVEAWAY PACKAGE', quantity: 120, unitPrice: 149, detail: 'Giveaway package' },
+      { id: 'singles', label: 'SINGLE', quantity: 1, unitPrice: 199, detail: 'Per piece' },
+    ];
+    const onPrint = vi.fn();
+    await mount({ loadPrices: async () => specials, onPrint });
+    const previews = container.querySelectorAll('.product-brochure-preview-tier');
+    expect(previews).toHaveLength(3);
+    expect(previews[0].textContent).toContain('CUSTOM WEDDING PRINCIPAL SPONSOR PACKAGE');
+    expect(previews[0].textContent).toContain('Min. 25 pcs');
+    expect(previews[1].textContent).toContain('Min. 120 pcs');
+    expect(container.querySelector('.product-brochure-preview')?.textContent).not.toContain('INTERNAL COSTS');
+    await act(async () => findButton('Print / Save as PDF').click());
+    expect(onPrint).toHaveBeenCalledWith(expect.objectContaining({ prices: specials }));
+  });
+
   it('never invents selling prices and works when a product has no photo', async () => {
     const onPrint = vi.fn();
     await mount({
