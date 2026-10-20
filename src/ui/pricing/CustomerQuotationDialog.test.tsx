@@ -130,14 +130,14 @@ describe('CustomerQuotationDialog multi-product workflow', () => {
     expect(documents[0]).toContain('₱200.00'); // Second line sales
     expect(documents[0]).toContain('₱80.00');  // Second line cost
     expect(documents[0]).toContain('₱500.00'); // Overall quoted sales
-    expect(documents[0]).toContain('₱380.00'); // Total gross profit
+    expect(documents[0]).toContain('₱300.00'); // Total gross profit (500 sales − 200 costs)
 
     await act(async () => customerButton.click());
     expect(documents).toHaveLength(2);
     expect(documents[1]).toContain('Customer Quotation');
     expect(documents[1]).toContain('₱500.00');
     expect(documents[1]).not.toContain('CONFIDENTIAL');
-    expect(documents[1]).not.toContain('₱380.00');
+    expect(documents[1]).not.toContain('₱120.00');
     expect(documents[1]).not.toContain('₱180.00');
     expect(documents[1]).not.toContain('Profit / unit');
     expect(documents[1]).not.toContain('Total product cost');
