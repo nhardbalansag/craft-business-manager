@@ -26,6 +26,8 @@ export interface OwnerQuotationView {
   generatedAtIso: string;
   validUntil: string | null;
   customer: CustomerQuotationView['customer'];
+  notes: string | null;
+  terms: string | null;
   items: OwnerQuotationItem[];
   totalSales: number;
   totalProductCost: number | null;
@@ -134,6 +136,8 @@ export function buildOwnerQuotationView(
     generatedAtIso: customer.generatedAtIso,
     validUntil: customer.validUntil,
     customer: customer.customer,
+    notes: customer.notes,
+    terms: customer.terms,
     items,
     totalSales,
     totalProductCost,
