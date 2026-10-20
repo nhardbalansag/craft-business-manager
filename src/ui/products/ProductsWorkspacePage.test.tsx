@@ -321,6 +321,78 @@ describe('ProductsWorkspacePage', () => {
     expect(yieldPanel.querySelector('[aria-label="Selected Yield product"]')?.textContent).toContain('Ocean Theme');
   });
 
+  it('refreshes saved Pricing cost and quantities after adding, editing and removing Components', async () => {
+    await session.materialRepository.replaceAll([{
+      id: 'PKG-01', name: 'Gift packaging',
+      group: 'packaging', baseUnit: 'pc', purchaseQuantity: 10, purchaseUnit: 'pc',
+      packageCost: 100, onHandQuantity: 100, onHandUnit: 'pc', isActive: true,
+    }]);
+
+    await act(async () => root.render(<ProductsWorkspacePage />));
+    await flush();
+    const tabs = container.querySelector('[aria-label="Product workspace views"]')!;
+    const tab = async (name: string) => {
+      await act(async () => tabs.querySelector<HTMLButtonElement>(`[aria-controls="products-view-${name}"]`)!.click());
+      await flush();
+    };
+    const purchasedCost = () => {
+      const rows = Array.from(container.querySelectorAll<HTMLElement>('.pricing-quote-section .pricing-summary-row'));
+      const row = rows.find((candidate) => candidate.querySelector('strong')?.textContent === 'Purchased components');
+      if (!row) throw new Error('Pricing breakdown is missing Purchased components');
+      return row.querySelector('span')?.textContent;
+    };
+    const componentsForm = () => container.querySelector<HTMLFormElement>('.component-editor-form')!;
+    const componentField = (label: string) => {
+      const parent = Array.from(componentsForm().querySelectorAll('label')).find(
+        (item) => item.querySelector('span')?.textContent === label,
+      );
+      if (!parent) throw new Error(`Missing Component field: ${label}`);
+      return parent.querySelector<HTMLInputElement | HTMLSelectElement>('input,select')!;
+    };
+    const fill = async (element: HTMLInputElement | HTMLSelectElement, value: string) => {
+      await act(async () => {
+        Object.getOwnPropertyDescriptor(Object.getPrototypeOf(element), 'value')!.set!.call(element, value);
+        element.dispatchEvent(new Event(element instanceof HTMLSelectElement ? 'change' : 'input', { bubbles: true }));
+      });
+    };
+    const save = async () => {
+      await act(async () => componentsForm().dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })));
+      await flush();
+    };
+
+    // Pricing is already mounted and its initial cost quote is loaded.
+    await tab('pricing');
+    expect(purchasedCost()).toBe('PHP 0.00');
+    await tab('components');
+    expect(container.querySelector<HTMLSelectElement>('.composition-parent-panel select')?.value).toBe('PRD-1');
+
+    await fill(componentField('Material source'), 'PKG-01');
+    await fill(componentField('Quantity per parent'), '2');
+    await save();
+    expect(container.querySelector('.component-card strong')?.textContent).toContain('2 × Gift packaging');
+    await tab('pricing');
+    expect(purchasedCost()).toBe('PHP 20.00');
+
+    // Editing the same component must refresh the already-mounted Pricing panel.
+    await tab('components');
+    await act(async () => container.querySelector<HTMLButtonElement>('.component-card .row-actions button')!.click());
+    await fill(componentField('Quantity per parent'), '3');
+    await save();
+    await tab('pricing');
+    expect(purchasedCost()).toBe('PHP 30.00');
+
+    // Deleting the component must remove its former price contribution.
+    await tab('components');
+    const remove = Array.from(container.querySelectorAll<HTMLButtonElement>('.component-card .row-actions button'))
+      .find((button) => button.textContent === 'Remove')!;
+    await act(async () => remove.click());
+    await flush();
+    expect(container.querySelector('.component-card')).toBeNull();
+    await tab('pricing');
+    expect(purchasedCost()).toBe('PHP 0.00');
+    expect(container.querySelector('[aria-label="Selected pricing Product"]')?.textContent).toContain('Dinosaur Toy');
+  });
+
   it('makes the Mold and Storage workspace reachable from the Products section', async () => {
     await act(async () => root.render(<ProductsWorkspacePage />));
     await flush();

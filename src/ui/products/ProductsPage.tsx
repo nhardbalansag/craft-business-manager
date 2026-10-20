@@ -115,6 +115,9 @@ export function ProductsPage() {
   // These workspaces stay mounted while hidden. Refresh any cached Product lists
   // whenever the catalog successfully creates a new Product.
   const [productCatalogRevision, setProductCatalogRevision] = useState(0);
+  // Pricing remains mounted between tabs; changes to saved component inputs
+  // must invalidate its cached cost and quantity-aware selling price.
+  const [componentPricingRevision, setComponentPricingRevision] = useState(0);
   const [pricingVisited, setPricingVisited] = useState(false);
   const [yieldVisited, setYieldVisited] = useState(false);
 
@@ -685,6 +688,7 @@ export function ProductsPage() {
             catalogLoading={loading}
             initialProductId={selectedProductId ?? undefined}
             onSelectedProductChange={setSelectedProductId}
+            onComponentsSaved={() => setComponentPricingRevision((current) => current + 1)}
           />
         </div>
       )}
@@ -703,6 +707,7 @@ export function ProductsPage() {
           <PricingPage
             preferredProductId={selectedProductId}
             productCatalogRevision={productCatalogRevision}
+            componentPricingRevision={componentPricingRevision}
             onSelectedProductChange={setSelectedProductId}
           />
         )}
