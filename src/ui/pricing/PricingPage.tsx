@@ -94,10 +94,12 @@ function pricingMethodSummary(form: ProductFinancialProfileFormState): string {
 interface PricingPageProps {
   preferredProductId?: string | null;
   productCatalogRevision?: number;
+  /** Changes to saved component composition invalidate all quote-derived costs. */
+  componentPricingRevision?: number;
   onSelectedProductChange?: (productId: string) => void;
 }
 
-export function PricingPage({ preferredProductId, productCatalogRevision = 0, onSelectedProductChange }: PricingPageProps = {}) {
+export function PricingPage({ preferredProductId, productCatalogRevision = 0, componentPricingRevision = 0, onSelectedProductChange }: PricingPageProps = {}) {
   const preferredProductRef = useRef(preferredProductId);
   preferredProductRef.current = preferredProductId;
   const [products, setProducts] = useState<Product[]>([]);
@@ -279,8 +281,12 @@ export function PricingPage({ preferredProductId, productCatalogRevision = 0, on
       return;
     }
 
+    // Re-evaluate the authoritative cost graph after a component is added,
+    // edited or removed, even if Pricing has stayed mounted under a hidden tab.
+    // Quote changes also re-trigger quantity/tier resolution through its
+    // existing effect, without discarding the unsaved financial profile draft.
     void loadQuote(selectedProductId);
-  }, [loadQuote, selectedProductId]);
+  }, [loadQuote, selectedProductId, componentPricingRevision]);
 
   useEffect(() => {
     if (selectedProductId === null || quote === null) {
