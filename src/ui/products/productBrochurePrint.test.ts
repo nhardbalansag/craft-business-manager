@@ -33,6 +33,10 @@ describe('A4 My Lovely Craft brochure print', () => {
     expect(html).toContain('SINGLE');
     expect(html).toContain('30+ PCS');
     expect(html).toContain('50+ PCS');
+    expect(html).toContain('Min. 30 pcs');
+    expect(html).toContain('Min. 50 pcs');
+    expect(html).toContain('class="price-minimum"');
+    expect(html).toContain('grid-template-columns: repeat(3, minmax(0, 1fr))');
     expect(html).toContain('₱24.00');
     expect(html).toContain('₱22.00');
     expect(html).toContain('₱19.00');
@@ -83,6 +87,18 @@ describe('A4 My Lovely Craft brochure print', () => {
 
   it('fails gracefully when popups are blocked', () => {
     expect(() => printProductBrochure(view, () => null)).toThrow(ProductBrochurePrintError);
+  });
+
+  it('uses one stable column for a single package and two for two packages without invalid quantities', () => {
+    const html = renderProductBrochureHtml({
+      ...view, prices: [view.prices[0], { ...view.prices[1], quantity: 0 }],
+    });
+    expect(html).toContain('grid-template-columns: repeat(1, minmax(0, 1fr))');
+    expect(html).toContain('1 piece');
+    expect(html).not.toContain('30+ PCS');
+    const two = renderProductBrochureHtml({ ...view, prices: view.prices.slice(0, 2) });
+    expect(two).toContain('grid-template-columns: repeat(2, minmax(0, 1fr))');
+    expect(two).toContain('Min. 30 pcs');
   });
 
   it('limits the layout to three prices even if an invalid caller passes more', () => {
