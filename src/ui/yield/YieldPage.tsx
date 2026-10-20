@@ -164,11 +164,13 @@ export interface YieldPageProps {
   productCatalogRevision?: number;
   /** Keep the Product workspace selection aligned with Yield changes. */
   onSelectedProductChange?: (productId: string) => void;
+  /** Fired only after saved Yield evidence/preference changes, never for a draft edit. */
+  onYieldEvidenceSaved?: (productId: string) => void;
   /** When embedded under Products, show one route back instead of a second picker. */
   onOpenProducts?: () => void;
 }
 
-export function YieldPage({ preferredProductId, productCatalogRevision = 0, onSelectedProductChange, onOpenProducts }: YieldPageProps = {}) {
+export function YieldPage({ preferredProductId, productCatalogRevision = 0, onSelectedProductChange, onYieldEvidenceSaved, onOpenProducts }: YieldPageProps = {}) {
   const preferredProductRef = useRef(preferredProductId);
   preferredProductRef.current = preferredProductId;
   const [products, setProducts] = useState<Product[]>([]);
@@ -804,6 +806,7 @@ export function YieldPage({ preferredProductId, productCatalogRevision = 0, onSe
       replaceDraft(emptyForm());
       setFeedback({ type: 'success', message: `Yield sample ${sampleId} recorded.` });
       await loadHistory(selectedProduct.id);
+      onYieldEvidenceSaved?.(selectedProduct.id);
     } catch (error) {
       setFeedback({ type: 'error', message: errorMessage(error) });
     } finally {
@@ -821,6 +824,7 @@ export function YieldPage({ preferredProductId, productCatalogRevision = 0, onSe
       await yieldHistoryService.setPreferred(selectedProduct.id, sample.id);
       setFeedback({ type: 'success', location: 'history', message: `Yield sample ${sample.id} is now preferred for ${selectedProduct.name}.` });
       await loadHistory(selectedProduct.id);
+      onYieldEvidenceSaved?.(selectedProduct.id);
     } catch (error) {
       setFeedback({ type: 'error', location: 'history', message: errorMessage(error) });
     } finally {
@@ -841,6 +845,7 @@ export function YieldPage({ preferredProductId, productCatalogRevision = 0, onSe
         message: `Automatic Yield selection restored. ${automatic.sample.id} is now effective.`,
       });
       await loadHistory(selectedProduct.id);
+      onYieldEvidenceSaved?.(selectedProduct.id);
     } catch (error) {
       setFeedback({ type: 'error', location: 'learning', message: errorMessage(error) });
     } finally {
@@ -866,6 +871,7 @@ export function YieldPage({ preferredProductId, productCatalogRevision = 0, onSe
       setPendingDeleteId(null);
       setFeedback({ type: 'success', location: 'history', message: `Yield sample ${sample.id} deleted as a correction.` });
       await loadHistory(sample.productId);
+      onYieldEvidenceSaved?.(sample.productId);
     } catch (error) {
       setFeedback({ type: 'error', location: 'history', message: errorMessage(error) });
     } finally {

@@ -118,6 +118,9 @@ export function ProductsPage() {
   // Pricing remains mounted between tabs; changes to saved component inputs
   // must invalidate its cached cost and quantity-aware selling price.
   const [componentPricingRevision, setComponentPricingRevision] = useState(0);
+  // Saved Yield batches and preferred effective samples affect the same pricing
+  // cost graph and must refresh its mounted (sometimes hidden) quote.
+  const [yieldPricingRevision, setYieldPricingRevision] = useState(0);
   const [pricingVisited, setPricingVisited] = useState(false);
   const [yieldVisited, setYieldVisited] = useState(false);
 
@@ -676,6 +679,7 @@ export function ProductsPage() {
             preferredProductId={selectedProductId}
             productCatalogRevision={productCatalogRevision}
             onSelectedProductChange={setSelectedProductId}
+            onYieldEvidenceSaved={() => setYieldPricingRevision((current) => current + 1)}
             onOpenProducts={() => setView('products')}
           />
         )}
@@ -708,6 +712,7 @@ export function ProductsPage() {
             preferredProductId={selectedProductId}
             productCatalogRevision={productCatalogRevision}
             componentPricingRevision={componentPricingRevision}
+            yieldPricingRevision={yieldPricingRevision}
             onSelectedProductChange={setSelectedProductId}
           />
         )}

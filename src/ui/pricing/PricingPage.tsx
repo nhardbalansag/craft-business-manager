@@ -96,10 +96,12 @@ interface PricingPageProps {
   productCatalogRevision?: number;
   /** Changes to saved component composition invalidate all quote-derived costs. */
   componentPricingRevision?: number;
+  /** Saved Yield samples and preferred effective selection invalidate cost evidence. */
+  yieldPricingRevision?: number;
   onSelectedProductChange?: (productId: string) => void;
 }
 
-export function PricingPage({ preferredProductId, productCatalogRevision = 0, componentPricingRevision = 0, onSelectedProductChange }: PricingPageProps = {}) {
+export function PricingPage({ preferredProductId, productCatalogRevision = 0, componentPricingRevision = 0, yieldPricingRevision = 0, onSelectedProductChange }: PricingPageProps = {}) {
   const preferredProductRef = useRef(preferredProductId);
   preferredProductRef.current = preferredProductId;
   const [products, setProducts] = useState<Product[]>([]);
@@ -281,12 +283,12 @@ export function PricingPage({ preferredProductId, productCatalogRevision = 0, co
       return;
     }
 
-    // Re-evaluate the authoritative cost graph after a component is added,
-    // edited or removed, even if Pricing has stayed mounted under a hidden tab.
-    // Quote changes also re-trigger quantity/tier resolution through its
-    // existing effect, without discarding the unsaved financial profile draft.
+    // Re-evaluate authoritative saved cost evidence after component mutations
+    // or Yield recording/preference/correction, even while the tab is hidden.
+    // The quote change refreshes quantity/tier resolution without clearing the
+    // unsaved Financial Source draft or altering the selected Product.
     void loadQuote(selectedProductId);
-  }, [loadQuote, selectedProductId, componentPricingRevision]);
+  }, [loadQuote, selectedProductId, componentPricingRevision, yieldPricingRevision]);
 
   useEffect(() => {
     if (selectedProductId === null || quote === null) {

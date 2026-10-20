@@ -393,6 +393,135 @@ describe('ProductsWorkspacePage', () => {
     expect(container.querySelector('[aria-label="Selected pricing Product"]')?.textContent).toContain('Dinosaur Toy');
   });
 
+  it('recalculates Pricing after recording a new Yield batch while Pricing remains mounted', async () => {
+    await session.materialRepository.replaceAll([{
+      id: 'MAT-PLASTER', name: 'Plaster of Paris', group: 'plaster',
+      baseUnit: 'g', purchaseQuantity: 1, purchaseUnit: 'kg',
+      packageCost: 100, onHandQuantity: 5, onHandUnit: 'kg', isActive: true,
+    }]);
+    await session.productFinancialProfileRepository.replaceAll([{
+      productId: 'PRD-1',
+      laborCostPerUnit: 0,
+      overheadCostPerUnit: 0,
+      pricingPolicy: { method: 'profit-amount', value: 10 },
+    }]);
+    await act(async () => root.render(<ProductsWorkspacePage />));
+    await flush();
+    const tabs = container.querySelector('[aria-label="Product workspace views"]')!;
+    const tab = async (name: string) => {
+      await act(async () => tabs.querySelector<HTMLButtonElement>(`[aria-controls="products-view-${name}"]`)!.click());
+      await flush();
+    };
+    const directCost = () => {
+      const rows = Array.from(container.querySelectorAll<HTMLElement>('.pricing-quote-section .pricing-summary-row'));
+      const row = rows.find((candidate) => candidate.querySelector('strong')?.textContent === 'Direct materials');
+      if (!row) throw new Error('Direct materials row missing');
+      return row.querySelector('span')?.textContent;
+    };
+    const fill = async (element: HTMLInputElement | HTMLSelectElement, value: string) => {
+      await act(async () => {
+        Object.getOwnPropertyDescriptor(Object.getPrototypeOf(element), 'value')!.set!.call(element, value);
+        element.dispatchEvent(new Event(element instanceof HTMLSelectElement ? 'change' : 'input', { bubbles: true }));
+      });
+    };
+    await tab('pricing');
+    const previous = directCost();
+    await tab('yield');
+    const yieldForm = container.querySelector<HTMLFormElement>('[aria-label="Yield sample"]')!;
+    await fill(yieldForm.querySelector<HTMLSelectElement>('[aria-label="Yield material 1"]')!, 'MAT-PLASTER');
+    await fill(yieldForm.querySelector<HTMLInputElement>('[aria-label="Yield quantity 1"]')!, '800');
+    const field = (label: string) => Array.from(yieldForm.querySelectorAll('label')).find(
+      (item) => item.querySelector('span')?.textContent?.trim().startsWith(label),
+    )!.querySelector<HTMLInputElement>('input')!;
+    await fill(field('Good pieces'), '8');
+    await fill(field('Rejected pieces'), '2');
+    expect(yieldForm.textContent).toContain('Ready to record');
+    await act(async () => yieldForm.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })));
+    await flush();
+    expect((await session.yieldSampleEvidenceService.listSamples({ productId: 'PRD-1' }))).toHaveLength(1);
+
+    // The current saved pricing quote is invalidated by successful Yield persistence.
+    await tab('pricing');
+    const authoritative = await session.productPricingQuoteIntegrationService.quoteProduct('PRD-1');
+    expect(authoritative.fullyLoadedUnitCost.directMaterialCost?.baseDirectMaterialCostSubtotal).toBeGreaterThan(0);
+    expect(directCost()).not.toBe(previous);
+    expect(directCost()).toBe('PHP 10.00');
+    expect(container.querySelector('[aria-label="Selected pricing Product"]')?.textContent).toContain('Dinosaur Toy');
+  });
+
+  it('recalculates Pricing when preferred Yield is changed, restored to automatic, or corrected', async () => {
+    await session.materialRepository.replaceAll([{
+      id: 'MAT-PLASTER', name: 'Plaster of Paris', group: 'plaster',
+      baseUnit: 'g', purchaseQuantity: 1, purchaseUnit: 'kg',
+      packageCost: 100, onHandQuantity: 5, onHandUnit: 'kg', isActive: true,
+    }]);
+    await session.yieldSampleRepository.replaceAll([
+      {
+        id: 'YLD-OLD', productId: 'PRD-1',
+        materialInputs: [{ materialId: 'MAT-PLASTER', quantity: 800, unit: 'g' }],
+        goodPieces: 8, rejectedPieces: 0, recordedAt: '2026-09-15T01:00:00.000Z',
+      },
+      {
+        id: 'YLD-NEW', productId: 'PRD-1',
+        materialInputs: [{ materialId: 'MAT-PLASTER', quantity: 400, unit: 'g' }],
+        goodPieces: 8, rejectedPieces: 0, recordedAt: '2026-09-16T01:00:00.000Z',
+      },
+    ]);
+    await session.productFinancialProfileRepository.replaceAll([{
+      productId: 'PRD-1',
+      laborCostPerUnit: 0,
+      overheadCostPerUnit: 0,
+      pricingPolicy: { method: 'profit-amount', value: 10 },
+    }]);
+    await act(async () => root.render(<ProductsWorkspacePage />));
+    await flush();
+    const tabs = container.querySelector('[aria-label="Product workspace views"]')!;
+    const tab = async (name: string) => {
+      await act(async () => tabs.querySelector<HTMLButtonElement>(`[aria-controls="products-view-${name}"]`)!.click());
+      await flush();
+    };
+    const directCost = () => {
+      const rows = Array.from(container.querySelectorAll<HTMLElement>('.pricing-quote-section .pricing-summary-row'));
+      const row = rows.find((candidate) => candidate.querySelector('strong')?.textContent === 'Direct materials');
+      if (!row) throw new Error('Direct materials row missing');
+      return row.querySelector('span')?.textContent;
+    };
+    await tab('pricing');
+    const automatic = directCost();
+    expect(automatic).toBe('PHP 5.00');
+    await tab('yield');
+    const older = container.querySelector<HTMLElement>('[aria-label="Yield sample YLD-OLD"]')!;
+    const prefer = Array.from(older.querySelectorAll<HTMLButtonElement>('button'))
+      .find((button) => button.textContent === 'Use as preferred yield')!;
+    await act(async () => prefer.click());
+    await flush();
+    expect(container.querySelector('[aria-label="Effective yield learning"]')?.textContent).toContain('Sample YLD-OLD');
+    await tab('pricing');
+    expect(directCost()).toBe('PHP 10.00');
+
+    await tab('yield');
+    const automaticButton = Array.from(container.querySelectorAll<HTMLButtonElement>('[aria-label="Effective yield learning"] button'))
+      .find((button) => button.textContent === 'Use latest valid automatically')!;
+    await act(async () => automaticButton.click());
+    await flush();
+    await tab('pricing');
+    expect(directCost()).toBe(automatic);
+
+    // A correction removes the now automatically selected newer sample,
+    // making the older batch the effective pricing evidence.
+    await tab('yield');
+    const newer = container.querySelector<HTMLElement>('[aria-label="Yield sample YLD-NEW"]')!;
+    const askDelete = Array.from(newer.querySelectorAll<HTMLButtonElement>('button'))
+      .find((button) => button.textContent === 'Delete as correction')!;
+    await act(async () => askDelete.click());
+    const confirm = Array.from(newer.querySelectorAll<HTMLButtonElement>('button'))
+      .find((button) => button.textContent === 'Confirm correction delete')!;
+    await act(async () => confirm.click());
+    await flush();
+    await tab('pricing');
+    expect(directCost()).toBe('PHP 10.00');
+  });
+
   it('makes the Mold and Storage workspace reachable from the Products section', async () => {
     await act(async () => root.render(<ProductsWorkspacePage />));
     await flush();
