@@ -23,6 +23,8 @@ type ProductComponentsViewProps = {
   catalogLoading: boolean;
   initialProductId?: string;
   onSelectedProductChange?: (productId: string) => void;
+  /** Inform the parent after a component has been successfully persisted. */
+  onComponentsSaved?: () => void;
 };
 
 type ComponentFormState = {
@@ -98,7 +100,7 @@ function PreviewBranch({ node }: { node: ProductCompositionPreviewNode }) {
   );
 }
 
-export function ProductComponentsView({ products, materials, catalogLoading, initialProductId, onSelectedProductChange }: ProductComponentsViewProps) {
+export function ProductComponentsView({ products, materials, catalogLoading, initialProductId, onSelectedProductChange, onComponentsSaved }: ProductComponentsViewProps) {
   const initialParentId = products.find((product) => product.id === initialProductId)?.id ?? products.find((product) => product.isActive)?.id ?? products[0]?.id ?? '';
   const [sourceError, setSourceError] = useState<string | null>(null);
   const [selectedParentId, setSelectedParentId] = useState(initialParentId);
@@ -241,11 +243,13 @@ export function ProductComponentsView({ products, materials, catalogLoading, ini
           notes: candidate.notes,
         });
         await reloadComponents();
+        onComponentsSaved?.();
         resetForm(false);
         setFeedback({ type: 'success', message: 'Component updated.' });
       } else {
         await productComponentService.createComponent(candidate);
         await reloadComponents();
+        onComponentsSaved?.();
         resetForm(false);
         setFeedback({ type: 'success', message: 'Component added.' });
       }
@@ -259,6 +263,7 @@ export function ProductComponentsView({ products, materials, catalogLoading, ini
     try {
       await productComponentService.removeComponent(component.id);
       await reloadComponents();
+      onComponentsSaved?.();
       if (comparable(editingComponentId ?? '') === comparable(component.id)) resetForm(false);
       setFeedback({ type: 'success', message: `${sourceLabel(component, products, materials)} removed from composition.` });
     } catch (error) {
