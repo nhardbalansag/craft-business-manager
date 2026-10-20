@@ -97,8 +97,8 @@ export function buildOwnerQuotationView(
       : validTier ? tier.economics!.fullyLoadedUnitCost : null;
     // For explicitly selected tiers, the extra charge is a production cost
     // per offer, not a per-piece cost; factor in exactly the resolved offer count.
-    const additional = tier
-      ? validTier ? tier.economics!.additionalCostPerOffer * resolved.offerCount! : null
+    const additional = resolved.mode === 'explicit-tier'
+      ? validTier ? tier!.economics!.additionalCostPerOffer * resolved.offerCount! : null
       : 0;
     const totalCostCandidate = baseUnitCost === null || additional === null
       ? null
