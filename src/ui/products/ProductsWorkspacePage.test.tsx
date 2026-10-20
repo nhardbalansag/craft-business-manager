@@ -362,7 +362,7 @@ describe('ProductsWorkspacePage', () => {
 
     // Pricing is already mounted and its initial cost quote is loaded.
     await tab('pricing');
-    expect(purchasedCost()).toBe('₱0.00');
+    expect(purchasedCost()).toBe('PHP 0.00');
     await tab('components');
     expect(container.querySelector<HTMLSelectElement>('.composition-parent-panel select')?.value).toBe('PRD-1');
 
@@ -371,7 +371,7 @@ describe('ProductsWorkspacePage', () => {
     await save();
     expect(container.querySelector('.component-card strong')?.textContent).toContain('2 × Gift packaging');
     await tab('pricing');
-    expect(purchasedCost()).toBe('₱20.00');
+    expect(purchasedCost()).toBe('PHP 20.00');
 
     // Editing the same component must refresh the already-mounted Pricing panel.
     await tab('components');
@@ -379,7 +379,7 @@ describe('ProductsWorkspacePage', () => {
     await fill(componentField('Quantity per parent'), '3');
     await save();
     await tab('pricing');
-    expect(purchasedCost()).toBe('₱30.00');
+    expect(purchasedCost()).toBe('PHP 30.00');
 
     // Deleting the component must remove its former price contribution.
     await tab('components');
@@ -389,7 +389,7 @@ describe('ProductsWorkspacePage', () => {
     await flush();
     expect(container.querySelector('.component-card')).toBeNull();
     await tab('pricing');
-    expect(purchasedCost()).toBe('₱0.00');
+    expect(purchasedCost()).toBe('PHP 0.00');
     expect(container.querySelector('[aria-label="Selected pricing Product"]')?.textContent).toContain('Dinosaur Toy');
   });
 
