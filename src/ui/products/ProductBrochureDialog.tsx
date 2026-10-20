@@ -252,7 +252,7 @@ export function ProductBrochureDialog({
 
           <div className="product-brochure-preview-container">
             <div className="product-brochure-preview-header">
-              <div><strong>Live brochure preview</strong><span>A4 portrait · customer-facing</span></div>
+              <div><strong>Brochure preview</strong><span>A4 portrait · customer-facing</span></div>
               <span className="product-brochure-preview-live">Live</span>
             </div>
             <div className="product-brochure-preview" aria-label="Brochure preview">
