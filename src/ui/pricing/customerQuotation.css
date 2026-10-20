@@ -344,3 +344,51 @@
   border-color: #80593a;
   background: #f4ede3;
 }
+
+
+/* Quotation reference photos: the thumbnail opens the same accessible, high-resolution
+   image viewer used by Products, Pricing, Yield and Components. */
+.customer-quotation-item-image > .product-image-zoom-trigger {
+  width: 76px;
+  height: 76px;
+  border: 1px solid var(--mlc-line, #e2d9cc);
+  background: var(--mlc-surface, #fff);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.customer-quotation-item-image > .product-image-zoom-trigger > .customer-quotation-reference-photo {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 3px;
+  border: 0;
+  object-fit: contain;
+}
+.customer-quotation-item-image > span { display: grid; gap: 4px; min-width: 0; }
+.customer-quotation-item-image > span strong { color: var(--mlc-ink, #302b25); font-size: .8rem; }
+.customer-quotation-item-image > span small { color: var(--mlc-muted, #756c62); line-height: 1.45; }
+
+/* The search result's image zoom is a separate control from selecting that
+   Product, so inspecting a photo never changes quotation items or prices. */
+.quotation-product-picker-result-row { display: flex; gap: 8px; align-items: stretch; min-width: 0; }
+.quotation-product-picker-result-row > .quotation-product-picker-result { flex: 1 1 auto; min-width: 0; }
+.quotation-product-picker-result-row > .product-image-zoom-trigger {
+  box-sizing: border-box;
+  flex: 0 0 56px;
+  width: 56px;
+  min-height: 56px;
+  padding: 4px;
+  border: 1px solid var(--mlc-line, #e4ddd2);
+  border-radius: 10px;
+  background: var(--mlc-surface, #fff);
+}
+.quotation-product-picker-result-row > .product-image-zoom-trigger > .quotation-product-picker-thumbnail {
+  box-sizing: border-box;
+  width: 100%;
+  height: 46px;
+  border: 0;
+  border-radius: 7px;
+  object-fit: contain;
+}
+.quotation-product-picker-result-row > .product-image-zoom-trigger:hover { border-color: var(--mlc-leaf, #596f4a); }

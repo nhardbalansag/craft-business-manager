@@ -1,4 +1,5 @@
 import { isValidProductImageDataUrl } from '../../domain/productImage';
+import { isValidBrochureImageDataUrl } from '../../domain/productBrochureImage';
 import {
   FormEvent,
   useEffect,
@@ -12,6 +13,7 @@ import type {
 } from '../../application/pricing/ProductPriceResolutionService';
 import type { Product } from '../../domain/products';
 import { QuotationProductPicker } from './QuotationProductPicker';
+import { ProductImageZoom } from '../products/ProductImageZoom';
 import {
   buildCustomerQuotationView,
   customerQuotationSourceLabel,
@@ -433,10 +435,21 @@ export function CustomerQuotationDialog({
                       )}
                     </div>
 
-                    {itemProduct?.imageDataUrl && isValidProductImageDataUrl(itemProduct.imageDataUrl) && (
+                    {itemProduct &&
+                      (isValidProductImageDataUrl(itemProduct.imageDataUrl) ||
+                        isValidBrochureImageDataUrl(itemProduct.brochureImageDataUrl)) && (
                       <div className="customer-quotation-item-image">
-                        <img src={itemProduct.imageDataUrl} alt={`Product image of ${itemProduct.name}`} />
-                        <span>Included in printed quotation</span>
+                        <ProductImageZoom
+                          key={itemProduct.id}
+                          product={itemProduct}
+                          imageClassName="customer-quotation-reference-photo"
+                        />
+                        <span>
+                          <strong>Click photo to enlarge</strong>
+                          <small>{isValidProductImageDataUrl(itemProduct.imageDataUrl)
+                            ? 'Included in printed quotation · Full-size reference available'
+                            : 'Full-size reference photo available'}</small>
+                        </span>
                       </div>
                     )}
                     <div className="customer-quotation-item-grid">

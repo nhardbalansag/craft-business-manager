@@ -1,6 +1,8 @@
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { PRODUCT_CATEGORIES, PRODUCT_CATEGORY_RULES, type Product, type ProductCategory } from '../../domain/products';
 import { isValidProductImageDataUrl } from '../../domain/productImage';
+import { isValidBrochureImageDataUrl } from '../../domain/productBrochureImage';
+import { ProductImageZoom } from '../products/ProductImageZoom';
 import { AppIcon } from '../icons/AppIcon';
 
 const PAGE_SIZE = 8;
@@ -19,7 +21,8 @@ export function searchQuotationProducts(
   return products
     .filter((product) => {
       if (!product.isActive || (category !== 'all' && product.category !== category)) return false;
-      const hasImage = isValidProductImageDataUrl(product.imageDataUrl);
+      const hasImage = isValidProductImageDataUrl(product.imageDataUrl) ||
+        isValidBrochureImageDataUrl(product.brochureImageDataUrl);
       if (photoFilter === 'with-image' && !hasImage) return false;
       if (photoFilter === 'without-image' && hasImage) return false;
       const haystack = normalize([
@@ -134,7 +137,10 @@ export function QuotationProductPicker({
       className="quotation-product-picker"
       onKeyDown={handleKeyDown}
       onBlur={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setOpen(false);
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null) &&
+          // The image viewer is portaled to the document body. Moving focus
+          // into it must not unmount the product-search result that opened it.
+          !document.querySelector('.product-image-zoom-dialog')) setOpen(false);
       }}
     >
       <span className="quotation-product-picker-label" id={listId + '-label'}>Product</span>
@@ -149,8 +155,15 @@ export function QuotationProductPicker({
         disabled={disabled}
         onClick={() => open ? closeSearch() : openSearch()}
       >
-        {selected?.imageDataUrl && isValidProductImageDataUrl(selected.imageDataUrl) && (
-          <img src={selected.imageDataUrl} alt="" className="quotation-product-picker-thumbnail" />
+        {selected && (isValidProductImageDataUrl(selected.imageDataUrl) ||
+          isValidBrochureImageDataUrl(selected.brochureImageDataUrl)) && (
+          <img
+            src={isValidProductImageDataUrl(selected.imageDataUrl)
+              ? selected.imageDataUrl
+              : selected.brochureImageDataUrl}
+            alt=""
+            className="quotation-product-picker-thumbnail"
+          />
         )}
         <span className="quotation-product-picker-selected">
           <strong>{selected?.name ?? 'Search and select a Product'}</strong>
@@ -247,25 +260,31 @@ export function QuotationProductPicker({
                 <small>Try another keyword or category. Products already in other items cannot be selected again.</small>
               </div>
             ) : shown.map((product, index) => (
-              <button
-                key={product.id}
-                id={listId + '-' + product.id}
-                type="button"
-                role="option"
-                aria-selected={product.id === selectedProductId}
-                className={'quotation-product-picker-result' + (index === activeIndex ? ' is-active' : '')}
-                onMouseEnter={() => setActiveIndex(index)}
-                onClick={() => choose(product)}
-              >
-                {product.imageDataUrl && isValidProductImageDataUrl(product.imageDataUrl) && (
-                  <img src={product.imageDataUrl} alt="" className="quotation-product-picker-thumbnail" />
+              <div key={product.id} className="quotation-product-picker-result-row" role="presentation">
+                {(isValidProductImageDataUrl(product.imageDataUrl) ||
+                  isValidBrochureImageDataUrl(product.brochureImageDataUrl)) && (
+                  <ProductImageZoom
+                    product={product}
+                    imageClassName="quotation-product-picker-thumbnail"
+                    alt={`Preview ${product.name} before adding to quotation`}
+                  />
                 )}
-                <span>
-                  <strong>{product.name}</strong>
-                  <small>{product.id} · {PRODUCT_CATEGORY_RULES[product.category].label}</small>
-                </span>
-                {product.id === selectedProductId && <em>Selected</em>}
-              </button>
+                <button
+                  id={listId + '-' + product.id}
+                  type="button"
+                  role="option"
+                  aria-selected={product.id === selectedProductId}
+                  className={'quotation-product-picker-result' + (index === activeIndex ? ' is-active' : '')}
+                  onMouseEnter={() => setActiveIndex(index)}
+                  onClick={() => choose(product)}
+                >
+                  <span>
+                    <strong>{product.name}</strong>
+                    <small>{product.id} · {PRODUCT_CATEGORY_RULES[product.category].label}</small>
+                  </span>
+                  {product.id === selectedProductId && <em>Selected</em>}
+                </button>
+              </div>
             ))}
           </div>
           {selectable.length > shown.length && (

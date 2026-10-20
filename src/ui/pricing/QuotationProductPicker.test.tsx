@@ -137,6 +137,56 @@ describe('Quotation product discovery', () => {
     expect(container.querySelector<HTMLInputElement>('input[role="combobox"]')!.value).toBe('');
   });
 
+  it('allows zooming a search-result photo without selecting or closing the product picker', async () => {
+    const highRes = 'data:image/jpeg;base64,' + 'AAAA'.repeat(28_000);
+    const onSelect = vi.fn();
+    await mount({
+      onSelect,
+      data: products.map((product) => product.id === 'ART-01'
+        ? { ...product, brochureImageDataUrl: highRes } : product),
+    });
+    await open();
+    await typeKeyword('sea turtle');
+    const result = container.querySelector<HTMLElement>('.quotation-product-picker-result-row')!;
+    expect(result).toBeTruthy();
+    expect(result.querySelector('[role="option"]')?.textContent).toContain('Paintable Sea Turtle');
+    const zoom = result.querySelector<HTMLButtonElement>('[aria-label="View full-size image of Paintable Sea Turtle"]')!;
+    expect(zoom).toBeTruthy();
+    expect(zoom.closest('button[role="option"]')).toBeNull();
+    zoom.focus();
+    await act(async () => zoom.click());
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(container.querySelector('[role="listbox"]')).not.toBeNull();
+    expect(document.body.querySelector<HTMLImageElement>('.product-image-zoom-canvas img')?.src).toBe(highRes);
+    expect(document.activeElement?.getAttribute('aria-label')).toBe('Close enlarged product image');
+
+    await act(async () => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })));
+    expect(document.body.querySelector('.product-image-zoom-dialog')).toBeNull();
+    expect(container.querySelector('[role="listbox"]')).not.toBeNull();
+    expect(document.activeElement).toBe(zoom);
+    expect(onSelect).not.toHaveBeenCalled();
+
+    await act(async () => options()[0].click());
+    expect(onSelect).toHaveBeenCalledExactlyOnceWith('ART-01');
+  });
+
+  it('includes brochure-only photos in image search and makes them zoomable', async () => {
+    const brochure = 'data:image/jpeg;base64,' + 'AAAA'.repeat(27_000);
+    const data = products.map((product) => product.id === 'ART-02'
+      ? { ...product, brochureImageDataUrl: brochure } : product);
+    expect(searchQuotationProducts(data, '', 'all', 'with-image').map((product) => product.id))
+      .toContain('ART-02');
+    expect(searchQuotationProducts(data, '', 'all', 'without-image').map((product) => product.id))
+      .not.toContain('ART-02');
+    await mount({ data });
+    await open();
+    await typeKeyword('Lion');
+    const zoom = container.querySelector<HTMLButtonElement>('[aria-label="View full-size image of Lion Painting Set"]')!;
+    expect(zoom).toBeTruthy();
+    await act(async () => zoom.click());
+    expect(document.body.querySelector<HTMLImageElement>('.product-image-zoom-canvas img')?.src).toBe(brochure);
+  });
+
   it('keeps selected item visible while excluding other quoted products', async () => {
     const onSelect = vi.fn();
     await mount({ selected: 'CND-01', unavailable: new Set(['CND-01', 'ART-01']), onSelect });
