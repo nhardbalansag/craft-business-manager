@@ -80,6 +80,71 @@ afterEach(async () => {
 });
 
 describe('CustomerQuotationDialog multi-product workflow', () => {
+  it('offers separate customer and owner PDFs with the same quotation number and private costs only in owner copy', async () => {
+    const initial = result('PROD-A', 'Rose Candle', 3, 100);
+    initial.integratedQuote = { ...initial.integratedQuote, totalFullyLoadedUnitCost: 40 };
+    const resolvePrice = vi.fn(async (request: { productId: string; quantity: number }) => {
+      const next = result(request.productId, 'Paintable Bear', request.quantity, 200);
+      next.integratedQuote = { ...next.integratedQuote, totalFullyLoadedUnitCost: 80 };
+      return next;
+    });
+    const documents: string[] = [];
+    const popup = {
+      document: {
+        open: vi.fn(),
+        write: vi.fn((html: string) => documents.push(html)),
+        close: vi.fn(),
+        images: [],
+      }, focus: vi.fn(), print: vi.fn(),
+    };
+    const openWindow = vi.spyOn(window, 'open').mockImplementation(() => popup as unknown as Window);
+
+    await act(async () => root.render(
+      <CustomerQuotationDialog open result={initial} products={products}
+        resolvePrice={resolvePrice} onClose={vi.fn()} />,
+    ));
+    const form = container.querySelector<HTMLFormElement>('[aria-label="Customer quotation form"]')!;
+    const customer = Array.from(form.querySelectorAll<HTMLInputElement>('input'))
+      .find((input) => input.placeholder === 'Customer or company name')!;
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(customer, 'Event Buyer');
+      customer.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await act(async () => container.querySelector<HTMLButtonElement>('.customer-quotation-add-product-button')!.click());
+    const second = container.querySelector<HTMLElement>('[aria-label="Quotation item 2"]')!;
+    await act(async () => second.querySelector<HTMLButtonElement>('[aria-label="Find product for quotation item 2"]')!.click());
+    await act(async () => second.querySelector<HTMLButtonElement>('[role="option"]')!.click());
+    await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+
+    const buttons = Array.from(form.querySelectorAll<HTMLButtonElement>('button'));
+    const ownerButton = buttons.find((button) => button.textContent?.includes('Print Business Owner Copy / PDF'))!;
+    const customerButton = buttons.find((button) => button.textContent?.includes('Print Customer Copy / PDF'))!;
+    expect(ownerButton.disabled).toBe(false);
+    expect(customerButton.disabled).toBe(false);
+    await act(async () => ownerButton.click());
+    expect(documents).toHaveLength(1);
+    expect(documents[0]).toContain('CONFIDENTIAL');
+    expect(documents[0]).toContain('₱300.00'); // First line sales
+    expect(documents[0]).toContain('₱120.00'); // First line cost
+    expect(documents[0]).toContain('₱180.00'); // First line gross profit
+    expect(documents[0]).toContain('₱200.00'); // Second line sales
+    expect(documents[0]).toContain('₱80.00');  // Second line cost
+    expect(documents[0]).toContain('₱500.00'); // Overall quoted sales
+    expect(documents[0]).toContain('₱300.00'); // Total gross profit (500 sales − 200 costs)
+
+    await act(async () => customerButton.click());
+    expect(documents).toHaveLength(2);
+    expect(documents[1]).toContain('Customer Quotation');
+    expect(documents[1]).toContain('₱500.00');
+    expect(documents[1]).not.toContain('CONFIDENTIAL');
+    expect(documents[1]).not.toContain('₱120.00');
+    expect(documents[1]).not.toContain('₱180.00');
+    expect(documents[1]).not.toContain('Profit / unit');
+    expect(documents[1]).not.toContain('Total product cost');
+    expect(popup.print).toHaveBeenCalledTimes(2);
+    expect(openWindow).toHaveBeenCalledTimes(2);
+  });
+
   it('previews the saved photo for its corresponding quotation item', async () => {
     const photo = `data:image/jpeg;base64,/9j/${'AAAA'.repeat(25)}`;
     const withPhotos = products.map((p) => p.id === 'PROD-A' ? { ...p, imageDataUrl: photo } : p);

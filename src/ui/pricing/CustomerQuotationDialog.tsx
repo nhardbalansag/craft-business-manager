@@ -20,6 +20,8 @@ import {
   type CustomerQuotationDraft,
 } from './customerQuotation';
 import { printCustomerQuotation } from './customerQuotationPrint';
+import { buildOwnerQuotationView } from './ownerQuotation';
+import { printOwnerQuotation } from './ownerQuotationPrint';
 import './customerQuotation.css';
 
 interface CustomerQuotationDialogProps {
@@ -339,28 +341,42 @@ export function CustomerQuotationDialog({
         line.result.totalSellingPrice !== null,
     );
 
-  function submit(event: FormEvent) {
-    event.preventDefault();
-    if (!draft || !allLinesReady || readyResults.length !== lines.length) {
-      setError(
+  // Both documents are generated from the same exact saved pricing resolution
+  // and customer details. Owner-only costs never enter the customer renderer.
+  function prepareQuotation() {
+    if (!allLinesReady || readyResults.length !== lines.length) {
+      throw new Error(
         'Every quotation item needs a Product, valid quantity, and ready pricing before printing.',
       );
-      return;
     }
+    return buildCustomerQuotationView(readyResults, {
+      ...draft!,
+      generatedAtIso: new Date().toISOString(),
+    }, products);
+  }
 
+  function submit(event: FormEvent) {
+    event.preventDefault();
     try {
-      const view = buildCustomerQuotationView(readyResults, {
-        ...draft,
-        generatedAtIso: new Date().toISOString(),
-      }, products);
-      printCustomerQuotation(view);
+      printCustomerQuotation(prepareQuotation());
       setError(null);
     } catch (submitError) {
-      setError(
-        submitError instanceof Error
-          ? submitError.message
-          : 'The quotation could not be prepared.',
-      );
+      setError(submitError instanceof Error
+        ? submitError.message
+        : 'The customer copy could not be prepared.');
+    }
+  }
+
+  function printBusinessOwnerCopy() {
+    try {
+      const customerView = prepareQuotation();
+      const ownerView = buildOwnerQuotationView(customerView, readyResults);
+      printOwnerQuotation(ownerView);
+      setError(null);
+    } catch (submitError) {
+      setError(submitError instanceof Error
+        ? submitError.message
+        : 'The owner copy could not be prepared.');
     }
   }
 
@@ -382,8 +398,8 @@ export function CustomerQuotationDialog({
             <p className="panel-kicker">CUSTOMER QUOTATION</p>
             <h2 id="customer-quotation-title">Print / Save as PDF</h2>
             <p>
-              Build one customer-facing quotation with one or more Products.
-              Every line uses its own saved quantity-aware pricing.
+              Prepare separate customer and business-owner PDFs from the same
+              saved quantity-aware Product pricing.
             </p>
           </div>
           <button
@@ -664,6 +680,16 @@ export function CustomerQuotationDialog({
             </div>
           )}
 
+          <div className="customer-quotation-copy-guide">
+            <div>
+              <strong>Customer Copy</strong>
+              <small>Selling prices and quotation details only — safe to share.</small>
+            </div>
+            <div>
+              <strong>Business Owner Copy · Confidential</strong>
+              <small>Sales, product costs, estimated profits and totals — keep private.</small>
+            </div>
+          </div>
           <div className="customer-quotation-actions">
             <div className="customer-quotation-grand-total">
               <span>Quotation total</span>
@@ -677,11 +703,19 @@ export function CustomerQuotationDialog({
               Cancel
             </button>
             <button
+              className="button button-secondary"
+              type="button"
+              disabled={!allLinesReady}
+              onClick={printBusinessOwnerCopy}
+            >
+              Print Business Owner Copy / PDF
+            </button>
+            <button
               className="button button-primary"
               type="submit"
               disabled={!allLinesReady}
             >
-              Print / Save as PDF
+              Print Customer Copy / PDF
             </button>
           </div>
         </form>

@@ -392,3 +392,35 @@
   object-fit: contain;
 }
 .quotation-product-picker-result-row > .product-image-zoom-trigger:hover { border-color: var(--mlc-leaf, #596f4a); }
+
+/* Independent public/private quotation outputs. Costs never appear in the
+   customer PDF, while the owner copy is intentionally labeled confidential. */
+.customer-quotation-copy-guide {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 20px;
+}
+.customer-quotation-copy-guide > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 12px 14px;
+  border-radius: 11px;
+  border: 1px solid #d9e2d0;
+  background: #f3f7ef;
+}
+.customer-quotation-copy-guide > div + div {
+  border-color: #e4d4bf;
+  background: #fcf5eb;
+}
+.customer-quotation-copy-guide strong { color: #4e6a43; font-size: .82rem; }
+.customer-quotation-copy-guide > div + div strong { color: #7c5138; }
+.customer-quotation-copy-guide small { color: #71685f; line-height: 1.4; }
+.customer-quotation-actions { flex-wrap: wrap; }
+.customer-quotation-actions > button { min-height: 42px; }
+@media (max-width: 760px) {
+  .customer-quotation-copy-guide { grid-template-columns: 1fr; }
+  .customer-quotation-actions { align-items: stretch; }
+  .customer-quotation-actions > button { width: 100%; }
+}
