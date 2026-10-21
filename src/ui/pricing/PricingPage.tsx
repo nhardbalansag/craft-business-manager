@@ -5,7 +5,9 @@ import {
   productPriceTierService,
   productPricingQuoteIntegrationService,
   productService,
+  materialRepository,
 } from '../../application/session';
+import type { Material } from '../../domain/materials';
 import type { ProductPriceResolutionResult } from '../../application/pricing/ProductPriceResolutionService';
 import type { IntegratedProductPricingQuoteResult } from '../../application/pricing/ProductPricingQuoteIntegrationService';
 import type { ProductPriceTier } from '../../domain/productPriceTiers';
@@ -105,6 +107,7 @@ export function PricingPage({ preferredProductId, productCatalogRevision = 0, co
   const preferredProductRef = useRef(preferredProductId);
   preferredProductRef.current = preferredProductId;
   const [products, setProducts] = useState<Product[]>([]);
+  const [materials, setMaterials] = useState<Material[]>([]);
   const [profiles, setProfiles] = useState<ProductFinancialProfile[]>([]);
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [form, setForm] = useState<ProductFinancialProfileFormState>(() =>
@@ -208,13 +211,15 @@ export function PricingPage({ preferredProductId, productCatalogRevision = 0, co
     setWorkspaceError(null);
     setFeedback(null);
     try {
-      const [nextProducts, nextProfiles] = await Promise.all([
+      const [nextProducts, nextProfiles, nextMaterials] = await Promise.all([
         productService.listProducts(),
         productFinancialProfileService.listProfiles(),
+        materialRepository.list(),
       ]);
 
       setProducts(nextProducts);
       setProfiles(nextProfiles);
+      setMaterials(nextMaterials);
 
       const initialProduct = nextProducts.find((product) => product.id === preferredProductRef.current)
         ?? nextProducts.find((product) => product.isActive) ?? nextProducts[0] ?? null;
@@ -231,6 +236,7 @@ export function PricingPage({ preferredProductId, productCatalogRevision = 0, co
       setWorkspaceError(errorMessage(error));
       setProducts([]);
       setProfiles([]);
+      setMaterials([]);
       setSelectedProductId(null);
       setForm(createEmptyProductFinancialProfileForm());
       resolutionRequestVersion.current += 1;
