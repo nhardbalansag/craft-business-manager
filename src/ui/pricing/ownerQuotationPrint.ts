@@ -1,4 +1,5 @@
 import type { OwnerQuotationView } from './ownerQuotation';
+import { groupOwnerQuotationMaterialLines } from './ownerQuotationMaterials';
 import type { CustomerQuotationPrintWindow, CustomerQuotationPrintWindowOpener } from './customerQuotationPrint';
 import { CustomerQuotationPrintError } from './customerQuotationPrint';
 
@@ -55,10 +56,10 @@ export function renderOwnerQuotationHtml(view: OwnerQuotationView): string {
     </tr>`).join('');
 
   const materialSections = view.items.map((item, index) => {
-    const lines = item.materialLines ?? [];
+    const lines = groupOwnerQuotationMaterialLines(item.materialLines ?? []);
     const rows = lines.map((line) => `
       <tr>
-        <td><strong>${escapeHtml(line.materialName)}</strong><small>${escapeHtml(line.materialId)} · ${escapeHtml(line.source)}</small></td>
+        <td><strong>${escapeHtml(line.materialName)}</strong><small>${escapeHtml(line.materialId)} · ${escapeHtml(line.sources.join(' · '))}</small></td>
         <td>${escapeHtml(quantity(line.quantityPerProduct))} ${escapeHtml(line.unit)}</td>
         <td>${escapeHtml(quantity(line.totalQuantity))} ${escapeHtml(line.unit)}</td>
         <td>${escapeHtml(unitMoney(line.unitCost))} / ${escapeHtml(line.unit)}</td>
@@ -136,6 +137,11 @@ tr { break-inside: avoid; }
 .material-subtotal strong { color: #496b3f; font-size: 10pt; }
 .material-other { color: #71675e; font-size: 7.5pt; }
 .material-consolidated { margin-top: 8mm; }
+.material-overview { display: flex; justify-content: space-between; gap: 8mm; margin: 3mm 0 4mm; padding: 4mm; background: #eef4e9; border: 1px solid #adbea0; border-radius: 2mm; }
+.material-overview span { display: block; font-size: 8pt; color: #566d4b; }
+.material-overview strong { display: block; margin-top: 1mm; font-size: 13pt; color: #385332; }
+.material-overview .material-count { text-align: right; }
+.material-table small { font-size: 7pt; overflow-wrap: anywhere; }
 .material-consolidated th:first-child, .material-consolidated td:first-child { width: 40%; }
 .material-total { padding: 3mm 2mm; margin-top: 3mm; text-align: right; border-top: 2px solid #596f4a; font-size: 10pt; }
 .material-total strong { margin-left: 7mm; color: #496b3f; }
@@ -175,20 +181,25 @@ ${view.unresolvedCostCount > 0 ? `<p class="warning">${view.unresolvedCostCount}
 <p class="info">Calculations use the saved fully loaded unit cost at quotation time, the chosen quantity, and any selected package/tier additional cost per offer. Gross profit = quoted sales minus product cost. These are <strong>quotation estimates, not realized sales or net profit</strong>; taxes, payment processing, delivery and other charges not included in saved Product cost are not automatically deducted.</p>
 </section>
 
-<section class="material-breakdown">
-<h2>Material Cost Breakdown — Per Quoted Product</h2>
-${materialSections}
-</section>
-
 <section class="material-consolidated">
-<h2>Consolidated Materials — Entire Quotation</h2>
-<p class="info">Same material IDs and base units are combined across all products, including nested product components. Unit cost is weighted when sources have different cost rates.</p>
+<h2>Combined Material Costs — Entire Quotation</h2>
+<p class="info">Each saved material appears once per base unit, even when it is used by several quoted Products or appears in both Yield and Components. Quantities and costs are totaled automatically.</p>
+<div class="material-overview">
+  <div><span>Total cost of all materials used</span><strong>${escapeHtml(money(view.materialBreakdownComplete ? view.totalMaterialCost ?? null : null))}</strong></div>
+  <div class="material-count"><span>Distinct materials / units</span><strong>${(view.materials ?? []).length.toLocaleString('en-PH')}</strong></div>
+</div>
 ${(view.materials ?? []).length > 0
-  ? `<table class="material-table"><thead><tr><th>Material</th><th>Total quantity</th><th>Weighted cost / unit</th><th>Quoted products</th><th>Total cost</th></tr></thead><tbody>${consolidatedRows}</tbody></table>`
+  ? `<table class="material-table"><thead><tr><th>Grouped material</th><th>Total quantity</th><th>Weighted cost / unit</th><th>Quoted products</th><th>Combined material cost</th></tr></thead><tbody>${consolidatedRows}</tbody></table>`
   : '<p class="info">No resolved material lines found in this quotation.</p>'}
 <p class="material-total"><span>All materials — total cost</span><strong>${escapeHtml(money(view.materialBreakdownComplete ? view.totalMaterialCost ?? null : null))}</strong></p>
 ${view.materialBreakdownComplete !== true ? '<p class="warning">At least one item has missing detailed material evidence. The overall material cost is unavailable; known lines are shown for reference only.</p>' : ''}
 <p class="material-breakdown-note">Quantities are costed planning estimates for this quotation, including the recipe safety-waste allowance, not actual inventory deductions or recorded material consumption. Other product costs are reported separately and remain included in the total product cost above.</p>
+</section>
+
+<section class="material-breakdown">
+<h2>Material Cost Breakdown — Per Quoted Product</h2>
+<p class="info">Repeated materials within each Product are also combined into a single row. Source details are retained under the material name.</p>
+${materialSections}
 </section>
 ${view.notes ? `<section><h2>Quotation notes</h2><div class="notes">${escapeHtml(view.notes)}</div></section>` : ''}
 ${view.terms ? `<section><h2>Terms &amp; conditions</h2><div class="notes">${escapeHtml(view.terms)}</div></section>` : ''}
