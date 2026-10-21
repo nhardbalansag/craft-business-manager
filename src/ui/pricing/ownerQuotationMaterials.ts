@@ -26,6 +26,91 @@ export interface OwnerQuotationMaterialTotal {
   contributingProducts: number;
 }
 
+/**
+ * Display row for a single quoted Product, grouped by the stable saved
+ * material identity and base unit. Raw source lines remain unchanged for
+ * auditing, while the financial report shows one total per actual material.
+ */
+export interface OwnerQuotationGroupedMaterialLine {
+  materialId: string;
+  materialName: string;
+  unit: Material['baseUnit'];
+  sources: string[];
+  quantityPerProduct: number;
+  totalQuantity: number;
+  /** Weighted cost per base unit when the same material has different rates. */
+  unitCost: number | null;
+  /** Null when even one contribution is uncosted; never silently zero it. */
+  totalCost: number | null;
+}
+
+/**
+ * Consolidate direct recipe/Yield and component usages for one quoted Product.
+ * IDs, rather than display names, prevent unrelated inventory materials with
+ * identical names from being merged; different units remain separate too.
+ * Aggregation is full precision, with rounding only in the PDF formatter.
+ */
+export function groupOwnerQuotationMaterialLines(
+  lines: readonly OwnerQuotationMaterialLine[],
+): OwnerQuotationGroupedMaterialLine[] {
+  const grouped = new Map<string, OwnerQuotationGroupedMaterialLine & {
+    costUnresolved: boolean;
+    quantityUnresolved: boolean;
+    sourceSet: Set<string>;
+  }>();
+
+  for (const line of lines) {
+    const key = `${idKey(line.materialId)}\u0000${line.unit}`;
+    const current = grouped.get(key) ?? {
+      materialId: line.materialId,
+      materialName: line.materialName,
+      unit: line.unit,
+      sources: [],
+      quantityPerProduct: 0,
+      totalQuantity: 0,
+      unitCost: null,
+      totalCost: 0,
+      costUnresolved: false,
+      quantityUnresolved: false,
+      sourceSet: new Set<string>(),
+    };
+    if (!valid(line.quantityPerProduct) || !valid(line.totalQuantity)) {
+      current.quantityUnresolved = true;
+    } else {
+      current.quantityPerProduct += line.quantityPerProduct;
+      current.totalQuantity += line.totalQuantity;
+    }
+    if (!valid(line.totalCost)) {
+      current.costUnresolved = true;
+    } else {
+      current.totalCost = (current.totalCost ?? 0) + line.totalCost;
+    }
+    current.sourceSet.add(line.source);
+    grouped.set(key, current);
+  }
+
+  return [...grouped.values()].map((line) => {
+    const totalCost = line.costUnresolved || line.quantityUnresolved ||
+      !valid(line.totalCost) || !valid(line.totalQuantity)
+      ? null : line.totalCost;
+    return {
+      materialId: line.materialId,
+      materialName: line.materialName,
+      unit: line.unit,
+      sources: [...line.sourceSet],
+      quantityPerProduct: line.quantityUnresolved ? Number.NaN : line.quantityPerProduct,
+      totalQuantity: line.quantityUnresolved ? Number.NaN : line.totalQuantity,
+      unitCost: totalCost !== null && line.totalQuantity > 0
+        ? totalCost / line.totalQuantity : null,
+      totalCost,
+    };
+  }).sort((left, right) =>
+    left.materialName.localeCompare(right.materialName) ||
+    left.materialId.localeCompare(right.materialId) ||
+    left.unit.localeCompare(right.unit));
+}
+
+
 /** A missing/partial price-cost graph must not be represented as zero materials. */
 export interface OwnerQuotationMaterialBreakdown {
   lines: OwnerQuotationMaterialLine[];
