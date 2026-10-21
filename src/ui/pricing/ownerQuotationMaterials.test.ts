@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { ProductPriceResolutionResult } from '../../application/pricing/ProductPriceResolutionService';
 import type { CustomerQuotationView } from './customerQuotation';
 import { buildOwnerQuotationView } from './ownerQuotation';
-import { summarizeOwnerQuotationMaterials } from './ownerQuotationMaterials';
+import { groupOwnerQuotationMaterialLines, summarizeOwnerQuotationMaterials } from './ownerQuotationMaterials';
 import { renderOwnerQuotationHtml } from './ownerQuotationPrint';
 
 const customer: CustomerQuotationView = {
@@ -136,7 +136,7 @@ describe('Confidential quotation material detail and aggregates', () => {
     const view = example();
     const html = renderOwnerQuotationHtml(view);
     expect(html).toContain('Material Cost Breakdown — Per Quoted Product');
-    expect(html).toContain('Consolidated Materials — Entire Quotation');
+    expect(html).toContain('Combined Material Costs — Entire Quotation');
     expect(html).toContain('Plaster of Paris');
     expect(html).toContain('Kraft Box');
     expect(html).toContain('Prepared Insert');
@@ -146,6 +146,84 @@ describe('Confidential quotation material detail and aggregates', () => {
     expect(html).toContain('₱22.50');
     expect(html).toContain('₱100.00'); // Total product costs include non-material charges
     expect(html).toContain('Other saved costs');
+  });
+
+  it('groups identical direct + nested material IDs within one product, preserving source audit and amounts', () => {
+    const view = example();
+    const sourceLines = view.items[0].materialLines!;
+    expect(sourceLines.filter((line) => line.materialId === 'PLASTER')).toHaveLength(2);
+    const grouped = groupOwnerQuotationMaterialLines(sourceLines);
+    expect(grouped).toHaveLength(4); // 5 source lines, 4 unique materials
+    const plaster = grouped.find((line) => line.materialId === 'PLASTER')!;
+    expect(plaster).toMatchObject({
+      materialName: 'Plaster of Paris',
+      unit: 'g',
+      quantityPerProduct: 38,
+      totalQuantity: 380,
+      unitCost: .05,
+      totalCost: 19,
+    });
+    expect(plaster.sources).toHaveLength(2);
+    expect(plaster.sources.join(' ')).toContain('Yield / recipe');
+    expect(plaster.sources.join(' ')).toContain('Prepared Insert');
+    expect(grouped.reduce((sum, line) => sum + line.totalCost!, 0)).toBeCloseTo(54);
+    expect(view.items[0].materialCostTotal).toBeCloseTo(54);
+    expect(view.totalMaterialCost).toBeCloseTo(76.5);
+  });
+
+  it('prints a single combined row per material in each product and places all-order totals first', () => {
+    const html = renderOwnerQuotationHtml(example());
+    const combinedStart = html.indexOf('<section class="material-consolidated">');
+    const productStart = html.indexOf('<section class="material-breakdown">');
+    expect(combinedStart).toBeGreaterThan(0);
+    expect(productStart).toBeGreaterThan(combinedStart);
+    const wholeOrder = html.slice(combinedStart, productStart);
+    expect(wholeOrder.match(/<strong>Plaster of Paris<\\/strong>/g)).toHaveLength(1);
+    expect(wholeOrder).toContain('430 g');
+    expect(wholeOrder).toContain('₱21.50');
+    expect(wholeOrder).toContain('₱76.50');
+    expect(wholeOrder).toContain('Distinct materials / units');
+    const firstItem = html.match(/<section class="material-product-section">([\\s\\S]*?)<\\/section>/)?.[1];
+    expect(firstItem).toBeDefined();
+    expect(firstItem!.match(/<strong>Plaster of Paris<\\/strong>/g)).toHaveLength(1);
+    expect(firstItem).toContain('380 g');
+    expect(firstItem).toContain('₱19.00');
+    expect(firstItem).toContain('Yield / recipe');
+    expect(firstItem).toContain('Prepared Insert');
+    expect(firstItem).toContain('₱54.00');
+  });
+
+  it('keeps different material IDs and units separate even when display names match', () => {
+    const items = [
+      { materialId: 'C-1', materialName: 'Kraft Paper', unit: 'pc' as const, source: 'Component',
+        quantityPerProduct: 1, totalQuantity: 2, unitCost: 5, totalCost: 10 },
+      { materialId: ' c-1 ', materialName: 'Kraft Paper', unit: 'pc' as const, source: 'Nested component',
+        quantityPerProduct: 2, totalQuantity: 4, unitCost: 2, totalCost: 8 },
+      { materialId: 'C-2', materialName: 'Kraft Paper', unit: 'pc' as const, source: 'Component',
+        quantityPerProduct: 1, totalQuantity: 2, unitCost: 8, totalCost: 16 },
+      { materialId: 'C-1', materialName: 'Kraft Paper', unit: 'g' as const, source: 'Yield',
+        quantityPerProduct: 10, totalQuantity: 20, unitCost: .1, totalCost: 2 },
+    ];
+    const grouped = groupOwnerQuotationMaterialLines(items);
+    expect(grouped).toHaveLength(3);
+    expect(grouped.find((x) => x.materialId === 'C-1' && x.unit === 'pc')).toMatchObject({
+      totalQuantity: 6, totalCost: 18, unitCost: 3,
+    });
+    expect(grouped.find((x) => x.materialId === 'C-2')?.totalCost).toBe(16);
+    expect(grouped.find((x) => x.materialId === 'C-1' && x.unit === 'g')?.totalCost).toBe(2);
+  });
+
+  it('does not treat an unavailable material contribution as a zero-cost grouped material', () => {
+    const grouped = groupOwnerQuotationMaterialLines([
+      { materialId: 'WAX', materialName: 'Wax', unit: 'g', source: 'Yield',
+        quantityPerProduct: 20, totalQuantity: 200, unitCost: .1, totalCost: 20 },
+      { materialId: 'wax', materialName: 'Wax', unit: 'g', source: 'Nested product',
+        quantityPerProduct: 5, totalQuantity: 50, unitCost: null, totalCost: null },
+    ]);
+    expect(grouped).toHaveLength(1);
+    expect(grouped[0]).toMatchObject({
+      totalQuantity: 250, totalCost: null, unitCost: null,
+    });
   });
 
   it('treats partial direct cost evidence as unknown rather than a complete material total', () => {
