@@ -1123,6 +1123,7 @@ export function PricingPage({ preferredProductId, productCatalogRevision = 0, co
         open={quotationOpen}
         result={resolution}
         products={products}
+        materials={materials}
         resolvePrice={(request) => productPriceResolutionService.resolve(request)}
         onClose={() => setQuotationOpen(false)}
       />
