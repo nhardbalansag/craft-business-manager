@@ -178,14 +178,14 @@ describe('Confidential quotation material detail and aggregates', () => {
     expect(combinedStart).toBeGreaterThan(0);
     expect(productStart).toBeGreaterThan(combinedStart);
     const wholeOrder = html.slice(combinedStart, productStart);
-    expect(wholeOrder.match(/<strong>Plaster of Paris<\\/strong>/g)).toHaveLength(1);
+    expect(wholeOrder.split('<strong>Plaster of Paris</strong>')).toHaveLength(2);
     expect(wholeOrder).toContain('430 g');
     expect(wholeOrder).toContain('₱21.50');
     expect(wholeOrder).toContain('₱76.50');
     expect(wholeOrder).toContain('Distinct materials / units');
-    const firstItem = html.match(/<section class="material-product-section">([\\s\\S]*?)<\\/section>/)?.[1];
+    const firstItem = html.split('<section class="material-product-section">')[1]?.split('</section>')[0];
     expect(firstItem).toBeDefined();
-    expect(firstItem!.match(/<strong>Plaster of Paris<\\/strong>/g)).toHaveLength(1);
+    expect(firstItem!.split('<strong>Plaster of Paris</strong>')).toHaveLength(2);
     expect(firstItem).toContain('380 g');
     expect(firstItem).toContain('₱19.00');
     expect(firstItem).toContain('Yield / recipe');
