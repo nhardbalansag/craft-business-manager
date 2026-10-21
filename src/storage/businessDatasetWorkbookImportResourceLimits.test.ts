@@ -41,6 +41,29 @@ describe('BusinessDataset XLSX import resource limits', () => {
     expect(result.ok).toBe(true);
   });
 
+  it('passes a 33,122,274-byte workbook to the validator without disabling existing limits', () => {
+    const codec = codecReturning(currentDocument());
+    const bytes = new Uint8Array(33_122_274);
+    const result = importBusinessDatasetFromXlsx(bytes, codec);
+    expect(result.ok).toBe(true);
+    expect(codec.decode).toHaveBeenCalledOnce();
+
+    // The strict rejection boundary still honors a caller's tighter override.
+    const oldLimitResult = importBusinessDatasetFromXlsx(bytes, codec, {
+      maxWorkbookBytes: 20 * 1024 * 1024,
+    });
+    expect(oldLimitResult).toEqual({
+      ok: false,
+      issues: [expect.objectContaining({
+        stage: 'resource-limit',
+        code: 'WORKBOOK_BYTES_EXCEEDED',
+        actual: 33_122_274,
+        maximum: 20 * 1024 * 1024,
+      })],
+    });
+    expect(codec.decode).toHaveBeenCalledOnce();
+  });
+
   it('rejects over-limit bytes before codec decode', () => {
     const codec = codecReturning(currentDocument());
     const result = importBusinessDatasetFromXlsx(
