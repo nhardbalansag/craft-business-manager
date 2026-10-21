@@ -47,20 +47,26 @@ function rejectionMessage(result: Extract<PersistenceWorkbookApplyResult, { stat
   // Surface the actual failing constraint beside the alert, instead of only an
   // issue count. The full, unaltered validation records remain available below.
   const location = result.stage === 'import'
-    ? [
-        first.sheetName && `Sheet: ${first.sheetName}`,
-        first.excelRow !== undefined
-          ? `Excel row: ${first.excelRow}`
-          : first.rowIndex !== undefined ? `Record index: ${first.rowIndex}` : null,
-        first.column && `Column: ${first.column}`,
-        first.path && `Path: ${first.path}`,
-      ]
-    : [
-        first.collection && `Collection: ${first.collection}`,
-        first.index !== undefined && `Record: ${first.index}`,
-        first.field && `Field: ${first.field}`,
-        first.path && `Path: ${first.path}`,
-      ];
+    ? (() => {
+        const issue = result.issues[0]!;
+        return [
+          issue.sheetName && `Sheet: ${issue.sheetName}`,
+          issue.excelRow !== undefined
+            ? `Excel row: ${issue.excelRow}`
+            : issue.rowIndex !== undefined ? `Record index: ${issue.rowIndex}` : null,
+          issue.column && `Column: ${issue.column}`,
+          issue.path && `Path: ${issue.path}`,
+        ];
+      })()
+    : (() => {
+        const issue = result.issues[0]!;
+        return [
+          issue.collection && `Collection: ${issue.collection}`,
+          issue.index !== undefined && `Record: ${issue.index}`,
+          issue.field && `Field: ${issue.field}`,
+          issue.path && `Path: ${issue.path}`,
+        ];
+      })();
   const where = location.filter(Boolean).join(' · ');
   return `${prefix} First issue [${first.code}]: ${first.message}${where ? ` — ${where}` : ''}. See validation details below.`;
 }
