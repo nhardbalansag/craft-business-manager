@@ -96,6 +96,13 @@ describe('WorkbookImportPanel Phase 5.5C2 rejection and recovery workflow', () =
 
     expect(onHydrated).not.toHaveBeenCalled();
     expect(command.getPendingSelection()).toEqual({ name: 'invalid.xlsx', byteLength: 3 });
+    const alert = container.querySelector<HTMLElement>('[role="alert"]')?.textContent ?? '';
+    expect(alert).toContain('Import rejected during workbook validation: 1 issue.');
+    expect(alert).toContain('First issue [INVALID_CELL_TYPE]');
+    expect(alert).toContain('packageCost must be a number.');
+    expect(alert).toContain('Sheet: Materials');
+    expect(alert).toContain('Excel row: 3');
+    expect(alert).toContain('Column: packageCost');
     expect(container.querySelector('[aria-label="Workbook recovery summary"]')?.textContent).toContain(
       'Invalid workbook values',
     );
