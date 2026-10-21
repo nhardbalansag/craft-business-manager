@@ -12,6 +12,7 @@ import type {
   ProductPriceResolutionResult,
 } from '../../application/pricing/ProductPriceResolutionService';
 import type { Product } from '../../domain/products';
+import type { Material } from '../../domain/materials';
 import { QuotationProductPicker } from './QuotationProductPicker';
 import { ProductImageZoom } from '../products/ProductImageZoom';
 import {
@@ -28,6 +29,7 @@ interface CustomerQuotationDialogProps {
   open: boolean;
   result: ProductPriceResolutionResult | null;
   products: readonly Product[];
+  materials?: readonly Pick<Material, 'id' | 'name'>[];
   resolvePrice(
     request: ProductPriceResolutionRequest,
   ): Promise<ProductPriceResolutionResult>;
@@ -114,6 +116,7 @@ export function CustomerQuotationDialog({
   open,
   result,
   products,
+  materials = [],
   resolvePrice,
   onClose,
 }: CustomerQuotationDialogProps) {
@@ -370,7 +373,7 @@ export function CustomerQuotationDialog({
   function printBusinessOwnerCopy() {
     try {
       const customerView = prepareQuotation();
-      const ownerView = buildOwnerQuotationView(customerView, readyResults);
+      const ownerView = buildOwnerQuotationView(customerView, readyResults, materials);
       printOwnerQuotation(ownerView);
       setError(null);
     } catch (submitError) {
