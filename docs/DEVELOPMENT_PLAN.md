@@ -22,6 +22,16 @@ Key persistence / desktop-boundary records:
 - `docs/PHASE_5_6B_REGRESSION_BUILD_PHASE_5_COMPLETION.md`
 - `docs/PHYSICAL_IDENTIFICATION_STORAGE_FOUNDATION_PLAN.md`
 - `docs/PHASE_6_TAURI_DESKTOP_INTEGRATION_PLAN.md`
+- `docs/PLASTER_MOLD_YIELD_MY1A_FORMULA_DOMAIN_CONTRACT.md`
+- `docs/PLASTER_MOLD_YIELD_MY1B_PROFILE_SOURCE_CONTRACT.md`
+- `docs/PLASTER_MOLD_YIELD_MY1C_REFERENTIAL_VALIDATION.md`
+- `docs/PLASTER_MOLD_YIELD_MY2_APPLICATION_SERVICES.md`
+- `docs/PLASTER_MOLD_YIELD_MY3_PERSISTENCE_MIGRATION.md`
+- `docs/PLASTER_MOLD_YIELD_MY4_CALCULATOR_ENGINE.md`
+- `docs/PLASTER_MOLD_YIELD_MY5_CONFIGURATION_UI.md`
+- `docs/PLASTER_MOLD_YIELD_MY6_YIELD_WORKSPACE_INTEGRATION.md`
+- `docs/PLASTER_MOLD_YIELD_MY7_OPERATIONAL_PREVIEW.md`
+- `docs/PLASTER_MOLD_YIELD_MY8_COMPLETION_GATE.md`
 
 Historical child completion records remain authoritative for their individual contracts and CI evidence.
 
@@ -40,16 +50,22 @@ Historical child completion records remain authoritative for their individual co
 
 ## Current Repository Milestone
 
-Latest green planning baseline before Phase 6 implementation:
+Verified YRS6 integration base:
 
 ```text
-develop  7336f7fad57410a8e9888344c240590bae20f59f
-CI       35182152823 — SUCCESS
-Physical Identification & Storage Foundation — COMPLETE
-Phase 6 scope/decomposition review — IN DOCUMENTATION REVIEW
+develop  9acc7b517be309fde80fa8415fd384aaa76f6bf3
+CI       36597917929 — SUCCESS
+Tiered Pricing TP0–TP9 — COMPLETE
+Plaster Mold Yield MY0–MY8 — COMPLETE
+YRS1 Recipe Source Domain Foundation — COMPLETE
+YRS2 Repository / Recording / Persistence — COMPLETE
+YRS3 Yield Recipe Source UI — COMPLETE
+YRS4 Mold Formula Draft Integration Refactor — COMPLETE
+YRS5 Yield History Provenance UI — COMPLETE
+YRS6 Integrated Regression & Completion Gate — COMPLETE IN THIS CHANGE
 ```
 
-The completed physical-identification foundation now extends persisted source truth with Mold and Storage Location records while preserving Phase 5 persistence boundaries. Phase 6 must build the native desktop boundary on top of those contracts rather than replace them.
+Tiered Pricing, Plaster Mold Yield Automation, and the Yield Recipe Source enhancement are complete after YRS6 merges and exact post-merge `develop` CI is green. The previously deferred Phase 6 desktop sequence may then resume only as a separate user-directed task.
 
 ---
 
@@ -243,6 +259,296 @@ Phase 5.6B verified:
 
 ---
 
+# Tiered Pricing Enhancement — ACTIVE
+
+Status: **COMPLETE**
+
+Master audit and compatibility plan:
+
+`docs/TIERED_PRICING_TP0_DOMAIN_COMPATIBILITY_AUDIT.md`
+
+Purpose:
+
+- preserve the existing Product financial profile and Default / Single selling-price behavior;
+- add one-to-many Package / Bulk / Custom pricing as a separate authoritative source collection;
+- calculate independent tier profit, markup, margin, discount, and below-cost diagnostics;
+- preserve existing XLSX / Google Sheets / physical workbook records through explicit migration;
+- avoid silently changing Production revenue calculations until quantity-aware tier selection is implemented explicitly.
+
+Task map:
+
+```text
+TP0 — Tiered Pricing Domain & Compatibility Audit                 COMPLETE
+TP1 — Product Price Tier Domain Foundation                       COMPLETE
+    TP1A — Product Price Tier Domain Contract & Validation        COMPLETE
+    TP1B — Stable Tier ID Foundation                              COMPLETE
+TP2 — Repository & Application Services                           COMPLETE
+    TP2A — Repository Contract + In-Memory Implementation         COMPLETE
+    TP2B — ProductPriceTierService CRUD / Archive / Reference     COMPLETE
+    TP2C — Session Wiring + Service Regressions                    COMPLETE
+TP3 — Tier Economics Engine                                       COMPLETE
+    TP3A — Pure Tier Economics Formulas                           COMPLETE
+    TP3B — ProductPriceTierQuoteService                           COMPLETE
+    TP3C — Default-Price Comparison + Below-Cost Diagnostics      COMPLETE
+TP4 — Default Pricing Compatibility Layer                         COMPLETE
+TP5 — Workbook / Dataset Persistence & Migration                  COMPLETE
+    TP5A — BusinessDataset v2 Source Collection                   COMPLETE
+    TP5B — Core Workbook v3 Sheet / Export / Import               COMPLETE
+    TP5C — Core v1/v2 Migration Chain                             COMPLETE
+    TP5D — Physical Workbook v3 / Dataset-v3 Migration            COMPLETE
+    TP5E — Legacy Pre-Preferred Physical-v2 Regression            COMPLETE
+    TP5F — Google Sheets Import Compatibility                     COMPLETE
+    TP5G — Atomic Hydration / Rollback / Recovery Completion Gate COMPLETE
+TP6 — Pricing UI                                                  COMPLETE
+    TP6A — Tier Catalog / Read-Only Economics                     COMPLETE
+    TP6B — Create / Edit / Archive Tier Form                      COMPLETE
+    TP6C — Package / Bulk / Custom UX + Warnings                  COMPLETE
+    TP6D — Responsive / Accessibility Regression                  COMPLETE
+TP7 — Pricing Quote Integration                                   COMPLETE
+TP8 — Quantity-Aware Tier Resolution                              COMPLETE
+    TP8A — Selection Semantics Decision                           COMPLETE
+    TP8B — Quantity Eligibility Domain Contract                   COMPLETE
+    TP8C — Explicit Tier Resolution Service                       COMPLETE
+    TP8D — Pricing Workspace Quantity Preview / Manual Selection  COMPLETE
+    TP8E — Regression & Completion Gate                           COMPLETE
+TP9 — Integrated Validation & Completion Gate                     COMPLETE
+```
+
+Tiered Pricing is complete. TP9 now proves current tiered workbook round-trip fidelity across persisted sources, tier economics, explicit resolution, warnings/archive evidence, and unchanged Default / Single Production financials, while the existing TP5 compatibility regressions continue to protect legacy core/physical/Google Sheets imports and rollback.
+
+---
+
+# Plaster Mold Yield Automation — COMPLETE
+
+Status: **MY0–MY8 COMPLETE**
+
+Purpose:
+
+- derive plaster mold recipe estimates from measured mold water-fill weight;
+- keep formula configuration separate from physical Mold identity;
+- preserve Product safety waste as a different planning concept;
+- preserve Yield Samples as actual production evidence;
+- support multi-cavity molds without persisting calculated quantities.
+
+Task map:
+
+```text
+MY0 — Domain & Workflow Audit                       COMPLETE
+MY1 — Plaster Mold Formula Foundation               COMPLETE
+    MY1A — Formula / Result Domain Contract          COMPLETE
+    MY1B — Mold Yield Profile Source Contract        COMPLETE
+    MY1C — Mold / Material Referential Validation    COMPLETE
+MY2 — Repository & Application Services             COMPLETE
+    MY2A — Repository Contract + In-Memory Store     COMPLETE
+    MY2B — Profile Service + Relationship Guards     COMPLETE
+    MY2C — Shared Session Wiring + Regressions       COMPLETE
+MY3 — Physical Dataset v4 / Workbook Migration      COMPLETE
+    MY3A — PhysicalBusinessDatasetV4 Contract        COMPLETE
+    MY3B — Workbook v4 + v2/v3 Migration Chain      COMPLETE
+    MY3C — Snapshot / Hydration / Session Wiring     COMPLETE
+    MY3D — Compatibility / Round-Trip Regression     COMPLETE
+MY4 — Mold Yield Calculator Engine                  COMPLETE
+MY5 — Mold Formula Configuration UI                 COMPLETE
+    MY5A — Profile Configuration Form               COMPLETE
+    MY5B — Saved Formula Estimate Preview           COMPLETE
+    MY5C — History / Responsive / Accessibility     COMPLETE
+MY6 — Yield Workspace Integration                   COMPLETE
+    MY6A — Formula → Yield Draft Mapping             COMPLETE
+    MY6B — Yield Workspace Draft Assist              COMPLETE
+    MY6C — Evidence Guard / Responsive Regression    COMPLETE
+MY7 — Cost / Capacity / Production Preview          COMPLETE
+    MY7A — Formula Operational Preview Service      COMPLETE
+    MY7B — Production Workspace Parallel Preview    COMPLETE
+    MY7C — Regression / Responsive Gate             COMPLETE
+MY8 — Regression & Completion Gate                  COMPLETE
+```
+
+MY1A establishes the pure weight-based formula, validation/error contract, per-pour values, per-piece values, and optional requested-quantity/required-pours estimate.
+
+MY1B adds the separate authoritative `PlasterMoldYieldProfile` source record and intrinsic field validation.
+
+MY1C completes the MY1 foundation with Mold/Material existence checks, distinct formula Material roles, weight-compatible `g` base-unit enforcement, active-reference policy, and one-active-profile-per-Mold integrity.
+
+MY2 adds the source repository, application CRUD/archive/restore service, Mold/Material relationship guards, and shared session wiring.
+
+MY3 adds `PhysicalBusinessDatasetV4`, physical workbook v4 with the authoritative `PlasterMoldYieldProfiles` sheet, the v2 → v3 → v4 migration chain, atomic v4 snapshot/hydration, and shared-session persistence coordinator support. Derived formula outputs remain excluded from persistence.
+
+MY4 adds the Mold-level calculator engine that resolves the active profile and weight-compatible Water / Plaster / Glue sources, delegates all arithmetic to the MY1A formula contract, supports optional requested-quantity/multi-cavity estimates, and explicitly remains theoretical with no Product safety waste, Yield evidence, costing, or inventory behavior.
+
+MY5 exposes that source configuration and saved-formula calculator inside the existing physical Mold workspace. It supports profile create/edit/archive/restore, weight-compatible Material selection, user-friendly Water-adjustment percentage input, multi-cavity configuration, and optional requested-quantity estimate preview while preserving the theoretical/no-Yield-write boundary.
+
+MY6 adds an explicit Formula → Yield Sample Draft workflow inside the existing Yield workspace. The assistant copies only theoretical Material quantities, intentionally leaves good/rejected outcomes blank, uses the existing unsaved-draft protection, and requires explicit real-batch measurement confirmation before the ordinary Yield evidence save can become ready. It never writes Yield history automatically.
+
+MY7 adds a parallel Mold Formula operational preview for formula-only cost, current-stock capacity, complete-pour target feasibility, Material shortfalls, and limiting formula Materials. It reuses existing Material costing/inventory normalization and remains separate from the authoritative Product/Yield Production path, safety waste, components, labor, overhead, and financials.
+
+MY8 closes the enhancement with an integrated source → formula → Yield draft → actual Yield authority → Production safety-waste → workbook round-trip → recalculated cost/capacity completion gate. It adds no new business feature and verifies the MY0–MY7 contracts remain coherent together.
+
+Detailed contracts:
+
+- `docs/PLASTER_MOLD_YIELD_MY1A_FORMULA_DOMAIN_CONTRACT.md`
+- `docs/PLASTER_MOLD_YIELD_MY1B_PROFILE_SOURCE_CONTRACT.md`
+- `docs/PLASTER_MOLD_YIELD_MY1C_REFERENTIAL_VALIDATION.md`
+- `docs/PLASTER_MOLD_YIELD_MY2_APPLICATION_SERVICES.md`
+- `docs/PLASTER_MOLD_YIELD_MY3_PERSISTENCE_MIGRATION.md`
+- `docs/PLASTER_MOLD_YIELD_MY4_CALCULATOR_ENGINE.md`
+- `docs/PLASTER_MOLD_YIELD_MY5_CONFIGURATION_UI.md`
+- `docs/PLASTER_MOLD_YIELD_MY6_YIELD_WORKSPACE_INTEGRATION.md`
+- `docs/PLASTER_MOLD_YIELD_MY7_OPERATIONAL_PREVIEW.md`
+- `docs/PLASTER_MOLD_YIELD_MY8_COMPLETION_GATE.md`
+
+Plaster Mold Yield Automation is complete after MY8 merges and exact post-merge `develop` CI is green. Resume the deferred Phase 6 sequence only in a separate task.
+
+---
+
+# Yield Recipe Source Enhancement — COMPLETE
+
+Status: **YRS0–YRS6 COMPLETE**
+
+Master audit:
+
+`docs/YIELD_RECIPE_SOURCE_YRS0_DOMAIN_COMPATIBILITY_AUDIT.md`
+
+Purpose:
+
+- replace the Yield form's implicit "Mix preset used / no preset" source choice with an explicit Recipe source workflow;
+- support Mix preset, Mold formula, and Manual modes without changing actual Yield evidence semantics;
+- preserve the existing `YieldSample` contract for legacy/core compatibility;
+- persist Mold Formula provenance as a physical-domain source relationship;
+- keep theoretical formula quantities distinct from actual measured Yield evidence;
+- preserve Yield learning, Product safety waste, preferred/effective Yield selection, and Production mathematics.
+
+YRS0 compatibility decision:
+
+```text
+Existing YieldSample contract preserved                 YES
+Existing MixPreset samples remain compatible            YES
+Legacy no-preset samples resolve Manual                  YES
+Mold Formula provenance becomes explicit                YES
+MixPreset + Mold Formula simultaneous source forbidden  YES
+Formula outputs remain derived                          YES
+Actual Yield measurements remain authoritative          YES
+Core workbook version bump required                     NO
+Physical workbook v5 required                           YES
+Atomic Yield + provenance recording required            YES
+```
+
+Resolved source semantics:
+
+```text
+Mold Formula provenance link exists
+        → mold-formula
+
+otherwise YieldSample.mixPresetId exists
+        → mix-preset
+
+otherwise
+        → manual
+```
+
+The Mold Formula provenance source will be a separate physical-domain record linking a saved Yield Sample to the Mold and PlasterMoldYieldProfile used to start that batch. It will not persist calculated formula quantities.
+
+Task map:
+
+```text
+YRS0 — Domain & Compatibility Audit                   COMPLETE
+
+YRS1 — Recipe Source Domain Foundation                COMPLETE
+    YRS1A — Recipe Source Resolution Contract         COMPLETE
+    YRS1B — Mold Formula Provenance Source Contract   COMPLETE
+    YRS1C — Referential / Exclusivity Validation      COMPLETE
+
+YRS2 — Repository / Recording / Persistence           COMPLETE
+    YRS2A — Provenance Repository + Application Service  COMPLETE
+    YRS2B — Atomic Yield + Provenance Recording        COMPLETE
+    YRS2C — PhysicalBusinessDatasetV5                  COMPLETE
+    YRS2D — Physical Workbook v5 + v4→v5 Migration    COMPLETE
+    YRS2E — Snapshot / Hydration / Google Sheets Compatibility
+                                                        COMPLETE
+
+YRS3 — Yield Recipe Source UI                         COMPLETE
+    YRS3A — Recipe Source Selector                     COMPLETE
+    YRS3B — Mix Preset Mode                            COMPLETE
+    YRS3C — Mold Formula Mode                          COMPLETE
+    YRS3D — Manual Mode                                COMPLETE
+
+YRS4 — Mold Formula Draft Integration Refactor        COMPLETE
+    YRS4A — Move MY6 Assist Under Mold Formula Mode    COMPLETE
+    YRS4B — Formula Preview / Planned Pieces           COMPLETE
+    YRS4C — Actual Measurement Confirmation            COMPLETE
+
+YRS5 — Yield History Provenance UI                    COMPLETE
+    YRS5A — Resolved Source Labels                    COMPLETE
+    YRS5B — Mold / Profile Traceability               COMPLETE
+    YRS5C — Legacy Sample Presentation                COMPLETE
+
+YRS6 — Integrated Regression & Completion Gate        COMPLETE
+```
+
+YRS1A defines the pure source-resolution contract for Manual, Mix preset, and Mold formula views while preserving the existing YieldSample persistence shape. It fails closed on ambiguous MixPreset + Mold Formula provenance and defers the authoritative physical provenance source record to YRS1B.
+
+YRS1B adds the authoritative physical provenance source `YieldMoldFormulaSource` linking one saved Yield Sample to the physical Mold and saved formula profile used to start that batch. It persists identifiers only—never theoretical formula outputs.
+
+YRS1C completes the domain foundation with Yield/Mold/profile reference checks, MixPreset/Mold Formula exclusivity, Product ownership, profile/Mold ownership, one-source-per-Yield identity, and explicit historical-versus-recording active-source policy.
+
+YRS2A adds the shared provenance repository and immutable application service. New provenance creation canonicalizes current source identities, validates the entire proposed collection historically, validates the new candidate in recording mode, and exposes Manual / Mix preset / Mold formula read-side resolution.
+
+YRS2B adds the source-aware recording coordinator. Manual and Mix preset continue to persist through the existing YieldSample contract; Mold formula preflights both records, then writes YieldSample → provenance in dependency order with compensating rollback and distinct restored-versus-rollback-failed operational errors. The legacy direct Yield evidence path remains available until the UI migration.
+
+YRS2C introduces `PhysicalBusinessDatasetV5` as the complete physical source graph: physical v4 plus `yieldMoldFormulaSources`. The v5 validator reuses all v4 integrity rules and applies YRS provenance validation in historical mode so archived Mold/profile references remain valid production history.
+
+YRS2D adds physical workbook v5 with a canonical `YieldMoldFormulaSources` sheet and the explicit physical 4/4 → 5/5 migration edge. Legacy physical workbooks migrate without inventing provenance, current v5 workbooks round-trip provenance through XLSX, and strict import diagnostics map provenance failures back to the new sheet.
+
+YRS2E completes the repository/recording/persistence phase by moving the shared application session to `PhysicalSourceSnapshotServiceV5` + `PhysicalDatasetHydrationServiceV5`, routing live persistence through workbook v5, preserving atomic rollback for provenance replacement, and proving Published Google Sheets workbook v5 imports restore Mold Formula provenance through the same coordinator boundary.
+
+YRS3A introduces one explicit Manual / Mix preset / Mold formula selector as authoritative Yield draft state. It enforces draft-level source exclusivity, moves Yield recording onto the YRS2 atomic source-aware recorder, makes MY6 Formula drafts persist Mold/profile provenance without inheriting Product Mix preset provenance, and fails closed on legacy Yield-only deletion when physical provenance exists.
+
+YRS3B turns Mix preset into a dedicated source-specific mode. It presents only active Product-category-compatible presets, previews the selected saved ratio without converting it into actual Yield evidence, keeps missing/archived copied preset identities visible and invalid, and provides an explicit non-recordable state when no compatible preset exists.
+
+YRS3C turns Mold formula into a dedicated source/provenance mode while preserving the YRS4 boundary. Before a formula is attached it shows an explicit non-recordable source state; after MY6 supplies a draft it displays the exact Mold/profile identity that will be persisted as physical provenance. Planned pieces, theoretical formula preview, the MY6 assistant location, and actual measurement confirmation remain deferred to YRS4A–YRS4C.
+
+YRS3D completes the source-mode UI by making Manual explicit rather than merely the absence of other source controls. It states that Manual carries no Mix preset or Mold/profile provenance, keeps actual Material quantities and real piece counts as the only evidence source, and continues recording through the YRS2 source-aware coordinator with `source.kind = 'manual'`.
+
+YRS4A relocates the existing MY6 `MOLD FORMULA ASSIST` from the global Yield evidence column into the dedicated Mold Formula source mode. The assistant component and formula mathematics are unchanged. It is now visible only for Mold Formula source selection, and the formula-draft replacement guard distinguishes source-only selection changes from substantive entered Yield evidence so choosing Mold formula does not create a false discard prompt.
+
+YRS4B integrates the planning side of the Mold Formula workflow. The source area now presents Mold/profile context, an explicit optional planned-piece target, a one-pour baseline when no target is entered, structured theoretical Water/Plaster/Glue/total-mix preview, and explicit required-pours/capacity/extra-capacity values. All values still come from the existing MY6 calculator, remain derived only, and become editable draft quantities only after `Use as Yield Sample Draft`.
+
+YRS4C completes the Mold Formula draft integration by moving the actual-batch measurement confirmation into the Mold Formula source mode. The confirmation visibly transitions Required → Confirmed, remains a hard recording gate, and automatically resets when a Formula-derived Material line is changed, added, or removed. Manual/Mix preset behavior, formula math, provenance persistence, Yield learning, and Production mathematics remain unchanged.
+
+YRS5A moves Yield History from the old implicit Mix/no-Mix presentation to authoritative resolved recipe-source labels. Every loaded sample resolves through `YieldMoldFormulaSourceService.resolveRecipeSourceForYieldSample()`, then displays `Manual`, `Mix preset`, or `Mold formula`. Existing Mix preset names remain secondary context, resolved labels participate in history search, and Mold/profile identity remains deferred to YRS5B.
+
+YRS5B adds physical Formula traceability to Mold Formula history rows. The stored provenance IDs remain authoritative, the referenced Mold name is resolved for human-readable context, Mold ID + profile ID remain visible for exact traceability, archived Mold/profile records stay visible as historical provenance, and Mold/profile terms participate in history search without changing Yield learning or effective/preferred selection.
+
+YRS5C completes history provenance presentation with truthful legacy compatibility. Because the preserved YieldSample contract and physical v4→v5 migration contain no per-sample creation-origin marker, history does not guess a `Legacy` badge from dates or missing provenance. Instead it explains the deterministic compatibility rule and shows the saved source basis: Mix preset rows carry `Saved Mix preset reference`, Manual rows carry `No saved recipe reference`, and only an explicit physical Mold/profile provenance link resolves Mold formula.
+
+YRS6 closes the enhancement with a cross-layer completion regression over the shared application session. Manual, Mix preset, and Mold formula samples are recorded together through the source-aware recorder; identical measured evidence produces identical Yield learning regardless of source; the complete physical-v5 graph exports/imports through the shared PersistenceCoordinator; and all three source meanings survive hydration unchanged. The YRS0 compatibility matrix is fully satisfied.
+
+Detailed YRS contracts:
+
+- `docs/YIELD_RECIPE_SOURCE_YRS0_DOMAIN_COMPATIBILITY_AUDIT.md`
+- `docs/YIELD_RECIPE_SOURCE_YRS1A_RESOLUTION_CONTRACT.md`
+- `docs/YIELD_RECIPE_SOURCE_YRS1B_PROVENANCE_SOURCE_CONTRACT.md`
+- `docs/YIELD_RECIPE_SOURCE_YRS1C_REFERENTIAL_VALIDATION.md`
+- `docs/YIELD_RECIPE_SOURCE_YRS2A_REPOSITORY_SERVICE.md`
+- `docs/YIELD_RECIPE_SOURCE_YRS2B_ATOMIC_RECORDING.md`
+- `docs/YIELD_RECIPE_SOURCE_YRS2C_PHYSICAL_DATASET_V5.md`
+- `docs/YIELD_RECIPE_SOURCE_YRS2D_PHYSICAL_WORKBOOK_V5_MIGRATION.md`
+- `docs/YIELD_RECIPE_SOURCE_YRS2E_RUNTIME_PERSISTENCE.md`
+- `docs/YIELD_RECIPE_SOURCE_YRS3A_SELECTOR.md`
+- `docs/YIELD_RECIPE_SOURCE_YRS3B_MIX_PRESET_MODE.md`
+- `docs/YIELD_RECIPE_SOURCE_YRS3C_MOLD_FORMULA_MODE.md`
+- `docs/YIELD_RECIPE_SOURCE_YRS3D_MANUAL_MODE.md`
+- `docs/YIELD_RECIPE_SOURCE_YRS4A_MOVE_MY6_ASSIST.md`
+- `docs/YIELD_RECIPE_SOURCE_YRS4B_FORMULA_PREVIEW_PLANNED_PIECES.md`
+- `docs/YIELD_RECIPE_SOURCE_YRS4C_ACTUAL_MEASUREMENT_CONFIRMATION.md`
+- `docs/YIELD_RECIPE_SOURCE_YRS5A_RESOLVED_SOURCE_LABELS.md`
+- `docs/YIELD_RECIPE_SOURCE_YRS5B_MOLD_PROFILE_TRACEABILITY.md`
+- `docs/YIELD_RECIPE_SOURCE_YRS5C_LEGACY_SAMPLE_PRESENTATION.md`
+- `docs/YIELD_RECIPE_SOURCE_YRS6_COMPLETION_GATE.md`
+
+The Yield Recipe Source enhancement is complete only after YRS6 is merged and exact post-merge `develop` CI is green. Resume Phase 6.1A only as a separate user-directed task.
+
+---
+
 # Phase 6 — Tauri Desktop Integration
 
 Status: **SCOPED / IMPLEMENTATION NOT STARTED**
@@ -327,8 +633,8 @@ Phase 7 scope should be revisited after the desktop/native persistence workflow 
 ## Current Next Action
 
 ```text
-6.1A — Tauri v2 Project Scaffold & Dev/Build Scripts
+Phase 6.1A — Tauri v2 Project Scaffold & Dev/Build Scripts
 NEXT / NOT STARTED
 ```
 
-Phase 6 implementation may begin only after this scope plan is merged and its exact post-merge `develop` CI is green.
+Tiered Pricing TP0–TP9, Plaster Mold Yield MY0–MY8, and YRS0–YRS6 are complete after YRS6 merges and exact post-merge `develop` CI is green. Do not start Phase 6.1A automatically; begin the desktop/native boundary only as a separate user-directed task.

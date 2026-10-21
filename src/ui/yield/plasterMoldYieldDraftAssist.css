@@ -1,0 +1,349 @@
+/* MY6C — Yield Formula draft responsive/accessibility completion */
+/* YRS4B — integrated Mold Formula setup / preview */
+.yield-formula-assist {
+  display: grid;
+  gap: 14px;
+  padding: 2px 0 0;
+}
+
+.yield-formula-assist-heading,
+.yield-formula-assist-action,
+.yield-formula-preview-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.yield-formula-assist-heading,
+.yield-formula-preview-heading {
+  align-items: flex-start;
+}
+
+.yield-formula-assist-heading h3 {
+  margin: 4px 0 5px;
+  font-size: 1rem;
+}
+
+.yield-formula-assist-heading p:not(.panel-kicker) {
+  max-width: 680px;
+  margin: 0;
+  color: var(--text-muted, #667085);
+  font-size: .76rem;
+  line-height: 1.5;
+}
+
+.yield-formula-assist-heading > span,
+.yield-formula-preview-heading > span {
+  flex: 0 0 auto;
+  padding: 6px 9px;
+  border: 1px solid #dfd1bd;
+  border-radius: 999px;
+  background: #fbf6ed;
+  color: #735f43;
+  font-size: .67rem;
+  font-weight: 850;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.yield-formula-assist-controls {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(190px, .6fr);
+  gap: 10px;
+}
+
+.yield-formula-assist-controls .field {
+  margin: 0;
+  min-width: 0;
+}
+
+.yield-formula-assist-controls select,
+.yield-formula-assist-controls input {
+  width: 100%;
+  min-width: 0;
+}
+
+.yield-formula-source-context {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.yield-formula-source-context > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+  padding: 9px 10px;
+  border: 1px solid #e3d9cc;
+  border-radius: 10px;
+  background: #fffdf9;
+}
+
+.yield-formula-source-context span,
+.yield-formula-capacity-preview span {
+  color: #8b8074;
+  font-size: .64rem;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.yield-formula-source-context strong {
+  overflow: hidden;
+  color: #342f29;
+  font-size: .77rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.yield-formula-source-context small,
+.yield-formula-capacity-preview small {
+  color: var(--text-muted, #667085);
+  font-size: .67rem;
+}
+
+.yield-formula-preview {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #ded3c5;
+  border-radius: 12px;
+  background: #fffdf9;
+}
+
+.yield-formula-preview-heading > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.yield-formula-preview-heading strong {
+  color: #342f29;
+  font-size: .8rem;
+}
+
+.yield-formula-preview-heading > div > span {
+  color: var(--text-muted, #667085);
+  font-size: .7rem;
+  line-height: 1.4;
+}
+
+.yield-formula-assist-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.yield-formula-assist-metrics > div,
+.yield-formula-capacity-preview > div {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+  padding: 10px 11px;
+  border: 1px solid var(--border, #d7dce4);
+  border-radius: 10px;
+  background: var(--surface-soft, #f7f8fa);
+}
+
+.yield-formula-assist-metrics span {
+  color: var(--text-muted, #667085);
+  font-size: .65rem;
+  font-weight: 850;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.yield-formula-assist-metrics strong,
+.yield-formula-capacity-preview strong {
+  overflow-wrap: anywhere;
+}
+
+.yield-formula-capacity-preview {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.yield-formula-capacity-preview strong {
+  color: #342f29;
+  font-size: .95rem;
+}
+
+.yield-formula-assist-action {
+  padding-top: 2px;
+}
+
+.yield-formula-assist-action > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.yield-formula-assist-action strong {
+  color: #4f463b;
+  font-size: .76rem;
+}
+
+.yield-formula-assist-action span {
+  color: var(--text-muted, #667085);
+  font-size: .7rem;
+  line-height: 1.45;
+}
+
+.yield-formula-assist-warning,
+.yield-formula-assist-state {
+  margin: 0;
+  color: var(--text-muted, #667085);
+  font-size: .74rem;
+  line-height: 1.5;
+}
+
+.yield-formula-assist-warning {
+  padding: 9px 10px;
+  border-left: 3px solid #c7a871;
+  border-radius: 0 8px 8px 0;
+  background: #fbf7ef;
+}
+
+.yield-formula-assist-state {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border: 1px dashed var(--border, #d7dce4);
+  border-radius: 10px;
+  background: var(--surface-soft, #f7f8fa);
+}
+
+.yield-formula-measurement-confirmation {
+  display: grid;
+  gap: 10px;
+  padding: 12px 13px;
+  border: 1px solid #d9c69f;
+  border-radius: 11px;
+  background: #fffaf1;
+}
+
+.yield-formula-measurement-confirmation.is-confirmed {
+  border-color: #b9cbb6;
+  background: #f4f8f2;
+}
+
+.yield-formula-measurement-heading {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.yield-formula-measurement-heading > div {
+  min-width: 0;
+  flex: 1 1 200px;
+  display: grid;
+  gap: 3px;
+}
+
+.yield-formula-measurement-heading strong {
+  color: #5f4d31;
+  font-size: .78rem;
+}
+
+.yield-formula-measurement-heading > div > span,
+.yield-formula-measurement-confirmation > small {
+  color: #75664f;
+  font-size: .7rem;
+  line-height: 1.45;
+}
+
+.yield-formula-measurement-heading > span {
+  flex: 0 0 auto;
+  align-self: flex-start;
+  padding: 4px 7px;
+  border-radius: 999px;
+  background: #f1e5c9;
+  color: #70582e;
+  font-size: .64rem;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.yield-formula-measurement-confirmation.is-confirmed
+  .yield-formula-measurement-heading > span {
+  background: #deeadb;
+  color: #4f684c;
+}
+
+.yield-formula-draft-confirmation {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 9px 10px;
+  min-height: 44px;
+  border-radius: 9px;
+  background: #fff;
+  color: #514737;
+  font-size: .76rem;
+  line-height: 1.45;
+  cursor: pointer;
+}
+
+.yield-formula-draft-confirmation input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  padding: 0;
+  margin: 2px 0 0;
+  accent-color: #75572f;
+}
+
+.yield-formula-draft-confirmation > span {
+  min-width: 0;
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+
+.yield-formula-draft-confirmation:has(input:focus-visible) {
+  outline: 3px solid #866439;
+  outline-offset: 3px;
+}
+
+.yield-formula-draft-confirmation:has(input:disabled) {
+  cursor: not-allowed;
+  opacity: .62;
+}
+
+@media (max-width: 780px) {
+  .yield-formula-assist-heading,
+  .yield-formula-assist-action,
+  .yield-formula-preview-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .yield-formula-assist-heading > span,
+  .yield-formula-preview-heading > span {
+    align-self: flex-start;
+  }
+
+  .yield-formula-assist-controls,
+  .yield-formula-assist-metrics,
+  .yield-formula-capacity-preview {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .yield-formula-assist-action .button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 520px) {
+  .yield-formula-assist-controls,
+  .yield-formula-assist-metrics,
+  .yield-formula-capacity-preview,
+  .yield-formula-source-context {
+    grid-template-columns: 1fr;
+  }
+}

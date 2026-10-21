@@ -77,6 +77,27 @@ async function fill(element: HTMLInputElement | HTMLSelectElement | HTMLTextArea
 }
 
 describe('ProductComponentsView automatic identity', () => {
+  it('shows the chosen parent Product photo and enlarges it without changing the composition', async () => {
+    const photo = 'data:image/jpeg;base64,/9j/AAAA';
+    const brochure = 'data:image/jpeg;base64,/9j/BBBB';
+    await act(async () => root.render(
+      <ProductComponentsView
+        products={[{ ...product, imageDataUrl: photo, brochureImageDataUrl: brochure }]}
+        materials={[pieceMaterial]}
+        catalogLoading={false}
+      />,
+    ));
+    await flush();
+
+    const chosen = container.querySelector('[aria-label="Selected component Product photo"]')!;
+    expect(chosen.textContent).toContain('Legacy Candle');
+    expect(chosen.querySelector('img')?.getAttribute('src')).toBe(photo);
+    await act(async () => chosen.querySelector<HTMLButtonElement>('[aria-label="View full-size image of Legacy Candle"]')!.click());
+    expect(document.body.querySelector<HTMLImageElement>('.product-image-zoom-canvas img')?.getAttribute('src')).toBe(brochure);
+    await act(async () => document.body.querySelector<HTMLButtonElement>('[aria-label="Close enlarged product image"]')!.click());
+    expect(field('Component ID').value).toBe('COMP-0001');
+  });
+
   it('assigns a Component ID automatically while leaving legacy source IDs untouched', async () => {
     await act(async () => root.render(
       <ProductComponentsView

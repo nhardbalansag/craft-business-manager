@@ -1,18 +1,23 @@
-import { useMemo, useState } from 'react';
-import type { MixPreset } from '../../domain/mixPresets';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { PRODUCT_CATEGORIES, PRODUCT_CATEGORY_RULES, type Product, type ProductCategory } from '../../domain/products';
 import { AppIcon } from '../icons/AppIcon';
+import { ProductImageZoom } from './ProductImageZoom';
+import { isValidProductImageDataUrl } from '../../domain/productImage';
+import { isValidBrochureImageDataUrl } from '../../domain/productBrochureImage';
 import { ProductLabelPrintDialog } from './ProductLabelPrintDialog';
+import { ProductDetailsDialog } from './ProductDetailsDialog';
+import { ProductBrochureDialog } from './ProductBrochureDialog';
 import './productCatalogEditorSeparation.css';
 
 interface ProductCatalogProps {
   products: readonly Product[];
-  mixPresets: readonly MixPreset[];
   loading: boolean;
   loadFailed: boolean;
   disabled: boolean;
   editingId: string | null;
   onEdit: (product: Product) => void;
+  onSelect?: (product: Product) => void;
+  onPricing?: (product: Product) => void;
   onNew: () => void;
   onComponents: (product: Product) => void;
   onToggleActive: (product: Product) => void;
@@ -29,12 +34,13 @@ type ProductEditorIntent =
 
 export function ProductCatalog({
   products,
-  mixPresets,
   loading,
   loadFailed,
   disabled,
   editingId,
   onEdit,
+  onSelect,
+  onPricing,
   onNew,
   onComponents,
   onToggleActive,
@@ -47,26 +53,32 @@ export function ProductCatalog({
   const [category, setCategory] = useState<ProductCategory | 'all'>('all');
   const [status, setStatus] = useState<'active' | 'archived' | 'all'>('active');
   const [sort, setSort] = useState<'name' | 'category'>('name');
-  const [density, setDensity] = useState<'cards' | 'compact'>('cards');
+  const [density, setDensity] = useState<'cards' | 'compact' | 'table'>('table');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<10 | 25 | 50>(10);
   const [labelProduct, setLabelProduct] = useState<Product | null>(null);
+  const [viewProductId, setViewProductId] = useState<string | null>(null);
+  const [brochureProductId, setBrochureProductId] = useState<string | null>(null);
+  const viewTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const brochureReturnRef = useRef<HTMLButtonElement | null>(null);
   const [localEditorIntent, setEditorIntent] = useState<ProductEditorIntent>(null);
   const editingProduct = products.find((product) => product.id === editingId);
+  const viewingProduct = products.find((product) => product.id === viewProductId) ?? null;
+  const brochureProduct = products.find((product) => product.id === brochureProductId) ?? null;
   const editorIntent: ProductEditorIntent = editorOpen === undefined ? localEditorIntent : !editorOpen ? null
     : editingId ? { mode: 'edit', productName: editingProduct?.name ?? editingId, productId: editingId } : { mode: 'new' };
-  const mixById = useMemo(() => new Map(mixPresets.map((mix) => [mix.id.toLowerCase(), mix])), [mixPresets]);
   const matchingProducts = useMemo(() => {
     const search = query.trim().toLowerCase();
     return products
       .filter((product) => {
-        const mix = mixById.get(product.mixPresetId?.toLowerCase() ?? '');
         return (
           (status === 'all' || product.isActive === (status === 'active')) &&
-          [product.name, product.id, product.notes ?? '', product.mixPresetId ?? '', mix?.name ?? ''].some((value) =>
+          [product.name, product.id, product.notes ?? ''].some((value) =>
             value.toLowerCase().includes(search),
           )
         );
       });
-  }, [products, mixById, query, status]);
+  }, [products, query, status]);
   const visible = useMemo(() => matchingProducts
       .filter((product) => category === 'all' || category === product.category)
       .sort(
@@ -78,11 +90,86 @@ export function ProductCatalog({
           a.id.localeCompare(b.id),
       ), [matchingProducts, category, sort]);
   const filtered = query !== '' || category !== 'all' || status !== 'active';
+  const totalPages = Math.max(1, Math.ceil(visible.length / pageSize));
+  const pageStart = (page - 1) * pageSize;
+  const paginatedVisible = visible.slice(pageStart, pageStart + pageSize);
+  const shownStart = visible.length === 0 ? 0 : pageStart + 1;
+  const shownEnd = Math.min(pageStart + pageSize, visible.length);
+  const paginationItems = useMemo(() => {
+    if (totalPages <= 7) {
+      return Array.from({ length: totalPages }, (_, index) => index + 1);
+    }
+
+    const pages = Array.from(
+      new Set([1, totalPages, page - 1, page, page + 1].filter((value) => value >= 1 && value <= totalPages)),
+    ).sort((left, right) => left - right);
+
+    const items: Array<number | 'ellipsis-left' | 'ellipsis-right'> = [];
+    pages.forEach((value, index) => {
+      const previous = pages[index - 1];
+      if (previous !== undefined && value - previous > 1) {
+        items.push(previous === 1 ? 'ellipsis-left' : 'ellipsis-right');
+      }
+      items.push(value);
+    });
+    return items;
+  }, [page, totalPages]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [query, category, status, sort, pageSize]);
+
+  useEffect(() => {
+    setPage((current) => Math.min(current, totalPages));
+  }, [totalPages]);
 
   function clearFilters() {
     setQuery('');
     setCategory('all');
     setStatus('active');
+  }
+
+  function showProduct(product: Product, trigger: HTMLButtonElement) {
+    viewTriggerRef.current = trigger;
+    setViewProductId(product.id);
+    onSelect?.(product);
+  }
+
+  function closeProductView() {
+    setViewProductId(null);
+    if (viewTriggerRef.current?.isConnected) viewTriggerRef.current.focus();
+    viewTriggerRef.current = null;
+  }
+
+  function openBrochure(product: Product, trigger?: HTMLButtonElement) {
+    brochureReturnRef.current = trigger ?? viewTriggerRef.current;
+    viewTriggerRef.current = null;
+    setViewProductId(null);
+    setBrochureProductId(product.id);
+  }
+
+  function closeBrochure() {
+    setBrochureProductId(null);
+    if (brochureReturnRef.current?.isConnected) brochureReturnRef.current.focus();
+    brochureReturnRef.current = null;
+  }
+
+  function editViewedProduct(product: Product) {
+    setViewProductId(null);
+    viewTriggerRef.current = null;
+    startEditProduct(product);
+  }
+
+  function viewProductComponents(product: Product) {
+    setViewProductId(null);
+    viewTriggerRef.current = null;
+    onComponents(product);
+  }
+
+  function viewProductPricing(product: Product) {
+    setViewProductId(null);
+    viewTriggerRef.current = null;
+    onPricing?.(product);
   }
 
   function startNewProduct() {
@@ -175,7 +262,7 @@ export function ProductCatalog({
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search by name, ID, mix, or notes"
+            placeholder="Search by name, ID, or notes"
           />
         </label>
         <div className="product-category-filters" role="group" aria-label="Filter by category">
@@ -225,6 +312,7 @@ export function ProductCatalog({
           <div className="product-density-control" role="group" aria-label="Catalog layout">
             <button type="button" aria-pressed={density === 'cards'} onClick={() => setDensity('cards')}>Cards</button>
             <button type="button" aria-pressed={density === 'compact'} onClick={() => setDensity('compact')}>Compact</button>
+            <button type="button" aria-pressed={density === 'table'} onClick={() => setDensity('table')}>Table</button>
           </div>
         </div>
         {loadFailed ? (
@@ -255,10 +343,131 @@ export function ProductCatalog({
               Clear filters
             </button>
           </div>
+        ) : density === 'table' ? (
+          <div
+            className="table-wrap product-catalog-table-wrap"
+            tabIndex={0}
+            aria-label="Product catalog table"
+          >
+            <table className="products-table product-catalog-table">
+              <thead>
+                <tr>
+                  <th scope="col">Product</th>
+                  <th scope="col">Category</th>
+                  <th scope="col">Material reserve</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Notes</th>
+                  <th scope="col" className="product-table-actions-heading">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedVisible.map((product) => {
+                  return (
+                    <tr
+                      key={product.id}
+                      className={editingId === product.id ? 'is-editing' : ''}
+                    >
+                      <td>
+                        <div className="product-table-identity">
+                          {(isValidProductImageDataUrl(product.imageDataUrl) || isValidBrochureImageDataUrl(product.brochureImageDataUrl)) ? <ProductImageZoom product={product} imageClassName="product-catalog-thumbnail" /> : <span className={`product-category-icon category-${product.category}`} aria-hidden="true">
+                            {product.category === 'candle'
+                              ? <AppIcon name="flame" size={16} />
+                              : product.category === 'candle-pot'
+                                ? <AppIcon name="jar" size={16} />
+                                : <AppIcon name="palette" size={16} />}
+                          </span>}
+                          <span>
+                            <strong>{product.name}</strong>
+                            <small className="material-id">{product.id}</small>
+                          </span>
+                        </div>
+                      </td>
+                      <td>{PRODUCT_CATEGORY_RULES[product.category].label}</td>
+                      <td>
+                        {(product.safetyWasteRate * 100).toLocaleString(undefined, { maximumFractionDigits: 2 })}%
+                      </td>
+                      <td>
+                        <span className={`status-pill ${product.isActive ? 'status-active' : ''}`}>
+                          {product.isActive ? 'Active' : 'Archived'}
+                        </span>
+                      </td>
+                      <td>
+                        <span className="product-table-notes">
+                          {product.notes?.trim() || '—'}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="product-table-actions">
+                          <button
+                            type="button"
+                            className="button button-secondary"
+                            disabled={disabled}
+                            aria-label={`View ${product.name}`}
+                            onClick={(event) => showProduct(product, event.currentTarget)}
+                          >
+                            View
+                          </button>
+                          <button
+                            type="button"
+                            className="button button-quiet"
+                            disabled={disabled}
+                            aria-label={`Edit ${product.name}`}
+                            onClick={() => startEditProduct(product)}
+                          >
+                            {editingId === product.id ? 'Continue editing' : 'Edit'}
+                          </button>
+                          <button
+                            type="button"
+                            className="text-button"
+                            disabled={disabled}
+                            aria-label={`Components for ${product.name}`}
+                            onClick={() => onComponents(product)}
+                          >
+                            Components
+                          </button>
+                          {onPricing && (
+                            <button type="button" className="text-button" disabled={disabled} aria-label={`Pricing for ${product.name}`} onClick={() => onPricing(product)}>
+                              Pricing
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            className="text-button"
+                            disabled={disabled}
+                            aria-label={`Print brochure for ${product.name}`}
+                            onClick={(event) => openBrochure(product, event.currentTarget)}
+                          >
+                            Brochure / PDF
+                          </button>
+                          <button
+                            type="button"
+                            className="text-button"
+                            disabled={disabled}
+                            aria-label={`Print label for ${product.name}`}
+                            onClick={() => setLabelProduct(product)}
+                          >
+                            Print label
+                          </button>
+                          <button
+                            type="button"
+                            className={`text-button ${product.isActive ? 'danger' : ''}`}
+                            disabled={disabled}
+                            aria-label={`${product.isActive ? 'Archive' : 'Restore'} ${product.name}`}
+                            onClick={() => onToggleActive(product)}
+                          >
+                            {product.isActive ? 'Archive' : 'Restore'}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         ) : (
           <div className={`product-card-grid ${density === 'compact' ? 'is-compact' : ''}`}>
-            {visible.map((product) => {
-              const mix = mixById.get(product.mixPresetId?.toLowerCase() ?? '');
+            {paginatedVisible.map((product) => {
               return (
                 <article
                   key={product.id}
@@ -266,13 +475,13 @@ export function ProductCatalog({
                   aria-label={product.name}
                 >
                   <div className="product-card-top">
-                    <span className={`product-category-icon category-${product.category}`} aria-hidden="true">
+                    {(isValidProductImageDataUrl(product.imageDataUrl) || isValidBrochureImageDataUrl(product.brochureImageDataUrl)) ? <ProductImageZoom product={product} imageClassName="product-catalog-thumbnail" /> : <span className={`product-category-icon category-${product.category}`} aria-hidden="true">
                       {product.category === 'candle'
                         ? <AppIcon name="flame" size={18} />
                         : product.category === 'candle-pot'
                           ? <AppIcon name="jar" size={18} />
                           : <AppIcon name="palette" size={18} />}
-                    </span>
+                    </span>}
                     <span className={`status-pill ${product.isActive ? 'status-active' : ''}`}>
                       {product.isActive ? 'Active' : 'Archived'}
                     </span>
@@ -283,13 +492,6 @@ export function ProductCatalog({
                     <span className="material-id">{product.id}</span>
                   </div>
                   <dl className="product-card-facts">
-                    <div>
-                      <dt>Mix preset</dt>
-                      <dd>
-                        {mix?.name ?? product.mixPresetId ?? 'No mix preset'}
-                        {mix && !mix.isActive ? ' (archived)' : ''}
-                      </dd>
-                    </div>
                     <div>
                       <dt>Material reserve</dt>
                       <dd>{(product.safetyWasteRate * 100).toLocaleString(undefined, { maximumFractionDigits: 2 })}%</dd>
@@ -302,6 +504,15 @@ export function ProductCatalog({
                     </details>
                   )}
                   <div className="product-card-actions">
+                    <button
+                      type="button"
+                      className="button button-secondary"
+                      disabled={disabled}
+                      aria-label={`View ${product.name}`}
+                      onClick={(event) => showProduct(product, event.currentTarget)}
+                    >
+                      View product
+                    </button>
                     <button
                       type="button"
                       className="button button-quiet"
@@ -319,6 +530,20 @@ export function ProductCatalog({
                       onClick={() => onComponents(product)}
                     >
                       Components
+                    </button>
+                    {onPricing && (
+                      <button type="button" className="text-button" disabled={disabled} aria-label={`Pricing for ${product.name}`} onClick={() => onPricing(product)}>
+                        Pricing
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className="text-button"
+                      disabled={disabled}
+                      aria-label={`Print brochure for ${product.name}`}
+                      onClick={(event) => openBrochure(product, event.currentTarget)}
+                    >
+                      Brochure / PDF
                     </button>
                     <button
                       type="button"
@@ -344,8 +569,86 @@ export function ProductCatalog({
             })}
           </div>
         )}
+
+        {!loading && !loadFailed && visible.length > 0 && (
+          <nav className="product-pagination" aria-label="Product catalog pagination">
+            <div className="product-pagination-summary" role="status" aria-live="polite">
+              Showing <strong>{shownStart}–{shownEnd}</strong> of <strong>{visible.length}</strong> products
+            </div>
+
+            <div className="product-pagination-pages">
+              <button
+                type="button"
+                className="button button-quiet"
+                disabled={page === 1}
+                aria-label="Previous product page"
+                onClick={() => setPage((current) => Math.max(1, current - 1))}
+              >
+                Previous
+              </button>
+
+              <div className="product-pagination-numbers" aria-label="Product pages">
+                {paginationItems.map((item) =>
+                  typeof item === 'number' ? (
+                    <button
+                      key={item}
+                      type="button"
+                      className="product-page-button"
+                      aria-label={`Product page ${item}`}
+                      aria-current={page === item ? 'page' : undefined}
+                      onClick={() => setPage(item)}
+                    >
+                      {item}
+                    </button>
+                  ) : (
+                    <span key={item} className="product-pagination-ellipsis" aria-hidden="true">…</span>
+                  ),
+                )}
+              </div>
+
+              <button
+                type="button"
+                className="button button-quiet"
+                disabled={page === totalPages}
+                aria-label="Next product page"
+                onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+              >
+                Next
+              </button>
+            </div>
+
+            <label className="field product-page-size">
+              <span>Products per page</span>
+              <select
+                aria-label="Products per page"
+                value={pageSize}
+                onChange={(event) => setPageSize(Number(event.target.value) as 10 | 25 | 50)}
+              >
+                <option value="10">10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+              </select>
+            </label>
+          </nav>
+        )}
       </div>
 
+      {viewingProduct && (
+        <ProductDetailsDialog
+          product={viewingProduct}
+          onClose={closeProductView}
+          onEdit={() => editViewedProduct(viewingProduct)}
+          onComponents={() => viewProductComponents(viewingProduct)}
+          onPricing={onPricing ? () => viewProductPricing(viewingProduct) : undefined}
+          onBrochure={() => openBrochure(viewingProduct)}
+        />
+      )}
+      {brochureProduct && (
+        <ProductBrochureDialog
+          product={brochureProduct}
+          onClose={closeBrochure}
+        />
+      )}
       {labelProduct && <ProductLabelPrintDialog product={labelProduct} onClose={() => setLabelProduct(null)} />}
     </section>
   );

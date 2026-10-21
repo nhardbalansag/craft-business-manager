@@ -41,7 +41,6 @@ describe('ProductCatalog label printing', () => {
       root.render(
         <ProductCatalog
           products={[product]}
-          mixPresets={[]}
           loading={false}
           loadFailed={false}
           disabled={false}

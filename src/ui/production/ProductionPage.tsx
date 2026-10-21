@@ -19,10 +19,13 @@ import {
   buildProductionIssueRows,
 } from './componentAwareProductionView';
 import { ProductionFinancialSummary } from './ProductionFinancialSummary';
+import { PlasterMoldProductionPreview } from './PlasterMoldProductionPreview';
 import { ProductionProductSearchPicker } from './ProductionProductSearchPicker';
+import { MultiProductProductionPlanner } from './MultiProductProductionPlanner';
 import { capacityPlan, parsePlannedQuantity, stockShortfall } from './productionPlanningView';
 import { AppIcon } from '../icons/AppIcon';
 import './production.css';
+import './plasterMoldProductionPreview.css';
 
 const peso = new Intl.NumberFormat('en-PH', {
   style: 'currency',
@@ -68,6 +71,7 @@ export function ProductionPage({ onOpenProducts }: { onOpenProducts: () => void 
   const [retry, setRetry] = useState(0);
   const [view, setView] = useState<'overview' | 'preparation' | 'details'>('overview');
   const [showCalculations, setShowCalculations] = useState(false);
+  const [multiMode, setMultiMode] = useState(false);
 
   const reloadMasters = useCallback(async () => {
     setLoading(true);
@@ -200,7 +204,7 @@ export function ProductionPage({ onOpenProducts }: { onOpenProducts: () => void 
         <div>
           <p className="eyebrow">WORKSHOP / PRODUCTION</p>
           <h1>Plan your next batch</h1>
-          <p className="page-lead">Choose a product, set your quantity, and see what it takes to make it.</p>
+          <p className="page-lead">Plan one Product in detail or combine several Products to calculate total materials and compatible Mold Formula mixtures.</p>
         </div>
         <div className="session-badge">Planning only - stock stays unchanged</div>
       </div>
@@ -228,6 +232,21 @@ export function ProductionPage({ onOpenProducts }: { onOpenProducts: () => void 
         </div>
       ) : (
         <>
+          <nav className="production-mode-tabs" aria-label="Production planning mode">
+            <button className="button button-secondary" type="button" aria-pressed={!multiMode}
+              onClick={() => setMultiMode(false)}>Single product</button>
+            <button className="button button-secondary" type="button" aria-pressed={multiMode}
+              onClick={() => setMultiMode(true)}>Multiple products</button>
+          </nav>
+          {multiMode ? (
+            <MultiProductProductionPlanner
+              products={products}
+              materials={materials}
+              initialProductId={productId}
+              initialQuantity={plannedQuantity}
+            />
+          ) : (
+          <>
           <section className="panel production-controls" aria-label="Batch setup">
             <div className="production-controls-heading">
               <span className="production-step">01</span>
@@ -341,12 +360,25 @@ export function ProductionPage({ onOpenProducts }: { onOpenProducts: () => void 
               </button>
             ))}
           </nav>
-          <div id="production-overview" hidden={view !== 'overview'} aria-busy={estimating}>
+          <div
+            id="production-overview"
+            className="production-view-content"
+            hidden={view !== 'overview'}
+            aria-busy={estimating}
+          >
             <ProductionFinancialSummary
               result={batchFeasibility}
               loading={estimating}
               onPrepare={() => setView('preparation')}
             />
+            {selectedProduct && (
+              <PlasterMoldProductionPreview
+                productId={selectedProduct.id}
+                productName={selectedProduct.name}
+                plannedQuantity={quantityValid ? quantity : null}
+                authoritativeYieldSampleId={plan?.effectiveYieldSampleId ?? null}
+              />
+            )}
           </div>
           <div
             id="production-details"
@@ -846,6 +878,8 @@ export function ProductionPage({ onOpenProducts }: { onOpenProducts: () => void 
               </div>
             </section>
           </div>
+          </>
+          )}
         </>
       )}
     </section>

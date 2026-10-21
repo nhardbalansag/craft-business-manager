@@ -1,3 +1,4 @@
+import { brochureImageFromParts } from '../domain/productBrochureImage';
 import { CURRENT_BUSINESS_DATASET_SCHEMA_VERSION } from '../domain/businessDataset';
 import {
   validateBusinessDatasetIntegrity,
@@ -335,6 +336,9 @@ function reconstructMaterials(document: WorkbookNeutralDocument): Material[] {
       isActive: booleanValue(row, 'isActive'),
     };
 
+    if (typeof row.essentialOilPercent === 'number') {
+      material.essentialOilPercent = row.essentialOilPercent;
+    }
     const manualConversion = row.manualBaseUnitsPerPurchaseUnit;
     if (typeof manualConversion === 'number') {
       material.manualBaseUnitsPerPurchaseUnit = manualConversion;
@@ -395,6 +399,14 @@ function reconstructProducts(document: WorkbookNeutralDocument): Product[] {
     if (mixPresetId !== undefined) product.mixPresetId = mixPresetId;
     const preferredYieldSampleId = optionalText(row, 'preferredYieldSampleId');
     if (preferredYieldSampleId !== undefined) product.preferredYieldSampleId = preferredYieldSampleId;
+    const candleWaxMaterialId = optionalText(row, 'candleWaxMaterialId');
+    const candleEssentialOilMaterialId = optionalText(row, 'candleEssentialOilMaterialId');
+    if (candleWaxMaterialId !== undefined) product.candleWaxMaterialId = candleWaxMaterialId;
+    if (candleEssentialOilMaterialId !== undefined) product.candleEssentialOilMaterialId = candleEssentialOilMaterialId;
+    const imageDataUrl = optionalText(row, 'imageDataUrl');
+    if (imageDataUrl !== undefined) product.imageDataUrl = imageDataUrl;
+    const brochureImageDataUrl = brochureImageFromParts(row);
+    if (brochureImageDataUrl !== undefined) product.brochureImageDataUrl = brochureImageDataUrl;
     const notes = optionalText(row, 'notes');
     if (notes !== undefined) product.notes = notes;
     return product;

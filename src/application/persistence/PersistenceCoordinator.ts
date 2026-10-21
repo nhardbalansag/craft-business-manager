@@ -1,8 +1,28 @@
+import type { BusinessDatasetV2 } from '../../domain/businessDatasetV2';
+import {
+  extendBusinessDatasetV2,
+  toBusinessDatasetV2,
+  type PhysicalBusinessDatasetV3,
+} from '../../domain/physicalBusinessDatasetV3';
+import {
+  extendPhysicalBusinessDatasetV3,
+  toPhysicalBusinessDatasetV3,
+  type PhysicalBusinessDatasetV4,
+} from '../../domain/physicalBusinessDatasetV4';
+import {
+  extendPhysicalBusinessDatasetV4,
+  toPhysicalBusinessDatasetV4,
+  type PhysicalBusinessDatasetV5,
+} from '../../domain/physicalBusinessDatasetV5';
 import type { BusinessDataset } from '../../domain/types';
 import {
   toLegacyBusinessDataset,
   type PhysicalBusinessDataset,
 } from '../../domain/physicalBusinessDataset';
+import {
+  exportBusinessDatasetV2ToXlsx,
+  importBusinessDatasetV2FromXlsx,
+} from '../../storage/businessDatasetV2Workbook';
 import {
   exportBusinessDatasetToXlsx,
   type WorkbookExportMetadata,
@@ -15,6 +35,21 @@ import {
   exportPhysicalBusinessDatasetToXlsx,
   importPhysicalBusinessDatasetFromXlsx,
 } from '../../storage/physicalBusinessDatasetWorkbook';
+import {
+  exportPhysicalBusinessDatasetV3ToXlsx,
+  importPhysicalBusinessDatasetV3FromXlsx,
+  type PhysicalBusinessDatasetV3WorkbookImportResult,
+} from '../../storage/physicalBusinessDatasetV3Workbook';
+import {
+  exportPhysicalBusinessDatasetV4ToXlsx,
+  importPhysicalBusinessDatasetV4FromXlsx,
+  type PhysicalBusinessDatasetV4WorkbookImportResult,
+} from '../../storage/physicalBusinessDatasetV4Workbook';
+import {
+  exportPhysicalBusinessDatasetV5ToXlsx,
+  importPhysicalBusinessDatasetV5FromXlsx,
+  type PhysicalBusinessDatasetV5WorkbookImportResult,
+} from '../../storage/physicalBusinessDatasetV5Workbook';
 import type { WorkbookBinaryInput, WorkbookCodec } from '../../storage/workbookCodec';
 import {
   cloneWorkbookBytes,
@@ -24,11 +59,11 @@ import {
 } from '../../storage/WorkbookTransport';
 import {
   PersistenceLifecycleOperationalError,
+  type PersistenceDatasetHydrationIssue,
   type PersistenceLifecycleRejected,
 } from './PersistenceLifecycle';
 import {
   DatasetHydrationError,
-  type DatasetHydrationResult,
 } from './ValidatedAtomicDatasetHydrationService';
 
 export type PersistenceClock = () => Date;
@@ -36,8 +71,14 @@ export type PersistenceClock = () => Date;
 export interface PersistenceCoordinatorOptions {
   readonly clock?: PersistenceClock;
   readonly applicationVersion?: string;
-  /** Explicit override for workbook v2 physical-identification persistence. */
+  /** Explicit override for physical-identification persistence. */
   readonly physicalIdentification?: boolean;
+  /** Explicit override for BusinessDataset-v2 / workbook-v3 tier persistence. */
+  readonly tieredPricing?: boolean;
+  /** Explicit override for PhysicalBusinessDataset-v4 plaster mold profile persistence. */
+  readonly plasterMoldYieldProfiles?: boolean;
+  /** Explicit override for PhysicalBusinessDataset-v5 Mold Formula provenance persistence. */
+  readonly yieldMoldFormulaSources?: boolean;
 }
 
 export interface PersistenceWorkbookExported {
@@ -62,13 +103,31 @@ export type PersistenceWorkbookApplyResult =
   | PersistenceWorkbookHydrated
   | PersistenceLifecycleRejected;
 
+type PersistableDataset =
+  | BusinessDataset
+  | PhysicalBusinessDataset
+  | BusinessDatasetV2
+  | PhysicalBusinessDatasetV3
+  | PhysicalBusinessDatasetV4
+  | PhysicalBusinessDatasetV5;
+
 interface SnapshotSource {
   readonly physicalIdentification?: boolean;
-  snapshot(): Promise<BusinessDataset | PhysicalBusinessDataset>;
+  readonly tieredPricing?: boolean;
+  readonly plasterMoldYieldProfiles?: boolean;
+  readonly yieldMoldFormulaSources?: boolean;
+  snapshot(): Promise<PersistableDataset>;
 }
 
+type HydrationResult =
+  | { readonly status: 'hydrated' }
+  | {
+      readonly status: 'rejected';
+      readonly issues: readonly PersistenceDatasetHydrationIssue[];
+    };
+
 interface HydrationTarget {
-  hydrate(candidate: unknown): Promise<DatasetHydrationResult>;
+  hydrate(candidate: unknown): Promise<HydrationResult>;
 }
 
 interface PreparedWorkbookExport {
@@ -80,15 +139,160 @@ function systemClock(): Date {
   return new Date();
 }
 
-function isPhysicalDataset(dataset: BusinessDataset | PhysicalBusinessDataset): dataset is PhysicalBusinessDataset {
-  return 'storageLocations' in dataset && 'molds' in dataset;
+function isPhysicalDataset(
+  dataset: PersistableDataset,
+): dataset is PhysicalBusinessDataset {
+  return (
+    'storageLocations' in dataset &&
+    'molds' in dataset &&
+    !('productPriceTiers' in dataset)
+  );
 }
 
-function hasPhysicalSourceRecords(dataset: PhysicalBusinessDataset): boolean {
+function isBusinessDatasetV2(
+  dataset: PersistableDataset,
+): dataset is BusinessDatasetV2 {
+  return (
+    'productPriceTiers' in dataset &&
+    !('storageLocations' in dataset) &&
+    dataset.schemaVersion === 2
+  );
+}
+
+function isPhysicalDatasetV3(
+  dataset: PersistableDataset,
+): dataset is PhysicalBusinessDatasetV3 {
+  return (
+    'productPriceTiers' in dataset &&
+    'storageLocations' in dataset &&
+    'molds' in dataset &&
+    dataset.schemaVersion === 3
+  );
+}
+
+function isPhysicalDatasetV4(
+  dataset: PersistableDataset,
+): dataset is PhysicalBusinessDatasetV4 {
+  return (
+    'productPriceTiers' in dataset &&
+    'storageLocations' in dataset &&
+    'molds' in dataset &&
+    'plasterMoldYieldProfiles' in dataset &&
+    dataset.schemaVersion === 4
+  );
+}
+
+function isPhysicalDatasetV5(
+  dataset: PersistableDataset,
+): dataset is PhysicalBusinessDatasetV5 {
+  return (
+    'productPriceTiers' in dataset &&
+    'storageLocations' in dataset &&
+    'molds' in dataset &&
+    'plasterMoldYieldProfiles' in dataset &&
+    'yieldMoldFormulaSources' in dataset &&
+    dataset.schemaVersion === 5
+  );
+}
+
+function hasPhysicalSourceRecords(
+  dataset:
+    | PhysicalBusinessDataset
+    | PhysicalBusinessDatasetV3
+    | PhysicalBusinessDatasetV4
+    | PhysicalBusinessDatasetV5,
+): boolean {
   return dataset.storageLocations.length > 0 || dataset.molds.length > 0;
 }
 
-function hydrationOperationalError(error: unknown): PersistenceLifecycleOperationalError {
+function workbookHasPhysicalSheets(
+  bytes: WorkbookBinaryInput,
+  codec: WorkbookCodec,
+): boolean {
+  try {
+    const document = codec.decode(bytes);
+    const names = new Set(document.sheets.map((sheet) => sheet.name));
+    return names.has('StorageLocations') || names.has('Molds');
+  } catch {
+    return false;
+  }
+}
+
+function importTieredPhysicalOrCore(
+  bytes: WorkbookBinaryInput,
+  codec: WorkbookCodec,
+): PhysicalBusinessDatasetV3WorkbookImportResult {
+  const physicalShape = workbookHasPhysicalSheets(bytes, codec);
+
+  if (physicalShape) {
+    return importPhysicalBusinessDatasetV3FromXlsx(bytes, codec);
+  }
+
+  const core = importBusinessDatasetV2FromXlsx(bytes, codec);
+  if (core.ok) {
+    return {
+      ok: true,
+      dataset: extendBusinessDatasetV2(core.dataset),
+      metadata: core.metadata,
+    };
+  }
+
+  return core;
+}
+
+function importProfilePhysicalOrCore(
+  bytes: WorkbookBinaryInput,
+  codec: WorkbookCodec,
+): PhysicalBusinessDatasetV4WorkbookImportResult {
+  const physicalShape = workbookHasPhysicalSheets(bytes, codec);
+
+  if (physicalShape) {
+    return importPhysicalBusinessDatasetV4FromXlsx(bytes, codec);
+  }
+
+  const core = importBusinessDatasetV2FromXlsx(bytes, codec);
+  if (core.ok) {
+    return {
+      ok: true,
+      dataset: extendPhysicalBusinessDatasetV3(
+        extendBusinessDatasetV2(core.dataset),
+      ),
+      metadata: core.metadata,
+    };
+  }
+
+  return core;
+}
+
+function importProvenancePhysicalOrCore(
+  bytes: WorkbookBinaryInput,
+  codec: WorkbookCodec,
+): PhysicalBusinessDatasetV5WorkbookImportResult {
+  const physicalShape = workbookHasPhysicalSheets(bytes, codec);
+
+  if (physicalShape) {
+    return importPhysicalBusinessDatasetV5FromXlsx(bytes, codec);
+  }
+
+  const core = importBusinessDatasetV2FromXlsx(bytes, codec);
+  if (core.ok) {
+    return {
+      ok: true,
+      dataset: extendPhysicalBusinessDatasetV4(
+        extendPhysicalBusinessDatasetV3(
+          extendBusinessDatasetV2(core.dataset),
+        ),
+      ),
+      metadata: core.metadata,
+    };
+  }
+
+  return core;
+}
+
+function hydrationOperationalError(
+  error: unknown,
+): PersistenceLifecycleOperationalError {
   if (error instanceof DatasetHydrationError) {
     if (error.code === 'SNAPSHOT_FAILED') {
       return new PersistenceLifecycleOperationalError(
@@ -127,15 +331,21 @@ function hydrationOperationalError(error: unknown): PersistenceLifecycleOperatio
 /**
  * Application-level persistence lifecycle coordinator.
  *
- * Legacy callers remain on the proven Phase 5 workbook-v1 contract by default.
- * A PhysicalSourceSnapshotService advertises physical-identification capability. The
- * real app keeps emitting v1 while no physical records exist, then automatically moves
- * to v2 once a StorageLocation or Mold must be persisted. Imports accept both versions.
+ * Legacy callers retain the proven Phase 5 v1/v2 persistence behavior by default.
+ * Tier-aware snapshot services advertise tieredPricing=true and move the live path to
+ * core workbook v3 / dataset v2 or physical workbook v3 / dataset v3.
+ * Profile-aware physical snapshots additionally advertise plasterMoldYieldProfiles=true
+ * and use physical workbook/dataset v4 while retaining v2/v3 import compatibility.
+ * Provenance-aware snapshots advertise yieldMoldFormulaSources=true and move the
+ * physical live path to workbook/dataset v5 while retaining earlier physical/core imports.
  */
 export class PersistenceCoordinator {
   private readonly clock: PersistenceClock;
   private readonly applicationVersion?: string;
   private readonly physicalIdentification: boolean;
+  private readonly tieredPricing: boolean;
+  private readonly plasterMoldYieldProfiles: boolean;
+  private readonly yieldMoldFormulaSources: boolean;
 
   constructor(
     private readonly snapshotService: SnapshotSource,
@@ -146,7 +356,19 @@ export class PersistenceCoordinator {
     this.clock = options.clock ?? systemClock;
     this.applicationVersion = options.applicationVersion;
     this.physicalIdentification =
-      options.physicalIdentification ?? snapshotService.physicalIdentification ?? false;
+      options.physicalIdentification ??
+      snapshotService.physicalIdentification ??
+      false;
+    this.tieredPricing =
+      options.tieredPricing ?? snapshotService.tieredPricing ?? false;
+    this.plasterMoldYieldProfiles =
+      options.plasterMoldYieldProfiles ??
+      snapshotService.plasterMoldYieldProfiles ??
+      false;
+    this.yieldMoldFormulaSources =
+      options.yieldMoldFormulaSources ??
+      snapshotService.yieldMoldFormulaSources ??
+      false;
   }
 
   async exportCurrentWorkbook(): Promise<PersistenceWorkbookExported> {
@@ -166,7 +388,10 @@ export class PersistenceCoordinator {
 
     let receipt: WorkbookSaveReceipt;
     try {
-      receipt = await transport.saveWorkbook(cloneWorkbookBytes(prepared.bytes), options);
+      receipt = await transport.saveWorkbook(
+        cloneWorkbookBytes(prepared.bytes),
+        options,
+      );
     } catch (error) {
       throw new PersistenceLifecycleOperationalError(
         'transport-save',
@@ -189,9 +414,34 @@ export class PersistenceCoordinator {
   ): Promise<PersistenceWorkbookApplyResult> {
     let imported;
     try {
-      imported = this.physicalIdentification
-        ? importPhysicalBusinessDatasetFromXlsx(cloneWorkbookBytes(bytes), this.codec)
-        : importBusinessDatasetFromXlsx(cloneWorkbookBytes(bytes), this.codec);
+      const ownedBytes = cloneWorkbookBytes(bytes);
+      if (this.yieldMoldFormulaSources) {
+        if (
+          !this.physicalIdentification ||
+          !this.tieredPricing ||
+          !this.plasterMoldYieldProfiles
+        ) {
+          throw new Error(
+            'Mold Formula provenance persistence requires plaster-profile-aware tiered physical persistence.',
+          );
+        }
+        imported = importProvenancePhysicalOrCore(ownedBytes, this.codec);
+      } else if (this.plasterMoldYieldProfiles) {
+        if (!this.physicalIdentification || !this.tieredPricing) {
+          throw new Error(
+            'Plaster mold yield profile persistence requires tiered physical persistence.',
+          );
+        }
+        imported = importProfilePhysicalOrCore(ownedBytes, this.codec);
+      } else if (this.tieredPricing) {
+        imported = this.physicalIdentification
+          ? importTieredPhysicalOrCore(ownedBytes, this.codec)
+          : importBusinessDatasetV2FromXlsx(ownedBytes, this.codec);
+      } else {
+        imported = this.physicalIdentification
+          ? importPhysicalBusinessDatasetFromXlsx(ownedBytes, this.codec)
+          : importBusinessDatasetFromXlsx(ownedBytes, this.codec);
+      }
     } catch (error) {
       throw new PersistenceLifecycleOperationalError(
         'import',
@@ -209,7 +459,7 @@ export class PersistenceCoordinator {
       };
     }
 
-    let hydration;
+    let hydration: HydrationResult;
     try {
       hydration = await this.hydrationService.hydrate(imported.dataset);
     } catch (error) {
@@ -249,7 +499,7 @@ export class PersistenceCoordinator {
   }
 
   private async prepareCurrentWorkbookExport(): Promise<PreparedWorkbookExport> {
-    let dataset: BusinessDataset | PhysicalBusinessDataset;
+    let dataset: PersistableDataset;
     try {
       dataset = await this.snapshotService.snapshot();
     } catch (error) {
@@ -269,17 +519,123 @@ export class PersistenceCoordinator {
           : { applicationVersion: this.applicationVersion }),
       };
 
-      if (this.physicalIdentification && !isPhysicalDataset(dataset)) {
-        throw new Error('Physical-identification persistence requires a physical source snapshot.');
-      }
-
       let bytes: Uint8Array;
-      if (this.physicalIdentification && isPhysicalDataset(dataset)) {
+
+      if (this.yieldMoldFormulaSources) {
+        if (
+          !this.physicalIdentification ||
+          !this.tieredPricing ||
+          !this.plasterMoldYieldProfiles
+        ) {
+          throw new Error(
+            'Mold Formula provenance persistence requires plaster-profile-aware tiered physical persistence.',
+          );
+        }
+        if (!isPhysicalDatasetV5(dataset)) {
+          throw new Error(
+            'Mold Formula provenance persistence requires a PhysicalBusinessDataset v5 source snapshot.',
+          );
+        }
+
+        bytes =
+          hasPhysicalSourceRecords(dataset) ||
+          dataset.plasterMoldYieldProfiles.length > 0 ||
+          dataset.yieldMoldFormulaSources.length > 0
+            ? exportPhysicalBusinessDatasetV5ToXlsx(
+                dataset,
+                metadata,
+                this.codec,
+              )
+            : exportBusinessDatasetV2ToXlsx(
+                toBusinessDatasetV2(
+                  toPhysicalBusinessDatasetV3(
+                    toPhysicalBusinessDatasetV4(dataset),
+                  ),
+                ),
+                metadata,
+                this.codec,
+              );
+      } else if (this.plasterMoldYieldProfiles) {
+        if (!this.physicalIdentification || !this.tieredPricing) {
+          throw new Error(
+            'Plaster mold yield profile persistence requires tiered physical persistence.',
+          );
+        }
+        if (!isPhysicalDatasetV4(dataset)) {
+          throw new Error(
+            'Plaster mold yield profile persistence requires a PhysicalBusinessDataset v4 source snapshot.',
+          );
+        }
+
+        bytes =
+          hasPhysicalSourceRecords(dataset) ||
+          dataset.plasterMoldYieldProfiles.length > 0
+            ? exportPhysicalBusinessDatasetV4ToXlsx(
+                dataset,
+                metadata,
+                this.codec,
+              )
+            : exportBusinessDatasetV2ToXlsx(
+                toBusinessDatasetV2(toPhysicalBusinessDatasetV3(dataset)),
+                metadata,
+                this.codec,
+              );
+      } else if (this.tieredPricing) {
+        if (this.physicalIdentification) {
+          if (!isPhysicalDatasetV3(dataset)) {
+            throw new Error(
+              'Tiered physical persistence requires a PhysicalBusinessDataset v3 source snapshot.',
+            );
+          }
+
+          bytes = hasPhysicalSourceRecords(dataset)
+            ? exportPhysicalBusinessDatasetV3ToXlsx(
+                dataset,
+                metadata,
+                this.codec,
+              )
+            : exportBusinessDatasetV2ToXlsx(
+                toBusinessDatasetV2(dataset),
+                metadata,
+                this.codec,
+              );
+        } else {
+          if (!isBusinessDatasetV2(dataset)) {
+            throw new Error(
+              'Tiered core persistence requires a BusinessDataset v2 source snapshot.',
+            );
+          }
+
+          bytes = exportBusinessDatasetV2ToXlsx(
+            dataset,
+            metadata,
+            this.codec,
+          );
+        }
+      } else if (this.physicalIdentification) {
+        if (!isPhysicalDataset(dataset)) {
+          throw new Error(
+            'Physical-identification persistence requires a physical source snapshot.',
+          );
+        }
+
         bytes = hasPhysicalSourceRecords(dataset)
-          ? exportPhysicalBusinessDatasetToXlsx(dataset, metadata, this.codec)
-          : exportBusinessDatasetToXlsx(toLegacyBusinessDataset(dataset), metadata, this.codec);
+          ? exportPhysicalBusinessDatasetToXlsx(
+              dataset,
+              metadata,
+              this.codec,
+            )
+          : exportBusinessDatasetToXlsx(
+              toLegacyBusinessDataset(dataset),
+              metadata,
+              this.codec,
+            );
       } else {
-        bytes = exportBusinessDatasetToXlsx(dataset as BusinessDataset, metadata, this.codec);
+        bytes = exportBusinessDatasetToXlsx(
+          dataset as BusinessDataset,
+          metadata,
+          this.codec,
+        );
       }
 
       return {

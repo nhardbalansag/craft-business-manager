@@ -37,9 +37,10 @@ export interface WorkbookResourceLimitIssue {
 
 export const DEFAULT_WORKBOOK_RESOURCE_LIMITS: Readonly<WorkbookResourceLimits> =
   Object.freeze({
-    // Browser-oriented Phase 5 guardrails. These are intentionally well above the
-    // expected small-business workbook size while still bounding decode/reconstruction.
-    maxWorkbookBytes: 20 * 1024 * 1024,
+    // Browser-oriented cap includes workbooks storing high-resolution product
+    // photos as base64 data in cells. Retain a finite limit before XLSX decode,
+    // while existing worksheet/row/cell caps still bound reconstruction.
+    maxWorkbookBytes: 48 * 1024 * 1024,
     maxWorksheetCount: 32,
     maxColumnsPerSheet: 64,
     maxRowsPerSheet: 50_000,

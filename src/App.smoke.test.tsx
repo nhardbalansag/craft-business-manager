@@ -3,10 +3,10 @@ import { describe, expect, it } from 'vitest';
 import App from './App';
 import type { Material } from './domain/materials';
 import type { Product } from './domain/products';
-import { CalibrationPage } from './ui/calibration/CalibrationPage';
 import { PricingPage } from './ui/pricing/PricingPage';
 import { ProductComponentsView } from './ui/products/ProductComponentsView';
 import { ProductsPage } from './ui/products/ProductsPage';
+import { ProductsWorkspacePage } from './ui/products/ProductsWorkspacePage';
 import { ProductStockView } from './ui/products/ProductStockView';
 import { ProductionPage } from './ui/production/ProductionPage';
 import { YieldPage } from './ui/yield/YieldPage';
@@ -20,31 +20,34 @@ describe('React workspace smoke validation', () => {
     expect(html).toContain('Calculated purchase costing');
     expect(html).toContain('Normalized stock &amp; valuation');
     expect(html).toContain('Supplier / source');
+    expect(html).not.toContain('>Calibration<');
     expect(html).toContain('Products');
-    expect(html).toContain('Yield');
+    expect(html).not.toContain('>Yield</button>');
     expect(html).toContain('Production');
-    expect(html).toContain('Pricing');
+    const navigation = html.slice(html.indexOf('aria-label="Application sections"'));
+    expect(navigation).not.toContain('>Pricing</button>');
   });
 
-  it('renders the Calibration workspace without requiring browser-side effects', () => {
-    const html = renderToStaticMarkup(<CalibrationPage />);
-
-    expect(html).toContain('Calibration');
-    expect(html).toContain('Included in workbook exports');
-    expect(html).toContain('Choose the material');
-    expect(html).toContain('Loading calibration workspace');
-  });
-
-  it('renders the Products, Mix Presets, Components, and Finished stock workspace without browser-side effects', () => {
+  it('renders the Products, Components, and Finished stock workspace without browser-side effects', () => {
     const html = renderToStaticMarkup(<ProductsPage />);
 
     expect(html).toContain('Your product workshop');
     expect(html).toContain('Add a product');
     expect(html).toContain('Product catalog');
-    expect(html).toContain('Mix presets');
+    expect(html).not.toContain('Mix presets');
     expect(html).toContain('Components');
     expect(html).toContain('Finished stock');
     expect(html).toContain('Safety waste (%)');
+  });
+
+  it('places Yield and Pricing inside the Product workspace, not in the outer tabs', () => {
+    const html = renderToStaticMarkup(<ProductsWorkspacePage />);
+    expect(html).toContain('aria-controls="products-view-yield"');
+    expect(html).toContain('id="products-view-yield"');
+    expect(html).toContain('aria-controls="products-view-pricing"');
+    expect(html).toContain('id="products-view-pricing"');
+    expect(html).not.toContain('id="products-pricing-area"');
+    expect(html).not.toContain('aria-label="Selected pricing Product"');
   });
 
   it('renders the Product composition editor shell with an active parent Product', () => {
@@ -120,40 +123,39 @@ describe('React workspace smoke validation', () => {
     expect(html).not.toContain('Expected profit');
   });
 
-  it('renders the enhanced Phase 4 pricing workflow and saved unit-economics shell without browser-side effects', () => {
+  it('renders a clean Pricing dashboard with optional detailed costs and full modal actions', () => {
     const html = renderToStaticMarkup(<PricingPage />);
 
-    expect(html).toContain('PHASE 4 · PRICING');
-    expect(html).toContain('Pricing &amp; unit economics');
-    expect(html).toContain('Included in workbook exports');
-    expect(html).toContain('Choose the product');
-    expect(html).toContain('Set financial inputs');
-    expect(html).toContain('Review saved unit economics');
-    expect(html).toContain('PRODUCT CATALOG');
-    expect(html).toContain('Search Products');
-    expect(html).toContain('Labor cost per unit (PHP)');
-    expect(html).toContain('Overhead cost per unit (PHP)');
-    expect(html).toContain('Pricing method');
-    expect(html).toContain('Not configured');
-    expect(html).toContain('Save financial profile');
-    expect(html).toContain('DRAFT INPUT PREVIEW');
-    expect(html).toContain('human percentages');
-    expect(html).toContain('UNIT ECONOMICS');
+    expect(html).not.toContain('PHASE 4 · PRICING');
+    expect(html).not.toContain('Pricing &amp; unit economics');
+    expect(html).not.toContain('Included in workbook exports');
+    expect(html).toContain('YOUR PRODUCT');
+    expect(html).toContain('Change product');
+    expect(html).toContain('Financial source');
+    expect(html).toContain('Set Financial Source');
     expect(html).toContain('Saved pricing result');
-    expect(html).toContain('Total unit cost');
+    expect(html).toContain('Unit cost');
     expect(html).toContain('Selling price');
     expect(html).toContain('Profit / unit');
-    expect(html).toContain('Effective margin');
-    expect(html).toContain('COST COMPOSITION');
-    expect(html).toContain('Direct materials');
-    expect(html).toContain('Safety reserve');
-    expect(html).toContain('Purchased components');
-    expect(html).toContain('Handmade Product components');
-    expect(html).toContain('Pricing policy');
-    expect(html).toContain('Profit per unit');
-    expect(html).toContain('Effective markup');
-    expect(html).toContain('Cost trace details');
-    expect(html).toContain('READINESS &amp; ISSUES');
-    expect(html).toContain('Pricing readiness');
+    expect(html).toContain('Margin');
+    expect(html).toContain('View cost breakdown');
+    expect(html).toContain('pricing-cost-details');
+    expect(html).toContain('pricing-overview');
+    expect(html).toContain('pricing-quick-actions');
+    expect(html).toContain('ORDER &amp; QUOTATION');
+    expect(html).toContain('BULK &amp; CUSTOM');
+    expect(html).toContain('Open Order Price Preview');
+    expect(html).toContain('Open Tier Pricing');
+
+    // Details and modals remain in the system, but are not expanded by default.
+    expect(html).not.toContain('class="pricing-cost-details" open');
+    expect(html).not.toContain('class="pricing-overview" aria-label="Pricing catalog summary" open');
+    expect(html).not.toContain('Labor cost per unit (PHP)');
+    expect(html).not.toContain('Order quantity (finished units)');
+    expect(html).not.toContain('Tier pricing catalog');
+
+    expect(html.indexOf('Financial source')).toBeGreaterThan(html.indexOf('YOUR PRODUCT'));
+    expect(html.indexOf('Financial source')).toBeLessThan(html.indexOf('UNIT ECONOMICS'));
+    expect(html.indexOf('UNIT ECONOMICS')).toBeLessThan(html.indexOf('ORDER &amp; QUOTATION'));
   });
 });

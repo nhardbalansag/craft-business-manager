@@ -1,0 +1,439 @@
+import type {
+  ProductPriceTierQuoteLine,
+  ProductPriceTierQuoteResult,
+  ProductPriceTierQuoteStatus,
+} from '../../application/productPriceTiers/ProductPriceTierQuoteService';
+import type {
+  ProductPriceTier,
+  ProductPriceTierKind,
+  ProductPriceTierPriceBasis,
+} from '../../domain/productPriceTiers';
+import { resolveProductPriceTierPricingSource } from '../../domain/productPriceTiers';
+import { formatPercent, formatPhp } from './productPricingQuoteView';
+
+interface ProductPriceTierCatalogPanelProps {
+  productName: string | null;
+  quote: ProductPriceTierQuoteResult | null;
+  loading: boolean;
+  error: string | null;
+  hasUnsavedChanges?: boolean;
+  onRefresh?: () => void;
+  onCreateTier?: () => void;
+  onEditTier?: (tier: ProductPriceTier) => void;
+  onArchiveTier?: (tier: ProductPriceTier) => void;
+  archivingTierId?: string | null;
+}
+
+function titleCase(value: string): string {
+  return value
+    .split('-')
+    .map((part) => part.charAt(0).toLocaleUpperCase() + part.slice(1))
+    .join(' ');
+}
+
+function readinessLabel(status: ProductPriceTierQuoteStatus): string {
+  return status === 'not-ready' ? 'Not ready' : titleCase(status);
+}
+
+function kindLabel(kind: ProductPriceTierKind): string {
+  switch (kind) {
+    case 'package':
+      return 'Package';
+    case 'bulk':
+      return 'Bulk';
+    case 'custom':
+      return 'Custom';
+  }
+}
+
+function basisLabel(basis: ProductPriceTierPriceBasis): string {
+  return basis === 'per-unit' ? 'Per unit' : 'Per offer';
+}
+
+function kindPurpose(kind: ProductPriceTierKind): string {
+  switch (kind) {
+    case 'package':
+      return 'Fixed bundle';
+    case 'bulk':
+      return 'Quantity threshold';
+    case 'custom':
+      return 'Explicit special offer';
+  }
+}
+
+function sourceSetupAdvisories(tier: ProductPriceTier): string[] {
+  const advisories: string[] = [];
+
+  if (tier.kind === 'package' && tier.priceBasis === 'per-unit') {
+    advisories.push(
+      'This Package is stored as a per-unit offer. Review whether the intended package price should instead be per offer.',
+    );
+  }
+  if (tier.kind === 'package' && tier.unitsPerOffer === 1) {
+    advisories.push(
+      'This Package contains one Product unit per offer; increase the offer size if it is intended to be a multi-piece bundle.',
+    );
+  }
+  if (tier.kind === 'bulk' && tier.priceBasis === 'per-offer') {
+    advisories.push(
+      'This Bulk tier is stored as a per-offer bundle rather than a per-unit threshold price.',
+    );
+  }
+  if (tier.kind === 'bulk' && tier.minimumOrderQuantity === 1) {
+    advisories.push(
+      'This Bulk tier starts at quantity 1, so it does not create a meaningful volume threshold.',
+    );
+  }
+
+  return advisories;
+}
+
+function safeDomId(value: string): string {
+  return value.replace(/[^A-Za-z0-9_-]/g, '-');
+}
+
+function sourcePriceLabel(line: ProductPriceTierQuoteLine): string {
+  const source = resolveProductPriceTierPricingSource(line.tier);
+  if (source.pricingMethod === 'profit-per-unit') {
+    return `${formatPhp(source.pricingValue)} profit / unit`;
+  }
+  return line.tier.priceBasis === 'per-unit'
+    ? `${formatPhp(source.pricingValue)} / unit`
+    : `${formatPhp(source.pricingValue)} / offer`;
+}
+
+function Metric({
+  label,
+  value,
+  note,
+}: {
+  label: string;
+  value: string;
+  note?: string;
+}) {
+  return (
+    <div className="tier-catalog-metric">
+      <span>{label}</span>
+      <strong>{value}</strong>
+      {note && <small>{note}</small>}
+    </div>
+  );
+}
+
+function TierCard({
+  line,
+  onEditTier,
+  onArchiveTier,
+  archivingTierId,
+}: {
+  line: ProductPriceTierQuoteLine;
+  onEditTier?: (tier: ProductPriceTier) => void;
+  onArchiveTier?: (tier: ProductPriceTier) => void;
+  archivingTierId?: string | null;
+}) {
+  const economics = line.economics;
+  const comparison = line.defaultComparison;
+  const sourceAdvisories = sourceSetupAdvisories(line.tier);
+  const headingId = `price-tier-${safeDomId(line.tier.id)}-heading`;
+
+  return (
+    <article
+      className={`tier-catalog-card ${line.tier.isActive ? '' : 'archived'}`}
+      aria-label={`Price tier ${line.tier.name}`}
+      aria-labelledby={headingId}
+    >
+      <div className="tier-catalog-card-heading">
+        <div>
+          <div className="tier-catalog-title-line">
+            <h3 id={headingId}>{line.tier.name}</h3>
+            <span className={`status-pill ${line.tier.isActive ? 'status-active' : ''}`}>
+              {line.tier.isActive ? 'Active' : 'Archived'}
+            </span>
+          </div>
+          <p>
+            <span className="material-id">{line.tier.id}</span>
+            <span> · {kindLabel(line.tier.kind)} · {basisLabel(line.tier.priceBasis)}</span>
+          </p>
+          <p className="tier-catalog-kind-purpose">{kindPurpose(line.tier.kind)}</p>
+        </div>
+        <div className="tier-catalog-card-heading-actions">
+          <span
+            className={`pricing-readiness-pill status-${line.status}`}
+            aria-label={`${line.tier.name} pricing status: ${readinessLabel(line.status)}`}
+          >
+            {readinessLabel(line.status)}
+          </span>
+          {(onEditTier || (line.tier.isActive && onArchiveTier)) && (
+            <div className="tier-catalog-card-actions">
+              {onEditTier && (
+                <button
+                  className="button button-secondary tier-catalog-action-button"
+                  type="button"
+                  onClick={() => onEditTier(line.tier)}
+                  disabled={archivingTierId === line.tier.id}
+                  aria-label={`Edit tier ${line.tier.name}`}
+                >
+                  Edit tier
+                </button>
+              )}
+              {line.tier.isActive && onArchiveTier && (
+                <button
+                  className="text-button danger"
+                  type="button"
+                  onClick={() => onArchiveTier(line.tier)}
+                  disabled={archivingTierId === line.tier.id}
+                  aria-label={`Archive tier ${line.tier.name}`}
+                >
+                  {archivingTierId === line.tier.id ? 'Archiving…' : 'Archive tier'}
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="tier-catalog-source-grid" aria-label={`${line.tier.name} source terms`}>
+        <Metric label="Pricing source" value={sourcePriceLabel(line)} />
+        <Metric label="Units / offer" value={line.tier.unitsPerOffer.toLocaleString('en-PH')} />
+        <Metric label="Minimum order" value={`${line.tier.minimumOrderQuantity.toLocaleString('en-PH')} units`} />
+        <Metric label="Extra cost / offer" value={formatPhp(line.tier.additionalCostPerOffer)} />
+      </div>
+
+      {sourceAdvisories.length > 0 && (
+        <div
+          className="tier-catalog-source-advisory"
+          role="status"
+          aria-label={`Setup advisory for ${line.tier.name}`}
+        >
+          <strong>Setup advisory</strong>
+          <ul>
+            {sourceAdvisories.map((advisory) => (
+              <li key={advisory}>{advisory}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {economics ? (
+        <>
+          <div className="tier-catalog-economics-grid" aria-label={`${line.tier.name} economics`}>
+            <Metric label="Offer cost" value={formatPhp(economics.totalOfferCost)} />
+            <Metric label="Offer selling price" value={formatPhp(economics.offerSellingPrice)} />
+            <Metric label="Effective unit price" value={formatPhp(economics.effectiveUnitSellingPrice)} />
+            <Metric label="Profit / offer" value={formatPhp(economics.profitPerOffer)} />
+            <Metric label="Profit / unit" value={formatPhp(economics.effectiveProfitPerUnit)} />
+            <Metric label="Effective markup" value={formatPercent(economics.effectiveMarkup)} />
+            <Metric label="Effective margin" value={formatPercent(economics.effectiveMargin)} />
+          </div>
+
+          {comparison && (
+            <div className="tier-catalog-comparison" aria-label={`${line.tier.name} Default pricing comparison`}>
+              <div>
+                <span>Default equivalent</span>
+                <strong>{formatPhp(comparison.defaultEquivalentOfferPrice)}</strong>
+              </div>
+              <div>
+                <span>Tier savings vs Default</span>
+                <strong>{formatPhp(comparison.discountAmountVsDefault)}</strong>
+              </div>
+              <div>
+                <span>Savings rate</span>
+                <strong>{formatPercent(comparison.discountRateVsDefault)}</strong>
+              </div>
+            </div>
+          )}
+        </>
+      ) : (
+        <p className="tier-catalog-unavailable">
+          Authoritative tier economics are unavailable until the selected Product has a ready fully loaded unit cost.
+        </p>
+      )}
+
+      {line.tier.notes && (
+        <p className="tier-catalog-notes"><strong>Notes:</strong> {line.tier.notes}</p>
+      )}
+
+      {(line.warnings.length > 0 || line.issues.length > 0) && (
+        <div className="tier-catalog-diagnostics">
+          {line.warnings.length > 0 && (
+            <div
+              className="tier-catalog-warning"
+              role="status"
+              aria-label={`Pricing warnings for ${line.tier.name}`}
+            >
+              <strong>Pricing warning</strong>
+              <ul>
+                {line.warnings.map((warning) => (
+                  <li key={warning.code}>{warning.message}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {line.issues.length > 0 && (
+            <div className="tier-catalog-issues">
+              <strong>Readiness details</strong>
+              <ul>
+                {line.issues.map((issue, index) => (
+                  <li key={`${issue.code}-${index}`}>{issue.message}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+    </article>
+  );
+}
+
+export function ProductPriceTierCatalogPanel({
+  productName,
+  quote,
+  loading,
+  error,
+  hasUnsavedChanges = false,
+  onRefresh,
+  onCreateTier,
+  onEditTier,
+  onArchiveTier,
+  archivingTierId = null,
+}: ProductPriceTierCatalogPanelProps) {
+  const activeCount = quote?.tiers.filter((line) => line.tier.isActive).length ?? 0;
+  const archivedCount = quote?.tiers.filter((line) => !line.tier.isActive).length ?? 0;
+  const readyCount = quote?.tiers.filter((line) => line.status === 'ready').length ?? 0;
+
+  const catalogHeadingId = 'tier-pricing-catalog-heading';
+
+  return (
+    <section
+      className="tier-catalog-section"
+      aria-label="Tier pricing catalog"
+      aria-labelledby={catalogHeadingId}
+      aria-busy={loading}
+    >
+      <div className="pricing-quote-heading tier-catalog-heading">
+        <div>
+          <p className="panel-kicker">TIER PRICING</p>
+          <h2 id={catalogHeadingId}>Price tier catalog</h2>
+          <p>
+            Read-only Package, Bulk, and Custom offer economics from the saved tier sources. Default / Single pricing remains separate and no tier is automatically selected for production or orders.
+          </p>
+        </div>
+        <div className="pricing-quote-heading-actions">
+          <span className={`pricing-readiness-pill ${quote ? `status-${quote.status}` : ''}`}>
+            {loading
+              ? 'Loading'
+              : quote
+                ? readinessLabel(quote.status)
+                : error
+                  ? 'Not ready'
+                  : productName
+                    ? 'Waiting for tiers'
+                    : 'Select a Product'}
+          </span>
+          {onRefresh && (
+            <button
+              className="button button-secondary pricing-refresh-button"
+              type="button"
+              onClick={onRefresh}
+              disabled={loading}
+            >
+              {error ? 'Retry tier economics' : loading ? 'Refreshing…' : 'Refresh tier economics'}
+            </button>
+          )}
+          {onCreateTier && (
+            <button
+              className="button button-primary pricing-refresh-button"
+              type="button"
+              onClick={onCreateTier}
+              disabled={loading}
+            >
+              Create tier
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="tier-catalog-selection-note" role="note">
+        <strong>Manual choice only.</strong>
+        <span>
+          Package, Bulk, and Custom tiers are saved alternatives. The quantity-aware preview applies one only when you explicitly select a ready tier; Production projections remain on Default / Single.
+        </span>
+      </div>
+
+      {hasUnsavedChanges && (
+        <div className="pricing-unsaved-note" role="status">
+          <strong>Unsaved financial changes are not included in tier economics.</strong>
+          <span>Save the financial profile first to refresh cost, Default comparison, and tier profitability.</span>
+        </div>
+      )}
+
+      {error && (
+        <div className="feedback feedback-error pricing-quote-feedback" role="alert">
+          {error}
+        </div>
+      )}
+
+      <div className="tier-catalog-summary" aria-label="Tier catalog summary">
+        <Metric label="Saved tiers" value={(quote?.tiers.length ?? 0).toLocaleString('en-PH')} />
+        <Metric label="Active" value={activeCount.toLocaleString('en-PH')} />
+        <Metric label="Archived" value={archivedCount.toLocaleString('en-PH')} />
+        <Metric label="Economics ready" value={readyCount.toLocaleString('en-PH')} />
+        <Metric label="Fully loaded unit cost" value={formatPhp(quote?.totalFullyLoadedUnitCost ?? null)} />
+        <Metric label="Default / Single" value={formatPhp(quote?.defaultSellingPrice ?? null)} />
+      </div>
+
+      {!quote ? (
+        <div className="panel tier-catalog-empty">
+          <strong>
+            {loading
+              ? 'Loading saved tier sources and economics…'
+              : productName
+                ? 'No tier quote is currently available.'
+                : 'Select a Product to inspect its saved price tiers.'}
+          </strong>
+          <span>
+            Tier economics are derived from the same authoritative fully loaded unit cost used by the existing Pricing workspace.
+          </span>
+        </div>
+      ) : quote.tiers.length === 0 ? (
+        <div className="panel tier-catalog-empty">
+          <strong>No price tiers saved for {productName ?? quote.productName}.</strong>
+          <span>
+            Default / Single pricing continues to work exactly as before. Create a tier when this Product needs an additional Package, Bulk, or Custom selling option.
+          </span>
+        </div>
+      ) : (
+        <div className="tier-catalog-list">
+          {quote.tiers.map((line) => (
+            <TierCard
+              key={line.tier.id}
+              line={line}
+              onEditTier={onEditTier}
+              onArchiveTier={onArchiveTier}
+              archivingTierId={archivingTierId}
+            />
+          ))}
+        </div>
+      )}
+
+      {quote && quote.issues.length > 0 && (
+        <article className="panel tier-catalog-top-level-issues">
+          <div className="panel-heading">
+            <div>
+              <p className="panel-kicker">TIER QUOTE READINESS</p>
+              <h3>Shared pricing evidence</h3>
+            </div>
+            <span className={`pricing-readiness-pill status-${quote.status}`}>
+              {readinessLabel(quote.status)}
+            </span>
+          </div>
+          <ul>
+            {quote.issues.map((issue, index) => (
+              <li key={`${issue.code}-${index}`}>{issue.message}</li>
+            ))}
+          </ul>
+        </article>
+      )}
+    </section>
+  );
+}

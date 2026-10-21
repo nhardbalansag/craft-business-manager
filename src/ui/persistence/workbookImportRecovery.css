@@ -167,3 +167,40 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Readable issue report for sharing the exact code and cell location without
+   copying the workbook's source data. Keeps long validation messages contained. */
+.workbook-recovery-report {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px solid #e1d5cc;
+  border-radius: 12px;
+  background: #fffdfb;
+}
+.workbook-recovery-report > summary {
+  cursor: pointer;
+  color: #604b3e;
+  font-weight: 750;
+  font-size: .85rem;
+}
+.workbook-recovery-report > p {
+  margin: 10px 0;
+  color: #71655d;
+  font-size: .78rem;
+}
+.workbook-recovery-report > button { margin: 2px 10px 8px 0; }
+.workbook-recovery-report > span { display: inline-block; font-size: .77rem; color: #42613f; }
+.workbook-recovery-report > pre {
+  max-height: 270px;
+  margin: 4px 0 0;
+  padding: 12px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  border: 1px solid #e8ddd7;
+  border-radius: 8px;
+  background: #fbf7f1;
+  color: #40372f;
+  user-select: text;
+  font: .76rem/1.5 ui-monospace, SFMono-Regular, Consolas, monospace;
+}

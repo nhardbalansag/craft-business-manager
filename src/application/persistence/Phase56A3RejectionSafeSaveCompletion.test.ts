@@ -3,10 +3,10 @@ import {
   createEmptyBusinessDataset,
   CURRENT_BUSINESS_DATASET_SCHEMA_VERSION,
 } from '../../domain/businessDataset';
-import { CURRENT_PHYSICAL_DATASET_SCHEMA_VERSION } from '../../domain/physicalBusinessDataset';
+import { BUSINESS_DATASET_V2_SCHEMA_VERSION } from '../../domain/businessDatasetV2';
 import type { BusinessDataset } from '../../domain/types';
 import { createBusinessDatasetWorkbookDocument } from '../../storage/businessDatasetWorkbookExport';
-import { CURRENT_PHYSICAL_WORKBOOK_FORMAT_VERSION } from '../../storage/physicalBusinessDatasetWorkbook';
+import { CORE_WORKBOOK_V3_FORMAT_VERSION } from '../../storage/businessDatasetV2Workbook';
 import { SafeInMemoryWorkbookTransport } from '../../storage/SafeInMemoryWorkbookTransport';
 import { SheetJsWorkbookCodec } from '../../storage/sheetJsWorkbookCodec';
 import type { WorkbookNeutralDocument } from '../../storage/workbookSchema';
@@ -198,8 +198,8 @@ describe('Phase 5.6A3 rejection, safe-save, and 5.6A completion integration gate
   it('Scenario H: rejects unsupported future workbook/dataset versions before hydration with received and expected version context', async () => {
     const bytes = encodeMutation((document) => {
       const meta = sheet(document, '_Meta').rows[0];
-      meta.workbookFormatVersion = CURRENT_PHYSICAL_WORKBOOK_FORMAT_VERSION + 1;
-      meta.datasetSchemaVersion = CURRENT_PHYSICAL_DATASET_SCHEMA_VERSION + 1;
+      meta.workbookFormatVersion = CORE_WORKBOOK_V3_FORMAT_VERSION + 1;
+      meta.datasetSchemaVersion = BUSINESS_DATASET_V2_SCHEMA_VERSION + 1;
     });
 
     const result = await expectImportRejectionPreservesState(bytes, 'UNSUPPORTED_FUTURE_VERSION');
@@ -211,12 +211,12 @@ describe('Phase 5.6A3 rejection, safe-save, and 5.6A completion integration gate
           code: 'UNSUPPORTED_FUTURE_VERSION',
           compatibilityStatus: 'unsupported-future',
           sourceVersion: {
-            workbookFormatVersion: CURRENT_PHYSICAL_WORKBOOK_FORMAT_VERSION + 1,
-            datasetSchemaVersion: CURRENT_PHYSICAL_DATASET_SCHEMA_VERSION + 1,
+            workbookFormatVersion: CORE_WORKBOOK_V3_FORMAT_VERSION + 1,
+            datasetSchemaVersion: BUSINESS_DATASET_V2_SCHEMA_VERSION + 1,
           },
           targetVersion: {
-            workbookFormatVersion: CURRENT_PHYSICAL_WORKBOOK_FORMAT_VERSION,
-            datasetSchemaVersion: CURRENT_PHYSICAL_DATASET_SCHEMA_VERSION,
+            workbookFormatVersion: CORE_WORKBOOK_V3_FORMAT_VERSION,
+            datasetSchemaVersion: BUSINESS_DATASET_V2_SCHEMA_VERSION,
           },
         }),
       ]),

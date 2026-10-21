@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { BUSINESS_DATASET_SOURCE_COLLECTION_KEYS } from '../domain/businessDataset';
+import { BROCHURE_IMAGE_COLUMN_NAMES } from '../domain/productBrochureImage';
 import {
   CANONICAL_WORKBOOK_SHEET_NAMES,
   CRAFT_BUSINESS_WORKBOOK_FORMAT_ID,
@@ -81,6 +82,7 @@ const EXPECTED_COLUMNS: Record<WorkbookSheetName, readonly string[]> = {
     'sourceNotes',
     'notes',
     'isActive',
+    'essentialOilPercent',
   ],
   Calibrations: [
     'id',
@@ -95,7 +97,7 @@ const EXPECTED_COLUMNS: Record<WorkbookSheetName, readonly string[]> = {
   MixPresets: ['id', 'name', 'basis', 'notes', 'isActive'],
   MixPresetCategories: ['mixPresetId', 'categoryOrder', 'category'],
   MixPresetLines: ['mixPresetId', 'lineOrder', 'materialId', 'role', 'parts'],
-  Products: ['id', 'name', 'category', 'mixPresetId', 'preferredYieldSampleId', 'safetyWasteRate', 'notes', 'isActive'],
+  Products: ['id', 'name', 'category', 'mixPresetId', 'preferredYieldSampleId', 'safetyWasteRate', 'notes', 'isActive', 'candleWaxMaterialId', 'candleEssentialOilMaterialId', 'imageDataUrl', ...BROCHURE_IMAGE_COLUMN_NAMES],
   YieldSamples: [
     'id',
     'productId',
@@ -334,6 +336,21 @@ describe('Phase 5.1B workbook schema contract', () => {
     expect(validateWorkbookSchema(workbook)).toEqual([]);
     expect(isCurrentWorkbookSchema(workbook)).toBe(true);
     expect(() => assertWorkbookSchema(workbook)).not.toThrow();
+  });
+
+  it('accepts older Products sheets without the optional candle material pairing', () => {
+    const workbook = createValidWorkbook();
+    const products = sheet(workbook, 'Products');
+    products.columns = products.columns.filter((column) =>
+      column !== 'candleWaxMaterialId' && column !== 'candleEssentialOilMaterialId');
+    expect(validateWorkbookSchema(workbook)).toEqual([]);
+  });
+
+  it('accepts older Materials sheets without the optional candle fragrance setting', () => {
+    const workbook = createValidWorkbook();
+    const materials = sheet(workbook, 'Materials');
+    materials.columns = materials.columns.filter((column) => column !== 'essentialOilPercent');
+    expect(validateWorkbookSchema(workbook)).toEqual([]);
   });
 
   it('fails closed on missing canonical sheets and columns', () => {

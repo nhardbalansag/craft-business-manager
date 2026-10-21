@@ -3,6 +3,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as session from '../../application/session';
+import type { ProductPriceResolutionResult } from '../../application/pricing/ProductPriceResolutionService';
 import type { Product } from '../../domain/products';
 import { PricingPage } from './PricingPage';
 
@@ -29,6 +30,7 @@ beforeEach(async () => {
     session.yieldSampleRepository.replaceAll([]),
     session.calibrationRepository.replaceAll([]),
     session.productFinancialProfileRepository.replaceAll([]),
+    session.productPriceTierRepository.replaceAll([]),
   ]);
   container = document.createElement('div');
   document.body.append(container);
@@ -48,6 +50,108 @@ async function seed() {
 
 async function mount() {
   await act(async () => root.render(<PricingPage />));
+}
+
+function resolutionFixture(
+  quantity: number,
+  selectedTierId?: string,
+): ProductPriceResolutionResult {
+  const tier = {
+    tier: {
+      id: 'TIER-0001',
+      productId: 'ART-001',
+      name: 'Bulk 20+',
+      kind: 'bulk' as const,
+      priceBasis: 'per-unit' as const,
+      priceAmount: 40,
+      unitsPerOffer: 1,
+      minimumOrderQuantity: 20,
+      additionalCostPerOffer: 0,
+      isActive: true,
+    },
+    status: 'ready' as const,
+    economics: {
+      fullyLoadedUnitCost: 30,
+      unitsPerOffer: 1,
+      baseOfferCost: 30,
+      additionalCostPerOffer: 0,
+      totalOfferCost: 30,
+      offerSellingPrice: 40,
+      effectiveUnitSellingPrice: 40,
+      profitPerOffer: 10,
+      effectiveProfitPerUnit: 10,
+      effectiveMarkup: 1 / 3,
+      effectiveMargin: 0.25,
+    },
+    defaultComparison: null,
+    belowCost: false,
+    warnings: [],
+    issues: [],
+  };
+
+  const eligible = Number.isInteger(quantity) && quantity >= 20;
+  const explicit = selectedTierId === 'TIER-0001' && eligible;
+
+  return {
+    productId: 'ART-001',
+    productName: 'Paintable Star',
+    productIsActive: true,
+    quantity,
+    mode: selectedTierId === undefined ? 'default' : 'explicit-tier',
+    selectedTierId: selectedTierId ?? null,
+    status: selectedTierId !== undefined && !explicit ? 'not-ready' : 'ready',
+    offerCount: explicit ? quantity : selectedTierId === undefined ? quantity : null,
+    unitSellingPrice: explicit ? 40 : selectedTierId === undefined ? 70 : null,
+    totalSellingPrice: explicit
+      ? 40 * quantity
+      : selectedTierId === undefined
+        ? 70 * quantity
+        : null,
+    integratedQuote: {
+      productId: 'ART-001',
+      productName: 'Paintable Star',
+      productIsActive: true,
+      status: 'ready',
+      sellingPrice: 70,
+      tierPricing: {
+        productId: 'ART-001',
+        productName: 'Paintable Star',
+        productIsActive: true,
+        tiers: [tier],
+        issues: [],
+      },
+      integrationIssues: [],
+    },
+    selectedTier: explicit ? tier : null,
+    eligibleTierIds: eligible ? ['TIER-0001'] : [],
+    tierEligibility: [{
+      tierId: 'TIER-0001',
+      productId: 'ART-001',
+      productMatches: true,
+      eligible,
+      offerCount: eligible ? quantity : null,
+      issues: eligible
+        ? []
+        : [{
+            code: 'QUANTITY_BELOW_MINIMUM',
+            message: `Quantity ${quantity} is below the minimum order quantity of 20 for tier TIER-0001.`,
+            productId: 'ART-001',
+            tierId: 'TIER-0001',
+            quantity,
+          }],
+    }],
+    warnings: [],
+    issues:
+      selectedTierId !== undefined && !explicit
+        ? [{
+            code: 'SELECTED_TIER_INELIGIBLE',
+            message: `Selected tier TIER-0001 is not eligible for quantity ${quantity}.`,
+            productId: 'ART-001',
+            quantity,
+            tierId: 'TIER-0001',
+          }]
+        : [],
+  } as unknown as ProductPriceResolutionResult;
 }
 
 function form() {
@@ -83,7 +187,7 @@ async function submit() {
 }
 
 describe('Pricing workspace UI/UX', () => {
-  it('shows truthful loading guidance and the three-step pricing workflow', async () => {
+  it('shows a compact Pricing workspace without introductory labels or a workflow strip', async () => {
     await seed();
     let release!: (value: Product[]) => void;
     vi.spyOn(session.productService, 'listProducts').mockImplementationOnce(
@@ -92,21 +196,272 @@ describe('Pricing workspace UI/UX', () => {
 
     await mount();
 
-    expect(container.textContent).toContain('Included in workbook exports');
-    expect(container.querySelector('[aria-label="Pricing workflow"]')?.textContent).toContain('Choose the product');
-    expect(container.querySelector('[aria-label="Pricing workflow"]')?.textContent).toContain('Set financial inputs');
-    expect(container.querySelector('[aria-label="Pricing workflow"]')?.textContent).toContain('Review saved unit economics');
+    expect(container.querySelector('.pricing-export-status')).toBeNull();
+    expect(container.querySelector('[aria-label="Pricing workflow"]')).toBeNull();
+    expect(container.querySelector('.page-heading-row')).toBeNull();
+    expect(container.querySelector('.pricing-source-note')).toBeNull();
+    expect(container.textContent).not.toContain('PHASE 4 · PRICING');
+    expect(container.textContent).not.toContain('Pricing & unit economics');
+    expect(container.textContent).not.toContain('Choose the product');
+    expect(container.textContent).not.toContain('Set financial inputs');
+    expect(container.textContent).not.toContain('Review saved unit economics');
     expect(container.textContent).toContain('Loading pricing workspace');
     expect(container.textContent).not.toContain('Create a Product first');
 
     await act(async () => release([product]));
-    expect(form()).not.toBeNull();
+    expect(form()).toBeNull();
     expect(container.textContent).toContain('Paintable Star');
+    await click('Set Financial Source');
+    expect(form()).not.toBeNull();
+  });
+
+  it('shows the current Product image in Pricing and updates the reference when a different Product is selected', async () => {
+    const starImage = 'data:image/jpeg;base64,/9j/AAAA';
+    const candleImage = 'data:image/jpeg;base64,/9j/BBBB';
+    const candle: Product = {
+      id: 'CND-002',
+      name: 'Event Candle',
+      category: 'candle',
+      safetyWasteRate: 0.03,
+      isActive: true,
+      imageDataUrl: candleImage,
+    };
+    await session.productRepository.replaceAll([{ ...product, imageDataUrl: starImage }, candle]);
+    await mount();
+
+    const selector = container.querySelector<HTMLElement>('[aria-label="Selected pricing Product"]')!;
+    let photo = selector.querySelector<HTMLImageElement>('img.pricing-product-reference-image');
+    // The pricing workspace defaults to the first active Product by catalog order.
+    expect(photo?.getAttribute('src')).toBe(candleImage);
+    expect(photo?.getAttribute('alt')).toBe('Product reference: Event Candle');
+
+    await click('Open Product Catalog');
+    await click('Price Paintable Star', container.querySelector<HTMLElement>('[role="dialog"]')!);
+
+    photo = selector.querySelector<HTMLImageElement>('img.pricing-product-reference-image');
+    expect(selector.querySelector('h2')?.textContent).toBe('Paintable Star');
+    expect(photo?.getAttribute('src')).toBe(starImage);
+    expect(photo?.getAttribute('alt')).toBe('Product reference: Paintable Star');
+    await act(async () => selector.querySelector<HTMLButtonElement>('[aria-label="View full-size image of Paintable Star"]')!.click());
+    expect(document.body.querySelector<HTMLImageElement>('.product-image-zoom-canvas img')?.getAttribute('src')).toBe(starImage);
+    await act(async () => document.body.querySelector<HTMLButtonElement>('[aria-label="Close enlarged product image"]')!.click());
+    expect(selector.querySelector('h2')?.textContent).toBe('Paintable Star');
+  });
+
+  it('keeps Pricing usable without a Product image and accepts only validated saved images', async () => {
+    await session.productRepository.replaceAll([{ ...product, imageDataUrl: 'javascript:alert(1)' }]);
+    await mount();
+    const selector = container.querySelector<HTMLElement>('[aria-label="Selected pricing Product"]')!;
+    expect(selector.querySelector('.pricing-product-reference-image')).toBeNull();
+    expect(selector.textContent).toContain('Paintable Star');
+    expect(container.querySelector('[aria-label="Financial source summary"]')).not.toBeNull();
+  });
+
+  it('falls back to the saved brochure photo when a Product thumbnail is absent', async () => {
+    const brochureImage = 'data:image/jpeg;base64,/9j/CCCC';
+    await session.productRepository.replaceAll([{ ...product, brochureImageDataUrl: brochureImage }]);
+    await mount();
+
+    const photo = container.querySelector<HTMLImageElement>('.pricing-product-reference-image');
+    expect(photo?.getAttribute('src')).toBe(brochureImage);
+    expect(photo?.getAttribute('alt')).toBe('Product reference: Paintable Star');
+  });
+
+  it('shows Financial Source first below Product selection, before Unit Economics and other summaries', async () => {
+    await seed();
+    await mount();
+    const selector = container.querySelector('[aria-label="Selected pricing Product"]');
+    const quote = container.querySelector('[aria-label="Unit economics pricing calculator"]');
+    const overview = container.querySelector('[aria-label="Pricing catalog summary"]');
+    const financial = container.querySelector('[aria-label="Financial source summary"]');
+    const order = container.querySelector('[aria-label="Order price preview summary"]');
+    const tiers = container.querySelector('[aria-label="Tier pricing summary"]');
+    expect(selector?.nextElementSibling).toBe(financial);
+    expect(financial?.nextElementSibling).toBe(quote);
+    expect(quote?.nextElementSibling).toBe(overview);
+    const quickActions = container.querySelector('[aria-label="Pricing next steps"]');
+    expect(overview?.nextElementSibling).toBe(quickActions);
+    expect(order?.parentElement).toBe(quickActions);
+    expect(order?.nextElementSibling).toBe(tiers);
+    expect(financial?.textContent).toContain('Financial source');
+    expect((overview as HTMLDetailsElement)?.open).toBe(false);
+    expect((container.querySelector('.pricing-cost-details') as HTMLDetailsElement)?.open).toBe(false);
+    expect(financial?.textContent).toContain('Set Financial Source');
+    expect(quote?.textContent).toContain('Total unit cost');
+    expect(quote?.textContent).toContain('Selling price');
+    expect(quote?.textContent).toContain('Profit / unit');
+    expect(quote?.textContent).toContain('Effective margin');
+  });
+
+  it('prioritizes four pricing numbers and hides cost accounting and catalog totals until requested', async () => {
+    await seed();
+    await mount();
+
+    const hero = container.querySelector('[aria-label="Pricing result summary"]')!;
+    expect(Array.from(hero.children)).toHaveLength(4);
+    expect(hero.textContent).toContain('Selling price');
+    expect(hero.textContent).toContain('Unit cost');
+    expect(hero.textContent).toContain('Profit / unit');
+    expect(hero.textContent).toContain('Margin');
+
+    const details = container.querySelector<HTMLDetailsElement>('.pricing-cost-details')!;
+    expect(details.open).toBe(false);
+    expect(details.textContent).toContain('Direct materials');
+    expect(details.textContent).toContain('Pricing policy');
+
+    const totals = container.querySelector<HTMLDetailsElement>('[aria-label="Pricing catalog summary"]')!;
+    expect(totals.open).toBe(false);
+    expect(totals.querySelector('.pricing-overview-stats')).not.toBeNull();
+
+    await act(async () => details.querySelector<HTMLElement>('summary')!.click());
+    expect(details.open).toBe(true);
+    await act(async () => totals.querySelector<HTMLElement>('summary')!.click());
+    expect(totals.open).toBe(true);
+  });
+
+  it('keeps Product Catalog hidden until opened as a modal and closes it after Product selection', async () => {
+    const secondProduct: Product = {
+      id: 'CND-002',
+      name: 'Event Candle',
+      category: 'candle',
+      safetyWasteRate: 0.03,
+      isActive: true,
+    };
+    await session.productRepository.replaceAll([product, secondProduct]);
+
+    await mount();
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(container.querySelector('[role="dialog"]')).toBeNull();
+    expect(container.textContent).toContain('Change product');
+
+    await click('Open Product Catalog');
+
+    const dialog = container.querySelector<HTMLElement>('[role="dialog"]');
+    expect(dialog).not.toBeNull();
+    expect(dialog?.getAttribute('aria-modal')).toBe('true');
+    expect(dialog?.textContent).toContain('PRODUCT CATALOG');
+    expect(dialog?.textContent).toContain('Paintable Star');
+    expect(dialog?.textContent).toContain('Event Candle');
+    expect(dialog?.querySelector('[aria-label="Search pricing products"]')).not.toBeNull();
+    expect(dialog?.querySelector('[aria-label="Filter pricing products by status"]')).not.toBeNull();
+
+    await click('Price Event Candle', dialog!);
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(container.querySelector('[role="dialog"]')).toBeNull();
+    expect(form()).toBeNull();
+    const selectedProductSection = container.querySelector('[aria-label="Selected pricing Product"]');
+    const unitEconomics = container.querySelector('[aria-label="Unit economics pricing calculator"]');
+    const financialSource = container.querySelector('[aria-label="Financial source summary"]');
+    expect(selectedProductSection?.nextElementSibling).toBe(financialSource);
+    expect(financialSource?.nextElementSibling).toBe(unitEconomics);
+    expect(unitEconomics?.textContent).toContain('UNIT ECONOMICS');
+    expect(unitEconomics?.textContent).toContain('Saved pricing result');
+    expect(container.querySelector('[aria-label="Financial source summary"]')?.textContent).toContain('Set costs and selling price');
+    expect(container.querySelector('[aria-label="Selected pricing Product"]')?.textContent).toContain(
+      'CND-002',
+    );
+  });
+
+  it('hides saved financial metrics on the Pricing summary but preserves all inputs in the Financial Source modal', async () => {
+    await seed();
+    await session.productFinancialProfileRepository.replaceAll([{
+      productId: 'ART-001',
+      laborCostPerUnit: 12,
+      overheadCostPerUnit: 3,
+      pricingPolicy: { method: 'profit-amount', value: 20 },
+      notes: 'Saved financial source',
+    }]);
+    await mount();
+
+    const summary = container.querySelector<HTMLElement>('[aria-label="Financial source summary"]')!;
+    expect(summary).not.toBeNull();
+    expect(summary.querySelector('.pricing-financial-summary-values')).toBeNull();
+    for (const label of ['Saved labor / unit', 'Saved overhead / unit', 'Saved pricing policy', 'Source status']) {
+      expect(summary.textContent).not.toContain(label);
+    }
+    expect(summary.textContent).toContain('Edit Financial Source');
+
+    await click('Edit Financial Source');
+    const modal = container.querySelector<HTMLElement>('[role="dialog"][aria-label="Financial Source"]')!;
+    expect(modal).not.toBeNull();
+    expect(modal.textContent).toContain('Per-unit operating costs');
+    expect(modal.textContent).toContain('Saved policy');
+    expect((field('Labor cost per unit') as HTMLInputElement).value).toBe('12');
+    expect((field('Overhead cost per unit') as HTMLInputElement).value).toBe('3');
+    expect((field('Profit per unit (PHP)') as HTMLInputElement).value).toBe('20');
+    expect(modal.querySelector<HTMLButtonElement>('button[type="submit"]')).not.toBeNull();
+  });
+
+  it('closes the Product Catalog modal with Escape', async () => {
+    await seed();
+    await mount();
+    await act(async () => Promise.resolve());
+
+    await click('Open Product Catalog');
+    expect(container.querySelector('[role="dialog"]')).not.toBeNull();
+
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    });
+
+    expect(container.querySelector('[role="dialog"]')).toBeNull();
+  });
+
+  it('opens Financial Source as a dialog, preserves unsaved input on Escape, and returns focus', async () => {
+    await seed();
+    await mount();
+    expect(form()).toBeNull();
+    const trigger = container.querySelector<HTMLButtonElement>('[aria-label="Set Financial Source"]')!;
+    await act(async () => trigger.focus());
+    await click('Set Financial Source');
+    const dialog = container.querySelector<HTMLElement>('[role="dialog"][aria-label="Financial Source"]')!;
+    expect(dialog).not.toBeNull();
+    expect(dialog.getAttribute('aria-modal')).toBe('true');
+    expect(document.activeElement?.getAttribute('aria-label')).toBe('Close Financial Source');
+    await fill(field('Labor cost per unit'), '17');
+    await act(async () => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })));
+    expect(form()).toBeNull();
+    expect(document.activeElement).toBe(trigger);
+    expect(container.querySelector('[aria-label="Financial source summary"]')?.textContent).toContain('Unsaved financial changes are preserved');
+    await click('Set Financial Source');
+    expect(field('Labor cost per unit').value).toBe('17');
+    await click('Cancel', form()!);
+    expect(form()).toBeNull();
+  });
+
+  it('closes the tier editor modal on Escape and can reopen with a clean new tier form', async () => {
+    await seed();
+    await mount();
+    await click('Open Tier Pricing');
+    await click('Create tier');
+    expect(container.querySelector('[role="dialog"][aria-label="Create price tier"]')).not.toBeNull();
+    const tierForm = container.querySelector<HTMLFormElement>('[aria-label="Price tier editor"]')!;
+    await fill(field('Tier name', tierForm), 'Unsubmitted tier');
+    await act(async () => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })));
+    expect(container.querySelector('[aria-label="Price tier editor"]')).toBeNull();
+    expect(container.querySelector('[role="dialog"][aria-label="Tier Pricing"]')).not.toBeNull();
+    expect(await session.productPriceTierService.listTiersByProduct('ART-001')).toHaveLength(0);
+    await click('Create tier');
+    const reopened = container.querySelector<HTMLFormElement>('[aria-label="Price tier editor"]')!;
+    expect(field('Tier name', reopened).value).toBe('');
+    await click('Close Create price tier');
+    expect(container.querySelector('[role="dialog"][aria-label="Create price tier"]')).toBeNull();
+    expect(container.querySelector('[role="dialog"][aria-label="Tier Pricing"]')).not.toBeNull();
   });
 
   it('previews draft inputs, marks unsaved changes, and saves canonical markup source values', async () => {
     await seed();
     await mount();
+    expect(form()).toBeNull();
+    await click('Set Financial Source');
 
     const saveButton = form()!.querySelector<HTMLButtonElement>('button[type="submit"]')!;
     expect(saveButton.disabled).toBe(true);
@@ -148,6 +503,7 @@ describe('Pricing workspace UI/UX', () => {
     }]);
 
     await mount();
+    await click('Edit Financial Source');
 
     expect((field('Labor cost per unit') as HTMLInputElement).value).toBe('12');
     await fill(field('Labor cost per unit'), '25');
@@ -166,11 +522,18 @@ describe('Pricing workspace UI/UX', () => {
 
     await mount();
 
-    expect(container.querySelector('[role="alert"]')?.textContent).toContain('Pricing workspace unavailable');
+    expect(
+      container.querySelector('[aria-label="Selected pricing Product"]')?.textContent,
+    ).toContain('Pricing workspace unavailable');
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain(
+      'Product catalog failed',
+    );
     expect(container.textContent).not.toContain('Create a Product first');
 
     await click('Retry loading');
 
+    expect(form()).toBeNull();
+    await click('Set Financial Source');
     expect(form()).not.toBeNull();
     expect(container.textContent).toContain('Paintable Star');
   });
@@ -193,4 +556,315 @@ describe('Pricing workspace UI/UX', () => {
     await act(async () => refresh!.click());
     expect(quoteSpy.mock.calls.length).toBeGreaterThanOrEqual(2);
   });
+  it('opens Tier Pricing in a dialog with Escape, focus return and compact saved totals', async () => {
+    await seed();
+    await mount();
+    const button = container.querySelector<HTMLButtonElement>('[aria-label="Open Tier Pricing"]')!;
+    expect(button).not.toBeNull();
+    expect(button.disabled).toBe(false);
+    expect(container.querySelector('[aria-label="Tier pricing catalog"]')).toBeNull();
+    expect(container.querySelector('[aria-label="Tier pricing summary"]')?.textContent).toContain('Saved tiers');
+    await act(async () => button.focus());
+    await click('Open Tier Pricing');
+    const dialog = container.querySelector<HTMLElement>('[role="dialog"][aria-label="Tier Pricing"]')!;
+    expect(dialog.getAttribute('aria-labelledby')).toBe('tier-pricing-catalog-heading');
+    expect(document.activeElement?.getAttribute('aria-label')).toBe('Close Tier Pricing');
+    expect(dialog.querySelector('[aria-label="Tier pricing catalog"]')).not.toBeNull();
+    await act(async () => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })));
+    expect(container.querySelector('[role="dialog"][aria-label="Tier Pricing"]')).toBeNull();
+    expect(document.activeElement).toBe(button);
+    await click('Open Tier Pricing');
+    await click('Close Tier Pricing');
+    expect(container.querySelector('[aria-label="Tier pricing catalog"]')).toBeNull();
+  });
+
+  it('returns to Tier Pricing when the nested Create Tier editor is canceled without saving', async () => {
+    await seed();
+    await mount();
+    await click('Open Tier Pricing');
+    await click('Create tier');
+    expect(container.querySelectorAll('[role="dialog"]')).toHaveLength(1);
+    expect(container.querySelector('[role="dialog"][aria-label="Create price tier"]')).not.toBeNull();
+    await click('Cancel');
+    expect(container.querySelectorAll('[role="dialog"]')).toHaveLength(1);
+    expect(container.querySelector('[role="dialog"][aria-label="Tier Pricing"]')).not.toBeNull();
+    expect(await session.productPriceTierService.listTiersByProduct('ART-001')).toHaveLength(0);
+  });
+
+  it('loads Default / Single and tier alternatives through the TP7 integrated quote boundary', async () => {
+    await seed();
+    await session.productPriceTierRepository.replaceAll([
+      {
+        id: 'TIER-0001',
+        productId: 'ART-001',
+        name: 'Bulk 20+',
+        kind: 'bulk',
+        priceBasis: 'per-unit',
+        priceAmount: 40,
+        unitsPerOffer: 1,
+        minimumOrderQuantity: 20,
+        additionalCostPerOffer: 0,
+        notes: 'Read-only TP6A source',
+        isActive: true,
+      },
+    ]);
+    const integratedQuoteSpy = vi.spyOn(
+      session.productPricingQuoteIntegrationService,
+      'quoteProduct',
+    );
+    const tierQuoteSpy = vi.spyOn(
+      session.productPriceTierQuoteService,
+      'quoteProduct',
+    );
+
+    await mount();
+    await act(async () => Promise.resolve());
+
+    expect(container.querySelector('[aria-label="Tier pricing catalog"]')).toBeNull();
+    const compact = container.querySelector('[aria-label="Tier pricing summary"]');
+    expect(compact?.textContent).toContain('1');
+    await click('Open Tier Pricing');
+    const catalog = container.querySelector('[aria-label="Tier pricing catalog"]');
+    expect(catalog).not.toBeNull();
+    expect(catalog?.closest('[role="dialog"]')?.getAttribute('aria-modal')).toBe('true');
+    expect(catalog?.textContent).toContain('Bulk 20+');
+    expect(catalog?.textContent).toContain('Read-only TP6A source');
+    expect(catalog?.textContent).toContain('Authoritative tier economics are unavailable');
+    expect(integratedQuoteSpy).toHaveBeenCalledWith('ART-001');
+    expect(tierQuoteSpy).toHaveBeenCalledWith('ART-001');
+    expect(container.querySelector('[aria-label="Pricing result summary"]')).not.toBeNull();
+    expect(catalog?.textContent).toContain('Create tier');
+    expect(catalog?.textContent).toContain('Edit tier');
+    expect(catalog?.textContent).toContain('Archive tier');
+    expect(catalog?.textContent).not.toContain('Restore tier');
+  });
+
+  it('creates, edits, and archives a tier through the Pricing workspace while keeping the stable tier ID', async () => {
+    await seed();
+    await mount();
+    await act(async () => Promise.resolve());
+
+    await click('Open Tier Pricing');
+    await click('Create tier');
+    expect(container.querySelector('[role="dialog"][aria-label="Tier Pricing"]')).toBeNull();
+
+    const tierForm = container.querySelector<HTMLFormElement>(
+      '[aria-label="Price tier editor"]',
+    );
+    expect(tierForm).not.toBeNull();
+    expect(tierForm!.closest('[role="dialog"]')?.getAttribute('aria-modal')).toBe('true');
+    expect(tierForm!.closest('[role="dialog"]')?.getAttribute('aria-labelledby')).toBe('price-tier-editor-title');
+
+    await fill(field('Tier name', tierForm!), 'Bulk 20+');
+    await fill(field('Tier kind', tierForm!), 'bulk');
+    await fill(field('Price basis', tierForm!), 'per-unit');
+    expect((field('Pricing method', tierForm!) as HTMLSelectElement).value).toBe('profit-per-unit');
+    await fill(field('Profit per unit', tierForm!), '10');
+    await fill(field('Units per offer', tierForm!), '1');
+    await fill(field('Minimum order quantity', tierForm!), '20');
+    await fill(field('Additional cost per offer', tierForm!), '0');
+    await fill(field('Notes', tierForm!), 'Wholesale counter price');
+
+    await act(async () => {
+      tierForm!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const created = await session.productPriceTierService.listTiersByProduct('ART-001');
+    expect(created).toHaveLength(1);
+    expect(container.querySelector('[aria-label="Price tier editor"]')).toBeNull();
+    expect(container.querySelector('[role="dialog"][aria-label="Tier Pricing"]')).not.toBeNull();
+    expect(created[0]).toMatchObject({
+      id: 'TIER-0001',
+      name: 'Bulk 20+',
+      pricingMethod: 'profit-per-unit',
+      pricingValue: 10,
+      minimumOrderQuantity: 20,
+      notes: 'Wholesale counter price',
+      isActive: true,
+    });
+    expect(container.textContent).toContain('created as TIER-0001');
+
+    await click('Edit tier Bulk 20+');
+    const editForm = container.querySelector<HTMLFormElement>(
+      '[aria-label="Price tier editor"]',
+    )!;
+    expect(container.querySelector('[role="dialog"][aria-label="Tier Pricing"]')).toBeNull();
+    expect(editForm.closest('[role="dialog"]')?.getAttribute('aria-modal')).toBe('true');
+    expect(editForm.textContent).toContain('TIER-0001');
+    await fill(field('Tier name', editForm), 'Bulk 25+');
+    await fill(field('Profit per unit', editForm), '8');
+    await fill(field('Minimum order quantity', editForm), '25');
+
+    await act(async () => {
+      editForm.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const updated = await session.productPriceTierService.getTier('TIER-0001');
+    expect(updated).toMatchObject({
+      id: 'TIER-0001',
+      name: 'Bulk 25+',
+      pricingMethod: 'profit-per-unit',
+      pricingValue: 8,
+      minimumOrderQuantity: 25,
+      isActive: true,
+    });
+    expect(container.textContent).toContain('Price tier Bulk 25+ updated');
+    expect(container.querySelector('[role="dialog"][aria-label="Tier Pricing"]')).not.toBeNull();
+
+    await click('Archive tier Bulk 25+');
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(await session.productPriceTierService.getTier('TIER-0001')).toMatchObject({
+      id: 'TIER-0001',
+      isActive: false,
+    });
+    expect(container.textContent).toContain('Price tier Bulk 25+ archived');
+    expect(
+      container.querySelector('[aria-label="Price tier Bulk 25+"]')?.textContent,
+    ).toContain('Archived');
+    expect(container.textContent).not.toContain('Restore tier');
+  });
+
+  it('does not expose Create tier for an archived selected Product', async () => {
+    await session.productRepository.replaceAll([{ ...product, isActive: false }]);
+
+    await mount();
+    await act(async () => Promise.resolve());
+
+    await click('Open Tier Pricing');
+    const catalog = container.querySelector('[aria-label="Tier pricing catalog"]');
+    expect(catalog).not.toBeNull();
+    expect(
+      Array.from(catalog!.querySelectorAll('button')).some(
+        (button) => button.textContent?.trim() === 'Create tier',
+      ),
+    ).toBe(false);
+  });
+
+  it('opens Order Price Preview as a scrollable dialog with Escape, focus return, and persistent quantity', async () => {
+    await seed();
+    await mount();
+    const trigger = container.querySelector<HTMLButtonElement>('[aria-label="Open Order Price Preview"]')!;
+    expect(trigger).not.toBeNull();
+    expect(trigger.disabled).toBe(false);
+    expect(container.querySelector('.pricing-resolution-section')).toBeNull();
+    expect(container.querySelector('[aria-label="Order price preview summary"]')?.textContent).toContain('Order total');
+
+    await act(async () => trigger.focus());
+    await click('Open Order Price Preview');
+    const dialog = container.querySelector<HTMLElement>('[role="dialog"][aria-label="Order Price Preview"]');
+    expect(dialog).not.toBeNull();
+    expect(dialog?.getAttribute('aria-labelledby')).toBe('pricing-order-preview-heading');
+    expect(document.activeElement?.getAttribute('aria-label')).toBe('Close Order Price Preview');
+
+    await fill(field('Order quantity', dialog!), '15');
+    expect(container.querySelector('[aria-label="Order price preview summary"]')?.textContent).toContain('15');
+    await act(async () => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })));
+    expect(container.querySelector('.pricing-resolution-section')).toBeNull();
+    expect(document.activeElement).toBe(trigger);
+    await click('Open Order Price Preview');
+    expect((field('Order quantity', container.querySelector('[role="dialog"][aria-label="Order Price Preview"]')!) as HTMLInputElement).value).toBe('15');
+    await click('Close Order Price Preview');
+    expect(container.querySelector('[role="dialog"][aria-label="Order Price Preview"]')).toBeNull();
+  });
+
+  it('opens the quotation from Order Price Preview without stacking two dialogs', async () => {
+    await seed();
+    vi.spyOn(session.productPriceResolutionService, 'resolve').mockImplementation(async (request) =>
+      resolutionFixture(request.quantity, request.selectedTierId),
+    );
+    await mount();
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    await click('Open Order Price Preview');
+    const modal = container.querySelector<HTMLElement>('[role="dialog"][aria-label="Order Price Preview"]')!;
+    const quotationButton = Array.from(modal.querySelectorAll('button')).find((button) =>
+      button.textContent?.trim() === 'Customer quotation',
+    );
+    expect(quotationButton).toBeDefined();
+    await act(async () => quotationButton!.click());
+    expect(container.querySelector('[role="dialog"][aria-label="Order Price Preview"]')).toBeNull();
+    expect(container.querySelector('[aria-label="Customer quotation form"]')).not.toBeNull();
+    expect(container.querySelectorAll('[role="dialog"]')).toHaveLength(1);
+  });
+
+  it('resolves Default first, then manually previews a quantity-eligible tier through TP8C', async () => {
+    await seed();
+    const resolveSpy = vi
+      .spyOn(session.productPriceResolutionService, 'resolve')
+      .mockImplementation(async (request) =>
+        resolutionFixture(request.quantity, request.selectedTierId),
+      );
+
+    await mount();
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(container.querySelector('.pricing-resolution-section')).toBeNull();
+    expect(container.querySelector('[aria-label="Order price preview summary"]')).not.toBeNull();
+    await click('Open Order Price Preview');
+    const preview = container.querySelector<HTMLElement>(
+      '.pricing-resolution-section',
+    );
+    expect(preview).not.toBeNull();
+    expect(preview?.closest('[role="dialog"]')?.getAttribute('aria-modal')).toBe('true');
+
+    const defaultRadio = preview!.querySelector<HTMLInputElement>(
+      'input[value="default"]',
+    )!;
+    expect(defaultRadio.checked).toBe(true);
+    expect(preview!.textContent).toContain('Default / Single');
+    expect(preview!.textContent).toContain('PHP 70.00');
+
+    const quantity = field('Order quantity', preview!);
+    await fill(quantity, '20');
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(resolveSpy).toHaveBeenCalledWith({
+      productId: 'ART-001',
+      quantity: 20,
+    });
+
+    const tierRadio = preview!.querySelector<HTMLInputElement>(
+      'input[value="TIER-0001"]',
+    )!;
+    expect(tierRadio.disabled).toBe(false);
+
+    await act(async () => tierRadio.click());
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(resolveSpy).toHaveBeenCalledWith({
+      productId: 'ART-001',
+      quantity: 20,
+      selectedTierId: 'TIER-0001',
+    });
+    expect(
+      container.querySelector('[aria-label="Resolved order pricing preview"]')
+        ?.textContent,
+    ).toContain('PHP 800.00');
+    expect(preview!.textContent).toContain(
+      'Production projections continue to use Default / Single pricing',
+    );
+    expect(container.querySelector('[aria-label="Order price preview summary"]')?.textContent).toContain('PHP 800.00');
+  });
+
 });

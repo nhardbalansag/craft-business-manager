@@ -3,7 +3,6 @@ import { BrowserWorkbookExportCommand } from './application/persistence/BrowserW
 import { BrowserWorkbookImportCommand } from './application/persistence/BrowserWorkbookImportCommand';
 import { PublicGoogleSheetsImportCommand } from './application/persistence/PublicGoogleSheetsImportCommand';
 import { persistenceCoordinator } from './application/session';
-import { CalibrationPage } from './ui/calibration/CalibrationPage';
 import { MaterialsPage } from './ui/materials/MaterialsPage';
 import {
   PublicGoogleSheetsImportPanel,
@@ -23,24 +22,35 @@ import {
   recordSuccessfulWorkbookExport,
   recordSuccessfulWorkbookImport,
 } from './ui/persistence/workbookPersistenceSession';
-import { PricingPage } from './ui/pricing/PricingPage';
 import { ProductsWorkspacePage } from './ui/products/ProductsWorkspacePage';
 import { ProductionPage } from './ui/production/ProductionPage';
-import { YieldPage } from './ui/yield/YieldPage';
 import { AppIcon, type AppIconName } from './ui/icons/AppIcon';
 
-type AppSection = 'materials' | 'calibration' | 'products' | 'yield' | 'production' | 'pricing';
+type AppSection = 'materials' | 'products' | 'production';
 export type PersistenceUiClock = () => Date;
 
 const SIDEBAR_VISIBILITY_STORAGE_KEY = 'craft-business-manager.sidebar-visible';
+const THEME_STORAGE_KEY = 'craft-business-manager.appearance';
+type Appearance = 'system' | 'light' | 'dark';
+
+function preferredAppearance(): Appearance {
+  try {
+    const saved = window.localStorage.getItem(THEME_STORAGE_KEY);
+    return saved === 'dark' || saved === 'light' || saved === 'system' ? saved : 'system';
+  } catch {
+    return 'system';
+  }
+}
+
+function prefersDarkAppearance(): boolean {
+  return typeof window !== 'undefined' &&
+    (window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false);
+}
 
 const APP_SECTIONS: readonly { id: AppSection; label: string; icon: AppIconName }[] = [
   { id: 'materials', label: 'Materials', icon: 'materials' },
-  { id: 'calibration', label: 'Calibration', icon: 'calibration' },
   { id: 'products', label: 'Products', icon: 'products' },
-  { id: 'yield', label: 'Yield', icon: 'yield' },
   { id: 'production', label: 'Production', icon: 'production' },
-  { id: 'pricing', label: 'Pricing', icon: 'pricing' },
 ];
 
 export interface AppProps {
@@ -73,6 +83,8 @@ export default function App({
   const [section, setSection] = useState<AppSection>('materials');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [sidebarVisible, setSidebarVisible] = useState(initialSidebarVisible);
+  const [appearance, setAppearance] = useState<Appearance>(preferredAppearance);
+  const [systemDark, setSystemDark] = useState(prefersDarkAppearance);
   const [workbookToolsOpen, setWorkbookToolsOpen] = useState(false);
   const workbookToolsRef = useRef<HTMLDetailsElement>(null);
   const workbookTriggerRef = useRef<HTMLElement>(null);
@@ -109,6 +121,29 @@ export default function App({
       // Sidebar visibility remains session-local when storage is unavailable.
     }
   }, [sidebarVisible]);
+
+  useEffect(() => {
+    const media = window.matchMedia?.('(prefers-color-scheme: dark)');
+    if (!media) return;
+    const onChange = (event: MediaQueryListEvent) => setSystemDark(event.matches);
+    media.addEventListener?.('change', onChange);
+    return () => media.removeEventListener?.('change', onChange);
+  }, []);
+
+  useEffect(() => {
+    const resolved = appearance === 'system' ? (systemDark ? 'dark' : 'light') : appearance;
+    document.documentElement.dataset.theme = resolved;
+    document.documentElement.style.colorScheme = resolved;
+    try {
+      window.localStorage.setItem(THEME_STORAGE_KEY, appearance);
+    } catch {
+      // Appearance remains usable if browser storage is unavailable.
+    }
+    return () => {
+      delete document.documentElement.dataset.theme;
+      document.documentElement.style.removeProperty('color-scheme');
+    };
+  }, [appearance, systemDark]);
 
   useEffect(() => {
     if (workbookToolsOpen) workbookCloseButtonRef.current?.focus();
@@ -190,10 +225,12 @@ export default function App({
       <aside id="app-navigation-drawer" className="app-drawer" aria-label="Application navigation drawer">
         <div className="app-drawer-header">
           <div className="brand-lockup">
-            <div className="brand-mark" aria-hidden="true">CB</div>
+            <div className="brand-mark brand-mark-botanical" aria-hidden="true">
+              <img src="/brand/mlc-mark.webp" alt="" width="88" height="49" />
+            </div>
             <div>
-              <strong>Craft Business Manager</strong>
-              <span>Costing &amp; production workspace</span>
+              <strong>My Lovely Craft</strong>
+              <span>Crafted with love</span>
             </div>
           </div>
           <button
@@ -221,6 +258,19 @@ export default function App({
             </button>
           ))}
         </nav>
+
+        <div className="app-drawer-theme">
+          <div className="app-drawer-section-label">Appearance</div>
+          <div className="theme-switcher" role="group" aria-label="Appearance theme">
+            {(['light', 'dark', 'system'] as const).map((choice) => (
+              <button key={choice} type="button" className="theme-choice"
+                aria-pressed={appearance === choice}
+                onClick={() => setAppearance(choice)}>
+                {choice.charAt(0).toUpperCase() + choice.slice(1)}
+              </button>
+            ))}
+          </div>
+        </div>
 
         <div className="app-drawer-workbook">
           <div className="app-drawer-section-label">Data</div>
@@ -324,11 +374,8 @@ export default function App({
       <section className="app-content">
         <div className="workspace-revision-boundary" data-workspace-revision={workspaceRevision} key={workspaceRevision}>
           {section === 'materials' && <MaterialsPage />}
-          {section === 'calibration' && <CalibrationPage />}
           {section === 'products' && <ProductsWorkspacePage />}
-          {section === 'yield' && <YieldPage />}
           {section === 'production' && <ProductionPage onOpenProducts={() => selectSection('products')} />}
-          {section === 'pricing' && <PricingPage />}
         </div>
       </section>
     </main>

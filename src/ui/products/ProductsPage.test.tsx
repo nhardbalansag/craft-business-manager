@@ -4,6 +4,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as session from '../../application/session';
 import { ProductsPage } from './ProductsPage';
+import * as productImageUpload from './productImageUpload';
 
 let container: HTMLDivElement;
 let root: Root;
@@ -107,6 +108,93 @@ async function seed() {
 }
 
 describe('product workshop interactions', () => {
+  it('uploads, saves, reloads and removes a Product image without losing other fields', async () => {
+    const photo = `data:image/jpeg;base64,/9j/${'AAAA'.repeat(25)}`;
+    const highRes = 'data:image/jpeg;base64,' + 'AAAA'.repeat(20_000);
+    const optimizer = vi.spyOn(productImageUpload, 'optimizeProductImages').mockResolvedValue({
+      imageDataUrl: photo, brochureImageDataUrl: highRes,
+    });
+    await seed();
+    await mount();
+    await click('Edit Alpha candle');
+    const input = form().querySelector<HTMLInputElement>('[aria-label="Upload product image"]')!;
+    expect(input).not.toBeNull();
+    expect(form().querySelector('.product-image-preview')?.textContent).toContain('No product image');
+    const file = new File(['photo'], 'candle.png', { type: 'image/png' });
+    Object.defineProperty(input, 'files', { configurable: true, value: [file] });
+    await act(async () => {
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+      await Promise.resolve();
+    });
+    expect(optimizer).toHaveBeenCalledWith(file);
+    expect(form().querySelector<HTMLImageElement>('.product-image-preview img')?.src).toBe(photo);
+    await submit();
+    expect((await session.productService.getProduct('ALPHA'))?.imageDataUrl).toBe(photo);
+    expect((await session.productService.getProduct('ALPHA'))?.brochureImageDataUrl).toBe(highRes);
+    await click('Back to product catalog');
+    expect(catalog().querySelector<HTMLImageElement>('.product-catalog-table tbody img.product-catalog-thumbnail')?.src).toBe(photo);
+    await click('Edit Alpha candle');
+    expect(form().querySelector<HTMLImageElement>('.product-image-preview img')?.src).toBe(photo);
+    await click('Remove image');
+    await submit();
+    expect((await session.productService.getProduct('ALPHA'))?.imageDataUrl).toBeUndefined();
+    expect((await session.productService.getProduct('ALPHA'))?.brochureImageDataUrl).toBeUndefined();
+    expect((await session.productService.getProduct('ALPHA'))?.name).toBe('Alpha candle');
+  });
+
+  it('shows an upload error and keeps the existing image when the new file cannot be processed', async () => {
+    const photo = `data:image/jpeg;base64,/9j/${'AAAA'.repeat(25)}`;
+    await seed();
+    await session.productService.updateProduct('BETA', { imageDataUrl: photo });
+    vi.spyOn(productImageUpload, 'optimizeProductImages').mockRejectedValue(new Error('Image is too large'));
+    await mount();
+    await click('Edit Beta star');
+    const input = form().querySelector<HTMLInputElement>('[aria-label="Upload product image"]')!;
+    Object.defineProperty(input, 'files', { configurable: true, value: [new File(['bad'], 'bad.png', { type: 'image/png' })] });
+    await act(async () => {
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+      await Promise.resolve();
+    });
+    expect(form().querySelector('[role="alert"]')?.textContent).toContain('Image is too large');
+    expect(form().querySelector<HTMLImageElement>('.product-image-preview img')?.src).toBe(photo);
+    expect((await session.productService.getProduct('BETA'))?.imageDataUrl).toBe(photo);
+  });
+
+  it('saves selected candle wax and essential oil links used by Production and Pricing', async () => {
+    await seed();
+    await session.materialService.updateMaterial('WAX', { essentialOilPercent: 6 });
+    await session.materialService.createMaterial({
+      id: 'OIL', name: 'Lavender oil', group: 'fragrance', baseUnit: 'g',
+      purchaseQuantity: 1, purchaseUnit: 'kg', packageCost: 500,
+      onHandQuantity: 1, onHandUnit: 'kg', isActive: true,
+    });
+    await mount();
+    await click('Edit Alpha candle');
+    expect(form().textContent).toContain('Wax for essential oil calculation');
+    await fill(field('Wax for essential oil calculation'), 'WAX');
+    await fill(field('Essential oil for production costs'), 'OIL');
+    await submit();
+    expect(await session.productService.getProduct('ALPHA')).toMatchObject({
+      candleWaxMaterialId: 'WAX', candleEssentialOilMaterialId: 'OIL',
+    });
+    await click('Edit Alpha candle');
+    expect(field('Wax for essential oil calculation').value).toBe('WAX');
+    expect(field('Essential oil for production costs').value).toBe('OIL');
+    await fill(field('Category'), 'candle-pot');
+    await submit();
+    expect((await session.productService.getProduct('ALPHA'))?.candleWaxMaterialId).toBeUndefined();
+    expect((await session.productService.getProduct('ALPHA'))?.candleEssentialOilMaterialId).toBeUndefined();
+  });
+
+  it('does not allow only one candle material to be configured', async () => {
+    await seed();
+    await mount();
+    await click('Edit Alpha candle');
+    await fill(field('Wax for essential oil calculation'), 'WAX');
+    await submit();
+    expect(container.textContent).toContain('Select both wax and essential oil');
+    expect((await session.productService.getProduct('ALPHA'))?.candleWaxMaterialId).toBeUndefined();
+  });
   it('keeps editor context tied to the current draft until a switch is accepted', async () => {
     await seed();
     await mount();
@@ -164,19 +252,20 @@ describe('product workshop interactions', () => {
     expect(catalog().querySelector('.product-editor-context h2')?.textContent).toBe('Edit Updated star');
   });
 
-  it('explains cleared mixes and preserves a draft when the save service fails', async () => {
+  it('clears incompatible legacy preset references and preserves a draft when saving fails', async () => {
     await seed();
     await mount();
     await click('Edit Alpha candle');
     await fill(field('Category'), 'candle-pot');
-    expect(form().querySelector('.product-mix-notice')?.textContent).toContain('previous mix was cleared');
+    expect(form().querySelector('.product-mix-notice')).toBeNull();
     vi.spyOn(session.productService, 'updateProduct').mockRejectedValueOnce(new Error('Could not save'));
     await fill(field('Name'), 'Changed pot');
     await submit();
     expect(field('Name').value).toBe('Changed pot');
     expect(container.querySelector('[role="alert"]')?.textContent).toContain('Could not save');
     await submit();
-    expect((await session.productService.getProduct('ALPHA'))?.name).toBe('Changed pot');
+    expect(await session.productService.getProduct('ALPHA')).toMatchObject({ name: 'Changed pot', category: 'candle-pot' });
+    expect((await session.productService.getProduct('ALPHA'))?.mixPresetId).toBeUndefined();
   });
 
   it('keeps drafts when reselecting a product and asks before replacing them', async () => {
@@ -220,14 +309,130 @@ describe('product workshop interactions', () => {
     await mount();
     await click('Compact');
     expect(catalog().querySelector('.product-card-grid.is-compact')).not.toBeNull();
-    await fill(catalog().querySelector('input')!, 'Signature blend');
+    await fill(catalog().querySelector('input')!, 'Alpha');
     expect(catalog().querySelector('[aria-label="Candle"] .product-filter-count')?.textContent).toBe('1');
     expect(catalog().querySelector('[aria-label="Paintable art"] .product-filter-count')?.textContent).toBe('0');
     await click('Cards');
     expect(catalog().querySelectorAll('article')).toHaveLength(1);
-    expect(catalog().querySelector('input')?.value).toBe('Signature blend');
+    expect(catalog().querySelector('input')?.value).toBe('Alpha');
     await click('Edit Alpha candle');
     expect(field('Product ID').value).toBe('ALPHA');
+  });
+
+  it('shows the Product Catalog as a table without losing filters or catalog actions', async () => {
+    await seed();
+    await mount();
+
+    expect(catalog().querySelector('[aria-label="Catalog layout"] button[aria-pressed="true"]')?.textContent).toBe('Table');
+
+    const tableWrap = catalog().querySelector<HTMLElement>(
+      '[aria-label="Product catalog table"]',
+    );
+    expect(tableWrap).not.toBeNull();
+
+    const table = tableWrap!.querySelector('table')!;
+    expect(
+      Array.from(table.querySelectorAll('thead th')).map((cell) =>
+        cell.textContent?.trim(),
+      ),
+    ).toEqual([
+      'Product',
+      'Category',
+      'Material reserve',
+      'Status',
+      'Notes',
+      'Actions',
+    ]);
+    expect(table.querySelectorAll('tbody tr')).toHaveLength(2);
+    expect(table.textContent).toContain('Alpha candle');
+    expect(table.textContent).toContain('5%');
+    expect(table.textContent).toContain('Beta star');
+
+    await fill(catalog().querySelector<HTMLInputElement>('input[type="search"]')!, 'Alpha');
+    expect(table.querySelectorAll('tbody tr')).toHaveLength(1);
+    expect(table.textContent).toContain('Alpha candle');
+    expect(table.textContent).not.toContain('Beta star');
+
+    await click('Components for Alpha candle', table);
+    expect(container.querySelector<HTMLSelectElement>('.composition-parent-panel select')?.value).toBe('ALPHA');
+  });
+
+  it('paginates the Product Catalog consistently across Cards, Compact, and Table layouts', async () => {
+    await seed();
+
+    for (let index = 3; index <= 13; index += 1) {
+      await session.productService.createProduct({
+        id: `PROD-${String(index).padStart(4, '0')}`,
+        name: `Catalog product ${String(index).padStart(2, '0')}`,
+        category: index % 2 === 0 ? 'candle' : 'paintable-art',
+        safetyWasteRate: index / 100,
+        isActive: true,
+      });
+    }
+
+    await mount();
+
+    expect(catalog().querySelectorAll('[aria-label="Product catalog table"] tbody tr')).toHaveLength(10);
+    expect(
+      catalog().querySelector('[aria-label="Product catalog pagination"]')?.textContent,
+    ).toContain('Showing 1–10 of 13 products');
+    expect(
+      catalog().querySelector<HTMLButtonElement>('[aria-label="Previous product page"]')?.disabled,
+    ).toBe(true);
+    expect(
+      catalog().querySelector<HTMLButtonElement>('[aria-label="Next product page"]')?.disabled,
+    ).toBe(false);
+
+    await click('Next', catalog());
+
+    expect(catalog().querySelectorAll('[aria-label="Product catalog table"] tbody tr')).toHaveLength(3);
+    expect(
+      catalog().querySelector('[aria-label="Product catalog pagination"]')?.textContent,
+    ).toContain('Showing 11–13 of 13 products');
+    expect(
+      catalog().querySelector('[aria-label="Product page 2"]')?.getAttribute('aria-current'),
+    ).toBe('page');
+
+    await click('Cards', catalog());
+    expect(catalog().querySelectorAll('.product-catalog-card')).toHaveLength(3);
+    await click('Compact', catalog());
+    expect(catalog().querySelector('.product-card-grid.is-compact')).not.toBeNull();
+    expect(catalog().querySelectorAll('.product-catalog-card')).toHaveLength(3);
+
+    await click('Table', catalog());
+    expect(
+      catalog().querySelectorAll('[aria-label="Product catalog table"] tbody tr'),
+    ).toHaveLength(3);
+    expect(
+      catalog().querySelector('[aria-label="Product catalog pagination"]')?.textContent,
+    ).toContain('Showing 11–13 of 13 products');
+
+    await fill(
+      catalog().querySelector<HTMLSelectElement>('[aria-label="Products per page"]')!,
+      '25',
+    );
+
+    expect(
+      catalog().querySelectorAll('[aria-label="Product catalog table"] tbody tr'),
+    ).toHaveLength(13);
+    expect(
+      catalog().querySelector('[aria-label="Product catalog pagination"]')?.textContent,
+    ).toContain('Showing 1–13 of 13 products');
+    expect(
+      catalog().querySelector('[aria-label="Product page 1"]')?.getAttribute('aria-current'),
+    ).toBe('page');
+
+    await fill(
+      catalog().querySelector<HTMLInputElement>('input[type="search"]')!,
+      'Alpha candle',
+    );
+
+    expect(
+      catalog().querySelectorAll('[aria-label="Product catalog table"] tbody tr'),
+    ).toHaveLength(1);
+    expect(
+      catalog().querySelector('[aria-label="Product catalog pagination"]')?.textContent,
+    ).toContain('Showing 1–1 of 1 products');
   });
 
   it('creates the first product from the guided form with a correct reserve rate', async () => {
@@ -246,17 +451,17 @@ describe('product workshop interactions', () => {
     expect(container.querySelector('[role="status"]')?.textContent).toContain('Product created');
   });
 
-  it('searches mix names, combines category filters, and recovers an empty search', async () => {
+  it('searches product names, combines category filters, and recovers an empty search', async () => {
     await seed();
     await mount();
-    await fill(catalog().querySelector('input')!, 'Signature blend');
-    expect(catalog().querySelectorAll('article')).toHaveLength(1);
+    await fill(catalog().querySelector('input')!, 'Alpha');
+    expect(catalog().querySelectorAll('[aria-label="Product catalog table"] tbody tr')).toHaveLength(1);
     expect(catalog().textContent).toContain('Alpha candle');
     await click('Paintable art', catalog());
     expect(catalog().textContent).toContain('No matching products');
     expect(catalog().textContent).not.toContain('Make room for your first creation');
     await click('Clear filters', catalog());
-    expect(catalog().querySelectorAll('article')).toHaveLength(2);
+    expect(catalog().querySelectorAll('[aria-label="Product catalog table"] tbody tr')).toHaveLength(2);
   });
 
   it('edits without changing identity and preserves compatible mix selections', async () => {
@@ -265,7 +470,7 @@ describe('product workshop interactions', () => {
     await click('Edit Alpha candle');
     expect((field('Product ID') as HTMLInputElement).readOnly).toBe(true);
     await fill(field('Category'), 'paintable-art');
-    expect(field('Mix preset').value).toBe('MIX');
+    expect(form().querySelector('[name="mixPresetId"]')).toBeNull();
     await fill(field('Name'), 'Updated candle');
     await submit();
     expect(await session.productService.getProduct('ALPHA')).toMatchObject({
@@ -275,7 +480,8 @@ describe('product workshop interactions', () => {
     });
     expect(await session.productService.listProducts()).toHaveLength(2);
     await fill(field('Category'), 'candle-pot');
-    expect(field('Mix preset').value).toBe('');
+    await submit();
+    expect((await session.productService.getProduct('ALPHA'))?.mixPresetId).toBeUndefined();
   });
 
   it('retains catalog filters and unsaved product fields across workspace views', async () => {
@@ -284,11 +490,74 @@ describe('product workshop interactions', () => {
     await click('Edit Beta star');
     await fill(field('Name'), 'Draft name');
     await fill(catalog().querySelector('input')!, 'Beta');
-    await navigate('Mix presets');
+    await navigate('Components');
     await navigate('Products');
     expect(field('Name').value).toBe('Draft name');
     expect(catalog().querySelector('input')?.value).toBe('Beta');
     expect((await session.productService.getProduct('BETA'))?.name).toBe('Beta star');
+  });
+
+  it('opens Components for the currently edited Product without manually changing Product to compose', async () => {
+    await seed();
+    await session.productComponentRepository.replaceAll([{
+      id: 'COMP-BETA',
+      parentProductId: 'BETA',
+      sourceType: 'material',
+      sourceId: 'WAX',
+      role: 'accessory',
+      quantityPerParent: 2,
+    }]);
+    await mount();
+    await click('Edit Beta star');
+    expect(field('Product ID').value).toBe('BETA');
+    await navigate('Components');
+    expect(container.querySelector<HTMLSelectElement>('.composition-parent-panel select')?.value).toBe('BETA');
+    expect(container.querySelector('.component-summary-panel h2')?.textContent).toBe('Beta star');
+    expect(container.querySelector('.component-card-list')?.textContent).toContain('COMP-BETA');
+    expect(container.querySelector('.component-card-list')?.textContent).toContain('Soy wax');
+    // Component editing remains available for the automatically selected parent.
+    await click('Edit', container.querySelector('.component-card-list')!);
+    expect(container.querySelector('.component-editor-form')?.textContent).toContain('Save component');
+  });
+
+  it('follows the latest edited Product when returning to Components while keeping manual parent selection usable', async () => {
+    await seed();
+    await mount();
+    await click('Edit Beta star');
+    await navigate('Components');
+    const parent = () => container.querySelector<HTMLSelectElement>('.composition-parent-panel select')!;
+    expect(parent().value).toBe('BETA');
+    await fill(parent(), 'ALPHA');
+    expect(parent().value).toBe('ALPHA');
+    await navigate('Products');
+    // Returning from the editor shell to the catalog keeps the draft and lets us edit another product.
+    await click('Back to product catalog');
+    await click('Edit Alpha candle');
+    expect(field('Product ID').value).toBe('ALPHA');
+    await navigate('Components');
+    expect(parent().value).toBe('ALPHA');
+    expect(container.querySelector('.component-summary-panel h2')?.textContent).toBe('Alpha candle');
+    await navigate('Products');
+    await click('Back to product catalog');
+    await click('Edit Beta star');
+    await navigate('Components');
+    expect(parent().value).toBe('BETA');
+  });
+
+  it('makes components available for a newly saved Product immediately after creation', async () => {
+    await seed();
+    await mount();
+    await click('+ New product');
+    await fill(field('Name'), 'New gift set');
+    await fill(field('Safety waste (%)'), '5');
+    await submit();
+    const newId = field('Product ID').value;
+    expect(newId).not.toBe('');
+    expect((await session.productService.getProduct(newId))?.name).toBe('New gift set');
+    await navigate('Components');
+    expect(container.querySelector<HTMLSelectElement>('.composition-parent-panel select')?.value).toBe(newId);
+    expect(container.querySelector('.component-summary-panel h2')?.textContent).toBe('New gift set');
+    expect(container.querySelector('.component-summary-panel')?.textContent).toContain('No component lines yet');
   });
 
   it('opens composition for the product selected in the catalog', async () => {
@@ -305,7 +574,7 @@ describe('product workshop interactions', () => {
     await click('Archive Beta star');
     expect((await session.productService.getProduct('BETA'))?.isActive).toBe(false);
     await fill(catalog().querySelector('select')!, 'archived');
-    expect(catalog().querySelectorAll('article')).toHaveLength(1);
+    expect(catalog().querySelectorAll('[aria-label="Product catalog table"] tbody tr')).toHaveLength(1);
     await click('Restore Beta star');
     expect((await session.productService.getProduct('BETA'))?.isActive).toBe(true);
     expect(container.textContent).toContain('Beta star restored.');
@@ -367,7 +636,7 @@ describe('product workshop interactions', () => {
     expect(catalog().textContent).toContain('Catalog unavailable');
     expect(form().querySelector('fieldset')?.disabled).toBe(true);
     await click('Retry loading');
-    expect(catalog().querySelectorAll('article')).toHaveLength(2);
+    expect(catalog().querySelectorAll('[aria-label="Product catalog table"] tbody tr')).toHaveLength(2);
     expect(form().querySelector('fieldset')?.disabled).toBe(false);
   });
 
@@ -400,38 +669,26 @@ describe('product workshop interactions', () => {
     await click('Retry loading');
     expect(container.querySelector('.product-stock-editor')).not.toBeNull();
   });
-  it('searches presets by material name and restores an archived mix', async () => {
-    await seed();
-    await session.productService.updateProduct('ALPHA', { mixPresetId: undefined });
-    await mount();
-    await navigate('Mix presets');
-    const mixes = container.querySelector<HTMLElement>('#products-view-mixes')!;
-    await fill(mixes.querySelector<HTMLInputElement>('.search-field input')!, 'Soy wax');
-    expect(mixes.querySelectorAll('tbody tr')).toHaveLength(1);
-    await click('Archive', mixes);
-    expect((await session.mixPresetService.listMixPresets())[0]?.isActive).toBe(false);
-    await fill(mixes.querySelector<HTMLSelectElement>('[aria-label="Mix status filter"]')!, 'archived');
-    await click('Restore', mixes);
-    expect((await session.mixPresetService.listMixPresets())[0]?.isActive).toBe(true);
-  });
-
-  it('creates a reusable mix through the ratio editor', async () => {
+  it('hides Mix Presets UI but preserves legacy preset references on product edits', async () => {
     await seed();
     await mount();
-    await navigate('Mix presets');
-    const mixes = container.querySelector<HTMLElement>('#products-view-mixes')!;
-    const mixForm = mixes.querySelector('form')!;
-    const inputs = mixForm.querySelectorAll<HTMLInputElement>('input:not([type="checkbox"])');
-    expect(inputs[0]!.value).toBe('MIX-0001');
-    expect(inputs[0]!.readOnly).toBe(true);
-    await fill(inputs[1]!, 'New wax blend');
-    await fill(mixForm.querySelector<HTMLSelectElement>('[aria-label="Mix material 1"]')!, 'WAX');
-    await act(async () => mixForm.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })));
-    expect((await session.mixPresetService.listMixPresets()).find((item) => item.id === 'MIX-0001')).toMatchObject({
-      name: 'New wax blend',
-      lines: [{ materialId: 'WAX', parts: 100, role: 'primary' }],
+    const views = Array.from(container.querySelectorAll('nav[aria-label="Product workspace views"] button'));
+    expect(views.some((button) => button.textContent?.includes('Mix presets'))).toBe(false);
+    expect(container.querySelector('#products-view-mixes')).toBeNull();
+    expect(container.querySelector('[aria-label="Workshop summary"]')?.textContent).not.toContain('Mix presets');
+    expect(catalog().textContent).not.toContain('Signature blend');
+    await click('Table');
+    expect(catalog().querySelector('.product-catalog-table')?.textContent).not.toContain('Mix preset');
+    await click('Cards');
+    await click('Edit Alpha candle');
+    expect(form().querySelector('[name="mixPresetId"]')).toBeNull();
+    await fill(field('Name'), 'Renamed legacy candle');
+    await submit();
+    expect(await session.productService.getProduct('ALPHA')).toMatchObject({
+      name: 'Renamed legacy candle',
+      mixPresetId: 'MIX',
     });
-    expect(container.textContent).toContain('Mix preset created.');
+    expect((await session.mixPresetService.listMixPresets()).map((preset) => preset.id)).toContain('MIX');
   });
 
   it('reports a completed save separately from a failed catalog refresh', async () => {

@@ -30,6 +30,7 @@ beforeEach(async () => {
     session.productRepository.replaceAll([product]),
     session.storageLocationRepository.replaceAll([]),
     session.moldRepository.replaceAll([]),
+    session.plasterMoldYieldProfileRepository.replaceAll([]),
   ]);
   container = document.createElement('div');
   document.body.append(container);
@@ -51,7 +52,10 @@ async function mount() {
 }
 
 function currentForm(): HTMLFormElement {
-  return container.querySelector('form')!;
+  return (
+    container.querySelector<HTMLFormElement>('[aria-label="Mold record form"]') ??
+    container.querySelector<HTMLFormElement>('form')
+  )!;
 }
 
 function field(label: string): HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement {
@@ -107,6 +111,87 @@ async function createLocation(name: string, type: 'rack' | 'shelf' | 'bin', pare
 }
 
 describe('PhysicalIdentificationWorkspace', () => {
+  it('keeps the mold record form in a modal instead of permanently occupying the directory', async () => {
+    await mount();
+
+    expect(container.querySelector('[role="dialog"][aria-labelledby="mold-record-dialog-title"]')).toBeNull();
+    expect(container.querySelector('[aria-label="Mold record form"]')).toBeNull();
+
+    await click('Add mold');
+
+    const dialog = container.querySelector('[role="dialog"][aria-labelledby="mold-record-dialog-title"]');
+    expect(dialog).not.toBeNull();
+    expect(dialog?.textContent).toContain('MOLD RECORD');
+    expect(dialog?.textContent).toContain('Add a mold');
+    expect(field('Mold ID').value).toBe('MOLD-0001');
+
+    await click('Cancel');
+
+    expect(container.querySelector('[role="dialog"][aria-labelledby="mold-record-dialog-title"]')).toBeNull();
+    expect(container.querySelector('[aria-label="Mold record form"]')).toBeNull();
+    expect(container.textContent).toContain('MOLD DIRECTORY');
+  });
+
+  it('keeps Mold Formula out of the page flow and opens it from the selected mold row', async () => {
+    await session.moldService.createMold({
+      id: 'MOLD-FORMULA',
+      productId: 'PRD-1',
+      name: 'Formula Dinosaur Mold',
+      isActive: true,
+    });
+
+    await mount();
+
+    expect(container.querySelector('[aria-label="Plaster mold formula configuration"]')).toBeNull();
+    const row = container.querySelector('[data-mold-row="MOLD-FORMULA"]');
+    expect(row).not.toBeNull();
+    expect(row?.textContent).toContain('Not configured');
+    expect(row?.textContent).toContain('Configure formula');
+
+    await click('Configure formula');
+
+    const dialog = container.querySelector('[role="dialog"][aria-label="Mold formula for Formula Dinosaur Mold"]');
+    expect(dialog).not.toBeNull();
+    expect(dialog?.textContent).toContain('MOLD FORMULA');
+    expect(dialog?.textContent).toContain('Formula Dinosaur Mold · MOLD-FORMULA');
+    expect(dialog?.querySelector('[aria-label="Plaster mold formula configuration"]')).not.toBeNull();
+
+    await clickLabel('Close mold formula dialog');
+
+    expect(container.querySelector('[role="dialog"][aria-label="Mold formula for Formula Dinosaur Mold"]')).toBeNull();
+    expect(container.querySelector('[aria-label="Plaster mold formula configuration"]')).toBeNull();
+  });
+
+  it('shows configured formula status and profile ID directly in the mold table', async () => {
+    await session.moldService.createMold({
+      id: 'MOLD-CONFIGURED',
+      productId: 'PRD-1',
+      name: 'Configured Mold',
+      isActive: true,
+    });
+    await session.plasterMoldYieldProfileRepository.replaceAll([{
+      id: 'PMYP-0099',
+      moldId: 'MOLD-CONFIGURED',
+      waterMaterialId: 'MAT-WATER',
+      plasterMaterialId: 'MAT-PLASTER',
+      glueMaterialId: 'MAT-GLUE',
+      waterFillWeightGrams: 50,
+      waterAdjustmentRate: 0.3,
+      plasterFactor: 0.75,
+      glueFactor: 0.05,
+      piecesPerPour: 1,
+      isActive: true,
+    }]);
+
+    await mount();
+
+    const row = container.querySelector('[data-mold-row="MOLD-CONFIGURED"]');
+    expect(row).not.toBeNull();
+    expect(row?.textContent).toContain('Configured');
+    expect(row?.textContent).toContain('PMYP-0099');
+    expect(row?.textContent).toContain('Edit formula');
+  });
+
   it('summarizes physical records and makes unassigned molds a one-click working view', async () => {
     await session.storageLocationService.createLocation({
       id: 'RACK-A',
@@ -136,12 +221,49 @@ describe('PhysicalIdentificationWorkspace', () => {
 
     await clickLabel('Show unassigned molds');
 
-    const cards = Array.from(container.querySelectorAll('.physical-id-card'));
-    expect(cards).toHaveLength(1);
-    expect(cards[0]?.textContent).toContain('Loose Dinosaur Mold');
-    expect(cards[0]?.textContent).toContain('Needs storage');
-    expect(cards[0]?.textContent).toContain('Unassigned — choose a storage location');
+    const rows = Array.from(container.querySelectorAll('[data-mold-row]'));
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.textContent).toContain('Loose Dinosaur Mold');
+    expect(rows[0]?.textContent).toContain('Needs storage');
+    expect(rows[0]?.textContent).toContain('Unassigned — choose a storage location');
     expect(container.querySelector<HTMLSelectElement>('[aria-label="Mold storage assignment filter"]')?.value).toBe('unassigned');
+  });
+
+  it('renders the mold directory as a table and paginates filtered records by 10', async () => {
+    for (let index = 1; index <= 12; index += 1) {
+      await session.moldService.createMold({
+        id: `MOLD-${String(index).padStart(4, '0')}`,
+        productId: 'PRD-1',
+        name: `Dinosaur Mold ${index}`,
+        isActive: true,
+      });
+    }
+
+    await mount();
+
+    const table = container.querySelector<HTMLTableElement>('[aria-label="Mold directory table"]');
+    expect(table).not.toBeNull();
+    const firstPageRows = Array.from(table!.querySelectorAll<HTMLTableRowElement>('tbody tr'));
+    const firstPageIds = firstPageRows.map((row) => row.dataset.moldRow);
+    expect(firstPageRows).toHaveLength(10);
+    expect(container.querySelector('[aria-label="Mold directory pagination"]')?.textContent).toContain('1–10 of 12');
+    expect(container.querySelector('[aria-label="Mold directory pagination"]')?.textContent).toContain('Page 1 of 2');
+
+    await clickLabel('Next mold page');
+
+    const secondPageRows = Array.from(table!.querySelectorAll<HTMLTableRowElement>('tbody tr'));
+    const secondPageIds = secondPageRows.map((row) => row.dataset.moldRow);
+    expect(secondPageRows).toHaveLength(2);
+    expect(container.querySelector('[aria-label="Mold directory pagination"]')?.textContent).toContain('11–12 of 12');
+    expect(container.querySelector('[aria-label="Mold directory pagination"]')?.textContent).toContain('Page 2 of 2');
+    expect(new Set([...firstPageIds, ...secondPageIds]).size).toBe(12);
+
+    const search = container.querySelector<HTMLInputElement>('[aria-label="Search molds"]')!;
+    await fill(search, 'Dinosaur Mold 12');
+
+    expect(Array.from(table!.querySelectorAll('tbody tr'))).toHaveLength(1);
+    expect(container.querySelector('[aria-label="Mold directory pagination"]')?.textContent).toContain('1–1 of 1');
+    expect(container.querySelector('[aria-label="Mold directory pagination"]')?.textContent).toContain('Page 1 of 1');
   });
 
   it('creates Rack → Shelf → Bin records and then creates a mold assigned to the resolved path', async () => {
@@ -159,6 +281,7 @@ describe('PhysicalIdentificationWorkspace', () => {
     expect(container.textContent).toContain('Rack A / Shelf 2 / Bin 04');
 
     await click('Molds');
+    await click('Add mold');
     expect(field('Mold ID').value).toBe('MOLD-0001');
     expect((field('Mold ID') as HTMLInputElement).readOnly).toBe(true);
     await fill(field('Mold name'), 'Dinosaur Mold');

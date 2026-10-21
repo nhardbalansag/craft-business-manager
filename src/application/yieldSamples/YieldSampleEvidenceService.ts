@@ -65,7 +65,7 @@ export class YieldSampleEvidenceService {
     private readonly materialRepository: MaterialRepository,
   ) {}
 
-  async recordSample(input: YieldSample): Promise<YieldSample> {
+  async prepareSampleForRecording(input: YieldSample): Promise<YieldSample> {
     const sample = normalizeYieldSampleEvidence(input);
     validateYieldSampleContract(sample);
 
@@ -79,6 +79,11 @@ export class YieldSampleEvidenceService {
     }
 
     await this.validateReferencesForNewSample(sample);
+    return cloneYieldSample(sample);
+  }
+
+  async recordSample(input: YieldSample): Promise<YieldSample> {
+    const sample = await this.prepareSampleForRecording(input);
     await this.repository.insert(sample);
     return cloneYieldSample(sample);
   }

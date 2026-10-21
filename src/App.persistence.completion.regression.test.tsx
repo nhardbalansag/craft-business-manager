@@ -11,18 +11,19 @@ import { BrowserWorkbookImportCommand } from './application/persistence/BrowserW
 import { PersistenceLifecycleOperationalError } from './application/persistence/PersistenceLifecycle';
 import * as session from './application/session';
 import { createEmptyBusinessDataset } from './domain/businessDataset';
+import { BUSINESS_DATASET_V2_SCHEMA_VERSION } from './domain/businessDatasetV2';
 import type { BusinessDataset } from './domain/types';
 import {
   createBusinessDatasetWorkbookDocument,
   exportBusinessDatasetToXlsx,
 } from './storage/businessDatasetWorkbookExport';
-import { importBusinessDatasetFromXlsx } from './storage/businessDatasetWorkbookImport';
+import {
+  CORE_WORKBOOK_V3_FORMAT_VERSION,
+  importBusinessDatasetV2FromXlsx,
+} from './storage/businessDatasetV2Workbook';
 import { DEFAULT_WORKBOOK_RESOURCE_LIMITS } from './storage/workbookResourceLimits';
 import { SheetJsWorkbookCodec } from './storage/sheetJsWorkbookCodec';
-import {
-  CURRENT_WORKBOOK_FORMAT_VERSION,
-  type WorkbookNeutralDocument,
-} from './storage/workbookSchema';
+import type { WorkbookNeutralDocument } from './storage/workbookSchema';
 
 const codec = new SheetJsWorkbookCodec();
 const metadata = { exportedAt: '2026-09-17T01:45:00.000Z' } as const;
@@ -104,7 +105,11 @@ function futureVersionBytes(): Uint8Array {
   return codec.encode(mapSheet(document, '_Meta', (sheet) => ({
     ...sheet,
     rows: sheet.rows.map((row, index) => index === 0
-      ? { ...row, workbookFormatVersion: CURRENT_WORKBOOK_FORMAT_VERSION + 1 }
+      ? {
+          ...row,
+          workbookFormatVersion: CORE_WORKBOOK_V3_FORMAT_VERSION + 1,
+          datasetSchemaVersion: BUSINESS_DATASET_V2_SCHEMA_VERSION + 1,
+        }
       : row),
   })));
 }
@@ -259,10 +264,15 @@ describe('Phase 5.5C3 persistence UX regression and Phase 5.5 completion gate', 
     expect(capture.dispatches).toHaveLength(1);
     expect(capture.revoked).toEqual(['blob:phase-5-5c3-1']);
 
-    const exported = importBusinessDatasetFromXlsx(capture.bytes[0]!, codec);
+    const exported = importBusinessDatasetV2FromXlsx(capture.bytes[0]!, codec);
     expect(exported.ok).toBe(true);
     if (!exported.ok) throw new Error('Expected completion-gate export to re-import.');
-    expect(exported.dataset).toEqual(incoming);
+    expect(exported.dataset.productPriceTiers).toEqual([]);
+    expect({
+      ...exported.dataset,
+      schemaVersion: incoming.schemaVersion,
+      productPriceTiers: undefined,
+    }).toMatchObject(incoming);
     expect(await session.completeSourceSnapshotService.snapshot()).toEqual(incoming);
   });
 
@@ -271,7 +281,9 @@ describe('Phase 5.5C3 persistence UX regression and Phase 5.5 completion gate', 
     const recovered = datasetWithMaterial('RECOVERED', 'Recovered final material');
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     await mount({ uiClock: sequenceClock('2026-09-17T02:00:00.000Z', '2026-09-17T02:30:00.000Z') });
+    await click('Products');
     await click('Pricing');
+    expect(container.querySelector('[aria-label="Selected pricing Product"]')).not.toBeNull();
     await applyWorkbook('known-good.xlsx', realWorkbookBytes(knownGood));
 
     const cases = [
@@ -294,7 +306,7 @@ describe('Phase 5.5C3 persistence UX regression and Phase 5.5 completion gate', 
         expect(details).toContain('Browser import does not create, discover, or manage a Phase 5.4B pre-save transport backup');
       }
       expect(revision()).toBe('1');
-      expect(activeNavigation()).toBe('Pricing');
+      expect(activeNavigation()).toBe('Products');
       expect(statusCard('Active imported workbook').textContent).toContain('known-good.xlsx');
       expect(statusCard('Active imported workbook').textContent).not.toContain(name);
       expect(await session.completeSourceSnapshotService.snapshot()).toEqual(knownGood);
@@ -303,7 +315,7 @@ describe('Phase 5.5C3 persistence UX regression and Phase 5.5 completion gate', 
     await applyWorkbook('recovered.xlsx', realWorkbookBytes(recovered));
     expect(rejectionText()).toBe('');
     expect(revision()).toBe('2');
-    expect(activeNavigation()).toBe('Pricing');
+    expect(activeNavigation()).toBe('Products');
     expect(statusCard('Active imported workbook').textContent).toContain('recovered.xlsx');
     expect(await session.completeSourceSnapshotService.snapshot()).toEqual(recovered);
   });
@@ -338,13 +350,14 @@ describe('Phase 5.5C3 persistence UX regression and Phase 5.5 completion gate', 
     expect((await session.validatedAtomicDatasetHydrationService.hydrate(live)).status).toBe('hydrated');
     const { capture, adapter } = downloadHarness({ failDispatchOnce: true });
     await mount({ exportCommand: realExportCommand(adapter), uiClock: sequenceClock('2026-09-17T02:40:00.000Z') });
+    await click('Products');
     await click('Yield');
 
     await click('Download workbook');
     expect(container.querySelector('.workbook-export-panel [role="alert"]')?.textContent).toContain('browser download could not be started');
     expect(statusCard('Last downloaded workbook copy').textContent).toContain('No workbook copy has been downloaded successfully');
     expect(revision()).toBe('0');
-    expect(activeNavigation()).toBe('Yield');
+    expect(activeNavigation()).toBe('Products');
     expect(capture.dispatches).toHaveLength(0);
     expect(capture.revoked).toEqual(['blob:phase-5-5c3-1']);
 
@@ -353,7 +366,7 @@ describe('Phase 5.5C3 persistence UX regression and Phase 5.5 completion gate', 
     expect(capture.revoked).toEqual(['blob:phase-5-5c3-1', 'blob:phase-5-5c3-2']);
     expect(statusCard('Last downloaded workbook copy').textContent).toContain('craft-business-manager-2026-09-17-021530.xlsx');
     expect(revision()).toBe('0');
-    expect(activeNavigation()).toBe('Yield');
+    expect(activeNavigation()).toBe('Products');
     expect(await session.completeSourceSnapshotService.snapshot()).toEqual(live);
 
     const pageText = container.textContent ?? '';

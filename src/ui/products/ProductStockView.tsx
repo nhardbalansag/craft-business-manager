@@ -6,6 +6,7 @@ import {
 import type { ProductComponent } from '../../domain/productComponents';
 import type { ProductStock } from '../../domain/productStock';
 import type { Product } from '../../domain/products';
+import { ProductImageZoom } from './ProductImageZoom';
 import { AppIcon } from '../icons/AppIcon';
 import {
   buildProductStockRows,
@@ -16,6 +17,8 @@ import {
 type ProductStockViewProps = {
   products: readonly Product[];
   catalogLoading: boolean;
+  initialProductId?: string | null;
+  onSelectedProductChange?: (productId: string) => void;
 };
 
 type ActiveFilter = 'active' | 'archived' | 'all';
@@ -49,12 +52,12 @@ function stockStateLabel(row: ProductStockRow): string {
   return `${row.onHandQuantity?.toLocaleString() ?? 0} pc on hand`;
 }
 
-export function ProductStockView({ products, catalogLoading }: ProductStockViewProps) {
+export function ProductStockView({ products, catalogLoading, initialProductId, onSelectedProductChange }: ProductStockViewProps) {
   const [sourceError, setSourceError] = useState<string | null>(null);
   const [components, setComponents] = useState<ProductComponent[]>([]);
   const [stocks, setStocks] = useState<ProductStock[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedProductId, setSelectedProductId] = useState('');
+  const [selectedProductId, setSelectedProductId] = useState(initialProductId ?? '');
   const [form, setForm] = useState<StockFormState>(EMPTY_FORM);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [query, setQuery] = useState('');
@@ -136,6 +139,7 @@ export function ProductStockView({ products, catalogLoading }: ProductStockViewP
 
   function selectProduct(productId: string) {
     setSelectedProductId(productId);
+    onSelectedProductChange?.(productId);
     setFeedback(null);
   }
 
@@ -201,6 +205,15 @@ export function ProductStockView({ products, catalogLoading }: ProductStockViewP
             )}
           </div>
 
+          {selectedRow && (
+            <div className="stock-product-reference" aria-label="Selected finished stock Product photo">
+              <ProductImageZoom
+                product={products.find((product) => product.id === selectedRow.productId) ?? { name: selectedRow.productName }}
+                imageClassName="stock-product-reference-photo"
+              />
+              <div><strong>{selectedRow.productName}</strong><small>{selectedRow.productId}</small></div>
+            </div>
+          )}
           <div className="form-grid">
             <label className="field field-wide">
               <span>Product</span>

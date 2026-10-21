@@ -1,3 +1,5 @@
+import { isValidProductImageDataUrl } from './productImage';
+import { isValidBrochureImageDataUrl } from './productBrochureImage';
 import { SafetyWastePolicyError, validateSafetyWasteRate } from './safetyWastePolicy';
 
 export const PRODUCT_CATEGORIES = ['paintable-art', 'candle-pot', 'candle'] as const;
@@ -50,8 +52,15 @@ export interface Product {
   category: ProductCategory;
   /** Optional reference only; mix-preset contract/validation is implemented in Phase 2.1B/2.1C. */
   mixPresetId?: string;
+  /** Optional explicit candle wax/fragrance pairing used for future costing. */
+  candleWaxMaterialId?: string;
+  candleEssentialOilMaterialId?: string;
   /** Optional user-selected Yield sample that should drive effective learning for this Product. */
   preferredYieldSampleId?: string;
+  /** Optional optimized JPEG thumbnail data URL (short enough for an Excel workbook cell). */
+  imageDataUrl?: string;
+  /** High-resolution, workbook-chunked JPEG for A4 brochures; thumbnails stay small. */
+  brochureImageDataUrl?: string;
   /** Planning reserve entered as a decimal rate, e.g. 0.05 = 5%. Must satisfy 0 <= rate < 1. */
   safetyWasteRate: number;
   notes?: string;
@@ -66,6 +75,9 @@ export type ProductContractErrorCode =
   | 'INVALID_CATEGORY'
   | 'INVALID_MIX_PRESET_ID'
   | 'INVALID_PREFERRED_YIELD_SAMPLE_ID'
+  | 'INVALID_IMAGE_DATA_URL'
+  | 'INVALID_BROCHURE_IMAGE_DATA_URL'
+  | 'INVALID_CANDLE_OIL_CONFIGURATION'
   | 'INVALID_SAFETY_WASTE_RATE'
   | 'INVALID_ACTIVE_STATE';
 
@@ -133,6 +145,37 @@ export function validateProductContract(product: Product): void {
       'INVALID_MIX_PRESET_ID',
       'Mix preset ID cannot be blank when provided.',
       product.mixPresetId,
+    );
+  }
+
+  if (
+    (product.candleWaxMaterialId !== undefined || product.candleEssentialOilMaterialId !== undefined) &&
+    (product.category !== 'candle' ||
+      !product.candleWaxMaterialId?.trim() ||
+      !product.candleEssentialOilMaterialId?.trim() ||
+      product.candleWaxMaterialId.trim().toLowerCase() === product.candleEssentialOilMaterialId.trim().toLowerCase())
+  ) {
+    throw new ProductContractError(
+      'INVALID_CANDLE_OIL_CONFIGURATION',
+      'Candle wax and essential oil must both be selected, distinct, and only set on candle Products.',
+      { wax: product.candleWaxMaterialId, oil: product.candleEssentialOilMaterialId },
+    );
+  }
+
+  if (product.imageDataUrl !== undefined && !isValidProductImageDataUrl(product.imageDataUrl)) {
+    throw new ProductContractError(
+      'INVALID_IMAGE_DATA_URL',
+      'Product image must be an optimized JPEG thumbnail with a valid base64 data URL no longer than 25,000 characters.',
+      product.imageDataUrl,
+    );
+  }
+
+  if (product.brochureImageDataUrl !== undefined &&
+      !isValidBrochureImageDataUrl(product.brochureImageDataUrl)) {
+    throw new ProductContractError(
+      'INVALID_BROCHURE_IMAGE_DATA_URL',
+      'Brochure image must be a valid JPEG photo within the 480,000-character workbook limit.',
+      product.brochureImageDataUrl,
     );
   }
 

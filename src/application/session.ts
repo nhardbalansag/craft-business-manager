@@ -1,5 +1,4 @@
 import { SheetJsWorkbookCodec } from '../storage/sheetJsWorkbookCodec';
-import { CalibrationService } from './calibrations/CalibrationService';
 import { InMemoryCalibrationRepository } from './calibrations/InMemoryCalibrationRepository';
 import { InMemoryMaterialRepository } from './materials/InMemoryMaterialRepository';
 import { MaterialService } from './materials/MaterialService';
@@ -7,11 +6,23 @@ import { InMemoryMixPresetRepository } from './mixPresets/InMemoryMixPresetRepos
 import { MixPresetService } from './mixPresets/MixPresetService';
 import { InMemoryMoldRepository } from './molds/InMemoryMoldRepository';
 import { MoldService } from './molds/MoldService';
+import { InMemoryPlasterMoldYieldProfileRepository } from './plasterMoldYieldProfiles/InMemoryPlasterMoldYieldProfileRepository';
+import { PlasterMoldYieldCalculatorService } from './plasterMoldYieldProfiles/PlasterMoldYieldCalculatorService';
+import { PlasterMoldOperationalPreviewService } from './plasterMoldYieldProfiles/PlasterMoldOperationalPreviewService';
+import { PlasterMoldYieldProfileService } from './plasterMoldYieldProfiles/PlasterMoldYieldProfileService';
 import { CompleteSourceSnapshotService } from './persistence/CompleteSourceSnapshotService';
+import { CompleteSourceSnapshotServiceV2 } from './persistence/CompleteSourceSnapshotServiceV2';
 import { PersistenceCoordinator } from './persistence/PersistenceCoordinator';
 import { PhysicalDatasetHydrationService } from './persistence/PhysicalDatasetHydrationService';
+import { PhysicalDatasetHydrationServiceV3 } from './persistence/PhysicalDatasetHydrationServiceV3';
+import { PhysicalDatasetHydrationServiceV4 } from './persistence/PhysicalDatasetHydrationServiceV4';
+import { PhysicalDatasetHydrationServiceV5 } from './persistence/PhysicalDatasetHydrationServiceV5';
 import { PhysicalSourceSnapshotService } from './persistence/PhysicalSourceSnapshotService';
+import { PhysicalSourceSnapshotServiceV3 } from './persistence/PhysicalSourceSnapshotServiceV3';
+import { PhysicalSourceSnapshotServiceV4 } from './persistence/PhysicalSourceSnapshotServiceV4';
+import { PhysicalSourceSnapshotServiceV5 } from './persistence/PhysicalSourceSnapshotServiceV5';
 import { ValidatedAtomicDatasetHydrationService } from './persistence/ValidatedAtomicDatasetHydrationService';
+import { ValidatedAtomicDatasetHydrationServiceV2 } from './persistence/ValidatedAtomicDatasetHydrationServiceV2';
 import { FullyLoadedProductUnitCostService } from './productCosts/FullyLoadedProductUnitCostService';
 import { RecursiveFullyLoadedProductComponentCostService } from './productCosts/RecursiveFullyLoadedProductComponentCostService';
 import { WasteAdjustedDirectMaterialCostService } from './productCosts/WasteAdjustedDirectMaterialCostService';
@@ -31,10 +42,15 @@ import { ProductBackedComponentCostService } from './productComponents/ProductBa
 import { ProductComponentService } from './productComponents/ProductComponentService';
 import { InMemoryProductFinancialProfileRepository } from './productFinancialProfiles/InMemoryProductFinancialProfileRepository';
 import { ProductFinancialProfileService } from './productFinancialProfiles/ProductFinancialProfileService';
+import { InMemoryProductPriceTierRepository } from './productPriceTiers/InMemoryProductPriceTierRepository';
+import { ProductPriceTierQuoteService } from './productPriceTiers/ProductPriceTierQuoteService';
+import { ProductPriceTierService } from './productPriceTiers/ProductPriceTierService';
 import { InMemoryProductRepository } from './products/InMemoryProductRepository';
 import { ProductService } from './products/ProductService';
 import { InMemoryProductStockRepository } from './productStocks/InMemoryProductStockRepository';
 import { ProductStockService } from './productStocks/ProductStockService';
+import { ProductPriceResolutionService } from './pricing/ProductPriceResolutionService';
+import { ProductPricingQuoteIntegrationService } from './pricing/ProductPricingQuoteIntegrationService';
 import { ProductPricingQuoteService } from './pricing/ProductPricingQuoteService';
 import { ProfitMarkupMarginMetricsService } from './pricing/ProfitMarkupMarginMetricsService';
 import { SellingPriceDerivationService } from './pricing/SellingPriceDerivationService';
@@ -48,18 +64,29 @@ import { InMemoryYieldSampleRepository } from './yieldSamples/InMemoryYieldSampl
 import { YieldHistoryService } from './yieldSamples/YieldHistoryService';
 import { YieldLearningService } from './yieldSamples/YieldLearningService';
 import { YieldSampleEvidenceService } from './yieldSamples/YieldSampleEvidenceService';
+import { YieldRecipeSourceRecordingService } from './yieldRecipeSources/YieldRecipeSourceRecordingService';
+import { InMemoryYieldMoldFormulaSourceRepository } from './yieldMoldFormulaSources/InMemoryYieldMoldFormulaSourceRepository';
+import { YieldMoldFormulaSourceService } from './yieldMoldFormulaSources/YieldMoldFormulaSourceService';
 
 export const materialRepository = new InMemoryMaterialRepository();
+// Legacy workbook compatibility only. Runtime calculations intentionally do not consume
+// calibration evidence after the Calibration feature removal.
 export const calibrationRepository = new InMemoryCalibrationRepository();
+const runtimeCalibrationRepository = new InMemoryCalibrationRepository();
 export const mixPresetRepository = new InMemoryMixPresetRepository();
 export const productRepository = new InMemoryProductRepository();
 export const productComponentRepository = new InMemoryProductComponentRepository();
 export const productStockRepository = new InMemoryProductStockRepository();
 export const productFinancialProfileRepository = new InMemoryProductFinancialProfileRepository();
+export const productPriceTierRepository = new InMemoryProductPriceTierRepository();
 export const yieldSampleRepository = new InMemoryYieldSampleRepository();
 export const fixedRecipeItemRepository = new InMemoryFixedRecipeItemRepository();
 export const storageLocationRepository = new InMemoryStorageLocationRepository();
 export const moldRepository = new InMemoryMoldRepository();
+export const plasterMoldYieldProfileRepository =
+  new InMemoryPlasterMoldYieldProfileRepository();
+export const yieldMoldFormulaSourceRepository =
+  new InMemoryYieldMoldFormulaSourceRepository();
 
 export const completeSourceSnapshotService = new CompleteSourceSnapshotService({
   materials: materialRepository,
@@ -102,18 +129,69 @@ export const physicalDatasetHydrationService = new PhysicalDatasetHydrationServi
   moldRepository,
 );
 
-const persistenceWorkbookCodec = new SheetJsWorkbookCodec();
-export const persistenceCoordinator = new PersistenceCoordinator(
-  physicalSourceSnapshotService,
-  physicalDatasetHydrationService,
-  persistenceWorkbookCodec,
+export const completeSourceSnapshotServiceV2 = new CompleteSourceSnapshotServiceV2(
+  completeSourceSnapshotService,
+  productPriceTierRepository,
 );
 
-export const materialCalibrationEvidenceProvider = async (materialId: string) => {
-  const records = await calibrationRepository.list();
-  const key = materialId.trim().toLocaleLowerCase();
-  return records.filter((record) => record.materialId.trim().toLocaleLowerCase() === key);
-};
+export const validatedAtomicDatasetHydrationServiceV2 =
+  new ValidatedAtomicDatasetHydrationServiceV2(
+    {
+      materials: materialRepository,
+      calibrations: calibrationRepository,
+      mixPresets: mixPresetRepository,
+      products: productRepository,
+      yieldSamples: yieldSampleRepository,
+      recipeItems: fixedRecipeItemRepository,
+      productComponents: productComponentRepository,
+      productStocks: productStockRepository,
+      productFinancialProfiles: productFinancialProfileRepository,
+      productPriceTiers: productPriceTierRepository,
+    },
+    completeSourceSnapshotServiceV2,
+  );
+
+export const physicalSourceSnapshotServiceV3 = new PhysicalSourceSnapshotServiceV3(
+  completeSourceSnapshotServiceV2,
+  storageLocationRepository,
+  moldRepository,
+);
+
+export const physicalDatasetHydrationServiceV3 = new PhysicalDatasetHydrationServiceV3(
+  validatedAtomicDatasetHydrationServiceV2,
+  physicalSourceSnapshotServiceV3,
+  storageLocationRepository,
+  moldRepository,
+);
+
+export const physicalSourceSnapshotServiceV4 = new PhysicalSourceSnapshotServiceV4(
+  physicalSourceSnapshotServiceV3,
+  plasterMoldYieldProfileRepository,
+);
+
+export const physicalDatasetHydrationServiceV4 = new PhysicalDatasetHydrationServiceV4(
+  physicalDatasetHydrationServiceV3,
+  physicalSourceSnapshotServiceV4,
+  plasterMoldYieldProfileRepository,
+);
+
+export const physicalSourceSnapshotServiceV5 = new PhysicalSourceSnapshotServiceV5(
+  physicalSourceSnapshotServiceV4,
+  yieldMoldFormulaSourceRepository,
+);
+
+export const physicalDatasetHydrationServiceV5 = new PhysicalDatasetHydrationServiceV5(
+  physicalDatasetHydrationServiceV4,
+  physicalSourceSnapshotServiceV5,
+  yieldMoldFormulaSourceRepository,
+);
+
+const persistenceWorkbookCodec = new SheetJsWorkbookCodec();
+export const persistenceCoordinator = new PersistenceCoordinator(
+  physicalSourceSnapshotServiceV5,
+  physicalDatasetHydrationServiceV5,
+  persistenceWorkbookCodec,
+);
 
 export const productComponentService = new ProductComponentService(
   productComponentRepository,
@@ -128,10 +206,33 @@ export const productFinancialProfileService = new ProductFinancialProfileService
   productFinancialProfileRepository,
   productRepository,
 );
+export const productPriceTierService = new ProductPriceTierService(
+  productPriceTierRepository,
+  productRepository,
+);
+export const plasterMoldYieldProfileService =
+  new PlasterMoldYieldProfileService(
+    plasterMoldYieldProfileRepository,
+    moldRepository,
+    materialRepository,
+  );
+export const plasterMoldYieldCalculatorService =
+  new PlasterMoldYieldCalculatorService(
+    moldRepository,
+    materialRepository,
+    plasterMoldYieldProfileService,
+  );
+export const plasterMoldOperationalPreviewService =
+  new PlasterMoldOperationalPreviewService(
+    plasterMoldYieldCalculatorService,
+    materialRepository,
+    runtimeCalibrationRepository,
+  );
 export const moldService = new MoldService(
   moldRepository,
   productRepository,
   storageLocationRepository,
+  plasterMoldYieldProfileService,
 );
 export const storageLocationService = new StorageLocationService(
   storageLocationRepository,
@@ -141,7 +242,6 @@ export const componentSourceAvailabilityService = new ComponentSourceAvailabilit
   materialRepository,
   productRepository,
   productStockRepository,
-  materialCalibrationEvidenceProvider,
 );
 export const componentCapacityService = new ComponentCapacityService(
   componentSourceAvailabilityService,
@@ -149,16 +249,15 @@ export const componentCapacityService = new ComponentCapacityService(
 export const materialBackedComponentCostService = new MaterialBackedComponentCostService(
   materialRepository,
   componentSourceAvailabilityService,
-  materialCalibrationEvidenceProvider,
 );
 
 export const materialService = new MaterialService(
   materialRepository,
-  materialCalibrationEvidenceProvider,
+  async () => [],
   productComponentService,
+  plasterMoldYieldProfileService,
 );
 
-export const calibrationService = new CalibrationService(calibrationRepository, materialRepository);
 export const productService = new ProductService(
   productRepository,
   mixPresetRepository,
@@ -184,32 +283,47 @@ export const yieldSampleEvidenceService = new YieldSampleEvidenceService(
   mixPresetRepository,
   materialRepository,
 );
+export const yieldMoldFormulaSourceService =
+  new YieldMoldFormulaSourceService(
+    yieldMoldFormulaSourceRepository,
+    yieldSampleRepository,
+    moldRepository,
+    plasterMoldYieldProfileRepository,
+  );
+export const yieldRecipeSourceRecordingService =
+  new YieldRecipeSourceRecordingService(
+    yieldSampleEvidenceService,
+    yieldMoldFormulaSourceService,
+    yieldSampleRepository,
+    yieldMoldFormulaSourceRepository,
+  );
 export const yieldLearningService = new YieldLearningService(
   yieldSampleRepository,
   materialRepository,
-  calibrationRepository,
+  runtimeCalibrationRepository,
 );
 export const yieldHistoryService = new YieldHistoryService(
   yieldSampleRepository,
   productRepository,
   materialRepository,
-  calibrationRepository,
+  runtimeCalibrationRepository,
 );
 export const fixedRecipeItemService = new FixedRecipeItemService(
   fixedRecipeItemRepository,
   productRepository,
   materialRepository,
-  calibrationRepository,
+  runtimeCalibrationRepository,
 );
 export const effectiveRecipeRequirementService = new EffectiveRecipeRequirementService(
   productRepository,
   yieldHistoryService,
   fixedRecipeItemService,
+  materialRepository,
 );
 export const recipeMaterialCostPreviewService = new RecipeMaterialCostPreviewService(
   effectiveRecipeRequirementService,
   materialRepository,
-  calibrationRepository,
+  runtimeCalibrationRepository,
 );
 export const productBackedComponentCostService = new ProductBackedComponentCostService(
   productRepository,
@@ -265,6 +379,19 @@ export const productPricingQuoteService = new ProductPricingQuoteService(
   productFinancialProfileService,
   profitMarkupMarginMetricsService,
 );
+export const productPriceTierQuoteService = new ProductPriceTierQuoteService(
+  fullyLoadedProductUnitCostService,
+  productPriceTierService,
+  productPricingQuoteService,
+);
+export const productPricingQuoteIntegrationService =
+  new ProductPricingQuoteIntegrationService(
+    productPricingQuoteService,
+    productPriceTierQuoteService,
+  );
+export const productPriceResolutionService = new ProductPriceResolutionService(
+  productPricingQuoteIntegrationService,
+);
 export const expectedBatchFinancialsService = new ExpectedBatchFinancialsService(
   productPricingQuoteService,
   physicalPlannedBatchProductionCostService,
@@ -272,7 +399,7 @@ export const expectedBatchFinancialsService = new ExpectedBatchFinancialsService
 export const productionCapacityService = new ProductionCapacityService(
   productionRequirementService,
   materialRepository,
-  calibrationRepository,
+  runtimeCalibrationRepository,
 );
 export const assemblyCapacitySynthesisService = new AssemblyCapacitySynthesisService(
   productionCapacityService,

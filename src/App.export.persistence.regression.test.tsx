@@ -12,7 +12,7 @@ import { PersistenceCoordinator } from './application/persistence/PersistenceCoo
 import * as session from './application/session';
 import { CURRENT_BUSINESS_DATASET_SCHEMA_VERSION } from './domain/businessDataset';
 import type { BusinessDataset } from './domain/types';
-import { importBusinessDatasetFromXlsx } from './storage/businessDatasetWorkbookImport';
+import { importBusinessDatasetV2FromXlsx } from './storage/businessDatasetV2Workbook';
 import type { WorkbookCodec } from './storage/workbookCodec';
 import { SheetJsWorkbookCodec } from './storage/sheetJsWorkbookCodec';
 
@@ -257,10 +257,15 @@ function exportFeedback(role: 'status' | 'alert') {
 }
 
 function decodeCaptured(bytes: Uint8Array): BusinessDataset {
-  const imported = importBusinessDatasetFromXlsx(bytes, codec);
+  const imported = importBusinessDatasetV2FromXlsx(bytes, codec);
   expect(imported.ok).toBe(true);
   if (!imported.ok) throw new Error('Expected captured workbook to import successfully.');
-  return imported.dataset;
+
+  const { productPriceTiers: _tiers, ...base } = imported.dataset;
+  return {
+    ...base,
+    schemaVersion: CURRENT_BUSINESS_DATASET_SCHEMA_VERSION,
+  };
 }
 
 describe('Phase 5.5B3 real browser export regression and completion gate', () => {

@@ -1,0 +1,214 @@
+// @vitest-environment jsdom
+import { act } from 'react';
+import { createRoot, type Root } from 'react-dom/client';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Product } from '../../domain/products';
+import { ProductPriceTierEditorPanel } from './ProductPriceTierEditorPanel';
+
+let container: HTMLDivElement;
+let root: Root;
+
+const product: Product = {
+  id: 'ART-001',
+  name: 'Paintable Star',
+  category: 'paintable-art',
+  safetyWasteRate: 0.05,
+  isActive: true,
+};
+
+beforeEach(() => {
+  vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
+  container = document.createElement('div');
+  document.body.append(container);
+  root = createRoot(container);
+});
+
+afterEach(async () => {
+  await act(async () => root.unmount());
+  container.remove();
+  vi.unstubAllGlobals();
+});
+
+function field(label: string) {
+  const parent = Array.from(container.querySelectorAll('label')).find((item) =>
+    item.querySelector('span')?.textContent?.trim().startsWith(label),
+  );
+  if (!parent) throw new Error(`Missing field: ${label}`);
+  return parent.querySelector<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(
+    'input,select,textarea',
+  )!;
+}
+
+async function fill(
+  element: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement,
+  value: string,
+) {
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(Object.getPrototypeOf(element), 'value')!.set!.call(
+      element,
+      value,
+    );
+    element.dispatchEvent(
+      new Event(element instanceof HTMLSelectElement ? 'change' : 'input', {
+        bubbles: true,
+      }),
+    );
+  });
+}
+
+async function mount(onSubmit = vi.fn()) {
+  await act(async () => {
+    root.render(
+      <ProductPriceTierEditorPanel
+        product={product}
+        tier={null}
+        open
+        saving={false}
+        fullyLoadedUnitCost={30}
+        onSubmit={onSubmit}
+        onCancel={vi.fn()}
+      />,
+    );
+  });
+  return onSubmit;
+}
+
+describe('TP6C ProductPriceTierEditorPanel kind-aware UX', () => {
+  it('applies Package structural defaults and keeps per-offer minimums coherent', async () => {
+    const onSubmit = await mount();
+
+    await fill(field('Tier kind'), 'package');
+
+    expect((field('Price basis') as HTMLSelectElement).value).toBe('per-offer');
+    expect(container.textContent).toContain('Package · fixed bundle');
+    expect(container.textContent).toContain(
+      'This Package currently contains one Product unit per offer',
+    );
+
+    await fill(field('Units per offer'), '6');
+
+    expect((field('Minimum order quantity') as HTMLInputElement).value).toBe('6');
+
+    await fill(field('Tier name'), '6-piece Package');
+    await fill(field('Pricing method'), 'fixed-price');
+    await fill(field('Fixed selling price'), '270');
+    await fill(field('Additional cost per offer'), '20');
+
+    const form = container.querySelector<HTMLFormElement>('[aria-label="Price tier editor"]')!;
+    await act(async () => {
+      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    });
+
+    expect(onSubmit).toHaveBeenCalledWith({
+      name: '6-piece Package',
+      kind: 'package',
+      priceBasis: 'per-offer',
+      pricingMethod: 'fixed-price',
+      pricingValue: 270,
+      unitsPerOffer: 6,
+      minimumOrderQuantity: 6,
+      additionalCostPerOffer: 20,
+      notes: undefined,
+    });
+  });
+
+  it('uses authoritative domain preflight for invalid per-offer minimum multiples', async () => {
+    await mount();
+
+    await fill(field('Tier kind'), 'package');
+    await fill(field('Units per offer'), '6');
+    await fill(field('Minimum order quantity'), '7');
+    await fill(field('Tier name'), 'Party Pack');
+    await fill(field('Profit per unit'), '20');
+
+    expect(container.textContent).toContain(
+      'Per-offer minimum order quantity must be a whole multiple of units per offer.',
+    );
+
+    const submit = container.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+    expect(submit.disabled).toBe(true);
+  });
+
+  it('applies Bulk structural defaults and explains the quantity threshold', async () => {
+    await mount();
+
+    await fill(field('Tier kind'), 'package');
+    await fill(field('Units per offer'), '6');
+    await fill(field('Tier kind'), 'bulk');
+
+    expect((field('Price basis') as HTMLSelectElement).value).toBe('per-unit');
+    expect((field('Units per offer') as HTMLInputElement).value).toBe('1');
+    expect((field('Units per offer') as HTMLInputElement).disabled).toBe(true);
+    expect(container.textContent).toContain('Bulk · quantity threshold');
+    expect(container.textContent).toContain(
+      'use minimum order quantity as the volume threshold',
+    );
+  });
+
+  it('derives a live selling-price preview from Profit per unit', async () => {
+    await mount();
+
+    await fill(field('Tier name'), 'Bulk 20+');
+    await fill(field('Minimum order quantity'), '20');
+    await fill(field('Profit per unit'), '15');
+    await fill(field('Additional cost per offer'), '5');
+
+    const preview = container.querySelector('[aria-label="Tier pricing preview"]');
+    expect(preview?.textContent).toContain('PHP 30.00');
+    expect(preview?.textContent).toContain('PHP 15.00');
+    expect(preview?.textContent).toContain('PHP 50.00');
+    expect(preview?.textContent).toContain('Selling price recalculates');
+  });
+
+  it('keeps Custom tiers explicit and does not imply automatic selection', async () => {
+    await mount();
+
+    await fill(field('Tier kind'), 'custom');
+
+    expect(container.textContent).toContain('Custom · explicit special offer');
+    expect(container.textContent).toContain('never selected automatically');
+  });
+
+  it('associates tier guidance and validation with the relevant form controls', async () => {
+    await mount();
+
+    const form = container.querySelector<HTMLFormElement>('[aria-label="Price tier editor"]')!;
+    const titleId = form.getAttribute('aria-labelledby');
+    expect(titleId).toBe('price-tier-editor-title');
+    expect(container.querySelector(`#${titleId}`)?.textContent).toContain('Create price tier');
+
+    expect(field('Tier name').hasAttribute('required')).toBe(true);
+    expect((field('Pricing method') as HTMLSelectElement).value).toBe('profit-per-unit');
+    expect(field('Profit per unit').hasAttribute('required')).toBe(true);
+    expect(field('Units per offer').getAttribute('aria-describedby')).toBe(
+      'price-tier-units-help',
+    );
+    expect(field('Minimum order quantity').getAttribute('aria-describedby')).toBe(
+      'price-tier-minimum-help',
+    );
+    expect(field('Additional cost per offer').getAttribute('aria-describedby')).toBe(
+      'price-tier-additional-cost-help',
+    );
+    expect(field('Tier kind').getAttribute('aria-describedby')).toBe(
+      'price-tier-kind-guidance',
+    );
+    expect(field('Price basis').getAttribute('aria-describedby')).toBe(
+      'price-tier-kind-guidance',
+    );
+
+    await fill(field('Tier kind'), 'package');
+    await fill(field('Units per offer'), '6');
+    await fill(field('Minimum order quantity'), '7');
+    await fill(field('Tier name'), 'Invalid Package');
+    await fill(field('Profit per unit'), '20');
+
+    const minimum = field('Minimum order quantity');
+    expect(minimum.getAttribute('aria-invalid')).toBe('true');
+    expect(minimum.getAttribute('aria-describedby')).toContain(
+      'price-tier-source-validation',
+    );
+    expect(
+      container.querySelector('#price-tier-source-validation')?.getAttribute('role'),
+    ).toBe('alert');
+  });
+});

@@ -187,6 +187,22 @@ describe('Materials workspace interactions', () => {
     expect((await session.materialService.getMaterial('PLASTER'))?.name).toBe('Plaster of Paris');
   });
 
+  it('saves essential oil percentage on wax materials and clears it when changing groups', async () => {
+    await seed();
+    await mount();
+    await click('Edit Soy wax');
+    expect(field('Essential oil percentage').value).toBe('');
+    await fill(field('Essential oil percentage'), '6.5');
+    await submit();
+    expect((await session.materialService.getMaterial('WAX'))?.essentialOilPercent).toBe(6.5);
+    await click('Edit Soy wax');
+    expect(field('Essential oil percentage').value).toBe('6.5');
+    await fill(field('Group'), 'plaster');
+    expect(form().textContent).not.toContain('Essential oil percentage');
+    await submit();
+    expect((await session.materialService.getMaterial('WAX'))?.essentialOilPercent).toBeUndefined();
+  });
+
   it('does not interpret blank costs or stock counts as a known zero', async () => {
     await seed();
     await mount();
@@ -225,17 +241,19 @@ describe('Materials workspace interactions', () => {
     expect(catalog().textContent).toContain('40 pc');
   });
 
-  it('uses saved cup calibration before manual fallback for stock and purchase cost', async () => {
+  it('uses explicit manual cup conversion even when legacy calibration evidence exists', async () => {
     await seed();
-    await session.calibrationService.createCalibration({
-      id: 'CAL',
-      materialId: 'PLASTER',
-      measuredVolume: 1,
-      volumeUnit: 'cup',
-      knownWeight: 100,
-      weightUnit: 'g',
-      recordedAt: '2026-09-17T00:00:00Z',
-    });
+    await session.calibrationRepository.replaceAll([
+      {
+        id: 'CAL-LEGACY',
+        materialId: 'PLASTER',
+        measuredVolume: 1,
+        volumeUnit: 'cup',
+        knownWeight: 100,
+        weightUnit: 'g',
+        recordedAt: '2026-09-17T00:00:00Z',
+      },
+    ]);
     await session.materialService.updateMaterial('PLASTER', {
       purchaseUnit: 'cup',
       manualBaseUnitsPerPurchaseUnit: 50,
@@ -246,12 +264,13 @@ describe('Materials workspace interactions', () => {
     const row = Array.from(catalog().querySelectorAll('tbody tr')).find((item) =>
       item.textContent?.includes('Plaster of Paris'),
     )!;
-    expect(row.textContent).toContain('200 g');
-    expect(row.textContent).toContain('PHP 1.00 / g');
-    expect(row.textContent).toContain('(calibration)');
+    expect(row.textContent).toContain('100 g');
+    expect(row.textContent).toContain('PHP 2.00 / g');
+    expect(row.textContent).toContain('manual conversion');
+    expect(row.textContent).not.toContain('calibration');
     await click('Edit Plaster of Paris');
-    expect(form().textContent).toContain('Saved calibration takes precedence');
-    expect((field('Manual conversion') as HTMLInputElement).required).toBe(false);
+    expect(form().textContent).toContain('manual conversion is required');
+    expect((field('Manual conversion') as HTMLInputElement).required).toBe(true);
   });
 
   it('archives and restores without deleting the source record', async () => {
@@ -313,8 +332,8 @@ describe('Materials workspace interactions', () => {
 
   it('recovers loading failures without showing an empty inventory', async () => {
     await seed();
-    vi.spyOn(session.calibrationService, 'listCalibrations').mockRejectedValueOnce(
-      new Error('Calibration read failed'),
+    vi.spyOn(session.materialService, 'listMaterials').mockRejectedValueOnce(
+      new Error('Material read failed'),
     );
     await mount();
     expect(catalog().textContent).toContain('Inventory unavailable');
@@ -382,8 +401,8 @@ describe('Materials workspace interactions', () => {
       purchaseUnit: 'cup' as const,
       source: undefined,
     };
-    const known = materialInventoryRow(plaster, []);
-    const unknown = materialInventoryRow(invalid, []);
+    const known = materialInventoryRow(plaster);
+    const unknown = materialInventoryRow(invalid);
     expect(inventoryOverview([known, unknown])).toMatchObject({
       activeCount: 2,
       needsAttention: 1,

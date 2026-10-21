@@ -1,3 +1,4 @@
+import { BROCHURE_IMAGE_COLUMN_NAMES } from '../domain/productBrochureImage';
 import {
   BUSINESS_DATASET_SOURCE_COLLECTION_KEYS,
   CURRENT_BUSINESS_DATASET_SCHEMA_VERSION,
@@ -143,6 +144,8 @@ export const WORKBOOK_SHEETS: readonly WorkbookSheetContract[] = [
       column('sourceNotes', 'text', false, 'source.notes'),
       column('notes', 'text', false, 'notes'),
       column('isActive', 'boolean', true, 'isActive'),
+      // Additive, optional Materials column: legacy v5 workbooks may lack it.
+      column('essentialOilPercent', 'number', false, 'essentialOilPercent'),
     ],
     rowOrder: [{ key: 'id', mode: 'text-ci-exact' }],
   },
@@ -226,6 +229,10 @@ export const WORKBOOK_SHEETS: readonly WorkbookSheetContract[] = [
       column('safetyWasteRate', 'number', true, 'safetyWasteRate'),
       column('notes', 'text', false, 'notes'),
       column('isActive', 'boolean', true, 'isActive'),
+      column('candleWaxMaterialId', 'text', false, 'candleWaxMaterialId'),
+      column('candleEssentialOilMaterialId', 'text', false, 'candleEssentialOilMaterialId'),
+      column('imageDataUrl', 'text', false, 'imageDataUrl'),
+      ...BROCHURE_IMAGE_COLUMN_NAMES.map((key) => column(key, 'text', false, key)),
     ],
     rowOrder: [{ key: 'id', mode: 'text-ci-exact' }],
   },
@@ -678,7 +685,10 @@ export function validateWorkbookSchema(input: unknown): WorkbookSchemaIssue[] {
     }
 
     for (const expected of contract.columns) {
-      if (!sheet.columns.includes(expected.key)) {
+      if (!sheet.columns.includes(expected.key) && !(
+        (sheet.name === 'Materials' && expected.key === 'essentialOilPercent') ||
+        (sheet.name === 'Products' && (expected.key === 'candleWaxMaterialId' || expected.key === 'candleEssentialOilMaterialId' || expected.key === 'imageDataUrl' || BROCHURE_IMAGE_COLUMN_NAMES.includes(expected.key)))
+      )) {
         addIssue(issues, 'MISSING_REQUIRED_COLUMN', `Sheet ${sheet.name} is missing canonical column ${expected.key}.`, {
           sheetName: sheet.name,
           column: expected.key,

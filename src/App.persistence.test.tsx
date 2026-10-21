@@ -147,6 +147,11 @@ describe('App Phase 5.5A2 workspace refresh boundary', () => {
     expect(container.textContent).not.toContain('Imported Workbook Material');
     expect(workspaceRevision()).toBe('0');
     expect(activeNavigation()).toBe('Materials');
+    expect(
+      Array.from(container.querySelectorAll('.nav-item')).some(
+        (item) => item.textContent?.trim() === 'Calibration',
+      ),
+    ).toBe(false);
 
     await choose();
     await click('Apply import');

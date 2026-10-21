@@ -3,6 +3,7 @@ import { calculateMaterialInventoryValuation } from '../../domain/materialInvent
 import { normalizeMaterialSourceMetadata } from '../../domain/materialSource';
 import type { Material, MaterialGroup } from '../../domain/materials';
 import { cloneMaterial, validateMaterialContract } from '../../domain/materials';
+import type { PlasterMoldYieldProfileRelationshipGuard } from '../plasterMoldYieldProfiles/PlasterMoldYieldProfileRelationshipGuard';
 import type { ProductComponentRelationshipGuard } from '../productComponents/ProductComponentRelationshipGuard';
 import type { MaterialRepository } from './MaterialRepository';
 
@@ -70,6 +71,7 @@ export class MaterialService {
     private readonly repository: MaterialRepository,
     private readonly calibrationEvidenceProvider: MaterialCalibrationEvidenceProvider = async () => [],
     private readonly componentRelationshipGuard?: ProductComponentRelationshipGuard,
+    private readonly plasterMoldYieldProfileRelationshipGuard?: PlasterMoldYieldProfileRelationshipGuard,
   ) {}
 
   async createMaterial(input: Material): Promise<Material> {
@@ -91,6 +93,7 @@ export class MaterialService {
     const all = await this.repository.list();
     this.assertUniqueIdentity(candidate, all, existing.id);
     await this.componentRelationshipGuard?.assertMaterialUpdatePreservesActiveComponents(candidate);
+    await this.plasterMoldYieldProfileRelationshipGuard?.assertMaterialUpdatePreservesActiveProfiles(candidate);
 
     await this.repository.replace(candidate);
     return cloneMaterial(candidate);
@@ -120,6 +123,7 @@ export class MaterialService {
     if (!existing.isActive) return cloneMaterial(existing);
 
     await this.componentRelationshipGuard?.assertMaterialCanArchive(existing.id);
+    await this.plasterMoldYieldProfileRelationshipGuard?.assertMaterialCanArchive(existing.id);
     const archived = { ...existing, isActive: false };
     await this.repository.replace(archived);
     return cloneMaterial(archived);

@@ -24,6 +24,58 @@ function product(overrides: Partial<Product> = {}): Product {
   };
 }
 
+describe('candle fragrance pairing contract', () => {
+  it('requires a paired wax and essential oil only for candle Products', () => {
+    expect(() => validateProductContract(product({
+      category: 'candle', candleWaxMaterialId: 'WAX', candleEssentialOilMaterialId: 'OIL',
+    }))).not.toThrow();
+    for (const configured of [
+      product({ category: 'candle', candleWaxMaterialId: 'WAX' }),
+      product({ category: 'candle', candleEssentialOilMaterialId: 'OIL' }),
+      product({ category: 'candle', candleWaxMaterialId: 'WAX', candleEssentialOilMaterialId: 'WAX' }),
+      product({ candleWaxMaterialId: 'WAX', candleEssentialOilMaterialId: 'OIL' }),
+    ]) {
+      expect(() => validateProductContract(configured)).toThrow(
+        expect.objectContaining({ code: 'INVALID_CANDLE_OIL_CONFIGURATION' }),
+      );
+    }
+  });
+});
+
+describe('product quotation image contract', () => {
+  const photo = `data:image/jpeg;base64,/9j/${'AAAA'.repeat(25)}`;
+
+  it('accepts an optional compact JPEG image and rejects oversized, non-JPEG and unsafe URLs', () => {
+    expect(() => validateProductContract(product({ imageDataUrl: photo }))).not.toThrow();
+    for (const value of [
+      'https://example.org/image.png',
+      'data:image/svg+xml;base64,PHN2Zz48c2NyaXB0',
+      'data:image/png;base64,AAAA',
+      `data:image/jpeg;base64,${'AAAA'.repeat(6_251)}`,
+    ]) {
+      expect(() => validateProductContract(product({ imageDataUrl: value }))).toThrow(
+        expect.objectContaining({ code: 'INVALID_IMAGE_DATA_URL' }),
+      );
+    }
+  });
+});
+
+describe('high-resolution product brochure image contract', () => {
+  const valid = 'data:image/jpeg;base64,' + 'AAAA'.repeat(50_000);
+  it('permits dedicated high-resolution JPEGs and rejects unsafe or oversized uploads', () => {
+    expect(() => validateProductContract(product({ brochureImageDataUrl: valid }))).not.toThrow();
+    for (const invalid of [
+      'https://example.com/large.jpg',
+      'data:image/svg+xml;base64,AAAA',
+      'data:image/jpeg;base64,' + 'AAAA'.repeat(121_000),
+    ]) {
+      expect(() => validateProductContract(product({ brochureImageDataUrl: invalid }))).toThrow(
+        expect.objectContaining({ code: 'INVALID_BROCHURE_IMAGE_DATA_URL' }),
+      );
+    }
+  });
+});
+
 describe('product categories', () => {
   it('exposes the locked Phase 2 categories', () => {
     expect(PRODUCT_CATEGORIES).toEqual(['paintable-art', 'candle-pot', 'candle']);

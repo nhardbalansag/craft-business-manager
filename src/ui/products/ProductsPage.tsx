@@ -2,47 +2,31 @@ import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 're
 import { materialService, mixPresetService, productService } from '../../application/session';
 import { nextSequentialId } from '../../domain/identifiers';
 import type { Material } from '../../domain/materials';
-import {
-  MIX_PRESET_LINE_ROLES,
-  MIX_RATIO_BASES,
-  type MixPreset,
-  type MixPresetLine,
-  type MixPresetLineRole,
-  type RatioBasis,
-} from '../../domain/mixPresets';
+import type { MixPreset } from '../../domain/mixPresets';
 import { PRODUCT_CATEGORIES, PRODUCT_CATEGORY_RULES, type Product, type ProductCategory } from '../../domain/products';
-import { AppIcon } from '../icons/AppIcon';
+import { optimizeProductImages } from './productImageUpload';
 import { ProductCatalog } from './ProductCatalog';
 import { ProductComponentsView } from './ProductComponentsView';
 import { ProductStockView } from './ProductStockView';
+import { PricingPage } from '../pricing/PricingPage';
+import { AppIcon } from '../icons/AppIcon';
+import { ProductImageZoom } from './ProductImageZoom';
+import { YieldPage } from '../yield/YieldPage';
 import './products.css';
 import './productEditorWorkflow.css';
 
-type WorkspaceView = 'products' | 'mixes' | 'components' | 'stock';
-type ActiveFilter = 'active' | 'archived' | 'all';
+type WorkspaceView = 'products' | 'yield' | 'components' | 'stock' | 'pricing';
 
 type ProductFormState = {
   id: string;
   name: string;
   category: ProductCategory;
   mixPresetId: string;
+  candleWaxMaterialId: string;
+  candleEssentialOilMaterialId: string;
+  imageDataUrl: string;
+  brochureImageDataUrl: string;
   safetyWastePercent: string;
-  notes: string;
-};
-
-type MixLineForm = {
-  key: string;
-  materialId: string;
-  role: MixPresetLineRole;
-  parts: string;
-};
-
-type MixFormState = {
-  id: string;
-  name: string;
-  basis: RatioBasis;
-  compatibleCategories: ProductCategory[];
-  lines: MixLineForm[];
   notes: string;
 };
 
@@ -51,31 +35,13 @@ const EMPTY_PRODUCT_FORM: ProductFormState = {
   name: '',
   category: 'paintable-art',
   mixPresetId: '',
+  candleWaxMaterialId: '',
+  candleEssentialOilMaterialId: '',
+  imageDataUrl: '',
+  brochureImageDataUrl: '',
   safetyWastePercent: '5',
   notes: '',
 };
-
-let lineSequence = 0;
-function newLine(role: MixPresetLineRole = 'primary'): MixLineForm {
-  lineSequence += 1;
-  return {
-    key: `mix-line-${lineSequence}`,
-    materialId: '',
-    role,
-    parts: role === 'primary' ? '100' : '1',
-  };
-}
-
-function emptyMixForm(): MixFormState {
-  return {
-    id: '',
-    name: '',
-    basis: 'weight',
-    compatibleCategories: ['candle'],
-    lines: [newLine('primary')],
-    notes: '',
-  };
-}
 
 function categoryLabel(category: ProductCategory): string {
   return PRODUCT_CATEGORY_RULES[category].label;
@@ -87,24 +53,12 @@ function productToForm(product: Product): ProductFormState {
     name: product.name,
     category: product.category,
     mixPresetId: product.mixPresetId ?? '',
+    candleWaxMaterialId: product.candleWaxMaterialId ?? '',
+    candleEssentialOilMaterialId: product.candleEssentialOilMaterialId ?? '',
+    imageDataUrl: product.imageDataUrl ?? '',
+    brochureImageDataUrl: product.brochureImageDataUrl ?? '',
     safetyWastePercent: String(product.safetyWasteRate * 100),
     notes: product.notes ?? '',
-  };
-}
-
-function mixToForm(preset: MixPreset): MixFormState {
-  return {
-    id: preset.id,
-    name: preset.name,
-    basis: preset.basis,
-    compatibleCategories: [...preset.compatibleCategories],
-    lines: preset.lines.map((line) => ({
-      key: `mix-line-${++lineSequence}`,
-      materialId: line.materialId,
-      role: line.role,
-      parts: String(line.parts),
-    })),
-    notes: preset.notes ?? '',
   };
 }
 
@@ -114,23 +68,11 @@ function formToProduct(form: ProductFormState, isActive: boolean): Product {
     name: form.name,
     category: form.category,
     mixPresetId: form.mixPresetId.trim() || undefined,
+    candleWaxMaterialId: form.category === 'candle' ? form.candleWaxMaterialId.trim() || undefined : undefined,
+    candleEssentialOilMaterialId: form.category === 'candle' ? form.candleEssentialOilMaterialId.trim() || undefined : undefined,
     safetyWasteRate: Number(form.safetyWastePercent) / 100,
-    notes: form.notes,
-    isActive,
-  };
-}
-
-function formToMixPreset(form: MixFormState, isActive: boolean): MixPreset {
-  return {
-    id: form.id,
-    name: form.name,
-    basis: form.basis,
-    compatibleCategories: [...form.compatibleCategories],
-    lines: form.lines.map<MixPresetLine>((line) => ({
-      materialId: line.materialId,
-      role: line.role,
-      parts: Number(line.parts),
-    })),
+    imageDataUrl: form.imageDataUrl || undefined,
+    brochureImageDataUrl: form.brochureImageDataUrl || undefined,
     notes: form.notes,
     isActive,
   };
@@ -142,16 +84,6 @@ function normalizeQuery(value: string): string {
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : 'Something went wrong. Please check the form and try again.';
-}
-
-function ratioSummary(preset: MixPreset, materials: readonly Material[]): string {
-  const materialById = new Map(materials.map((material) => [material.id.toLocaleLowerCase(), material]));
-  return preset.lines
-    .map((line) => {
-      const material = materialById.get(line.materialId.toLocaleLowerCase());
-      return `${material?.name ?? line.materialId} ${line.parts}`;
-    })
-    .join(' : ');
 }
 
 export function ProductsPage() {
@@ -166,10 +98,12 @@ export function ProductsPage() {
   const [editorOpen, setEditorOpen] = useState(false);
   const [productTouched, setProductTouched] = useState<string[]>([]);
   const [productAttempted, setProductAttempted] = useState(false);
-  const [mixChangeNotice, setMixChangeNotice] = useState('');
   const productFormElement = useRef<HTMLFormElement>(null);
   const catalogReturnTarget = useRef<HTMLElement | null>(null);
   const [productFeedback, setProductFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [imageError, setImageError] = useState<string | null>(null);
+  const [imageProcessing, setImageProcessing] = useState(false);
+  const imageRequestVersion = useRef(0);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const mutationInFlight = useRef(false);
@@ -177,14 +111,18 @@ export function ProductsPage() {
   const draftWarning = useRef<HTMLDivElement>(null);
   // undefined means no pending switch; null means a new product was requested.
   const [pendingProduct, setPendingProduct] = useState<Product | null | undefined>(undefined);
-  const [componentProductId, setComponentProductId] = useState('');
-
-  const [mixForm, setMixForm] = useState<MixFormState>(() => emptyMixForm());
-  const [editingMixId, setEditingMixId] = useState<string | null>(null);
-  const [mixFeedback, setMixFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-  const [mixQuery, setMixQuery] = useState('');
-  const [mixStatus, setMixStatus] = useState<ActiveFilter>('active');
-  const [mixBasis, setMixBasis] = useState<RatioBasis | 'all'>('all');
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
+  // These workspaces stay mounted while hidden. Refresh any cached Product lists
+  // whenever the catalog successfully creates a new Product.
+  const [productCatalogRevision, setProductCatalogRevision] = useState(0);
+  // Pricing remains mounted between tabs; changes to saved component inputs
+  // must invalidate its cached cost and quantity-aware selling price.
+  const [componentPricingRevision, setComponentPricingRevision] = useState(0);
+  // Saved Yield batches and preferred effective samples affect the same pricing
+  // cost graph and must refresh its mounted (sometimes hidden) quote.
+  const [yieldPricingRevision, setYieldPricingRevision] = useState(0);
+  const [pricingVisited, setPricingVisited] = useState(false);
+  const [yieldVisited, setYieldVisited] = useState(false);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -209,40 +147,7 @@ export function ProductsPage() {
     void reload();
   }, [reload]);
 
-  const visibleMixes = useMemo(() => {
-    const query = normalizeQuery(mixQuery);
-    return mixPresets.filter((preset) => {
-      const statusMatches = mixStatus === 'all' || (mixStatus === 'active' ? preset.isActive : !preset.isActive);
-      const basisMatches = mixBasis === 'all' || preset.basis === mixBasis;
-      const queryMatches =
-        !query ||
-        [
-          preset.id,
-          preset.name,
-          preset.notes ?? '',
-          ...preset.compatibleCategories,
-          ...preset.lines.flatMap((line) => [
-            line.materialId,
-            materials.find((material) => material.id.toLowerCase() === line.materialId.toLowerCase())?.name ?? '',
-          ]),
-        ].some((value) => value.toLocaleLowerCase().includes(query));
-      return statusMatches && basisMatches && queryMatches;
-    });
-  }, [mixBasis, mixPresets, mixQuery, mixStatus, materials]);
-
-  const compatibleMixes = useMemo(
-    () =>
-      mixPresets.filter(
-        (preset) =>
-          preset.compatibleCategories.includes(productForm.category) &&
-          (preset.isActive || preset.id === productForm.mixPresetId),
-      ),
-    [mixPresets, productForm.category, productForm.mixPresetId],
-  );
-
-  const activeMaterials = useMemo(() => materials.filter((material) => material.isActive), [materials]);
   const generatedProductId = useMemo(() => nextSequentialId(products.map((product) => product.id), 'PROD'), [products]);
-  const generatedMixId = useMemo(() => nextSequentialId(mixPresets.map((preset) => preset.id), 'MIX'), [mixPresets]);
   const savedProduct = products.find((product) => product.id === editingProductId);
   const productDirty = JSON.stringify(productForm) !== JSON.stringify(savedProduct ? productToForm(savedProduct) : EMPTY_PRODUCT_FORM);
   const reservePercent = Number(productForm.safetyWastePercent);
@@ -253,10 +158,18 @@ export function ProductsPage() {
   if (!productForm.safetyWastePercent.trim()) productErrors.safetyWastePercent = 'Enter a material reserve percentage, including 0 for no reserve.';
   else if (!Number.isFinite(reservePercent) || reservePercent < 0 || reservePercent >= 100)
     productErrors.safetyWastePercent = 'Enter a percentage from 0 to less than 100.';
-  const selectedMix = mixPresets.find((preset) => normalizeQuery(preset.id) === normalizeQuery(productForm.mixPresetId));
-  if (productForm.mixPresetId && (!selectedMix || !selectedMix.compatibleCategories.includes(productForm.category)
-    || (!selectedMix.isActive && (savedProduct?.isActive ?? true))))
-    productErrors.mixPresetId = 'Choose an active compatible preset or select No mix preset.';
+  if (
+    productForm.category === 'candle' &&
+    Boolean(productForm.candleWaxMaterialId) !== Boolean(productForm.candleEssentialOilMaterialId)
+  ) productErrors.candleOilConfig = 'Select both wax and essential oil, or leave both blank.';
+  if (productForm.category === 'candle' && productForm.candleWaxMaterialId && productForm.candleEssentialOilMaterialId) {
+    const wax = materials.find((material) => material.id === productForm.candleWaxMaterialId);
+    const oil = materials.find((material) => material.id === productForm.candleEssentialOilMaterialId);
+    if (!wax?.isActive || wax.group !== 'wax' || wax.baseUnit !== 'g' || wax.essentialOilPercent === undefined ||
+        !oil?.isActive || oil.group !== 'fragrance' || oil.baseUnit !== 'g') {
+      productErrors.candleOilConfig = 'Choose an active gram-based wax with a configured essential oil percentage and an active gram-based fragrance material.';
+    }
+  }
   function visibleProductError(key: string) {
     return (productAttempted || productTouched.includes(key)) ? productErrors[key] : undefined;
   }
@@ -284,12 +197,19 @@ export function ProductsPage() {
   }, [pendingProduct]);
 
   function openProductEditor(product: Product | null) {
+    imageRequestVersion.current += 1;
+    setImageProcessing(false);
+    // Keep the Components tab aligned with the product whose details are being edited.
+    // Only change this context after a pending draft switch has been confirmed.
+    if (product) {
+      setSelectedProductId(product.id);
+    }
     setEditorOpen(true);
     setProductTouched([]);
     setProductAttempted(false);
-    setMixChangeNotice('');
     setEditingProductId(product?.id ?? null);
     setProductForm(product ? productToForm(product) : EMPTY_PRODUCT_FORM);
+    setImageError(null);
     setProductFeedback(null);
     setPendingProduct(undefined);
     productNameInput.current?.focus();
@@ -300,6 +220,7 @@ export function ProductsPage() {
     catalogReturnTarget.current = document.activeElement as HTMLElement;
     setEditorOpen(true);
     if (product && product.id === editingProductId) {
+      setSelectedProductId(product.id);
       productNameInput.current?.focus();
     } else if (productDirty) {
       setPendingProduct(product);
@@ -308,22 +229,36 @@ export function ProductsPage() {
     }
   }
 
+  async function loadImage(file: File | undefined) {
+    if (!file) return;
+    const version = ++imageRequestVersion.current;
+    setImageProcessing(true);
+    setImageError(null);
+    try {
+      const { imageDataUrl, brochureImageDataUrl } = await optimizeProductImages(file);
+      if (imageRequestVersion.current !== version) return;
+      setProductForm((current) => ({ ...current, imageDataUrl, brochureImageDataUrl }));
+      setProductFeedback(null);
+    } catch (error) {
+      if (imageRequestVersion.current === version) setImageError(errorMessage(error));
+    } finally {
+      if (imageRequestVersion.current === version) setImageProcessing(false);
+    }
+  }
+
   function resetProductForm() {
+    imageRequestVersion.current += 1;
+    setImageProcessing(false);
+    setImageError(null);
     setEditingProductId(null);
     setProductForm(EMPTY_PRODUCT_FORM);
     setProductFeedback(null);
     setPendingProduct(undefined);
   }
 
-  function resetMixForm() {
-    setEditingMixId(null);
-    setMixForm(emptyMixForm());
-    setMixFeedback(null);
-  }
-
   async function submitProduct(event: FormEvent) {
     event.preventDefault();
-    if (mutationInFlight.current || loading || loadError) return;
+    if (mutationInFlight.current || loading || loadError || imageProcessing) return;
     setProductAttempted(true);
     const firstError = Object.keys(productErrors)[0];
     if (firstError) {
@@ -344,8 +279,12 @@ export function ProductsPage() {
           name: candidate.name,
           category: candidate.category,
           mixPresetId: candidate.mixPresetId,
+          candleWaxMaterialId: candidate.candleWaxMaterialId,
+          candleEssentialOilMaterialId: candidate.candleEssentialOilMaterialId,
           safetyWasteRate: candidate.safetyWasteRate,
           notes: candidate.notes,
+          imageDataUrl: candidate.imageDataUrl,
+          brochureImageDataUrl: candidate.brochureImageDataUrl,
         });
         setProductForm(productToForm(updated));
         setProductFeedback({ type: 'success', message: 'Product updated.' });
@@ -353,6 +292,8 @@ export function ProductsPage() {
         const created = await productService.createProduct(formToProduct({ ...productForm, id: generatedProductId }, true));
         setProductFeedback({ type: 'success', message: 'Product created.' });
         setEditingProductId(created.id);
+        setSelectedProductId(created.id);
+        setProductCatalogRevision((revision) => revision + 1);
         setProductForm(productToForm(created));
       }
       await reload();
@@ -365,6 +306,21 @@ export function ProductsPage() {
       mutationInFlight.current = false;
       setBusy(false);
     }
+  }
+
+  function navigateToComponents() {
+    setView('components');
+  }
+
+  function navigateToYield() {
+    setYieldVisited(true);
+    setView('yield');
+  }
+
+  function navigateToPricing(productId?: string) {
+    if (productId) setSelectedProductId(productId);
+    setPricingVisited(true);
+    setView('pricing');
   }
 
   async function archiveProduct(product: Product) {
@@ -389,95 +345,13 @@ export function ProductsPage() {
     }
   }
 
-  async function submitMix(event: FormEvent) {
-    event.preventDefault();
-    if (mutationInFlight.current || loading || loadError) return;
-    mutationInFlight.current = true;
-    setBusy(true);
-    setMixFeedback(null);
-    try {
-      if (editingMixId) {
-        const existing = mixPresets.find((preset) => preset.id === editingMixId);
-        const candidate = formToMixPreset(mixForm, existing?.isActive ?? true);
-        await mixPresetService.updateMixPreset(editingMixId, {
-          name: candidate.name,
-          basis: candidate.basis,
-          compatibleCategories: candidate.compatibleCategories,
-          lines: candidate.lines,
-          notes: candidate.notes,
-        });
-        setMixFeedback({ type: 'success', message: 'Mix preset updated.' });
-      } else {
-        await mixPresetService.createMixPreset(formToMixPreset({ ...mixForm, id: generatedMixId }, true));
-        setMixFeedback({ type: 'success', message: 'Mix preset created.' });
-        setMixForm(emptyMixForm());
-      }
-      await reload();
-    } catch (error) {
-      setMixFeedback({ type: 'error', message: errorMessage(error) });
-    } finally {
-      mutationInFlight.current = false;
-      setBusy(false);
-    }
-  }
-
-  async function archiveMix(preset: MixPreset) {
-    if (mutationInFlight.current || loading || loadError) return;
-    mutationInFlight.current = true;
-    setBusy(true);
-    setMixFeedback(null);
-    try {
-      if (preset.isActive) await mixPresetService.archiveMixPreset(preset.id);
-      else await mixPresetService.updateMixPreset(preset.id, { isActive: true });
-      if (editingMixId === preset.id) resetMixForm();
-      await reload();
-      setMixFeedback({ type: 'success', message: `${preset.name} ${preset.isActive ? 'archived' : 'restored'}.` });
-    } catch (error) {
-      setMixFeedback({ type: 'error', message: errorMessage(error) });
-    } finally {
-      mutationInFlight.current = false;
-      setBusy(false);
-    }
-  }
-
-  function updateMixLine(key: string, changes: Partial<Omit<MixLineForm, 'key'>>) {
-    setMixForm((current) => ({
-      ...current,
-      lines: current.lines.map((line) => (line.key === key ? { ...line, ...changes } : line)),
-    }));
-  }
-
-  function addMixLine() {
-    setMixForm((current) => ({ ...current, lines: [...current.lines, newLine('secondary')] }));
-  }
-
-  function removeMixLine(key: string) {
-    setMixForm((current) => ({ ...current, lines: current.lines.filter((line) => line.key !== key) }));
-  }
-
-  function toggleCompatibleCategory(category: ProductCategory) {
-    setMixForm((current) => ({
-      ...current,
-      compatibleCategories: current.compatibleCategories.includes(category)
-        ? current.compatibleCategories.filter((item) => item !== category)
-        : [...current.compatibleCategories, category],
-    }));
-  }
-
-  const materialName = useCallback(
-    (materialId: string) =>
-      materials.find((material) => material.id.toLocaleLowerCase() === materialId.toLocaleLowerCase())?.name ??
-      materialId,
-    [materials],
-  );
-
   return (
     <section className="materials-workspace products-workspace">
       <div className="page-heading-row">
         <div>
           <p className="eyebrow">WORKSHOP / PRODUCTS</p>
           <h1>Your product workshop</h1>
-          <p className="page-lead">Build your collection, refine your mixes, and bring every component together.</p>
+          <p className="page-lead">Manage products, record real batch yield, and review components, stock and pricing in one place.</p>
         </div>
         <div className="session-badge">Catalog &amp; recipe setup</div>
       </div>
@@ -489,9 +363,9 @@ export function ProductsPage() {
           <small>Your current collection</small>
         </article>
         <article className="panel">
-          <span>Mix presets</span>
-          <strong>{loading || loadError ? '-' : mixPresets.filter((item) => item.isActive).length}</strong>
-          <small>Reusable material ratios</small>
+          <span>Total products</span>
+          <strong>{loading || loadError ? '-' : products.length}</strong>
+          <small>All catalog entries</small>
         </article>
         <article className="panel">
           <span>Archived products</span>
@@ -503,9 +377,10 @@ export function ProductsPage() {
         {(
           [
             { id: 'products', title: 'Products', hint: 'Your collection' },
-            { id: 'mixes', title: 'Mix presets', hint: 'Reusable ratios' },
+            { id: 'yield', title: 'Yield', hint: 'Batches & history' },
             { id: 'components', title: 'Components', hint: 'Assembly setup' },
             { id: 'stock', title: 'Finished stock', hint: 'Ready to assemble' },
+            { id: 'pricing', title: 'Pricing', hint: 'Quotes & unit economics' },
           ] as const
         ).map((item) => (
           <button
@@ -515,7 +390,12 @@ export function ProductsPage() {
             className={view === item.id ? 'active' : ''}
             aria-pressed={view === item.id}
             aria-controls={`products-view-${item.id}`}
-            onClick={() => setView(item.id)}
+            onClick={() => {
+              if (item.id === 'yield') navigateToYield();
+              else if (item.id === 'components') navigateToComponents();
+              else if (item.id === 'pricing') navigateToPricing();
+              else setView(item.id);
+            }}
           >
             <strong>{item.title}</strong>
             <small>{item.hint}</small>
@@ -538,19 +418,9 @@ export function ProductsPage() {
           {productFeedback.message}
         </div>
       )}
-      {view === 'mixes' && mixFeedback && (
-        <div
-          className={`feedback feedback-${mixFeedback.type}`}
-          role={mixFeedback.type === 'error' ? 'alert' : 'status'}
-        >
-          {mixFeedback.message}
-        </div>
-      )}
-
       <div id="products-view-products" hidden={view !== 'products'} className="product-catalog-layout">
         <ProductCatalog
           products={products}
-          mixPresets={mixPresets}
           loading={loading}
           loadFailed={Boolean(loadError)}
           disabled={busy || loading || Boolean(loadError)}
@@ -561,8 +431,10 @@ export function ProductsPage() {
           onResume={resumeProductDraft}
           onNew={() => requestProductEditor(null)}
           onEdit={requestProductEditor}
+          onSelect={(product) => setSelectedProductId(product.id)}
+          onPricing={(product) => navigateToPricing(product.id)}
           onComponents={(product) => {
-            setComponentProductId(product.id);
+            setSelectedProductId(product.id);
             setView('components');
           }}
           onToggleActive={(product) => void archiveProduct(product)}
@@ -613,7 +485,7 @@ export function ProductsPage() {
             </div>
           )}
 
-          <fieldset className="product-form-fields" disabled={busy || loading || Boolean(loadError)}>
+          <fieldset className="product-form-fields" disabled={busy || imageProcessing || loading || Boolean(loadError)}>
             <section className="product-editor-section" aria-labelledby="product-identity-heading">
               <div className="product-section-heading"><span aria-hidden="true">1</span><div><h3 id="product-identity-heading">Product identity</h3><p>Name the product; its stable ID is assigned automatically.</p></div></div>
               <div className="form-grid">
@@ -643,8 +515,55 @@ export function ProductsPage() {
                 </label>
               </div>
             </section>
+            <section className="product-editor-section" aria-labelledby="product-photo-heading">
+              <div className="product-section-heading">
+                <span aria-hidden="true">2</span>
+                <div>
+                  <h3 id="product-photo-heading">Product image <small>Optional</small></h3>
+                  <p>Upload a product photo for quotations and a larger, clearer A4 brochure photo.</p>
+                </div>
+              </div>
+              <div className="product-image-editor" aria-label="Product image editor">
+                <div className="product-image-preview">
+                  {productForm.imageDataUrl ? (
+                    <ProductImageZoom product={{ name: productForm.name || 'product', imageDataUrl: productForm.imageDataUrl, brochureImageDataUrl: productForm.brochureImageDataUrl }} alt={`Preview of ${productForm.name || 'product'}`} />
+                  ) : (
+                    <span>No product image</span>
+                  )}
+                </div>
+                <div className="product-image-actions">
+                  <label className="field">
+                    <span>{productForm.imageDataUrl ? 'Replace product image' : 'Upload product image'}</span>
+                    <input
+                      type="file"
+                      name="productImage"
+                      accept="image/jpeg,image/png,image/webp"
+                      aria-label="Upload product image"
+                      disabled={imageProcessing || busy}
+                      onChange={(event) => {
+                        const file = event.currentTarget.files?.[0];
+                        event.currentTarget.value = '';
+                        void loadImage(file);
+                      }}
+                    />
+                  </label>
+                  {productForm.imageDataUrl && (
+                    <button type="button" className="button button-secondary" disabled={imageProcessing} onClick={() => {
+                      imageRequestVersion.current += 1;
+                      setProductForm((current) => ({ ...current, imageDataUrl: '', brochureImageDataUrl: '' }));
+                      setImageError(null);
+                    }}>Remove image</button>
+                  )}
+                  <small>JPG, PNG or WebP (up to 8 MB). The app saves a small catalog thumbnail and a separate, sharper brochure photo in workbook-safe parts. Reupload older photos for better printing.</small>
+                  {productForm.brochureImageDataUrl && <small role="status">High-resolution brochure photo saved in this Product draft.</small>}
+                  {productForm.imageDataUrl && !productForm.brochureImageDataUrl && <small role="status">This Product has only an old small thumbnail. Reupload the original photo to improve brochure quality.</small>}
+                  {imageProcessing && <span role="status">Optimizing product image…</span>}
+                  {imageError && <span className="product-field-error" role="alert">{imageError}</span>}
+                </div>
+              </div>
+            </section>
             <section className="product-editor-section" aria-labelledby="product-recipe-heading">
-              <div className="product-section-heading"><span aria-hidden="true">2</span><div><h3 id="product-recipe-heading">Production setup</h3><p>Choose the category, recipe reference, and extra material allowance.</p></div></div>
+              <div className="product-section-heading"><span aria-hidden="true">3</span><div><h3 id="product-recipe-heading">Production setup</h3><p>Choose the category and extra material allowance.</p></div></div>
               <div className="form-grid">
                 <label className="field">
                   <span>Category</span>
@@ -652,11 +571,12 @@ export function ProductsPage() {
                     value={productForm.category}
                     onChange={(event) => {
                       const keepsMix = mixPresets.some((preset) => preset.id === productForm.mixPresetId && preset.compatibleCategories.includes(event.target.value as ProductCategory));
-                      setMixChangeNotice(productForm.mixPresetId && !keepsMix ? 'The previous mix was cleared because it does not support this category. Choose another preset or continue without one.' : '');
                       setProductForm({
                         ...productForm,
                         category: event.target.value as ProductCategory,
                         mixPresetId: keepsMix ? productForm.mixPresetId : '',
+                        candleWaxMaterialId: event.target.value === 'candle' ? productForm.candleWaxMaterialId : '',
+                        candleEssentialOilMaterialId: event.target.value === 'candle' ? productForm.candleEssentialOilMaterialId : '',
                       });
                     }}
                   >
@@ -667,8 +587,7 @@ export function ProductsPage() {
                     ))}
                   </select>
                   <small>
-                    {PRODUCT_CATEGORY_RULES[productForm.category].productionStyle} · typical{' '}
-                    {PRODUCT_CATEGORY_RULES[productForm.category].typicalMixBasis} mix
+                    {PRODUCT_CATEGORY_RULES[productForm.category].productionStyle} production
                   </small>
                 </label>
                 <label className="field">
@@ -688,29 +607,33 @@ export function ProductsPage() {
                   <small id="product-reserve-help">Extra direct material to allow for production waste. Enter 0 for no reserve.</small>
                   <small className="product-field-error" id="product-reserve-error">{visibleProductError('safetyWastePercent')}</small>
                 </label>
-                <label className="field field-wide">
-                  <span>Mix preset</span>
-                  <select
-                    name="mixPresetId"
-                    aria-invalid={Boolean(visibleProductError('mixPresetId'))}
-                    aria-describedby="product-mix-help product-mix-error"
-                    value={productForm.mixPresetId}
-                    onChange={(event) => setProductForm({ ...productForm, mixPresetId: event.target.value })}
-                  >
-                    <option value="">No mix preset</option>
-                    {productForm.mixPresetId && !compatibleMixes.some((preset) => preset.id === productForm.mixPresetId) && <option value={productForm.mixPresetId}>{selectedMix?.name ?? productForm.mixPresetId} (unavailable)</option>}
-                    {compatibleMixes.map((preset) => (
-                      <option key={preset.id} value={preset.id}>
-                        {preset.name}
-                        {preset.isActive ? '' : ' (archived)'}
-                      </option>
-                    ))}
-                  </select>
-                  <small id="product-mix-help">{compatibleMixes.length ? `Only presets compatible with ${categoryLabel(productForm.category)} are shown. A preset is optional.` : 'No compatible presets yet. Save without one and add a recipe reference later.'}</small>
-                  <small className="product-field-error" id="product-mix-error">{visibleProductError('mixPresetId')}</small>
-                </label>
               </div>
-              {mixChangeNotice && <p className="product-mix-notice" role="status">{mixChangeNotice}</p>}
+              {productForm.category === 'candle' && (
+                <div className="form-grid" aria-label="Scented candle material settings">
+                  <label className="field">
+                    <span>Wax for essential oil calculation</span>
+                    <select name="candleWaxMaterialId" value={productForm.candleWaxMaterialId}
+                      onChange={(event) => setProductForm({ ...productForm, candleWaxMaterialId: event.target.value })}>
+                      <option value="">No automatic oil calculation</option>
+                      {materials.filter((material) => material.isActive && material.group === 'wax' && material.baseUnit === 'g')
+                        .map((material) => <option key={material.id} value={material.id}>
+                          {material.name}{material.essentialOilPercent === undefined ? ' (percentage not set)' : ` · ${material.essentialOilPercent}% oil`}
+                        </option>)}
+                    </select>
+                  </label>
+                  <label className="field">
+                    <span>Essential oil for production costs</span>
+                    <select name="candleEssentialOilMaterialId" value={productForm.candleEssentialOilMaterialId}
+                      onChange={(event) => setProductForm({ ...productForm, candleEssentialOilMaterialId: event.target.value })}>
+                      <option value="">No essential oil selected</option>
+                      {materials.filter((material) => material.isActive && material.group === 'fragrance' && material.baseUnit === 'g')
+                        .map((material) => <option key={material.id} value={material.id}>{material.name}</option>)}
+                    </select>
+                  </label>
+                  <p className="field-wide product-editor-hint">The chosen wax percentage automatically determines the oil needed by Production and Pricing. Existing oil lines in Yield/recipes are replaced, not added twice; original Yield records stay unchanged.</p>
+                  {visibleProductError('candleOilConfig') && <p className="feedback feedback-error field-wide" role="alert">{visibleProductError('candleOilConfig')}</p>}
+                </div>
+              )}
               <div className="product-reserve-preview" aria-label="Material reserve preview">
                 <span>Material planning example</span>
                 <strong>{productErrors.safetyWastePercent ? 'Enter a valid reserve to preview' : `100 g base + ${reservePercent.toLocaleString(undefined, { maximumFractionDigits: 4 })} g reserve = ${(100 + reservePercent).toLocaleString(undefined, { maximumFractionDigits: 4 })} g planned`}</strong>
@@ -718,7 +641,7 @@ export function ProductsPage() {
               </div>
             </section>
             <section className="product-editor-section" aria-labelledby="product-notes-heading">
-              <div className="product-section-heading"><span aria-hidden="true">3</span><div><h3 id="product-notes-heading">Workshop notes <small>Optional</small></h3><p>Keep making instructions close to the product.</p></div></div>
+              <div className="product-section-heading"><span aria-hidden="true">4</span><div><h3 id="product-notes-heading">Workshop notes <small>Optional</small></h3><p>Keep making instructions close to the product.</p></div></div>
               <div className="form-grid">
                 <label className="field field-wide">
                   <span>Notes</span>
@@ -732,282 +655,34 @@ export function ProductsPage() {
             </section>
             <div className="product-editor-savebar">
               <span>{editingProductId ? `Product ${editingProductId}` : 'New products are added as active.'}</span>
-              <button className="button button-primary button-full" type="submit">
-                {busy ? 'Saving...' : editingProductId ? 'Save product' : 'Create product'}
-              </button>
+              <div className="product-editor-savebar-actions">
+                <button
+                  className="button button-secondary product-editor-bottom-back"
+                  type="button"
+                  disabled={busy || imageProcessing || loading}
+                  onClick={backToCatalog}
+                >
+                  <AppIcon name="arrow-left" size={17} />
+                  Back to product catalog
+                </button>
+                <button className="button button-primary button-full" type="submit" disabled={imageProcessing || busy}>
+                  {imageProcessing ? 'Optimizing image…' : busy ? 'Saving...' : editingProductId ? 'Save product' : 'Create product'}
+                </button>
+              </div>
             </div>
           </fieldset>
         </form>
       </div>
-      <div id="products-view-mixes" hidden={view !== 'mixes'}>
-        <div className="materials-layout product-layout">
-          <form className="panel material-form" onSubmit={submitMix}>
-            <div className="panel-heading">
-              <div>
-                <p className="panel-kicker">RATIO LIBRARY</p>
-                <h2>{editingMixId ? 'Edit mix preset' : 'Add a mix preset'}</h2>
-              </div>
-              {editingMixId && (
-                <button type="button" className="text-button" disabled={busy} onClick={resetMixForm}>
-                  Cancel
-                </button>
-              )}
-            </div>
-            <fieldset className="product-form-fields" disabled={busy || loading || Boolean(loadError)}>
-              <div className="form-grid">
-                <label className="field">
-                  <span>Preset ID</span>
-                  <input
-                    value={editingMixId ? mixForm.id : generatedMixId}
-                    readOnly
-                    aria-readonly="true"
-                  />
-                  <small>{editingMixId ? 'Existing Preset ID is preserved.' : 'Assigned automatically when the mix preset is created.'}</small>
-                </label>
-                <label className="field">
-                  <span>Name</span>
-                  <input
-                    required
-                    value={mixForm.name}
-                    onChange={(event) => setMixForm({ ...mixForm, name: event.target.value })}
-                    placeholder="Plaster 2:1"
-                  />
-                </label>
-                <label className="field field-wide">
-                  <span>Ratio basis</span>
-                  <select
-                    value={mixForm.basis}
-                    onChange={(event) => setMixForm({ ...mixForm, basis: event.target.value as RatioBasis })}
-                  >
-                    {MIX_RATIO_BASES.map((basis) => (
-                      <option key={basis} value={basis}>
-                        {basis === 'weight' ? 'Weight' : 'Volume'}
-                      </option>
-                    ))}
-                  </select>
-                  <small>All ratio quantities will be resolved using a {mixForm.basis} anchor unit.</small>
-                </label>
-                <div className="field field-wide">
-                  <span>Compatible product categories</span>
-                  <div className="category-checkboxes">
-                    {PRODUCT_CATEGORIES.map((category) => (
-                      <label key={category}>
-                        <input
-                          type="checkbox"
-                          checked={mixForm.compatibleCategories.includes(category)}
-                          onChange={() => toggleCompatibleCategory(category)}
-                        />
-                        {categoryLabel(category)}
-                      </label>
-                    ))}
-                  </div>
-                </div>
-                <div className="field field-wide">
-                  <span>Ratio lines</span>
-                  <div className="mix-lines">
-                    {mixForm.lines.map((line, index) => (
-                      <div className="mix-line-row" key={line.key}>
-                        <select
-                          aria-label={`Mix material ${index + 1}`}
-                          value={line.materialId}
-                          onChange={(event) => updateMixLine(line.key, { materialId: event.target.value })}
-                        >
-                          <option value="">Select material</option>
-                          {activeMaterials.map((material) => (
-                            <option key={material.id} value={material.id}>
-                              {material.name} · {material.baseUnit}
-                            </option>
-                          ))}
-                        </select>
-                        <select
-                          aria-label={`Mix role ${index + 1}`}
-                          value={line.role}
-                          onChange={(event) =>
-                            updateMixLine(line.key, { role: event.target.value as MixPresetLineRole })
-                          }
-                        >
-                          {MIX_PRESET_LINE_ROLES.map((role) => (
-                            <option key={role} value={role}>
-                              {role}
-                            </option>
-                          ))}
-                        </select>
-                        <input
-                          required
-                          aria-label={`Mix parts ${index + 1}`}
-                          type="number"
-                          min="0.000001"
-                          step="any"
-                          value={line.parts}
-                          onChange={(event) => updateMixLine(line.key, { parts: event.target.value })}
-                          placeholder="parts"
-                        />
-                        <button
-                          type="button"
-                          className="text-button danger"
-                          disabled={mixForm.lines.length === 1}
-                          onClick={() => removeMixLine(line.key)}
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                  <button type="button" className="button button-quiet add-line-button" onClick={addMixLine}>
-                    + Add material line
-                  </button>
-                  <small>Exactly one line must be primary. Parts are relative, not absolute batch quantities.</small>
-                </div>
-                <label className="field field-wide">
-                  <span>Notes</span>
-                  <textarea
-                    value={mixForm.notes}
-                    onChange={(event) => setMixForm({ ...mixForm, notes: event.target.value })}
-                    placeholder="Mixing order, brand-specific notes..."
-                  />
-                </label>
-              </div>
-              <button className="button button-primary button-full" type="submit">
-                {busy ? 'Saving...' : editingMixId ? 'Save mix preset' : 'Create mix preset'}
-              </button>
-            </fieldset>
-          </form>
-
-          <div className="panel material-list">
-            <div className="panel-heading list-heading">
-              <div>
-                <p className="panel-kicker">MIX PRESETS</p>
-                <h2>Reusable ratios</h2>
-              </div>
-              <div className="material-count">
-                <strong>{visibleMixes.length}</strong>
-                <span>shown</span>
-              </div>
-            </div>
-            <div className="filters products-filters">
-              <label className="search-field">
-                <span className="sr-only">Search mix presets</span>
-                <input
-                  value={mixQuery}
-                  onChange={(event) => setMixQuery(event.target.value)}
-                  placeholder="Search mix, ID or material..."
-                />
-              </label>
-              <select
-                aria-label="Mix basis filter"
-                value={mixBasis}
-                onChange={(event) => setMixBasis(event.target.value as RatioBasis | 'all')}
-              >
-                <option value="all">All bases</option>
-                <option value="weight">Weight</option>
-                <option value="volume">Volume</option>
-              </select>
-              <select
-                aria-label="Mix status filter"
-                value={mixStatus}
-                onChange={(event) => setMixStatus(event.target.value as ActiveFilter)}
-              >
-                <option value="active">Active</option>
-                <option value="archived">Archived</option>
-                <option value="all">All status</option>
-              </select>
-            </div>
-            <div className="table-wrap" tabIndex={0} role="region" aria-label="Mix preset list">
-              {loading ? (
-                <div className="empty-state">
-                  <p>Loading mix presets…</p>
-                </div>
-              ) : visibleMixes.length === 0 ? (
-                <div className="empty-state">
-                  <div className="empty-icon" aria-hidden="true"><AppIcon name="calibration" size={28} /></div>
-                  <h3>{mixPresets.length ? 'No matching mix presets' : 'No mix presets yet'}</h3>
-                  <p>
-                    {mixPresets.length
-                      ? 'Adjust your search or filters to find a preset.'
-                      : 'Create a reusable ratio such as plaster 2:1 or wax 100:8.'}
-                  </p>
-                  {mixPresets.length > 0 && (
-                    <button
-                      type="button"
-                      className="button button-quiet"
-                      onClick={() => {
-                        setMixQuery('');
-                        setMixStatus('active');
-                        setMixBasis('all');
-                      }}
-                    >
-                      Clear mix filters
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <table role="table" className="responsive-table materials-table products-table mix-table">
-                  <thead role="rowgroup">
-                    <tr role="row">
-                      <th role="columnheader" scope="col">Preset</th>
-                      <th role="columnheader" scope="col">Basis</th>
-                      <th role="columnheader" scope="col">Ratio</th>
-                      <th role="columnheader" scope="col">Compatible with</th>
-                      <th role="columnheader" scope="col">Status</th>
-                      <th role="columnheader" scope="col">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody role="rowgroup">
-                    {visibleMixes.map((preset) => (
-                      <tr role="row" key={preset.id} className={preset.isActive ? '' : 'archived-row'}>
-                        <td role="cell" data-label="Preset">
-                          <strong>{preset.name}</strong>
-                          <span className="material-id">{preset.id}</span>
-                        </td>
-                        <td role="cell" data-label="Basis">
-                          <span className="group-pill">{preset.basis}</span>
-                        </td>
-                        <td role="cell" data-label="Ratio">
-                          <span className="ratio-summary">{ratioSummary(preset, materials)}</span>
-                          <small className="line-detail">
-                            {preset.lines.map((line) => `${materialName(line.materialId)} · ${line.role}`).join(' · ')}
-                          </small>
-                        </td>
-                        <td role="cell" data-label="Compatible with">{preset.compatibleCategories.map(categoryLabel).join(', ')}</td>
-                        <td role="cell" data-label="Status">
-                          <span className={`status-pill ${preset.isActive ? 'status-active' : ''}`}>
-                            {preset.isActive ? 'Active' : 'Archived'}
-                          </span>
-                        </td>
-                        <td role="cell" data-label="Actions" className="row-actions">
-                          <button
-                            type="button"
-                            className="text-button"
-                            disabled={busy || loading || Boolean(loadError)}
-                            onClick={() => {
-                              setEditingMixId(preset.id);
-                              setMixForm(mixToForm(preset));
-                              setMixFeedback(null);
-                            }}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            type="button"
-                            className="text-button danger"
-                            disabled={busy || loading || Boolean(loadError)}
-                            onClick={() => void archiveMix(preset)}
-                          >
-                            {preset.isActive ? 'Archive' : 'Restore'}
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-            <div className="list-footer">
-              <span>Presets describe proportions. Actual batch quantities are calculated during planning.</span>
-              <span>{mixPresets.filter((item) => item.isActive).length} active</span>
-            </div>
-          </div>
-        </div>
+      <div id="products-view-yield" className="products-yield-area" hidden={view !== 'yield'}>
+        {yieldVisited && (
+          <YieldPage
+            preferredProductId={selectedProductId}
+            productCatalogRevision={productCatalogRevision}
+            onSelectedProductChange={setSelectedProductId}
+            onYieldEvidenceSaved={() => setYieldPricingRevision((current) => current + 1)}
+            onOpenProducts={() => setView('products')}
+          />
+        )}
       </div>
       {view === 'components' && (
         <div id="products-view-components">
@@ -1015,15 +690,33 @@ export function ProductsPage() {
             products={products}
             materials={materials}
             catalogLoading={loading}
-            initialProductId={componentProductId}
+            initialProductId={selectedProductId ?? undefined}
+            onSelectedProductChange={setSelectedProductId}
+            onComponentsSaved={() => setComponentPricingRevision((current) => current + 1)}
           />
         </div>
       )}
       {view === 'stock' && (
         <div id="products-view-stock">
-          <ProductStockView products={products} catalogLoading={loading} />
+          <ProductStockView
+            products={products}
+            catalogLoading={loading}
+            initialProductId={selectedProductId}
+            onSelectedProductChange={setSelectedProductId}
+          />
         </div>
       )}
+      <div id="products-view-pricing" className="products-pricing-area" hidden={view !== 'pricing'}>
+        {pricingVisited && (
+          <PricingPage
+            preferredProductId={selectedProductId}
+            productCatalogRevision={productCatalogRevision}
+            componentPricingRevision={componentPricingRevision}
+            yieldPricingRevision={yieldPricingRevision}
+            onSelectedProductChange={setSelectedProductId}
+          />
+        )}
+      </div>
     </section>
   );
 }

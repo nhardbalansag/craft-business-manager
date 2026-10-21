@@ -1,3 +1,4 @@
+import { brochureImageParts } from '../domain/productBrochureImage';
 import { validateBusinessDatasetIntegrity, type BusinessDatasetValidationIssue } from '../domain/businessDatasetValidation';
 import type { BusinessDataset } from '../domain/types';
 import type { WorkbookCodec } from './workbookCodec';
@@ -159,6 +160,7 @@ function materialRows(dataset: BusinessDataset): Readonly<Record<string, unknown
     sourceNotes: optional(material.source?.notes),
     notes: optional(material.notes),
     isActive: material.isActive,
+    essentialOilPercent: optional(material.essentialOilPercent),
   }));
 }
 
@@ -214,6 +216,10 @@ function productRows(dataset: BusinessDataset): Readonly<Record<string, unknown>
     category: product.category,
     mixPresetId: optional(product.mixPresetId),
     preferredYieldSampleId: optional(product.preferredYieldSampleId),
+    candleWaxMaterialId: optional(product.candleWaxMaterialId),
+    candleEssentialOilMaterialId: optional(product.candleEssentialOilMaterialId),
+    imageDataUrl: optional(product.imageDataUrl),
+    ...brochureImageParts(product.brochureImageDataUrl),
     safetyWasteRate: product.safetyWasteRate,
     notes: optional(product.notes),
     isActive: product.isActive,

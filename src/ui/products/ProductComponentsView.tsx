@@ -11,6 +11,7 @@ import {
 } from '../../domain/productComponents';
 import type { Product } from '../../domain/products';
 import { AppIcon } from '../icons/AppIcon';
+import { ProductImageZoom } from './ProductImageZoom';
 import {
   buildProductCompositionPreview,
   type ProductCompositionPreviewNode,
@@ -21,6 +22,9 @@ type ProductComponentsViewProps = {
   materials: readonly Material[];
   catalogLoading: boolean;
   initialProductId?: string;
+  onSelectedProductChange?: (productId: string) => void;
+  /** Inform the parent after a component has been successfully persisted. */
+  onComponentsSaved?: () => void;
 };
 
 type ComponentFormState = {
@@ -96,7 +100,7 @@ function PreviewBranch({ node }: { node: ProductCompositionPreviewNode }) {
   );
 }
 
-export function ProductComponentsView({ products, materials, catalogLoading, initialProductId }: ProductComponentsViewProps) {
+export function ProductComponentsView({ products, materials, catalogLoading, initialProductId, onSelectedProductChange, onComponentsSaved }: ProductComponentsViewProps) {
   const initialParentId = products.find((product) => product.id === initialProductId)?.id ?? products.find((product) => product.isActive)?.id ?? products[0]?.id ?? '';
   const [sourceError, setSourceError] = useState<string | null>(null);
   const [selectedParentId, setSelectedParentId] = useState(initialParentId);
@@ -205,6 +209,7 @@ export function ProductComponentsView({ products, materials, catalogLoading, ini
 
   function changeParent(parentId: string) {
     setSelectedParentId(parentId);
+    onSelectedProductChange?.(parentId);
     resetForm();
   }
 
@@ -238,11 +243,13 @@ export function ProductComponentsView({ products, materials, catalogLoading, ini
           notes: candidate.notes,
         });
         await reloadComponents();
+        onComponentsSaved?.();
         resetForm(false);
         setFeedback({ type: 'success', message: 'Component updated.' });
       } else {
         await productComponentService.createComponent(candidate);
         await reloadComponents();
+        onComponentsSaved?.();
         resetForm(false);
         setFeedback({ type: 'success', message: 'Component added.' });
       }
@@ -256,6 +263,7 @@ export function ProductComponentsView({ products, materials, catalogLoading, ini
     try {
       await productComponentService.removeComponent(component.id);
       await reloadComponents();
+      onComponentsSaved?.();
       if (comparable(editingComponentId ?? '') === comparable(component.id)) resetForm(false);
       setFeedback({ type: 'success', message: `${sourceLabel(component, products, materials)} removed from composition.` });
     } catch (error) {
@@ -293,6 +301,15 @@ export function ProductComponentsView({ products, materials, catalogLoading, ini
             </span>
           )}
         </div>
+        {selectedParent && (
+          <div className="component-product-reference" aria-label="Selected component Product photo">
+            <ProductImageZoom product={selectedParent} imageClassName="component-product-reference-photo" />
+            <div>
+              <strong>{selectedParent.name}</strong>
+              <small>{selectedParent.id}</small>
+            </div>
+          </div>
+        )}
         <label className="field">
           <span>Product to compose</span>
           <select value={selectedParentId} onChange={(event) => changeParent(event.target.value)}>

@@ -1,3 +1,4 @@
+import { BROCHURE_IMAGE_COLUMN_NAMES } from '../domain/productBrochureImage';
 import {
   extendLegacyBusinessDataset,
   toLegacyBusinessDataset,
@@ -261,11 +262,17 @@ function normalizeLegacyPhysicalProductsSheet(
     };
   }
 
+  // Recognize older pre-Preferred-Yield physical-v2 workbooks, including
+  // those exported with later optional candle Material and image references.
+  const legacyCount = LEGACY_PHYSICAL_PRODUCTS_COLUMNS.length;
+  const optionalCandleColumns = ['candleWaxMaterialId', 'candleEssentialOilMaterialId', 'imageDataUrl', ...BROCHURE_IMAGE_COLUMN_NAMES];
+  const actualExtras = candidate.columns.slice(legacyCount);
   const isRecognizedPrePreferredYieldShape =
-    candidate.columns.length === LEGACY_PHYSICAL_PRODUCTS_COLUMNS.length &&
-    candidate.columns.every(
+    candidate.columns.length >= legacyCount &&
+    candidate.columns.slice(0, legacyCount).every(
       (column, index) => column === LEGACY_PHYSICAL_PRODUCTS_COLUMNS[index],
-    );
+    ) &&
+    optionalCandleColumns.filter((column) => actualExtras.includes(column)).join('|') === actualExtras.join('|');
 
   if (!isRecognizedPrePreferredYieldShape) {
     return {

@@ -239,6 +239,7 @@ describe('App Phase 5.5C1 persistence session status', () => {
 
     await choose(workbookFile('active-import.xlsx'));
     await click('Apply import');
+    await click('Products');
     await click('Pricing');
     await click('Download workbook');
 
@@ -247,7 +248,7 @@ describe('App Phase 5.5C1 persistence session status', () => {
     expect(exportCard).toContain(exported.fileName);
     expect(exportCard).toContain('Download dispatched 2026-09-17 02:05:00 UTC');
     expect(revision()).toBe('1');
-    expect(activeNavigation()).toBe('Pricing');
+    expect(activeNavigation()).toBe('Products');
     expect(clock).toHaveBeenCalledTimes(2);
   });
 

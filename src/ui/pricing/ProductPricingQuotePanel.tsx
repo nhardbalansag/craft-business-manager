@@ -188,9 +188,6 @@ export function ProductPricingQuotePanel({
         <div>
           <p className="panel-kicker">UNIT ECONOMICS</p>
           <h2>Saved pricing result</h2>
-          <p>
-            Read-only fully loaded cost and selling-price evidence from the authoritative Phase 4 pricing quote service.
-          </p>
         </div>
         <div className="pricing-quote-heading-actions">
           <span className={`pricing-readiness-pill ${quote ? `status-${quote.status}` : ''}`}>{readiness}</span>
@@ -212,12 +209,22 @@ export function ProductPricingQuotePanel({
       {error && <div className="feedback feedback-error pricing-quote-feedback" role="status">{error}</div>}
 
       <div className="pricing-hero-metrics" aria-label="Pricing result summary">
-        <div><span>Total unit cost</span><strong>{formatPhp(quote?.totalFullyLoadedUnitCost ?? null)}</strong><small>Fully loaded cost per sellable unit</small></div>
-        <div><span>Selling price</span><strong>{formatPhp(quote?.sellingPrice ?? null)}</strong><small>{pricingPolicyLabel(quote?.pricingPolicy ?? null)}</small></div>
-        <div><span>Profit / unit</span><strong>{formatPhp(quote?.profitPerUnit ?? null)}</strong><small>After fully loaded unit cost</small></div>
-        <div><span>Effective margin</span><strong>{formatPercent(quote?.effectiveMargin ?? null)}</strong><small>{issueCount} readiness issue{issueCount === 1 ? '' : 's'}</small></div>
+        <div><span>Unit cost</span><strong>{formatPhp(quote?.totalFullyLoadedUnitCost ?? null)}</strong></div>
+        <div className="pricing-hero-price"><span>Selling price</span><strong>{formatPhp(quote?.sellingPrice ?? null)}</strong></div>
+        <div><span>Profit / unit</span><strong>{formatPhp(quote?.profitPerUnit ?? null)}</strong></div>
+        <div><span>Margin</span><strong>{formatPercent(quote?.effectiveMargin ?? null)}</strong></div>
       </div>
 
+      {issueCount > 0 && (
+        <p className="pricing-quick-issue-alert" role="status">
+          {issueCount} pricing issue{issueCount === 1 ? '' : 's'} need attention. View details below.
+        </p>
+      )}
+      <details className="pricing-cost-details">
+        <summary>
+          <span><strong>View cost breakdown</strong><small>Materials, labor, pricing policy &amp; issues</small></span>
+          <span className="pricing-detail-chevron" aria-hidden="true">⌄</span>
+        </summary>
       <div className="pricing-quote-grid">
         <article className="panel pricing-quote-panel">
           <div className="panel-heading">
@@ -344,6 +351,7 @@ export function ProductPricingQuotePanel({
           </div>
         )}
       </article>
+      </details>
     </section>
   );
 }

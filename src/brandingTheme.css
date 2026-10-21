@@ -1,0 +1,344 @@
+/* My Lovely Craft: one coherent token layer across every workshop. */
+:root {
+  --mlc-canvas: #f8f3ec;
+  --mlc-surface: #fffcf7;
+  --mlc-soft: #f2e9df;
+  --mlc-line: #e4d6c9;
+  --mlc-ink: #35251e;
+  --mlc-muted: #756153;
+  --mlc-primary: #763923;
+  --mlc-primary-hover: #582817;
+  --mlc-on-primary: #fff9f1;
+  --mlc-leaf: #596f4a;
+  --mlc-leaf-soft: #e8eee0;
+  --mlc-terracotta: #b87658;
+  --mlc-ring: rgba(118, 57, 35, .25);
+  --mlc-shadow: rgba(75, 48, 31, .07);
+}
+html[data-theme="dark"] {
+  --mlc-canvas: #191815;
+  --mlc-surface: #29231f;
+  --mlc-soft: #342b25;
+  --mlc-line: #5b483d;
+  --mlc-ink: #f6eadb;
+  --mlc-muted: #dcc4af;
+  --mlc-primary: #e1a181;
+  --mlc-primary-hover: #f2b692;
+  --mlc-on-primary: #291b17;
+  --mlc-leaf: #bacba0;
+  --mlc-leaf-soft: #344332;
+  --mlc-terracotta: #f0b38e;
+  --mlc-ring: rgba(225, 161, 129, .35);
+  --mlc-shadow: rgba(0, 0, 0, .24);
+}
+html, body, #root, .app-shell.app-shell-with-drawer {
+  background: var(--mlc-canvas);
+  color: var(--mlc-ink);
+}
+.app-content { color: var(--mlc-ink); }
+.app-content :is(h1, h2, h3),
+.workbook-tools-dialog h2 {
+  color: var(--mlc-ink);
+}
+.app-content h1, .app-content .page-heading-row h1 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 650;
+  letter-spacing: -.045em;
+}
+.app-content :is(.eyebrow, .panel-kicker) { color: var(--mlc-primary); }
+.app-content :is(.page-lead, .field small) { color: var(--mlc-muted); }
+.app-content :is(.panel, .product-catalog-card, .pricing-overview > div,
+  .pricing-workflow > div, .production-context, .yield-guide li,
+  .workbook-tools-popover, .product-catalog.is-editor-shell-open,
+  .product-catalog.is-editor-shell-open + .product-details-form) {
+  border-color: var(--mlc-line);
+  background: var(--mlc-surface);
+  color: var(--mlc-ink);
+  box-shadow: 0 10px 28px var(--mlc-shadow);
+}
+.app-content :is(.pricing-workflow > div.current, .product-catalog-card.is-editing) {
+  border-color: var(--mlc-terracotta);
+  background: var(--mlc-soft);
+}
+.app-content :is(.pricing-workflow > div.current > span,
+  .yield-step-number, .yield-section-number, .product-density-control button[aria-pressed="true"]) {
+  background: var(--mlc-leaf);
+  color: var(--mlc-on-primary);
+}
+.app-content :is(.field > span, .pricing-overview strong, .pricing-workflow strong,
+  .yield-guide strong, .product-catalog-card strong, .materials-table strong) {
+  color: var(--mlc-ink);
+}
+.app-content :is(.pricing-overview span, .pricing-overview small,
+  .pricing-workflow small, .products-overview span, .products-overview small,
+  .production-context span, .yield-guide small) { color: var(--mlc-muted); }
+.app-content :is(.material-count, .group-pill, .product-category-icon,
+  .pricing-workflow > div > span, .products-workspace .workspace-switcher) {
+  background: var(--mlc-soft);
+  color: var(--mlc-ink);
+}
+.app-content :is(.table-wrap, .materials-table th, .list-footer) {
+  border-color: var(--mlc-line);
+  background: var(--mlc-soft);
+  color: var(--mlc-muted);
+}
+.app-content .materials-table :is(td, th) { border-bottom-color: var(--mlc-line); }
+.app-content .materials-table td { color: var(--mlc-ink); }
+.app-content :is(input, select, textarea) {
+  border-color: var(--mlc-line);
+  background: var(--mlc-surface);
+  color: var(--mlc-ink);
+}
+.app-content :is(input, select, textarea):focus {
+  border-color: var(--mlc-primary);
+  box-shadow: 0 0 0 3px var(--mlc-ring);
+}
+.app-shell .button-primary, .app-content .button-primary {
+  background: var(--mlc-primary);
+  color: var(--mlc-on-primary);
+}
+.app-shell .button-primary:hover:not(:disabled) {
+  background: var(--mlc-primary-hover);
+}
+.app-content :is(.button-quiet, .button-secondary, .product-category-filters button,
+  .product-density-control button, .product-editor-back) {
+  border-color: var(--mlc-line);
+  background: var(--mlc-soft);
+  color: var(--mlc-ink);
+}
+.app-content :is(.product-category-filters button[aria-pressed="true"],
+  .product-density-control button[aria-pressed="true"]) {
+  background: var(--mlc-leaf-soft);
+  border-color: var(--mlc-leaf);
+  color: var(--mlc-ink);
+}
+.app-content .product-editor-state { background: var(--mlc-leaf-soft); color: var(--mlc-leaf); }
+.app-content :is(.feedback-success, .stock-covered) { background: var(--mlc-leaf-soft); color: var(--mlc-leaf); }
+.app-content :is(.session-badge, .product-filter-count) {
+  background: var(--mlc-surface); color: var(--mlc-muted); border-color: var(--mlc-line);
+}
+.app-content .status-dot { background: var(--mlc-terracotta); box-shadow: 0 0 0 4px var(--mlc-ring); }
+.app-shell :is(button, summary, a, input, select, textarea):focus-visible {
+  outline: 3px solid var(--mlc-primary);
+  outline-offset: 3px;
+}
+
+/* White My Lovely Craft sidebar: stay white in Light, Dark and System modes. */
+.app-shell-with-drawer .app-drawer {
+  --sidebar-bg-top: #ffffff;
+  --sidebar-bg-bottom: #ffffff;
+  --sidebar-border: #e9ded3;
+  --sidebar-text: #513322;
+  --sidebar-muted: #7d6859;
+  --sidebar-soft: #f8f3ec;
+  --sidebar-soft-strong: #f0e7df;
+  --sidebar-accent: #617d52;
+  --sidebar-accent-soft: rgba(97, 125, 82, .13);
+  background: #ffffff;
+  color: var(--sidebar-text);
+  border-right: 1px solid var(--sidebar-border);
+  box-shadow: 9px 0 30px rgba(64, 39, 28, .065);
+}
+html[data-theme="dark"] .app-shell-with-drawer .app-drawer {
+  --sidebar-bg-top: #ffffff;
+  --sidebar-bg-bottom: #ffffff;
+  background: #ffffff;
+  color: #513322;
+}
+.app-shell-with-drawer .app-drawer-header {
+  border-bottom-color: var(--sidebar-border);
+}
+.app-drawer .brand-lockup { gap: 10px; }
+.app-drawer .brand-mark.brand-mark-botanical {
+  width: 91px;
+  height: 59px;
+  flex: 0 0 91px;
+  padding: 2px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  box-shadow: none;
+}
+.brand-mark-botanical img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.app-shell-with-drawer .app-drawer .brand-lockup strong {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -.02em;
+  color: #67351f;
+}
+.app-shell-with-drawer .app-drawer .brand-lockup span {
+  color: #826957;
+  font-size: .73rem;
+}
+.app-shell-with-drawer .app-drawer .app-drawer-section-label { color: #75604f; }
+.app-shell-with-drawer .app-drawer-nav .nav-item { color: #544235; }
+.app-shell-with-drawer .app-drawer-nav .nav-item:hover:not(:disabled) {
+  border-color: #e9dfd5;
+  color: #573b2c;
+  background: #faf5ef;
+}
+.app-shell-with-drawer .app-drawer-nav .nav-item.active {
+  color: #37512f;
+  border-color: #d5e2cc;
+  background: #edf4e8;
+  box-shadow: inset 3px 0 0 #617d52;
+}
+.app-shell-with-drawer .app-drawer-nav .nav-item.active::after {
+  background: #617d52;
+  box-shadow: 0 0 0 4px rgba(97, 125, 82, .14);
+}
+.app-shell-with-drawer .app-drawer-nav .app-nav-icon {
+  border-color: #ece1d8;
+  background: #faf5ef;
+  color: #785b49;
+}
+.app-shell-with-drawer .app-drawer-nav .nav-item:hover .app-nav-icon {
+  border-color: #dacbbf;
+  background: #f2e8df;
+  color: #633b28;
+}
+.app-shell-with-drawer .app-drawer-nav .nav-item.active .app-nav-icon {
+  color: #436337;
+  border-color: #c9daba;
+  background: #e0ecd9;
+}
+.app-shell-with-drawer .app-drawer-workbook { margin-top: auto; border-top-color: var(--sidebar-border); }
+.app-shell-with-drawer .app-drawer .workbook-tools-trigger {
+  border-color: #e7dcd1;
+  background: #fffaf5;
+  color: #513322;
+  box-shadow: 0 4px 12px rgba(70, 45, 32, .04);
+}
+.app-shell-with-drawer .app-drawer .workbook-tools-trigger:hover {
+  border-color: #d7c7b8;
+  background: #f8f2eb;
+  box-shadow: 0 5px 15px rgba(70, 45, 32, .07);
+}
+.app-shell-with-drawer.is-workbook-tools-open .app-drawer .workbook-tools-trigger {
+  border-color: #b6c6aa;
+  background: #edf4e8;
+}
+.app-shell-with-drawer .app-drawer .workbook-tools-icon {
+  background: #e9f0e3;
+  color: #48653c;
+}
+.app-shell-with-drawer .app-drawer .workbook-tools-trigger-copy strong { color: #533627; }
+.app-shell-with-drawer .app-drawer .workbook-tools-trigger-copy small { color: #816d5e; }
+.app-shell-with-drawer .app-drawer .workbook-tools-chevron { color: #71594a; }
+.app-shell-with-drawer .app-sidebar-toggle {
+  background: #ffffff;
+  border-color: #e6d9cf;
+  color: #673d29;
+  box-shadow: 7px 5px 18px rgba(64, 39, 28, .095);
+}
+.app-shell-with-drawer .app-sidebar-toggle:hover { background: #f7efe7; color: #573522; }
+.app-shell-with-drawer .app-drawer-toggle {
+  color: #513021;
+  border-color: #e6d9cf;
+  background: #ffffff;
+}
+.app-shell-with-drawer .app-drawer-close {
+  border-color: #e9ded3;
+  background: #f8f3ec;
+  color: #593b2b;
+}
+.app-drawer-theme { padding: 0 7px 15px; }
+.app-drawer-theme .app-drawer-section-label { padding-left: 3px; }
+.theme-switcher {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid #e7dbd0;
+  border-radius: 12px;
+  background: #f8f3ec;
+}
+.theme-choice {
+  min-width: 0;
+  min-height: 36px;
+  padding: 7px 4px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: #614b3b;
+  font-size: .73rem;
+  font-weight: 750;
+}
+.theme-choice:hover:not(:disabled) { background: #eee5dc; color: #543625; }
+.theme-choice[aria-pressed="true"] {
+  border-color: #d0dfc5;
+  background: #e5efde;
+  color: #35512f;
+  box-shadow: 0 2px 7px rgba(70, 45, 32, .06);
+}
+.app-shell-with-drawer .app-drawer :is(button, summary):focus-visible,
+.app-shell-with-drawer .app-sidebar-toggle:focus-visible,
+.app-shell-with-drawer .app-drawer-toggle:focus-visible {
+  outline: 3px solid #617d52;
+  outline-offset: 2px;
+}
+@media (max-width: 900px) {
+  .app-shell-with-drawer .app-drawer,
+  .app-shell-with-drawer.is-sidebar-hidden .app-drawer {
+    border-right-color: #e9ded3;
+    box-shadow: 18px 0 46px rgba(48, 31, 25, .16);
+  }
+}
+@media (max-width: 520px) {
+  .app-drawer .brand-mark.brand-mark-botanical { width: 76px; height: 54px; flex-basis: 76px; }
+  .app-shell-with-drawer .app-drawer .brand-lockup strong { font-size: .98rem; }
+  .app-drawer-theme { padding-bottom: 12px; }
+}
+
+/* Dark mode: correct the legacy light-only areas without altering workflow layout. */
+html[data-theme="dark"] .app-content :is(.materials-table, .responsive-table, .list-footer,
+  .product-catalog, .product-details-form, .pricing-editor-panel, .pricing-catalog-panel,
+  .production-input-panel, .multi-production-line, .multi-production-group,
+  .product-catalog-card, .product-stock-card, .yield-guide li, .pricing-source-note,
+  .pricing-overview > div, .pricing-workflow > div, .product-card-grid > article,
+  .physical-id-layout > *, .workbook-import-panel, .workbook-export-panel,
+  .production-summary-card) {
+  background: var(--mlc-surface);
+  color: var(--mlc-ink);
+  border-color: var(--mlc-line);
+}
+html[data-theme="dark"] .app-content :is(.page-lead, .product-catalog-purpose,
+  .product-result-count, .product-card-notes, .production-print-panel p,
+  .product-card-facts dd, .material-id, .pricing-source-note, .field small) {
+  color: var(--mlc-muted);
+}
+html[data-theme="dark"] .app-content :is(.materials-table th,
+  .responsive-table tbody tr, .responsive-table td:first-child,
+  .production-print-format span, .multi-production-lines, .product-density-control,
+  .product-filter-count) {
+  background: var(--mlc-soft);
+  color: var(--mlc-ink);
+  border-color: var(--mlc-line);
+}
+html[data-theme="dark"] .app-content :is(.products-overview strong, .production-summary-card strong,
+  .product-card-top strong, .multi-production-group strong, .material-count strong,
+  .pricing-trace-summary-values strong, .workbook-tools-popover-heading h2) {
+  color: var(--mlc-ink);
+}
+html[data-theme="dark"] .workbook-tools-dialog {
+  background: var(--mlc-surface);
+  color: var(--mlc-ink);
+  border-color: var(--mlc-line);
+}
+html[data-theme="dark"] .workbook-tools-dialog :is(.workbook-tools-current-file,
+  .workbook-import-panel, .workbook-export-panel, .workbook-persistence-status) {
+  background: var(--mlc-soft); color: var(--mlc-ink); border-color: var(--mlc-line);
+}
+html[data-theme="dark"] .workbook-tools-dialog :is(input, select, textarea, button) {
+  color: var(--mlc-ink); border-color: var(--mlc-line);
+}
+@media (max-width: 520px) {
+  .app-drawer .brand-mark.brand-mark-botanical { width: 76px; height: 54px; flex-basis: 76px; }
+  .app-shell-with-drawer .app-drawer .brand-lockup strong { font-size: .98rem; }
+  .app-drawer-theme { padding-bottom: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-content *, .theme-choice { transition: none !important; }
+}

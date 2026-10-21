@@ -19,10 +19,31 @@ export type {
   ProductComponentSourceType as ProductComponentSource,
 } from './productComponents';
 export type { ProductFinancialProfile } from './productFinancialProfile';
+export type { PlasterMoldYieldProfile } from './plasterMoldYieldProfiles';
+export type {
+  ProductPriceTier,
+  ProductPriceTierKind,
+  ProductPriceTierPriceBasis,
+} from './productPriceTiers';
 export type { ProductStock } from './productStock';
 export type { PricingMethod, PricingPolicy } from './pricing';
 export type { Product, ProductCategory } from './products';
 export type { YieldSample, YieldSampleMaterialInput } from './yieldSamples';
+export type {
+  YieldRecipeSourceKind,
+  ResolvedYieldRecipeSource,
+  ManualYieldRecipeSource,
+  MixPresetYieldRecipeSource,
+  MoldFormulaYieldRecipeSource,
+  MoldFormulaYieldRecipeSourceReference,
+} from './yieldRecipeSource';
+export type { YieldMoldFormulaSource } from './yieldMoldFormulaSource';
+export type {
+  YieldMoldFormulaSourceValidationMode,
+  YieldMoldFormulaSourceReferenceIssue,
+  YieldMoldFormulaSourceReferenceIssueCode,
+  YieldMoldFormulaSourceReferenceValidationResult,
+} from './yieldMoldFormulaSourceValidation';
 export type { BaseUnit, InputUnit } from './units';
 
 /**

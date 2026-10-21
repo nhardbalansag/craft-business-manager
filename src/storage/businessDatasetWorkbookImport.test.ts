@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CURRENT_BUSINESS_DATASET_SCHEMA_VERSION } from '../domain/businessDataset';
+import { BROCHURE_IMAGE_COLUMN_NAMES } from '../domain/productBrochureImage';
 import type { BusinessDataset } from '../domain/types';
 import {
   createBusinessDatasetWorkbookDocument,
@@ -227,6 +228,64 @@ describe('BusinessDataset workbook import', () => {
     );
   });
 
+  it('round-trips optimized Product images with real XLSX bytes', () => {
+    const photo = `data:image/jpeg;base64,/9j/${'AAAA'.repeat(25)}`;
+    const source = datasetFixture();
+    source.products[0].imageDataUrl = photo;
+    const codec = new SheetJsWorkbookCodec();
+    const bytes = exportBusinessDatasetToXlsx(source, METADATA, codec);
+    const result = importBusinessDatasetFromXlsx(bytes, codec);
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.dataset.products.find((p) => p.id === source.products[0].id)?.imageDataUrl).toBe(photo);
+  });
+
+  it('imports legacy Products sheets that have no imageDataUrl column', () => {
+    const workbook = mutableDocument();
+    const products = mutableSheet(workbook, 'Products');
+    products.columns = products.columns.filter((column) => column !== 'imageDataUrl');
+    products.rows.forEach((row) => { delete row.imageDataUrl; });
+    const result = reconstructBusinessDatasetFromWorkbook(workbook as WorkbookNeutralDocument);
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.dataset.products.every((p) => p.imageDataUrl === undefined)).toBe(true);
+  });
+
+  it('persists separate high-resolution photos across XLSX export/import and preserves thumbnails', () => {
+    const highRes = 'data:image/jpeg;base64,' + 'AAAA'.repeat(75_000);
+    const thumb = 'data:image/jpeg;base64,' + 'AAAA'.repeat(25);
+    const dataset = datasetFixture();
+    dataset.products[0].brochureImageDataUrl = highRes;
+    dataset.products[0].imageDataUrl = thumb;
+    const sheetDoc = createBusinessDatasetWorkbookDocument(dataset, METADATA);
+    const productSheet = sheetDoc.sheets.find((sheet) => sheet.name === 'Products')!;
+    expect(productSheet.columns).toContain(BROCHURE_IMAGE_COLUMN_NAMES.at(-1));
+    const matchingRow = productSheet.rows.find((row) => row.id === dataset.products[0].id)!;
+    expect(matchingRow.imageDataUrl).toBe(thumb);
+    expect(String(matchingRow[BROCHURE_IMAGE_COLUMN_NAMES[0]])).toHaveLength(24_000);
+    const codec = new SheetJsWorkbookCodec();
+    const exported = exportBusinessDatasetToXlsx(dataset, METADATA, codec);
+    const result = importBusinessDatasetFromXlsx(exported, codec);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.dataset.products.find((p) => p.id === dataset.products[0].id)?.brochureImageDataUrl).toBe(highRes);
+      expect(result.dataset.products.find((p) => p.id === dataset.products[0].id)?.imageDataUrl).toBe(thumb);
+    }
+  });
+
+  it('imports older Products workbook columns without the high-resolution chunk fields', () => {
+    const dataset = datasetFixture();
+    const doc = structuredClone(createBusinessDatasetWorkbookDocument(dataset, METADATA)) as {
+      sheets: Array<{ name: string; columns: string[]; rows: Array<Record<string, unknown>> }>;
+    };
+    const productSheet = doc.sheets.find((sheet) => sheet.name === 'Products')!;
+    productSheet.columns = productSheet.columns.filter((column) => !BROCHURE_IMAGE_COLUMN_NAMES.includes(column));
+    productSheet.rows.forEach((row) => {
+      for (const key of BROCHURE_IMAGE_COLUMN_NAMES) delete row[key];
+    });
+    const result = reconstructBusinessDatasetFromWorkbook(doc);
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.dataset.products.every((p) => p.brochureImageDataUrl === undefined)).toBe(true);
+  });
+
   it('accepts ArrayBuffer input through the real codec boundary', () => {
     const codec = new SheetJsWorkbookCodec();
     const bytes = exportBusinessDatasetToXlsx(datasetFixture(), METADATA, codec);
@@ -325,6 +384,38 @@ describe('BusinessDataset workbook import', () => {
       socialPage: '@supplier-a',
       notes: '-literal source note',
     });
+  });
+
+  it('imports configured wax oil percentage and supports legacy Materials sheets without the column', () => {
+    const next = mutableDocument();
+    const materials = mutableSheet(next, 'Materials');
+    const wax = materials.rows.find((row) => row.id === 'MAT-A-PLASTER')!;
+    wax.group = 'wax';
+    wax.essentialOilPercent = 6;
+    const configured = expectSuccess(reconstructBusinessDatasetFromWorkbook(next as WorkbookNeutralDocument));
+    expect(configured.dataset.materials.find((material) => material.id === wax.id)?.essentialOilPercent).toBe(6);
+    materials.columns = materials.columns.filter((key) => key !== 'essentialOilPercent');
+    delete wax.essentialOilPercent;
+    const legacy = expectSuccess(reconstructBusinessDatasetFromWorkbook(next as WorkbookNeutralDocument));
+    expect(legacy.dataset.materials.find((material) => material.id === wax.id)?.essentialOilPercent).toBeUndefined();
+  });
+
+  it('round-trips paired candle material references and imports older Product sheets without them', () => {
+    const doc = mutableDocument();
+    const products = mutableSheet(doc, 'Products');
+    const candle = products.rows.find((row) => row.id === 'product-z')!;
+    candle.candleWaxMaterialId = 'WAX';
+    candle.candleEssentialOilMaterialId = 'OIL';
+    const configured = expectSuccess(reconstructBusinessDatasetFromWorkbook(doc as WorkbookNeutralDocument));
+    expect(configured.dataset.products.find((p) => p.id === 'product-z')).toMatchObject({
+      candleWaxMaterialId: 'WAX', candleEssentialOilMaterialId: 'OIL',
+    });
+    products.columns = products.columns.filter((column) =>
+      column !== 'candleWaxMaterialId' && column !== 'candleEssentialOilMaterialId');
+    delete candle.candleWaxMaterialId;
+    delete candle.candleEssentialOilMaterialId;
+    const legacy = expectSuccess(reconstructBusinessDatasetFromWorkbook(doc as WorkbookNeutralDocument));
+    expect(legacy.dataset.products.find((p) => p.id === 'product-z')?.candleWaxMaterialId).toBeUndefined();
   });
 
   it('preserves explicit zero and null pricing policy semantics', () => {

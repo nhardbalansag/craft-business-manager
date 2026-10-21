@@ -57,6 +57,14 @@ export interface Material {
    */
   manualBaseUnitsPerPurchaseUnit?: number;
 
+  /**
+   * Optional candle fragrance load as a percentage of wax weight.
+   * For 200 g of wax at 6%, the oil estimate is 12 g (not 6% of the final blend).
+   * Only wax materials with a gram base unit may configure this setting.
+   * No safe default is inferred: confirm limits for the wax and specific oil.
+   */
+  essentialOilPercent?: number;
+
   /** User-entered current stock quantity. Normalized base quantity is derived later. */
   onHandQuantity: number;
   onHandUnit: MaterialPurchaseUnit;
@@ -108,7 +116,8 @@ export class MaterialContractError extends Error {
     | 'INVALID_GROUP'
     | 'INVALID_BASE_UNIT'
     | 'INVALID_PURCHASE_UNIT'
-    | 'INCOMPATIBLE_STANDARD_UNIT';
+    | 'INCOMPATIBLE_STANDARD_UNIT'
+    | 'INVALID_ESSENTIAL_OIL_PERCENT';
   readonly input?: unknown;
 
   constructor(
@@ -186,6 +195,20 @@ export function validateMaterialContract(material: Material): void {
 
   validateStandardMaterialUnit(material.purchaseUnit, material.baseUnit, 'Purchase');
   validateStandardMaterialUnit(material.onHandUnit, material.baseUnit, 'On-hand');
+
+  if (material.essentialOilPercent !== undefined && (
+    material.group !== 'wax' ||
+    material.baseUnit !== 'g' ||
+    !Number.isFinite(material.essentialOilPercent) ||
+    material.essentialOilPercent < 0 ||
+    material.essentialOilPercent > 100
+  )) {
+    throw new MaterialContractError(
+      'INVALID_ESSENTIAL_OIL_PERCENT',
+      'Essential oil percentage must be between 0 and 100 and is only valid for wax with a gram base unit.',
+      material.essentialOilPercent,
+    );
+  }
 
   if (material.source !== undefined) {
     validateMaterialSourceMetadata(material.source);

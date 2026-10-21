@@ -57,6 +57,10 @@ beforeEach(async () => {
     session.yieldSampleRepository.replaceAll([]),
     session.calibrationRepository.replaceAll([]),
     session.productFinancialProfileRepository.replaceAll([]),
+    session.storageLocationRepository.replaceAll([]),
+    session.moldRepository.replaceAll([]),
+    session.plasterMoldYieldProfileRepository.replaceAll([]),
+    session.yieldMoldFormulaSourceRepository.replaceAll([]),
   ]);
   container = document.createElement('div');
   document.body.append(container);
@@ -115,6 +119,158 @@ async function submit() {
 }
 
 describe('Yield workspace UI/UX', () => {
+  it('keeps quick instructions and secondary statistics collapsed while leaving batch recording available', async () => {
+    await seed();
+    await mount();
+
+    const guide = container.querySelector<HTMLDetailsElement>('.yield-guide-disclosure')!;
+    const extraStats = container.querySelector<HTMLDetailsElement>('.yield-secondary-insights')!;
+    expect(guide).not.toBeNull();
+    expect(guide.open).toBe(false);
+    expect(extraStats).not.toBeNull();
+    expect(extraStats.open).toBe(false);
+    expect(container.querySelector('[aria-label="Yield sample"]')).not.toBeNull();
+    expect(container.querySelector('[aria-label="Yield draft completion"]')).not.toBeNull();
+    expect(container.querySelector('[aria-label="Yield history snapshot"]')?.textContent).toContain('Effective good yield');
+
+    await act(async () => guide.querySelector('summary')!.click());
+    expect(guide.open).toBe(true);
+    await act(async () => extraStats.querySelector('summary')!.click());
+    expect(extraStats.open).toBe(true);
+    expect(extraStats.textContent).toContain('Historical good-piece rate');
+  });
+
+  it('shows the Product reference photo if saved, and updates it when the chosen Product changes', async () => {
+    const photo = 'data:image/jpeg;base64,/9j/AAAA';
+    const otherPhoto = 'data:image/jpeg;base64,/9j/BBBB';
+    await session.materialRepository.replaceAll([plaster]);
+    await session.productRepository.replaceAll([
+      { ...product, imageDataUrl: photo },
+      { ...product, id: 'ART-ZZ', name: 'Wild Animal Kit', imageDataUrl: otherPhoto },
+    ]);
+    await mount();
+
+    const picker = container.querySelector<HTMLInputElement>('[aria-label="Search products for yield"]')!;
+    await act(async () => picker.focus());
+    await fill(picker, 'Paintable Star');
+    await act(async () => container.querySelector<HTMLButtonElement>('[role="option"]')!.click());
+
+    let image = container.querySelector<HTMLImageElement>('.yield-product-reference-image');
+    expect(image?.getAttribute('src')).toBe(photo);
+    expect(image?.getAttribute('alt')).toBe('Product reference: Paintable Star');
+
+    await act(async () => picker.focus());
+    await fill(picker, 'Wild Animal Kit');
+    await act(async () => container.querySelector<HTMLButtonElement>('[role="option"]')!.click());
+    image = container.querySelector<HTMLImageElement>('.yield-product-reference-image');
+    expect(image?.getAttribute('src')).toBe(otherPhoto);
+    expect(image?.getAttribute('alt')).toBe('Product reference: Wild Animal Kit');
+    await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="View full-size image of Wild Animal Kit"]')!.click());
+    expect(document.body.querySelector<HTMLImageElement>('.product-image-zoom-canvas img')?.getAttribute('src')).toBe(otherPhoto);
+    await act(async () => document.body.querySelector<HTMLButtonElement>('[aria-label="Close enlarged product image"]')!.click());
+    expect(container.querySelector('[aria-label="Yield sample"]')).not.toBeNull();
+  });
+
+  it('supports missing images and the saved brochure-image fallback', async () => {
+    await session.materialRepository.replaceAll([plaster]);
+    await session.productRepository.replaceAll([{ ...product, imageDataUrl: undefined }]);
+    await mount();
+    expect(container.querySelector('.yield-product-reference-image')).toBeNull();
+    expect(container.querySelector('[aria-label="Yield sample"]')).not.toBeNull();
+
+    const brochure = 'data:image/jpeg;base64,/9j/CCCC';
+    await session.productRepository.replaceAll([{ ...product, brochureImageDataUrl: brochure }]);
+    await act(async () => {
+      root.unmount();
+    });
+    root = createRoot(container);
+    await mount();
+    expect(container.querySelector<HTMLImageElement>('.yield-product-reference-image')?.getAttribute('src')).toBe(brochure);
+  });
+
+  it('shows the entire selected product name and ID in a full-width identity card and updates on selection', async () => {
+    const longProduct = {
+      ...product,
+      id: 'ART-LONG-2026',
+      name: 'Custom Paintable Sea Creatures and Wild Animals Birthday Party Collection',
+    };
+    await session.materialRepository.replaceAll([plaster]);
+    await session.productRepository.replaceAll([product, longProduct]);
+    await mount();
+
+    const current = container.querySelector<HTMLElement>('[aria-label="Selected Yield product"]')!;
+    expect(current).not.toBeNull();
+    expect(current.classList.contains('yield-selected-product-card')).toBe(true);
+    expect(current.querySelector('.yield-selected-product-name')?.textContent).toBe(longProduct.name);
+    expect(current.querySelector('.yield-selected-product-details')?.textContent).toContain(longProduct.id);
+    const picker = container.querySelector<HTMLInputElement>('[aria-label="Search products for yield"]')!;
+    await act(async () => picker.focus());
+    await fill(picker, 'Paintable Star');
+    const firstChoice = container.querySelector<HTMLButtonElement>('[role="option"]')!;
+    expect(firstChoice.textContent).toContain('Paintable Star');
+    await act(async () => firstChoice.click());
+    expect(current.querySelector('.yield-selected-product-name')?.textContent).toBe('Paintable Star');
+    expect(current.querySelector('.yield-selected-product-details')?.textContent).toContain('ART-001');
+    await act(async () => picker.focus());
+    await fill(picker, 'Sea Creatures');
+    const choice = container.querySelector<HTMLButtonElement>('[role="option"]')!;
+    expect(choice.textContent).toContain(longProduct.name);
+    await act(async () => choice.click());
+    expect(current.querySelector('.yield-selected-product-name')?.textContent).toBe(longProduct.name);
+    expect(current.querySelector('.yield-selected-product-details')?.textContent).toContain('ART-LONG-2026');
+    expect(current.querySelector('.yield-selected-product-details')?.textContent).toContain('Paintable');
+    expect(container.querySelector<HTMLSelectElement>('.yield-product-native-select')?.value).toBe(longProduct.id);
+  });
+
+  it('keeps selected product readable when an archived product is active in history view', async () => {
+    await session.materialRepository.replaceAll([plaster]);
+    await session.productRepository.replaceAll([{
+      ...product,
+      name: 'Historical Custom Party Candle and Plaster Product with a Long Name',
+      isActive: false,
+    }]);
+    await mount();
+    const selected = container.querySelector<HTMLElement>('[aria-label="Selected Yield product"]')!;
+    expect(selected.querySelector('.yield-selected-product-name')?.textContent).toContain('Historical Custom');
+    expect(selected.querySelector('.yield-selected-product-details')?.textContent).toContain('ART-001');
+    expect(container.querySelector('.yield-product-context')?.textContent).toContain('Archived');
+  });
+
+  it('uses the saved wax oil percentage and explicitly adds estimated oil to candle yield inputs', async () => {
+    await session.materialRepository.replaceAll([
+      { ...plaster, id: 'WAX', name: 'Soy wax', group: 'wax', essentialOilPercent: 6 },
+      { ...plaster, id: 'OIL', name: 'Lavender essential oil', group: 'fragrance', packageCost: 500 },
+    ]);
+    await session.productRepository.replaceAll([{ ...product, id: 'CANDLE', name: 'Scented Candle', category: 'candle' }]);
+    await mount();
+    const panel = container.querySelector<HTMLElement>('[aria-label="Essential oil calculator"]')!;
+    expect(panel).not.toBeNull();
+    expect(panel.textContent).toContain('Select a wax material');
+    await fill(container.querySelector<HTMLSelectElement>('[aria-label="Yield material 1"]')!, 'WAX');
+    await fill(container.querySelector<HTMLInputElement>('[aria-label="Yield quantity 1"]')!, '200');
+    expect(panel.textContent).toContain('6%');
+    expect(panel.textContent).toContain('12 g');
+    expect(panel.textContent).toContain('212 g');
+    expect(container.querySelectorAll('.yield-input-row')).toHaveLength(1);
+    await click('Apply estimated oil to batch', panel);
+    expect(container.querySelectorAll('.yield-input-row')).toHaveLength(2);
+    expect(container.querySelector<HTMLSelectElement>('[aria-label="Yield material 2"]')?.value).toBe('OIL');
+    expect(container.querySelector<HTMLInputElement>('[aria-label="Yield quantity 2"]')?.value).toBe('12');
+    expect(container.textContent).toContain('Verify the actual grams before recording');
+    // The preview never creates Yield evidence until the user records the sample.
+    expect(await session.yieldSampleEvidenceService.listSamples()).toHaveLength(0);
+    await submit();
+    expect((await session.yieldSampleEvidenceService.listSamples())[0]?.materialInputs).toEqual([
+      { materialId: 'WAX', quantity: 200, unit: 'g' },
+      { materialId: 'OIL', quantity: 12, unit: 'g' },
+    ]);
+  });
+
+  it('does not show scented candle guidance for plaster products', async () => {
+    await seed();
+    await mount();
+    expect(container.querySelector('[aria-label="Essential oil calculator"]')).toBeNull();
+  });
   it('makes unavailable copied materials visible and requires a valid replacement', async () => {
     await seed();
     await session.materialRepository.replaceAll([plaster, { ...plaster, id: 'ARCHIVED', name: 'Old plaster', isActive: false }]);
@@ -181,10 +337,17 @@ describe('Yield workspace UI/UX', () => {
     expect(field('Sample ID').value).toBe('YLD-0001');
     await fill(container.querySelector<HTMLSelectElement>('[aria-label="Yield material 1"]')!, plaster.id);
     await fill(container.querySelector<HTMLInputElement>('[aria-label="Yield quantity 1"]')!, '100');
-    const record = session.yieldSampleEvidenceService.recordSample.bind(session.yieldSampleEvidenceService);
+    const record = session.yieldRecipeSourceRecordingService.record.bind(
+      session.yieldRecipeSourceRecordingService,
+    );
     let release!: () => void;
     const gate = new Promise<void>((resolve) => { release = resolve; });
-    const spy = vi.spyOn(session.yieldSampleEvidenceService, 'recordSample').mockImplementation(async (input) => { await gate; return record(input); });
+    const spy = vi
+      .spyOn(session.yieldRecipeSourceRecordingService, 'record')
+      .mockImplementation(async (input) => {
+        await gate;
+        return record(input);
+      });
     await submit();
     await submit();
     expect(spy).toHaveBeenCalledTimes(1);
@@ -193,6 +356,199 @@ describe('Yield workspace UI/UX', () => {
     await act(async () => release());
     expect(await session.yieldSampleEvidenceService.listSamples({ productId: product.id })).toHaveLength(1);
     expect(container.querySelector<HTMLSelectElement>('.yield-product-bar select')?.disabled).toBe(false);
+  });
+
+  it('shows an explicit recipe-source selector and defaults products without a preset to Manual', async () => {
+    await seed();
+    await mount();
+
+    const selector = container.querySelector<HTMLElement>(
+      '[aria-label="Recipe source"]',
+    )!;
+    expect(selector).not.toBeNull();
+    expect(
+      selector.querySelector<HTMLInputElement>(
+        'input[value="manual"]',
+      )?.checked,
+    ).toBe(true);
+    expect(
+      selector.querySelector<HTMLInputElement>(
+        'input[value="mix-preset"]',
+      ),
+    ).toBeNull();
+    expect(
+      selector.querySelector<HTMLInputElement>(
+        'input[value="mold-formula"]',
+      )?.checked,
+    ).toBe(false);
+    expect(
+      container.querySelector('[aria-label="Mix preset recipe source"]'),
+    ).toBeNull();
+    expect(
+      container.querySelector('[aria-label="Yield Mix preset"]'),
+    ).toBeNull();
+    expect(
+      container.querySelector('[aria-label="Mold Formula recipe source"]'),
+    ).toBeNull();
+    const manualMode = container.querySelector<HTMLElement>(
+      '[aria-label="Manual recipe source"]',
+    )!;
+    expect(manualMode).not.toBeNull();
+    expect(manualMode.textContent).toContain('No saved recipe');
+    expect(manualMode.textContent).toContain('Actual batch measurements');
+  });
+
+  it('records Manual evidence without Mix preset or Mold Formula provenance', async () => {
+    await seed();
+    await mount();
+
+    await fill(
+      container.querySelector<HTMLSelectElement>(
+        '[aria-label="Yield material 1"]',
+      )!,
+      plaster.id,
+    );
+    await fill(
+      container.querySelector<HTMLInputElement>(
+        '[aria-label="Yield quantity 1"]',
+      )!,
+      '100',
+    );
+
+    const recordSpy = vi.spyOn(
+      session.yieldRecipeSourceRecordingService,
+      'record',
+    );
+
+    await submit();
+
+    expect(recordSpy).toHaveBeenCalledOnce();
+    expect(recordSpy.mock.calls[0]?.[0].source).toEqual({ kind: 'manual' });
+
+    const saved = await session.yieldSampleEvidenceService.listSamples({
+      productId: product.id,
+    });
+    expect(saved).toHaveLength(1);
+    expect(saved[0].mixPresetId).toBeUndefined();
+    expect(
+      await session.yieldMoldFormulaSourceService.getSourceForYieldSample(
+        saved[0].id,
+      ),
+    ).toBeNull();
+  });
+
+  it('shows an explicit non-recordable Mold Formula source state before a formula draft is attached', async () => {
+    await seed();
+    await mount();
+
+    const formulaSource = container.querySelector<HTMLInputElement>(
+      '[aria-label="Recipe source"] input[value="mold-formula"]',
+    )!;
+    await act(async () => formulaSource.click());
+
+    expect(
+      container.querySelector('[aria-label="Mold Formula recipe source"]'),
+    ).not.toBeNull();
+    expect(
+      container.querySelector('[aria-label="Mix preset recipe source"]'),
+    ).toBeNull();
+    expect(container.textContent).toContain(
+      'No Mold Formula is attached to this draft yet.',
+    );
+    expect(container.textContent).toContain('Formula setup below');
+    expect(
+      container.querySelector('[aria-label="Mold Formula assistant"]'),
+    ).not.toBeNull();
+    expect(
+      container.querySelector<HTMLButtonElement>('button[type="submit"]')
+        ?.disabled,
+    ).toBe(true);
+  });
+
+  it('does not offer Mix preset for new Yield recording', async () => {
+    await seed();
+    await session.productRepository.replaceAll([
+      { ...product, mixPresetId: 'MIX-PLASTER' },
+    ]);
+    await session.mixPresetRepository.replaceAll([
+      {
+        id: 'MIX-PLASTER',
+        name: 'Standard Plaster Mix',
+        compatibleCategories: ['paintable-art'],
+        basis: 'weight',
+        lines: [
+          {
+            materialId: plaster.id,
+            role: 'primary',
+            parts: 1,
+          },
+        ],
+        isActive: true,
+      },
+    ]);
+    await mount();
+
+    const selector = container.querySelector<HTMLElement>(
+      '[aria-label="Recipe source"]',
+    )!;
+    expect(
+      selector.querySelector('input[value="mix-preset"]'),
+    ).toBeNull();
+    expect(
+      container.querySelector('[aria-label="Mix preset recipe source"]'),
+    ).toBeNull();
+    expect(
+      container.querySelector('[aria-label="Yield Mix preset"]'),
+    ).toBeNull();
+    expect(container.querySelector('[aria-label="Recipe source"]')?.textContent).toContain('Manual');
+    expect(container.querySelector('[aria-label="Recipe source"]')?.textContent).toContain('Mold formula');
+  });
+
+  it('copies a legacy Mix-preset Yield sample into a Manual draft', async () => {
+    await seed();
+    await session.mixPresetRepository.replaceAll([
+      {
+        id: 'MIX-LEGACY',
+        name: 'Legacy Mix',
+        compatibleCategories: ['paintable-art'],
+        basis: 'weight',
+        lines: [
+          {
+            materialId: plaster.id,
+            role: 'primary',
+            parts: 1,
+          },
+        ],
+        isActive: true,
+      },
+    ]);
+    await session.yieldSampleRepository.replaceAll([
+      sample({ id: 'YLD-LEGACY-MIX', mixPresetId: 'MIX-LEGACY' }),
+    ]);
+    await mount();
+
+    const legacy = container.querySelector<HTMLElement>(
+      '[aria-label="Yield sample YLD-LEGACY-MIX"]',
+    )!;
+    expect(
+      legacy.querySelector('.yield-history-recipe-source')?.textContent,
+    ).toContain('Mix preset');
+
+    await click('Use as new draft', legacy);
+
+    const selector = container.querySelector<HTMLElement>(
+      '[aria-label="Recipe source"]',
+    )!;
+    expect(
+      selector.querySelector<HTMLInputElement>('input[value="manual"]')
+        ?.checked,
+    ).toBe(true);
+    expect(selector.querySelector('input[value="mix-preset"]')).toBeNull();
+    expect(field('Good pieces').value).toBe('8');
+    expect(
+      container.querySelector<HTMLSelectElement>('[aria-label="Yield material 1"]')
+        ?.value,
+    ).toBe(plaster.id);
   });
 
   it('requires a valid date and never previews percentages from invalid piece counts', async () => {
@@ -215,7 +571,9 @@ describe('Yield workspace UI/UX', () => {
     expect(field('Sample ID').value).toBe('YLD-0001');
     await fill(container.querySelector<HTMLSelectElement>('[aria-label="Yield material 1"]')!, plaster.id);
     await fill(container.querySelector<HTMLInputElement>('[aria-label="Yield quantity 1"]')!, '100');
-    vi.spyOn(session.yieldSampleEvidenceService, 'recordSample').mockRejectedValueOnce(new Error('Save failed'));
+    vi.spyOn(session.yieldRecipeSourceRecordingService, 'record').mockRejectedValueOnce(
+      new Error('Save failed'),
+    );
     await submit();
     expect(field('Sample ID').value).toBe('YLD-0001');
     expect(form()?.textContent).toContain('Save failed');
@@ -393,7 +751,7 @@ describe('Yield workspace UI/UX', () => {
 
     await mount();
 
-    expect(container.textContent).toContain('history view only');
+    expect(container.querySelector('[aria-label="Selected Yield product"]')?.textContent).toContain('Archived · history only');
     expect(container.textContent).toContain('Archived products keep their history');
     expect(container.querySelector<HTMLButtonElement>('button[type="submit"]')?.disabled).toBe(true);
     expect(history()!.textContent).toContain('YS-ARCHIVED');

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
-import { moldService, storageLocationService } from '../../application/session';
+import { moldService, plasterMoldYieldProfileService, storageLocationService } from '../../application/session';
 import { nextSequentialId } from '../../domain/identifiers';
 import type { Mold } from '../../domain/molds';
 import type { Product } from '../../domain/products';
@@ -9,6 +9,7 @@ import {
   type StorageLocationType,
 } from '../../domain/storageLocations';
 import { PhysicalLabelPrintDialog } from '../labels/PhysicalLabelPrintDialog';
+import { PlasterMoldFormulaConfigurationPanel } from './PlasterMoldFormulaConfigurationPanel';
 import type { PhysicalLabelIdentity } from '../labels/physicalLabel';
 import './physicalIdentification.css';
 
@@ -16,6 +17,7 @@ type WorkspaceMode = 'molds' | 'storage';
 type StatusFilter = 'active' | 'archived' | 'all';
 type MoldStorageFilter = 'all' | 'assigned' | 'unassigned';
 type LocationTypeFilter = 'all' | StorageLocationType;
+const MOLD_PAGE_SIZE = 10;
 
 type MoldForm = {
   id: string;
@@ -59,12 +61,27 @@ export function PhysicalIdentificationWorkspace({ products }: { products: readon
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState<StatusFilter>('active');
   const [moldStorageFilter, setMoldStorageFilter] = useState<MoldStorageFilter>('all');
+  const [moldPage, setMoldPage] = useState(1);
   const [locationTypeFilter, setLocationTypeFilter] = useState<LocationTypeFilter>('all');
   const [moldForm, setMoldForm] = useState<MoldForm>(EMPTY_MOLD);
   const [locationForm, setLocationForm] = useState<LocationForm>(EMPTY_LOCATION);
   const [editingMoldId, setEditingMoldId] = useState<string | null>(null);
+  const [moldModalOpen, setMoldModalOpen] = useState(false);
   const [editingLocationId, setEditingLocationId] = useState<string | null>(null);
   const [labelIdentity, setLabelIdentity] = useState<PhysicalLabelIdentity | null>(null);
+  const [formulaMoldId, setFormulaMoldId] = useState<string | null>(null);
+  const [activeFormulaProfileIdByMoldId, setActiveFormulaProfileIdByMoldId] = useState<Record<string, string>>({});
+
+  const reloadFormulaProfiles = useCallback(async () => {
+    const profiles = await plasterMoldYieldProfileService.listProfiles();
+    setActiveFormulaProfileIdByMoldId(
+      Object.fromEntries(
+        profiles
+          .filter((profile) => profile.isActive)
+          .map((profile) => [normalize(profile.moldId), profile.id]),
+      ),
+    );
+  }, []);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -72,6 +89,7 @@ export function PhysicalIdentificationWorkspace({ products }: { products: readon
       const [nextMolds, nextLocations] = await Promise.all([
         moldService.listMolds(),
         storageLocationService.listLocations(),
+        reloadFormulaProfiles(),
       ]);
       const pathEntries = await Promise.all(
         nextLocations.map(async (location) => [location.id, await storageLocationService.formatPath(location.id)] as const),
@@ -84,7 +102,7 @@ export function PhysicalIdentificationWorkspace({ products }: { products: readon
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [reloadFormulaProfiles]);
 
   useEffect(() => {
     void reload();
@@ -131,6 +149,20 @@ export function PhysicalIdentificationWorkspace({ products }: { products: readon
     });
   }, [molds, moldStorageFilter, pathByLocationId, productById, query, status]);
 
+  const moldPageCount = Math.max(1, Math.ceil(visibleMolds.length / MOLD_PAGE_SIZE));
+  const paginatedMolds = useMemo(
+    () => visibleMolds.slice((moldPage - 1) * MOLD_PAGE_SIZE, moldPage * MOLD_PAGE_SIZE),
+    [moldPage, visibleMolds],
+  );
+
+  useEffect(() => {
+    setMoldPage(1);
+  }, [moldStorageFilter, query, status]);
+
+  useEffect(() => {
+    if (moldPage > moldPageCount) setMoldPage(moldPageCount);
+  }, [moldPage, moldPageCount]);
+
   const visibleLocations = useMemo(() => {
     const search = normalize(query);
     return locations.filter((location) =>
@@ -154,6 +186,11 @@ export function PhysicalIdentificationWorkspace({ products }: { products: readon
   const assignableLocations = useMemo(
     () => locations.filter((location) => location.isActive),
     [locations],
+  );
+
+  const formulaMold = useMemo(
+    () => molds.find((mold) => normalize(mold.id) === normalize(formulaMoldId ?? '')) ?? null,
+    [formulaMoldId, molds],
   );
 
   const generatedMoldId = useMemo(() => nextSequentialId(molds.map((mold) => mold.id), 'MOLD'), [molds]);
@@ -197,6 +234,14 @@ export function PhysicalIdentificationWorkspace({ products }: { products: readon
   function resetMoldForm() {
     setEditingMoldId(null);
     setMoldForm(EMPTY_MOLD);
+    setMoldModalOpen(false);
+  }
+
+  function openMoldForm() {
+    setEditingMoldId(null);
+    setMoldForm(EMPTY_MOLD);
+    setFeedback(null);
+    setMoldModalOpen(true);
   }
 
   function resetLocationForm() {
@@ -315,6 +360,7 @@ export function PhysicalIdentificationWorkspace({ products }: { products: readon
       notes: mold.notes ?? '',
     });
     setFeedback(null);
+    setMoldModalOpen(true);
   }
 
   function editLocation(location: StorageLocation) {
@@ -422,39 +468,122 @@ export function PhysicalIdentificationWorkspace({ products }: { products: readon
       {feedback && <div className={`feedback ${feedback.type}`} role={feedback.type === 'error' ? 'alert' : 'status'}>{feedback.message}</div>}
 
       {mode === 'molds' ? (
-        <div className="physical-id-layout">
-          <form className="panel physical-id-form" onSubmit={submitMold}>
-            <div className="panel-heading">
-              <div><p className="panel-kicker">MOLD RECORD</p><h3>{editingMoldId ? 'Edit mold' : 'Add a mold'}</h3><p className="physical-id-form-copy">{editingMoldId ? 'Update the product details or move this mold without changing its stable ID.' : 'Register a physical mold and optionally place it into storage now.'}</p></div>
-              {editingMoldId && <button type="button" className="text-button" onClick={resetMoldForm}>Cancel edit</button>}
-            </div>
-            <label className="field"><span>Mold ID</span><input value={editingMoldId ? moldForm.id : generatedMoldId} readOnly aria-readonly="true" /><small>{editingMoldId ? 'Existing Mold ID is preserved.' : 'Assigned automatically when this mold is created.'}</small></label>
-            <label className="field"><span>Mold name</span><input required value={moldForm.name} onChange={(event) => setMoldForm((current) => ({ ...current, name: event.target.value }))} placeholder="Dinosaur Mold #1" /></label>
-            <label className="field"><span>Product</span><select required value={moldForm.productId} onChange={(event) => setMoldForm((current) => ({ ...current, productId: event.target.value }))}><option value="">Select product</option>{products.filter((product) => product.isActive || product.id === moldForm.productId).map((product) => <option key={product.id} value={product.id}>{product.name} · {product.id}</option>)}</select></label>
-            <label className="field"><span>Storage location</span><select value={moldForm.storageLocationId} onChange={(event) => setMoldForm((current) => ({ ...current, storageLocationId: event.target.value }))}><option value="">Unassigned</option>{assignableLocations.map((location) => <option key={location.id} value={location.id}>{pathByLocationId[location.id] ?? location.name}</option>)}</select><small>Moving a mold changes only its location. Its Mold ID stays the same.</small></label>
-            <label className="field"><span>Notes</span><textarea value={moldForm.notes} onChange={(event) => setMoldForm((current) => ({ ...current, notes: event.target.value }))} placeholder="Condition, cavity notes, color marks, or handling reminders" /></label>
-            <button className="button button-primary physical-id-submit" disabled={busy || loading}>{editingMoldId ? 'Save mold changes' : 'Add mold'}</button>
-          </form>
-
-          <div className="panel physical-id-list">
-            <div className="panel-heading physical-id-directory-heading">
-              <div><p className="panel-kicker">MOLD DIRECTORY</p><h3>{loading ? 'Loading…' : `${visibleMolds.length} shown`}</h3><p>{loading ? 'Refreshing mold records.' : `${molds.length} total records · ${unassignedActiveMolds} active molds need storage`}</p></div>
-            </div>
-            {visibleMolds.length === 0 ? <div className="empty-state physical-id-empty"><strong>No molds match this view.</strong><p>Adjust the search or filters, or add a new mold using the form.</p>{filtersActive && <button type="button" className="text-button" onClick={clearFilters}>Clear filters</button>}</div> : <div className="physical-id-card-list">{visibleMolds.map((mold) => {
-              const product = productById.get(normalize(mold.productId));
-              const path = mold.storageLocationId ? pathByLocationId[mold.storageLocationId] : undefined;
-              return <article className={`physical-id-card ${!mold.storageLocationId && mold.isActive ? 'needs-storage' : ''}`} key={mold.id}>
-                <div className="physical-id-card-top">
-                  <div className="physical-id-card-title"><div className="physical-id-card-badges"><span className={`status-pill ${mold.isActive ? 'status-active' : ''}`}>{mold.isActive ? 'Active' : 'Archived'}</span>{!mold.storageLocationId && mold.isActive && <span className="physical-id-warning-pill">Needs storage</span>}</div><h4>{mold.name}</h4><code>{mold.id}</code></div>
-                  <button type="button" className="button button-quiet physical-id-primary-action" disabled={busy} onClick={() => editMold(mold)}>Edit / move</button>
+        <>
+          <div className="physical-id-layout physical-id-layout-directory">
+            <div className="panel physical-id-list">
+              <div className="panel-heading physical-id-directory-heading">
+                <div><p className="panel-kicker">MOLD DIRECTORY</p><h3>{loading ? 'Loading…' : `${visibleMolds.length} shown`}</h3><p>{loading ? 'Refreshing mold records.' : `${molds.length} total records · ${unassignedActiveMolds} active molds need storage`}</p></div>
+                <button type="button" className="button button-primary physical-id-directory-action" disabled={busy || loading} onClick={openMoldForm}>Add mold</button>
+              </div>
+              {visibleMolds.length === 0 ? (
+                <div className="empty-state physical-id-empty">
+                  <strong>No molds match this view.</strong>
+                  <p>Adjust the search or filters, or use Add mold to register a new physical mold.</p>
+                  {filtersActive && <button type="button" className="text-button" onClick={clearFilters}>Clear filters</button>}
                 </div>
-                <dl><div><dt>Product</dt><dd><strong>{product?.name ?? mold.productId}</strong><small>{mold.productId}</small></dd></div><div><dt>Storage</dt><dd className={!path ? 'physical-id-unassigned' : ''}>{path ?? 'Unassigned — choose a storage location'}</dd></div></dl>
-                {mold.notes && <p className="physical-id-notes">{mold.notes}</p>}
-                <div className="physical-id-actions"><button type="button" className="text-button" onClick={() => printMold(mold)}>Print mold label</button><button type="button" className={`text-button ${mold.isActive ? 'danger' : ''}`} disabled={busy} onClick={() => void toggleMold(mold)}>{mold.isActive ? 'Archive' : 'Restore'}</button></div>
-              </article>;
-            })}</div>}
+              ) : (
+                <>
+                  <div className="physical-id-table-wrap">
+                    <table className="physical-id-table" aria-label="Mold directory table">
+                      <thead>
+                        <tr>
+                          <th scope="col">Status</th>
+                          <th scope="col">Mold</th>
+                          <th scope="col">Product</th>
+                          <th scope="col">Storage</th>
+                          <th scope="col">Formula</th>
+                          <th scope="col">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {paginatedMolds.map((mold) => {
+                          const product = productById.get(normalize(mold.productId));
+                          const path = mold.storageLocationId ? pathByLocationId[mold.storageLocationId] : undefined;
+                          return (
+                            <tr className={!mold.storageLocationId && mold.isActive ? 'needs-storage' : ''} key={mold.id} data-mold-row={mold.id}>
+                              <td>
+                                <div className="physical-id-table-status">
+                                  <span className={`status-pill ${mold.isActive ? 'status-active' : ''}`}>{mold.isActive ? 'Active' : 'Archived'}</span>
+                                  {!mold.storageLocationId && mold.isActive && <span className="physical-id-warning-pill">Needs storage</span>}
+                                </div>
+                              </td>
+                              <td>
+                                <strong className="physical-id-table-name">{mold.name}</strong>
+                                <code>{mold.id}</code>
+                                {mold.notes && <small className="physical-id-table-note">{mold.notes}</small>}
+                              </td>
+                              <td>
+                                <strong>{product?.name ?? mold.productId}</strong>
+                                <small>{mold.productId}</small>
+                              </td>
+                              <td>
+                                <span className={!path ? 'physical-id-unassigned' : ''}>{path ?? 'Unassigned — choose a storage location'}</span>
+                              </td>
+                              <td>
+                                {activeFormulaProfileIdByMoldId[normalize(mold.id)] ? (
+                                  <span className="physical-id-formula-state configured">Configured</span>
+                                ) : (
+                                  <span className="physical-id-formula-state missing">Not configured</span>
+                                )}
+                                {activeFormulaProfileIdByMoldId[normalize(mold.id)] && (
+                                  <small>{activeFormulaProfileIdByMoldId[normalize(mold.id)]}</small>
+                                )}
+                              </td>
+                              <td>
+                                <div className="physical-id-table-actions">
+                                  <button type="button" className="button button-quiet" disabled={busy} onClick={() => editMold(mold)}>Edit / move</button>
+                                  {mold.isActive && (
+                                    <button type="button" className="text-button" onClick={() => setFormulaMoldId(mold.id)}>
+                                      {activeFormulaProfileIdByMoldId[normalize(mold.id)] ? 'Edit formula' : 'Configure formula'}
+                                    </button>
+                                  )}
+                                  <button type="button" className="text-button" onClick={() => printMold(mold)}>Print mold label</button>
+                                  <button type="button" className={`text-button ${mold.isActive ? 'danger' : ''}`} disabled={busy} onClick={() => void toggleMold(mold)}>{mold.isActive ? 'Archive' : 'Restore'}</button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="physical-id-pagination" aria-label="Mold directory pagination">
+                    <span>
+                      {((moldPage - 1) * MOLD_PAGE_SIZE) + 1}–{Math.min(moldPage * MOLD_PAGE_SIZE, visibleMolds.length)} of {visibleMolds.length}
+                    </span>
+                    <div>
+                      <button type="button" className="button button-quiet" aria-label="Previous mold page" disabled={moldPage <= 1} onClick={() => setMoldPage((current) => Math.max(1, current - 1))}>Previous</button>
+                      <span>Page {moldPage} of {moldPageCount}</span>
+                      <button type="button" className="button button-quiet" aria-label="Next mold page" disabled={moldPage >= moldPageCount} onClick={() => setMoldPage((current) => Math.min(moldPageCount, current + 1))}>Next</button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
-        </div>
+
+          {moldModalOpen && (
+            <div className="physical-id-modal-backdrop" role="presentation">
+              <div className="physical-id-modal panel" role="dialog" aria-modal="true" aria-labelledby="mold-record-dialog-title">
+                <form className="physical-id-form physical-id-modal-form" aria-label="Mold record form" onSubmit={submitMold}>
+                  <div className="panel-heading">
+                    <div><p className="panel-kicker">MOLD RECORD</p><h3 id="mold-record-dialog-title">{editingMoldId ? 'Edit mold' : 'Add a mold'}</h3><p className="physical-id-form-copy">{editingMoldId ? 'Update the product details or move this mold without changing its stable ID.' : 'Register a physical mold and optionally place it into storage now.'}</p></div>
+                    <button type="button" className="text-button" disabled={busy} onClick={resetMoldForm} aria-label="Close mold record dialog">Close</button>
+                  </div>
+                  <label className="field"><span>Mold ID</span><input value={editingMoldId ? moldForm.id : generatedMoldId} readOnly aria-readonly="true" /><small>{editingMoldId ? 'Existing Mold ID is preserved.' : 'Assigned automatically when this mold is created.'}</small></label>
+                  <label className="field"><span>Mold name</span><input required value={moldForm.name} onChange={(event) => setMoldForm((current) => ({ ...current, name: event.target.value }))} placeholder="Dinosaur Mold #1" /></label>
+                  <label className="field"><span>Product</span><select required value={moldForm.productId} onChange={(event) => setMoldForm((current) => ({ ...current, productId: event.target.value }))}><option value="">Select product</option>{products.filter((product) => product.isActive || product.id === moldForm.productId).map((product) => <option key={product.id} value={product.id}>{product.name} · {product.id}</option>)}</select></label>
+                  <label className="field"><span>Storage location</span><select value={moldForm.storageLocationId} onChange={(event) => setMoldForm((current) => ({ ...current, storageLocationId: event.target.value }))}><option value="">Unassigned</option>{assignableLocations.map((location) => <option key={location.id} value={location.id}>{pathByLocationId[location.id] ?? location.name}</option>)}</select><small>Moving a mold changes only its location. Its Mold ID stays the same.</small></label>
+                  <label className="field"><span>Notes</span><textarea value={moldForm.notes} onChange={(event) => setMoldForm((current) => ({ ...current, notes: event.target.value }))} placeholder="Condition, cavity notes, color marks, or handling reminders" /></label>
+                  <div className="physical-id-modal-actions">
+                    <button className="button button-primary physical-id-submit" disabled={busy || loading}>{editingMoldId ? 'Save mold changes' : 'Add mold'}</button>
+                    <button type="button" className="button button-quiet" disabled={busy} onClick={resetMoldForm}>Cancel</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+        </>
       ) : (
         <div className="physical-id-layout">
           <form className="panel physical-id-form" onSubmit={submitLocation}>
@@ -486,6 +615,25 @@ export function PhysicalIdentificationWorkspace({ products }: { products: readon
                 <div className="physical-id-actions"><button type="button" className="text-button" onClick={() => printLocation(location)}>Print storage label</button><button type="button" className={`text-button ${location.isActive ? 'danger' : ''}`} disabled={busy} onClick={() => void toggleLocation(location)}>{location.isActive ? 'Archive' : 'Restore'}</button></div>
               </article>;
             })}</div>}
+          </div>
+        </div>
+      )}
+
+      {formulaMold && (
+        <div className="physical-id-modal-backdrop" role="presentation">
+          <div className="physical-id-modal physical-id-formula-modal panel" role="dialog" aria-modal="true" aria-label={`Mold formula for ${formulaMold.name}`}>
+            <div className="physical-id-formula-modal-heading">
+              <div>
+                <span className="physical-id-formula-modal-label">Selected mold</span>
+                <strong>{formulaMold.name} · {formulaMold.id}</strong>
+              </div>
+              <button type="button" className="text-button" onClick={() => setFormulaMoldId(null)} aria-label="Close mold formula dialog">Close</button>
+            </div>
+            <PlasterMoldFormulaConfigurationPanel
+              molds={[formulaMold]}
+              hideMoldSelector
+              onProfilesChanged={() => void reloadFormulaProfiles()}
+            />
           </div>
         </div>
       )}

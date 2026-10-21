@@ -1,16 +1,30 @@
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   productFinancialProfileService,
-  productPricingQuoteService,
+  productPriceResolutionService,
+  productPriceTierService,
+  productPricingQuoteIntegrationService,
   productService,
+  materialRepository,
 } from '../../application/session';
-import type { ProductPricingQuoteResult } from '../../application/pricing/ProductPricingQuoteService';
+import type { Material } from '../../domain/materials';
+import type { ProductPriceResolutionResult } from '../../application/pricing/ProductPriceResolutionService';
+import type { IntegratedProductPricingQuoteResult } from '../../application/pricing/ProductPricingQuoteIntegrationService';
+import type { ProductPriceTier } from '../../domain/productPriceTiers';
 import type { ProductFinancialProfile } from '../../domain/productFinancialProfile';
 import {
   PRODUCT_CATEGORY_RULES,
   type Product,
 } from '../../domain/products';
+import { ProductPriceResolutionPanel } from './ProductPriceResolutionPanel';
+import { CustomerQuotationDialog } from './CustomerQuotationDialog';
+import { PricingEditorModal } from './PricingEditorModal';
 import { ProductPricingQuotePanel } from './ProductPricingQuotePanel';
+import { ProductPriceTierCatalogPanel } from './ProductPriceTierCatalogPanel';
+import {
+  ProductPriceTierEditorPanel,
+  type ProductPriceTierEditorValue,
+} from './ProductPriceTierEditorPanel';
 import {
   createEmptyProductFinancialProfileForm,
   pricingValueHelp,
@@ -22,6 +36,9 @@ import {
 } from './productFinancialProfileForm';
 import { formatPhp, pricingPolicyLabel } from './productPricingQuoteView';
 import { AppIcon } from '../icons/AppIcon';
+import { ProductImageZoom } from '../products/ProductImageZoom';
+import { isValidProductImageDataUrl } from '../../domain/productImage';
+import { isValidBrochureImageDataUrl } from '../../domain/productBrochureImage';
 import './pricing.css';
 
 type ActiveFilter = 'active' | 'archived' | 'all';
@@ -76,8 +93,21 @@ function pricingMethodSummary(form: ProductFinancialProfileFormState): string {
   return `${form.pricingMethod === 'markup-percent' ? 'Markup' : 'Target margin'} · ${form.pricingValue}%`;
 }
 
-export function PricingPage() {
+interface PricingPageProps {
+  preferredProductId?: string | null;
+  productCatalogRevision?: number;
+  /** Changes to saved component composition invalidate all quote-derived costs. */
+  componentPricingRevision?: number;
+  /** Saved Yield samples and preferred effective selection invalidate cost evidence. */
+  yieldPricingRevision?: number;
+  onSelectedProductChange?: (productId: string) => void;
+}
+
+export function PricingPage({ preferredProductId, productCatalogRevision = 0, componentPricingRevision = 0, yieldPricingRevision = 0, onSelectedProductChange }: PricingPageProps = {}) {
+  const preferredProductRef = useRef(preferredProductId);
+  preferredProductRef.current = preferredProductId;
   const [products, setProducts] = useState<Product[]>([]);
+  const [materials, setMaterials] = useState<Material[]>([]);
   const [profiles, setProfiles] = useState<ProductFinancialProfile[]>([]);
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [form, setForm] = useState<ProductFinancialProfileFormState>(() =>
@@ -85,14 +115,33 @@ export function PricingPage() {
   );
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<ActiveFilter>('active');
+  const [productCatalogOpen, setProductCatalogOpen] = useState(false);
+  const [financialSourceOpen, setFinancialSourceOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [workspaceError, setWorkspaceError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<Feedback>(null);
-  const [quote, setQuote] = useState<ProductPricingQuoteResult | null>(null);
+  const [quote, setQuote] = useState<IntegratedProductPricingQuoteResult | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [quoteError, setQuoteError] = useState<string | null>(null);
+  const [resolutionQuantity, setResolutionQuantity] = useState('1');
+  const [selectedTierId, setSelectedTierId] = useState<string | null>(null);
+  const [resolution, setResolution] = useState<ProductPriceResolutionResult | null>(null);
+  const [resolutionLoading, setResolutionLoading] = useState(false);
+  const [resolutionError, setResolutionError] = useState<string | null>(null);
+  const [quotationOpen, setQuotationOpen] = useState(false);
+  const [orderPreviewOpen, setOrderPreviewOpen] = useState(false);
+  const [tierPricingOpen, setTierPricingOpen] = useState(false);
+  const [tierEditorOpen, setTierEditorOpen] = useState(false);
+  const [editingTier, setEditingTier] = useState<ProductPriceTier | null>(null);
+  const [tierSaving, setTierSaving] = useState(false);
+  const [archivingTierId, setArchivingTierId] = useState<string | null>(null);
+  const [tierMutationError, setTierMutationError] = useState<string | null>(null);
+  const [tierMutationFeedback, setTierMutationFeedback] = useState<string | null>(null);
   const quoteRequestVersion = useRef(0);
+  const resolutionRequestVersion = useRef(0);
+  const productCatalogTriggerRef = useRef<HTMLButtonElement>(null);
+  const productCatalogCloseRef = useRef<HTMLButtonElement>(null);
 
   const loadQuote = useCallback(async (productId: string) => {
     const requestVersion = ++quoteRequestVersion.current;
@@ -101,7 +150,7 @@ export function PricingPage() {
     setQuote(null);
 
     try {
-      const nextQuote = await productPricingQuoteService.quoteProduct(productId);
+      const nextQuote = await productPricingQuoteIntegrationService.quoteProduct(productId);
       if (requestVersion === quoteRequestVersion.current) {
         setQuote(nextQuote);
       }
@@ -116,20 +165,64 @@ export function PricingPage() {
     }
   }, []);
 
+  const loadResolution = useCallback(
+    async (
+      productId: string,
+      quantityValue: string,
+      tierId: string | null,
+    ) => {
+      const requestVersion = ++resolutionRequestVersion.current;
+      setResolutionLoading(true);
+      setResolutionError(null);
+
+      const quantity = quantityValue.trim()
+        ? Number(quantityValue)
+        : Number.NaN;
+
+      try {
+        const nextResolution = await productPriceResolutionService.resolve({
+          productId,
+          quantity,
+          ...(tierId === null ? {} : { selectedTierId: tierId }),
+        });
+        if (requestVersion === resolutionRequestVersion.current) {
+          setResolution(nextResolution);
+        }
+      } catch (error) {
+        if (requestVersion === resolutionRequestVersion.current) {
+          setResolution(null);
+          setResolutionError(
+            error instanceof Error
+              ? error.message
+              : 'The quantity-aware pricing preview could not be resolved.',
+          );
+        }
+      } finally {
+        if (requestVersion === resolutionRequestVersion.current) {
+          setResolutionLoading(false);
+        }
+      }
+    },
+    [],
+  );
+
   const loadWorkspace = useCallback(async () => {
     setLoading(true);
     setWorkspaceError(null);
     setFeedback(null);
     try {
-      const [nextProducts, nextProfiles] = await Promise.all([
+      const [nextProducts, nextProfiles, nextMaterials] = await Promise.all([
         productService.listProducts(),
         productFinancialProfileService.listProfiles(),
+        materialRepository.list(),
       ]);
 
       setProducts(nextProducts);
       setProfiles(nextProfiles);
+      setMaterials(nextMaterials);
 
-      const initialProduct = nextProducts.find((product) => product.isActive) ?? nextProducts[0] ?? null;
+      const initialProduct = nextProducts.find((product) => product.id === preferredProductRef.current)
+        ?? nextProducts.find((product) => product.isActive) ?? nextProducts[0] ?? null;
       const initialProfile = initialProduct
         ? nextProfiles.find(
             (profile) => comparable(profile.productId) === comparable(initialProduct.id),
@@ -138,32 +231,88 @@ export function PricingPage() {
 
       setSelectedProductId(initialProduct?.id ?? null);
       setForm(productFinancialProfileToForm(initialProfile));
+      setFinancialSourceOpen(false);
     } catch (error) {
       setWorkspaceError(errorMessage(error));
       setProducts([]);
       setProfiles([]);
+      setMaterials([]);
       setSelectedProductId(null);
       setForm(createEmptyProductFinancialProfileForm());
+      resolutionRequestVersion.current += 1;
+      setResolution(null);
+      setResolutionLoading(false);
+      setResolutionError(null);
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
+    // Pricing stays mounted when its tab is hidden. Refresh the saved Product
+    // list after the catalog creates a new item before following the selection.
     void loadWorkspace();
-  }, [loadWorkspace]);
+  }, [loadWorkspace, productCatalogRevision]);
+
+  useEffect(() => {
+    if (!productCatalogOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setProductCatalogOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    productCatalogCloseRef.current?.focus();
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+      productCatalogTriggerRef.current?.focus();
+    };
+  }, [productCatalogOpen]);
 
   useEffect(() => {
     if (selectedProductId === null) {
       quoteRequestVersion.current += 1;
+      resolutionRequestVersion.current += 1;
       setQuote(null);
       setQuoteLoading(false);
       setQuoteError(null);
+      setResolution(null);
+      setResolutionLoading(false);
+      setResolutionError(null);
       return;
     }
 
+    // Re-evaluate authoritative saved cost evidence after component mutations
+    // or Yield recording/preference/correction, even while the tab is hidden.
+    // The quote change refreshes quantity/tier resolution without clearing the
+    // unsaved Financial Source draft or altering the selected Product.
     void loadQuote(selectedProductId);
-  }, [loadQuote, selectedProductId]);
+  }, [loadQuote, selectedProductId, componentPricingRevision, yieldPricingRevision]);
+
+  useEffect(() => {
+    if (selectedProductId === null || quote === null) {
+      return;
+    }
+
+    void loadResolution(
+      selectedProductId,
+      resolutionQuantity,
+      selectedTierId,
+    );
+  }, [
+    loadResolution,
+    quote,
+    resolutionQuantity,
+    selectedProductId,
+    selectedTierId,
+  ]);
 
   const profileByProductId = useMemo(
     () => new Map(profiles.map((profile) => [comparable(profile.productId), profile])),
@@ -193,6 +342,14 @@ export function PricingPage() {
     ? profileByProductId.get(comparable(selectedProduct.id)) ?? null
     : null;
 
+  // Prefer the small saved Product photo for UI rendering. Older Products may only
+  // have the print-quality brochure photo, so use that when needed.
+  const selectedProductImage = isValidProductImageDataUrl(selectedProduct?.imageDataUrl)
+    ? selectedProduct.imageDataUrl
+    : isValidBrochureImageDataUrl(selectedProduct?.brochureImageDataUrl)
+      ? selectedProduct.brochureImageDataUrl
+      : null;
+
   const savedForm = useMemo(
     () => productFinancialProfileToForm(selectedProfile),
     [selectedProfile],
@@ -214,10 +371,21 @@ export function PricingPage() {
   const unconfiguredCount = Math.max(products.length - configuredCount, 0);
 
   function selectProduct(product: Product) {
+    onSelectedProductChange?.(product.id);
     quoteRequestVersion.current += 1;
+    resolutionRequestVersion.current += 1;
     setQuote(null);
     setQuoteError(null);
     setQuoteLoading(true);
+    setResolutionQuantity('1');
+    setSelectedTierId(null);
+    setResolution(null);
+    setResolutionLoading(false);
+    setResolutionError(null);
+    setQuotationOpen(false);
+    setOrderPreviewOpen(false);
+    setFinancialSourceOpen(false);
+    setTierPricingOpen(false);
     setSelectedProductId(product.id);
     setForm(
       productFinancialProfileToForm(
@@ -225,6 +393,55 @@ export function PricingPage() {
       ),
     );
     setFeedback(null);
+    setTierEditorOpen(false);
+    setEditingTier(null);
+    setTierMutationError(null);
+    setTierMutationFeedback(null);
+    setProductCatalogOpen(false);
+  }
+
+  // Follow Product selection across Catalog, Components, Finished stock, and Pricing.
+  // Pricing remains mounted while its tab is hidden so same-Product drafts survive switching.
+  useEffect(() => {
+    if (!preferredProductId || preferredProductId === selectedProductId) return;
+    const product = products.find((item) => item.id === preferredProductId);
+    if (product) selectProduct(product);
+  }, [preferredProductId, selectedProductId, products]);
+
+  function openOrderPricePreview() {
+    if (!selectedProduct) return;
+    setOrderPreviewOpen(true);
+  }
+
+  function closeOrderPricePreview() {
+    setOrderPreviewOpen(false);
+  }
+
+  function openQuotationFromPreview() {
+    // There must be only one active modal: close the preview before quotation.
+    setOrderPreviewOpen(false);
+    setQuotationOpen(true);
+  }
+
+  function openFinancialSource() {
+    if (!selectedProduct) return;
+    setFeedback(null);
+    setFinancialSourceOpen(true);
+  }
+
+  function closeFinancialSource() {
+    if (saving) return;
+    // Preserve the unsaved draft when dismissing; the summary still warns
+    // that saved economics do not include unsaved financial inputs.
+    setFinancialSourceOpen(false);
+  }
+
+  function openProductCatalog() {
+    setProductCatalogOpen(true);
+  }
+
+  function closeProductCatalog() {
+    setProductCatalogOpen(false);
   }
 
   function updatePricingMethod(pricingMethod: PricingMethodSelection) {
@@ -263,10 +480,107 @@ export function PricingPage() {
         message: `Financial profile saved for ${selectedProduct.name}.`,
       });
       await loadQuote(selectedProduct.id);
+      setFinancialSourceOpen(false);
     } catch (error) {
       setFeedback({ type: 'error', message: errorMessage(error) });
     } finally {
       setSaving(false);
+    }
+  }
+
+
+  function openTierPricing() {
+    if (!selectedProduct) return;
+    setTierPricingOpen(true);
+  }
+
+  function closeTierPricing() {
+    if (archivingTierId) return;
+    setTierPricingOpen(false);
+  }
+
+  function startCreateTier() {
+    if (!selectedProduct?.isActive) return;
+    setTierPricingOpen(false);
+    setEditingTier(null);
+    setTierMutationError(null);
+    setTierMutationFeedback(null);
+    setTierEditorOpen(true);
+  }
+
+  function startEditTier(tier: ProductPriceTier) {
+    setTierPricingOpen(false);
+    setEditingTier(tier);
+    setTierMutationError(null);
+    setTierMutationFeedback(null);
+    setTierEditorOpen(true);
+  }
+
+  function closeTierEditor() {
+    if (tierSaving) return;
+    setTierEditorOpen(false);
+    setEditingTier(null);
+    setTierMutationError(null);
+    setTierPricingOpen(true);
+  }
+
+  async function submitTier(value: ProductPriceTierEditorValue) {
+    if (!selectedProduct) return;
+
+    setTierSaving(true);
+    setTierMutationError(null);
+    setTierMutationFeedback(null);
+    try {
+      const saved = editingTier
+        ? await productPriceTierService.updateTier(editingTier.id, {
+            productId: selectedProduct.id,
+            ...value,
+            isActive: editingTier.isActive,
+          })
+        : await productPriceTierService.createTier({
+            productId: selectedProduct.id,
+            ...value,
+            isActive: true,
+          });
+
+      setTierEditorOpen(false);
+      setEditingTier(null);
+      setTierPricingOpen(true);
+      setTierMutationFeedback(
+        editingTier
+          ? `Price tier ${saved.name} updated.`
+          : `Price tier ${saved.name} created as ${saved.id}.`,
+      );
+      await loadQuote(selectedProduct.id);
+    } catch (error) {
+      setTierMutationError(
+        error instanceof Error ? error.message : 'The price tier could not be saved.',
+      );
+    } finally {
+      setTierSaving(false);
+    }
+  }
+
+  async function archiveTier(tier: ProductPriceTier) {
+    if (!selectedProduct) return;
+
+    setArchivingTierId(tier.id);
+    setTierMutationError(null);
+    setTierMutationFeedback(null);
+    try {
+      const archived = await productPriceTierService.archiveTier(tier.id);
+      if (editingTier?.id === archived.id) {
+        setTierEditorOpen(false);
+        setEditingTier(null);
+      }
+      setTierMutationFeedback(`Price tier ${archived.name} archived.`);
+      await loadQuote(selectedProduct.id);
+    } catch (error) {
+      setTierMutationError(
+        error instanceof Error ? error.message : 'The price tier could not be archived.',
+      );
+    } finally {
+      setArchivingTierId(null);
     }
   }
 
@@ -276,146 +590,193 @@ export function PricingPage() {
 
   return (
     <section className="materials-workspace pricing-workspace">
-      <div className="page-heading-row">
-        <div>
-          <p className="eyebrow">PHASE 4 · PRICING</p>
-          <h1>Pricing & unit economics</h1>
-          <p className="page-lead">
-            Set the financial inputs you control, then review the saved fully loaded unit cost, selling price, profit, markup, and margin for each Product.
-          </p>
+      <section className="panel pricing-product-selector" aria-label="Selected pricing Product">
+        <div className="pricing-product-selector-identity">
+          {selectedProduct && selectedProductImage && !loading && !workspaceError && (
+            <ProductImageZoom product={selectedProduct} imageClassName="pricing-product-reference-image" />
+          )}
+          <div className="pricing-product-selector-copy">
+          <p className="panel-kicker">YOUR PRODUCT</p>
+          {loading ? (
+            <>
+              <h2>Loading pricing workspace</h2>
+              <p>Loading product details…</p>
+            </>
+          ) : workspaceError ? (
+            <>
+              <h2>Pricing workspace unavailable</h2>
+              <p role="alert">{workspaceError}</p>
+            </>
+          ) : selectedProduct ? (
+            <>
+              <div className="pricing-product-selector-title">
+                <h2>{selectedProduct.name}</h2>
+                <span className={`status-pill ${selectedProduct.isActive ? 'status-active' : ''}`}>
+                  {selectedProduct.isActive ? 'Active' : 'Archived'}
+                </span>
+              </div>
+              <p>
+                {selectedProduct.id} · {PRODUCT_CATEGORY_RULES[selectedProduct.category].label}
+                {' · '}
+                {selectedProfile ? 'Costs saved' : 'Costs not set'}
+              </p>
+            </>
+          ) : (
+            <>
+              <h2>No Product selected</h2>
+              <p>
+                {products.length === 0
+                  ? 'Create a Product first, then return here to configure pricing.'
+                  : 'Open the Product Catalog to choose which Product you want to price.'}
+              </p>
+            </>
+          )}
+          </div>
         </div>
-        <div className="session-badge"><span className="status-dot" />Included in workbook exports</div>
-      </div>
-
-      <div className="pricing-source-note">
-        <strong>Source + derived view.</strong>
-        <span>
-          Labor, overhead, pricing policy, and notes are editable source data. The unit-economics result is read-only and always comes from the saved authoritative Product state.
-        </span>
-      </div>
-
-      <section className="pricing-workflow" aria-label="Pricing workflow">
-        <div className={selectedProduct ? 'complete' : 'current'}>
-          <span>1</span>
-          <div><strong>Choose the product</strong><small>Find the Product you want to price.</small></div>
-        </div>
-        <div className={selectedProduct ? 'current' : ''}>
-          <span>2</span>
-          <div><strong>Set financial inputs</strong><small>Enter labor, overhead, and an optional selling-price policy.</small></div>
-        </div>
-        <div className={selectedProduct && !formDirty ? 'current' : ''}>
-          <span>3</span>
-          <div><strong>Review saved unit economics</strong><small>Inspect cost, selling price, profit, and readiness issues.</small></div>
+        <div className="pricing-product-selector-actions">
+          {workspaceError && (
+            <button className="button button-secondary" type="button" onClick={() => void loadWorkspace()}>
+              Retry loading
+            </button>
+          )}
+          <button
+            ref={productCatalogTriggerRef}
+            className="button button-primary"
+            type="button"
+            onClick={openProductCatalog}
+            aria-label="Open Product Catalog"
+            aria-haspopup="dialog"
+            aria-expanded={productCatalogOpen}
+          >
+            <AppIcon name="products" size={17} />
+            Change product
+          </button>
         </div>
       </section>
 
-      <div className="pricing-overview" aria-label="Pricing catalog summary">
-        <div><span>Products</span><strong>{products.length}</strong><small>{activeCount} active</small></div>
-        <div><span>Profiles saved</span><strong>{configuredCount}</strong><small>Authoritative financial inputs</small></div>
-        <div><span>Need setup</span><strong>{unconfiguredCount}</strong><small>No financial profile yet</small></div>
-      </div>
+      <section className="panel pricing-financial-source-summary" aria-label="Financial source summary">
+        <div className="pricing-financial-summary-heading">
+          <div>
+            <h2>Financial source</h2>
+            <p>{selectedProfile ? 'Costs and pricing saved' : 'Set costs and selling price'}</p>
+          </div>
+          <button
+            className="button button-primary"
+            type="button"
+            aria-haspopup="dialog"
+            aria-expanded={financialSourceOpen}
+            aria-label={selectedProfile ? 'Edit Financial Source' : 'Set Financial Source'}
+            disabled={!selectedProduct || loading || Boolean(workspaceError)}
+            onClick={openFinancialSource}
+          >
+            <AppIcon name="pricing" size={17} />
+            {selectedProfile ? 'Edit Financial Source' : 'Set Financial Source'}
+          </button>
+        </div>
+        {formDirty && (
+          <p className="pricing-financial-draft-warning" role="status">
+            Unsaved financial changes are preserved. Reopen Financial Source to save or reset them.
+          </p>
+        )}
+        {feedback && !financialSourceOpen && (
+          <div className={`feedback ${feedback.type === 'error' ? 'feedback-error' : 'feedback-success'}`} role="status">
+            {feedback.message}
+          </div>
+        )}
+      </section>
 
-      <div className="pricing-layout">
-        <section className="panel pricing-catalog-panel" aria-label="Product financial profile catalog">
-          <div className="panel-heading pricing-panel-heading">
+      <ProductPricingQuotePanel
+        productName={selectedProduct?.name ?? null}
+        quote={quote}
+        loading={quoteLoading}
+        error={quoteError}
+        hasUnsavedChanges={formDirty}
+        onRefresh={selectedProduct ? () => void loadQuote(selectedProduct.id) : undefined}
+      />
+
+      <details className="pricing-overview" aria-label="Pricing catalog summary">
+        <summary>
+          <span>Catalog: <strong>{configuredCount} of {products.length}</strong> products have costs set</span>
+          <span className="pricing-overview-hint">View totals</span>
+        </summary>
+        <div className="pricing-overview-stats">
+          <div><span>Products</span><strong>{products.length}</strong><small>{activeCount} active</small></div>
+          <div><span>Profiles saved</span><strong>{configuredCount}</strong><small>Financial inputs saved</small></div>
+          <div><span>Need setup</span><strong>{unconfiguredCount}</strong><small>No financial profile yet</small></div>
+        </div>
+      </details>
+
+      <div className="pricing-quick-actions" aria-label="Pricing next steps">
+        <section className="panel pricing-order-preview-summary" aria-label="Order price preview summary">
+          <div className="pricing-financial-summary-heading">
             <div>
-              <p className="panel-kicker">PRODUCT CATALOG</p>
-              <h2>Select a Product</h2>
+              <p className="panel-kicker">ORDER & QUOTATION</p>
+              <h2>Order price</h2>
             </div>
-            <div className="material-count"><strong>{visibleProducts.length}</strong><span>shown</span></div>
+            <button
+              className="button button-primary"
+              type="button"
+              aria-label="Open Order Price Preview"
+              aria-haspopup="dialog"
+              aria-expanded={orderPreviewOpen}
+              disabled={!selectedProduct || loading || Boolean(workspaceError)}
+              onClick={openOrderPricePreview}
+            >
+              <AppIcon name="pricing" size={17} />
+              Open Order Price Preview
+            </button>
           </div>
-
-          <div className="pricing-filters">
-            <label className="field search-field">
-              <span>Search Products</span>
-              <input
-                type="search"
-                aria-label="Search pricing products"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Name or Product ID"
-              />
-            </label>
-            <label className="field">
-              <span>Status</span>
-              <select
-                aria-label="Filter pricing products by status"
-                value={statusFilter}
-                onChange={(event) => setStatusFilter(event.target.value as ActiveFilter)}
-              >
-                <option value="active">Active</option>
-                <option value="archived">Archived</option>
-                <option value="all">All</option>
-              </select>
-            </label>
+          <div className="pricing-order-preview-summary-values">
+            <div><span>Units</span><strong>{resolutionQuantity.trim() || '—'}</strong></div>
+            <div><span>Order total</span><strong>{formatPhp(resolution?.totalSellingPrice ?? null)}</strong></div>
           </div>
-
-          {loading ? (
-            <div className="empty-state compact-pricing-empty">
-              <div className="empty-icon" aria-hidden="true"><AppIcon name="pricing" size={28} /></div>
-              <h3>Loading pricing workspace</h3>
-              <p>Reading Product identities and current financial profile source records.</p>
-            </div>
-          ) : workspaceError ? (
-            <div className="empty-state compact-pricing-empty" role="alert">
-              <div className="empty-icon" aria-hidden="true"><AppIcon name="alert" size={28} /></div>
-              <h3>Pricing workspace unavailable</h3>
-              <p>{workspaceError}</p>
-              <button className="button button-secondary" type="button" onClick={() => void loadWorkspace()}>
-                Retry loading
-              </button>
-            </div>
-          ) : products.length === 0 ? (
-            <div className="empty-state compact-pricing-empty">
-              <div className="empty-icon" aria-hidden="true"><AppIcon name="plus-circle" size={28} /></div>
-              <h3>Create a Product first</h3>
-              <p>The Pricing workspace needs a Product identity before financial configuration or unit economics can be inspected.</p>
-            </div>
-          ) : visibleProducts.length === 0 ? (
-            <div className="empty-state compact-pricing-empty">
-              <div className="empty-icon" aria-hidden="true"><AppIcon name="search" size={28} /></div>
-              <h3>No Products match this view</h3>
-              <p>Change the search or status filter. Archived Products remain available under Archived or All.</p>
-            </div>
-          ) : (
-            <div className="pricing-product-list">
-              {visibleProducts.map((product) => {
-                const profile = profileByProductId.get(comparable(product.id));
-                const selected = product.id === selectedProductId;
-                return (
-                  <button
-                    key={product.id}
-                    type="button"
-                    className={`pricing-product-card ${selected ? 'selected' : ''}`}
-                    aria-pressed={selected}
-                    aria-label={`Price ${product.name}`}
-                    onClick={() => selectProduct(product)}
-                  >
-                    <span className="pricing-product-main">
-                      <span className="pricing-product-heading">
-                        <strong>{product.name}</strong>
-                        <span className={`status-pill ${product.isActive ? 'status-active' : ''}`}>
-                          {product.isActive ? 'Active' : 'Archived'}
-                        </span>
-                      </span>
-                      <span className="material-id">{product.id}</span>
-                      <small>{PRODUCT_CATEGORY_RULES[product.category].label}</small>
-                    </span>
-                    <span className={`pricing-profile-pill ${profile ? 'configured' : 'missing'}`}>
-                      {profile ? 'Profile saved' : 'Needs setup'}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+          {(resolutionError || quoteError) && (
+            <p className="pricing-order-preview-summary-status" role="status">Price needs attention. Open preview for details.</p>
           )}
         </section>
 
+        <section className="panel pricing-tier-summary" aria-label="Tier pricing summary">
+          <div className="pricing-financial-summary-heading">
+            <div>
+              <p className="panel-kicker">BULK & CUSTOM</p>
+              <h2>Price tiers</h2>
+            </div>
+            <button
+              className="button button-primary"
+              type="button"
+              aria-label="Open Tier Pricing"
+              aria-haspopup="dialog"
+              aria-expanded={tierPricingOpen}
+              disabled={!selectedProduct || loading || Boolean(workspaceError)}
+              onClick={openTierPricing}
+            >
+              <AppIcon name="pricing" size={17} />
+              Open Tier Pricing
+            </button>
+          </div>
+          <div className="pricing-tier-summary-values">
+            <div><span>Saved tiers</span><strong>{quote?.tierPricing?.tiers.length ?? 0}</strong></div>
+            <div><span>Default price</span><strong>{formatPhp(quote?.tierPricing?.defaultSellingPrice ?? null)}</strong></div>
+          </div>
+          {quoteError && (
+            <p className="pricing-tier-summary-status" role="status">Tier prices need attention.</p>
+          )}
+        </section>
+      </div>
+
+      <PricingEditorModal
+        open={financialSourceOpen}
+        titleId="pricing-financial-source-title"
+        label="Financial Source"
+        onClose={closeFinancialSource}
+        closeDisabled={saving}
+        restoreFocusSelector={'[aria-label="Edit Financial Source"], [aria-label="Set Financial Source"]'}
+      >
         <form className="panel pricing-editor-panel" aria-label="Pricing financial profile" onSubmit={submitProfile}>
           <div className="panel-heading pricing-editor-heading">
             <div>
               <p className="panel-kicker">FINANCIAL SOURCE</p>
-              <h2>{selectedProduct ? selectedProduct.name : 'Select a Product'}</h2>
+              <h2 id="pricing-financial-source-title">{selectedProduct ? selectedProduct.name : 'Select a Product'}</h2>
             </div>
             <div className="pricing-editor-badges">
               {formDirty && <span className="pricing-draft-pill">Unsaved changes</span>}
@@ -581,6 +942,9 @@ export function PricingPage() {
           </div>
 
           <div className="pricing-editor-actions">
+            <button className="button button-quiet" type="button" disabled={saving} onClick={closeFinancialSource}>
+              Cancel
+            </button>
             <button className="button button-secondary" type="button" disabled={!formDirty || saving} onClick={resetDraft}>
               Reset changes
             </button>
@@ -595,16 +959,238 @@ export function PricingPage() {
             </div>
           )}
         </form>
-      </div>
+      </PricingEditorModal>
 
-      <ProductPricingQuotePanel
-        productName={selectedProduct?.name ?? null}
-        quote={quote}
-        loading={quoteLoading}
-        error={quoteError}
-        hasUnsavedChanges={formDirty}
-        onRefresh={selectedProduct ? () => void loadQuote(selectedProduct.id) : undefined}
+      {productCatalogOpen && (
+        <div
+          className="pricing-product-catalog-backdrop"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) closeProductCatalog();
+          }}
+        >
+          <section
+            className="panel pricing-product-catalog-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="pricing-product-catalog-title"
+          >
+            <div className="panel-heading pricing-panel-heading pricing-product-catalog-modal-heading">
+              <div>
+                <p className="panel-kicker">PRODUCT CATALOG</p>
+                <h2 id="pricing-product-catalog-title">Select a Product</h2>
+                <p>Choose the Product whose financial inputs and unit economics you want to review.</p>
+              </div>
+              <div className="pricing-product-catalog-modal-actions">
+                <div className="material-count"><strong>{visibleProducts.length}</strong><span>shown</span></div>
+                <button
+                  ref={productCatalogCloseRef}
+                  className="button button-secondary pricing-product-catalog-close"
+                  type="button"
+                  aria-label="Close Product Catalog"
+                  onClick={closeProductCatalog}
+                >
+                  <AppIcon name="close" size={17} />
+                  Close
+                </button>
+              </div>
+            </div>
+
+            <div className="pricing-filters">
+              <label className="field search-field">
+                <span>Search Products</span>
+                <input
+                  type="search"
+                  aria-label="Search pricing products"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Name or Product ID"
+                />
+              </label>
+              <label className="field">
+                <span>Status</span>
+                <select
+                  aria-label="Filter pricing products by status"
+                  value={statusFilter}
+                  onChange={(event) => setStatusFilter(event.target.value as ActiveFilter)}
+                >
+                  <option value="active">Active</option>
+                  <option value="archived">Archived</option>
+                  <option value="all">All</option>
+                </select>
+              </label>
+            </div>
+
+            <div className="pricing-product-catalog-modal-body">
+              {loading ? (
+                <div className="empty-state compact-pricing-empty">
+                  <div className="empty-icon" aria-hidden="true"><AppIcon name="pricing" size={28} /></div>
+                  <h3>Loading pricing workspace</h3>
+                  <p>Reading Product identities and current financial profile source records.</p>
+                </div>
+              ) : workspaceError ? (
+                <div className="empty-state compact-pricing-empty" role="alert">
+                  <div className="empty-icon" aria-hidden="true"><AppIcon name="alert" size={28} /></div>
+                  <h3>Pricing workspace unavailable</h3>
+                  <p>{workspaceError}</p>
+                  <button className="button button-secondary" type="button" onClick={() => void loadWorkspace()}>
+                    Retry loading
+                  </button>
+                </div>
+              ) : products.length === 0 ? (
+                <div className="empty-state compact-pricing-empty">
+                  <div className="empty-icon" aria-hidden="true"><AppIcon name="plus-circle" size={28} /></div>
+                  <h3>Create a Product first</h3>
+                  <p>The Pricing workspace needs a Product identity before financial configuration or unit economics can be inspected.</p>
+                </div>
+              ) : visibleProducts.length === 0 ? (
+                <div className="empty-state compact-pricing-empty">
+                  <div className="empty-icon" aria-hidden="true"><AppIcon name="search" size={28} /></div>
+                  <h3>No Products match this view</h3>
+                  <p>Change the search or status filter. Archived Products remain available under Archived or All.</p>
+                </div>
+              ) : (
+                <div className="pricing-product-list">
+                  {visibleProducts.map((product) => {
+                    const profile = profileByProductId.get(comparable(product.id));
+                    const selected = product.id === selectedProductId;
+                    return (
+                      <button
+                        key={product.id}
+                        type="button"
+                        className={`pricing-product-card ${selected ? 'selected' : ''}`}
+                        aria-pressed={selected}
+                        aria-label={`Price ${product.name}`}
+                        onClick={() => selectProduct(product)}
+                      >
+                        <span className="pricing-product-main">
+                          <span className="pricing-product-heading">
+                            <strong>{product.name}</strong>
+                            <span className={`status-pill ${product.isActive ? 'status-active' : ''}`}>
+                              {product.isActive ? 'Active' : 'Archived'}
+                            </span>
+                          </span>
+                          <span className="material-id">{product.id}</span>
+                          <small>{PRODUCT_CATEGORY_RULES[product.category].label}</small>
+                        </span>
+                        <span className={`pricing-profile-pill ${profile ? 'configured' : 'missing'}`}>
+                          {profile ? 'Profile saved' : 'Needs setup'}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </section>
+        </div>
+      )}
+
+      <PricingEditorModal
+        open={orderPreviewOpen}
+        titleId="pricing-order-preview-heading"
+        label="Order Price Preview"
+        onClose={closeOrderPricePreview}
+        restoreFocusSelector={'[aria-label="Open Order Price Preview"]'}
+        wide
+      >
+        <ProductPriceResolutionPanel
+          productName={selectedProduct?.name ?? null}
+          quantity={resolutionQuantity}
+          selectedTierId={selectedTierId}
+          result={resolution}
+          loading={resolutionLoading || quoteLoading}
+          error={resolutionError ?? quoteError}
+          hasUnsavedChanges={formDirty}
+          onQuantityChange={setResolutionQuantity}
+          onSelectPricingSource={setSelectedTierId}
+          onRefresh={
+            selectedProduct && quote
+              ? () =>
+                  void loadResolution(
+                    selectedProduct.id,
+                    resolutionQuantity,
+                    selectedTierId,
+                  )
+              : undefined
+          }
+          onCreateQuotation={
+            resolution?.status === 'ready' ? openQuotationFromPreview : undefined
+          }
+        />
+      </PricingEditorModal>
+
+      <CustomerQuotationDialog
+        open={quotationOpen}
+        result={resolution}
+        products={products}
+        materials={materials}
+        resolvePrice={(request) => productPriceResolutionService.resolve(request)}
+        onClose={() => setQuotationOpen(false)}
       />
+
+      {!tierPricingOpen && !tierEditorOpen && tierMutationFeedback && (
+        <div className="feedback feedback-success tier-mutation-feedback" role="status">
+          {tierMutationFeedback}
+        </div>
+      )}
+      {!tierPricingOpen && !tierEditorOpen && tierMutationError && (
+        <div className="feedback feedback-error tier-mutation-feedback" role="status">
+          {tierMutationError}
+        </div>
+      )}
+
+      <PricingEditorModal
+        open={tierEditorOpen}
+        titleId="price-tier-editor-title"
+        label={editingTier ? `Edit tier ${editingTier.name}` : 'Create price tier'}
+        onClose={closeTierEditor}
+        closeDisabled={tierSaving}
+        restoreFocusSelector={'[aria-label="Open Tier Pricing"]'}
+      >
+        <ProductPriceTierEditorPanel
+          product={selectedProduct}
+          tier={editingTier}
+          open={tierEditorOpen}
+          saving={tierSaving}
+          error={tierMutationError}
+          fullyLoadedUnitCost={quote?.totalFullyLoadedUnitCost ?? null}
+          onSubmit={submitTier}
+          onCancel={closeTierEditor}
+        />
+      </PricingEditorModal>
+
+      <PricingEditorModal
+        open={tierPricingOpen}
+        titleId="tier-pricing-catalog-heading"
+        label="Tier Pricing"
+        onClose={closeTierPricing}
+        closeDisabled={Boolean(archivingTierId)}
+        restoreFocusSelector={'[aria-label="Open Tier Pricing"]'}
+        wide
+      >
+        {tierMutationFeedback && (
+          <div className="feedback feedback-success pricing-tier-modal-feedback" role="status">
+            {tierMutationFeedback}
+          </div>
+        )}
+        {tierMutationError && (
+          <div className="feedback feedback-error pricing-tier-modal-feedback" role="alert">
+            {tierMutationError}
+          </div>
+        )}
+        <ProductPriceTierCatalogPanel
+          productName={selectedProduct?.name ?? null}
+          quote={quote?.tierPricing ?? null}
+          loading={quoteLoading}
+          error={quote?.integrationIssues[0]?.message ?? quoteError}
+          hasUnsavedChanges={formDirty}
+          onRefresh={selectedProduct ? () => void loadQuote(selectedProduct.id) : undefined}
+          onCreateTier={selectedProduct?.isActive ? startCreateTier : undefined}
+          onEditTier={startEditTier}
+          onArchiveTier={archiveTier}
+          archivingTierId={archivingTierId}
+        />
+      </PricingEditorModal>
     </section>
   );
 }

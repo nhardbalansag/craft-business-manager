@@ -1,5 +1,8 @@
-import type { BusinessDatasetValidationIssue } from '../../domain/businessDatasetValidation';
-import type { PersistenceLifecycleRejected } from '../../application/persistence/PersistenceLifecycle';
+import { useState } from 'react';
+import type {
+  PersistenceDatasetHydrationIssue,
+  PersistenceLifecycleRejected,
+} from '../../application/persistence/PersistenceLifecycle';
 import type {
   BusinessDatasetWorkbookImportIssue,
   BusinessDatasetWorkbookImportIssueStage,
@@ -52,6 +55,35 @@ export interface WorkbookImportRejectionDetailsProps {
   readonly result: PersistenceLifecycleRejected;
 }
 
+/** Copyable diagnostic metadata; never includes source-cell contents or workbook bytes. */
+export function formatWorkbookImportDiagnostics(result: PersistenceLifecycleRejected): string {
+  const heading = result.stage === 'import' ? 'Workbook import validation' : 'Dataset hydration validation';
+  const details = result.stage === 'import'
+    ? result.issues.map((issue, index) => [
+        `Issue ${index + 1}: [${issue.code}] (${issue.stage})`,
+        `Message: ${issue.message}`,
+        issue.sheetName ? `Sheet: ${issue.sheetName}` : null,
+        issue.excelRow !== undefined ? `Excel row: ${issue.excelRow}` : null,
+        issue.excelRow === undefined && issue.rowIndex !== undefined
+          ? `Row index: ${issue.rowIndex}` : null,
+        issue.column ? `Column: ${issue.column}` : null,
+        issue.path ? `Path: ${issue.path}` : null,
+        issue.sourceVersion
+          ? `Source version: ${formatVersion(issue.sourceVersion)}` : null,
+        issue.targetVersion
+          ? `Supported version: ${formatVersion(issue.targetVersion)}` : null,
+      ].filter((line): line is string => line !== null).join('\n'))
+    : result.issues.map((issue, index) => [
+        `Issue ${index + 1}: [${issue.code}]`,
+        `Message: ${issue.message}`,
+        issue.collection ? `Collection: ${issue.collection}` : null,
+        issue.index !== undefined ? `Record: ${issue.index}` : null,
+        issue.field ? `Field: ${issue.field}` : null,
+        issue.path ? `Path: ${issue.path}` : null,
+      ].filter((line): line is string => line !== null).join('\n'));
+  return [heading, `Issues: ${result.issues.length}`, '', ...details].join('\n');
+}
+
 function formatVersion(version: { workbookFormatVersion: number; datasetSchemaVersion: number }): string {
   return `workbook v${version.workbookFormatVersion} / dataset v${version.datasetSchemaVersion}`;
 }
@@ -66,7 +98,7 @@ function importIssueLocation(issue: Readonly<BusinessDatasetWorkbookImportIssue>
   return parts;
 }
 
-function hydrationIssueLocation(issue: Readonly<BusinessDatasetValidationIssue>): string[] {
+function hydrationIssueLocation(issue: Readonly<PersistenceDatasetHydrationIssue>): string[] {
   const parts: string[] = [];
   if (issue.collection !== undefined) parts.push(`Collection ${issue.collection}`);
   if (issue.index !== undefined) parts.push(`Record ${issue.index}`);
@@ -100,7 +132,7 @@ function RawImportIssue({ issue }: { readonly issue: Readonly<BusinessDatasetWor
   );
 }
 
-function RawHydrationIssue({ issue }: { readonly issue: Readonly<BusinessDatasetValidationIssue> }) {
+function RawHydrationIssue({ issue }: { readonly issue: Readonly<PersistenceDatasetHydrationIssue> }) {
   const location = hydrationIssueLocation(issue);
   return (
     <li className="workbook-recovery-issue">
@@ -215,6 +247,22 @@ function HydrationRejectionDetails({ result }: { readonly result: Extract<Persis
  * WorkbookImportPanel's separate error path and never enter this component.
  */
 export function WorkbookImportRejectionDetails({ result }: WorkbookImportRejectionDetailsProps) {
+  const [copyStatus, setCopyStatus] = useState<'copied' | 'unavailable' | null>(null);
+  const diagnosticReport = formatWorkbookImportDiagnostics(result);
+
+  async function copyDiagnostics() {
+    if (!navigator.clipboard?.writeText) {
+      setCopyStatus('unavailable');
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(diagnosticReport);
+      setCopyStatus('copied');
+    } catch {
+      setCopyStatus('unavailable');
+    }
+  }
+
   return (
     <section className="workbook-recovery-panel" aria-labelledby="workbook-recovery-heading">
       <div className="workbook-recovery-heading-row">
@@ -229,6 +277,21 @@ export function WorkbookImportRejectionDetails({ result }: WorkbookImportRejecti
       ) : (
         <HydrationRejectionDetails result={result} />
       )}
+      <details className="workbook-recovery-report">
+        <summary>Copy validation error details for troubleshooting</summary>
+        <p>Share the issue code, message, and location when asking for help. Your workbook remains unchanged.</p>
+        <button className="button button-secondary" type="button" onClick={() => void copyDiagnostics()}>
+          Copy error details
+        </button>
+        {copyStatus && (
+          <span role="status">
+            {copyStatus === 'copied'
+              ? 'Copied diagnostic details.'
+              : 'Clipboard unavailable. Select and copy the details below.'}
+          </span>
+        )}
+        <pre aria-label="Copyable workbook validation diagnostics">{diagnosticReport}</pre>
+      </details>
     </section>
   );
 }

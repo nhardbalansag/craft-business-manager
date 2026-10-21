@@ -2,8 +2,12 @@ import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 're
 import {
   materialService,
   mixPresetService,
+  moldService,
+  plasterMoldYieldProfileService,
   productService,
   yieldHistoryService,
+  yieldMoldFormulaSourceService,
+  yieldRecipeSourceRecordingService,
   yieldSampleEvidenceService,
 } from '../../application/session';
 import {
@@ -14,19 +18,34 @@ import { nextSequentialId } from '../../domain/identifiers';
 import type { Material } from '../../domain/materials';
 import { isMaterialCupWeightBridge } from '../../domain/materials';
 import type { MixPreset } from '../../domain/mixPresets';
-import { isMixPresetCompatibleWithCategory } from '../../domain/mixPresets';
 import type { Product } from '../../domain/products';
 import { PRODUCT_CATEGORY_RULES } from '../../domain/products';
+import { isValidProductImageDataUrl } from '../../domain/productImage';
+import { isValidBrochureImageDataUrl } from '../../domain/productBrochureImage';
 import {
   SUPPORTED_UNITS,
   areUnitsCompatible,
   type InputUnit,
 } from '../../domain/units';
+import type {
+  ResolvedYieldRecipeSource,
+} from '../../domain/yieldRecipeSource';
 import type { YieldSample } from '../../domain/yieldSamples';
+import { YieldManualMode } from './YieldManualMode';
+import { ScentedCandleOilPanel } from './ScentedCandleOilPanel';
+import { YieldMoldFormulaMode } from './YieldMoldFormulaMode';
 import { YieldProductSearchPicker } from './YieldProductSearchPicker';
+import {
+  YieldRecipeSourceSelector,
+  type YieldSelectableRecipeSourceKind,
+} from './YieldRecipeSourceSelector';
+import { PlasterMoldYieldDraftAssist } from './PlasterMoldYieldDraftAssist';
+import type { PlasterMoldYieldDraft } from './plasterMoldYieldDraft';
 import { AppIcon } from '../icons/AppIcon';
+import { ProductImageZoom } from '../products/ProductImageZoom';
 import './yield.css';
 import './yieldEnhancement.css';
+import './plasterMoldYieldDraftAssist.css';
 
 type YieldInputForm = {
   key: string;
@@ -37,7 +56,7 @@ type YieldInputForm = {
 
 type YieldFormState = {
   id: string;
-  mixPresetId: string;
+  recipeSourceKind: YieldSelectableRecipeSourceKind;
   goodPieces: string;
   rejectedPieces: string;
   recordedAt: string;
@@ -45,14 +64,38 @@ type YieldFormState = {
   materialInputs: YieldInputForm[];
 };
 
-type DraftAction = { kind: 'product'; id: string } | { kind: 'copy'; sample: YieldSample } | { kind: 'reset' };
+type DraftAction =
+  | { kind: 'product'; id: string }
+  | { kind: 'copy'; sample: YieldSample }
+  | { kind: 'formula'; draft: PlasterMoldYieldDraft }
+  | { kind: 'reset' };
 
 function draftKey(form: YieldFormState): string {
   return JSON.stringify({ ...form, materialInputs: form.materialInputs.map(({ key: _key, ...input }) => input) });
 }
 
+function draftEvidenceKey(form: YieldFormState): string {
+  const {
+    recipeSourceKind: _recipeSourceKind,
+    ...evidence
+  } = form;
+  return JSON.stringify({
+    ...evidence,
+    materialInputs: evidence.materialInputs.map(({ key: _key, ...input }) => input),
+  });
+}
+
 type YieldHistorySort = 'newest' | 'oldest';
 type YieldOutcomeFilter = 'all' | 'clean' | 'with-rejects';
+const HISTORY_PAGE_SIZE = 5;
+
+type YieldHistoryMoldFormulaTrace = {
+  moldId: string;
+  moldName: string | null;
+  moldIsActive: boolean | null;
+  moldYieldProfileId: string;
+  profileIsActive: boolean | null;
+};
 
 let inputSequence = 0;
 
@@ -72,10 +115,10 @@ function newInput(unit: InputUnit = 'g'): YieldInputForm {
   };
 }
 
-function emptyForm(mixPresetId = ''): YieldFormState {
+function emptyForm(): YieldFormState {
   return {
     id: '',
-    mixPresetId,
+    recipeSourceKind: 'manual',
     goodPieces: '1',
     rejectedPieces: '0',
     recordedAt: localDateTimeValue(),
@@ -108,12 +151,39 @@ function numericField(value: string): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-export function YieldPage() {
+function recipeSourceLabel(source: ResolvedYieldRecipeSource): string {
+  if (source.kind === 'mix-preset') return 'Mix preset';
+  if (source.kind === 'mold-formula') return 'Mold formula';
+  return 'Manual';
+}
+
+export interface YieldPageProps {
+  /** Product already selected in Products, Pricing or another product workspace tab. */
+  preferredProductId?: string | null;
+  /** A saved Product was added after Yield's local Product list was loaded. */
+  productCatalogRevision?: number;
+  /** Keep the Product workspace selection aligned with Yield changes. */
+  onSelectedProductChange?: (productId: string) => void;
+  /** Fired only after saved Yield evidence/preference changes, never for a draft edit. */
+  onYieldEvidenceSaved?: (productId: string) => void;
+  /** When embedded under Products, show one route back instead of a second picker. */
+  onOpenProducts?: () => void;
+}
+
+export function YieldPage({ preferredProductId, productCatalogRevision = 0, onSelectedProductChange, onYieldEvidenceSaved, onOpenProducts }: YieldPageProps = {}) {
+  const preferredProductRef = useRef(preferredProductId);
+  preferredProductRef.current = preferredProductId;
   const [products, setProducts] = useState<Product[]>([]);
   const [materials, setMaterials] = useState<Material[]>([]);
   const [mixPresets, setMixPresets] = useState<MixPreset[]>([]);
-  const [selectedProductId, setSelectedProductId] = useState('');
+  const [selectedProductId, setSelectedProductId] = useState(preferredProductId ?? '');
   const [history, setHistory] = useState<YieldSample[]>([]);
+  const [historyRecipeSources, setHistoryRecipeSources] = useState<
+    Record<string, ResolvedYieldRecipeSource>
+  >({});
+  const [historyMoldFormulaTraces, setHistoryMoldFormulaTraces] = useState<
+    Record<string, YieldHistoryMoldFormulaTrace | null>
+  >({});
   const [knownSampleIds, setKnownSampleIds] = useState<string[]>([]);
   const [effective, setEffective] = useState<EffectiveYieldSelection | null>(null);
   const [effectiveNotice, setEffectiveNotice] = useState('Select a product to inspect yield history.');
@@ -124,33 +194,45 @@ export function YieldPage() {
   const [historyQuery, setHistoryQuery] = useState('');
   const [historySort, setHistorySort] = useState<YieldHistorySort>('newest');
   const [historyOutcome, setHistoryOutcome] = useState<YieldOutcomeFilter>('all');
+  const [historyPage, setHistoryPage] = useState(1);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [form, setForm] = useState<YieldFormState>(() => emptyForm());
   const [draftBaseline, setDraftBaseline] = useState(() => draftKey(form));
   const [pendingAction, setPendingAction] = useState<DraftAction | null>(null);
+  const [formulaDraftSource, setFormulaDraftSource] =
+    useState<PlasterMoldYieldDraft | null>(null);
+  const [formulaDraftConfirmed, setFormulaDraftConfirmed] = useState(false);
+  const [oilEstimateMessage, setOilEstimateMessage] = useState('');
   const [busy, setBusy] = useState<'save' | 'delete' | 'preference' | null>(null);
   const mutationInFlight = useRef(false);
   const historyRequest = useRef(0);
   const draftWarning = useRef<HTMLDivElement>(null);
+  const batchHeading = useRef<HTMLHeadingElement>(null);
+  const learningHeading = useRef<HTMLHeadingElement>(null);
+  const historyHeading = useRef<HTMLHeadingElement>(null);
+  const actionFeedback = useRef<HTMLDivElement>(null);
   const draftDirty = draftKey(form) !== draftBaseline;
-  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const draftEvidenceDirty =
+    draftEvidenceKey(form) !==
+    draftEvidenceKey(JSON.parse(draftBaseline) as YieldFormState);
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string; location?: 'history' | 'learning' } | null>(null);
 
   const selectedProduct = useMemo(
     () => products.find((product) => product.id === selectedProductId) ?? null,
     [products, selectedProductId],
   );
 
+  // Reuse the saved catalog photo, preferring the lightweight UI thumbnail.
+  const selectedProductImage = isValidProductImageDataUrl(selectedProduct?.imageDataUrl)
+    ? selectedProduct.imageDataUrl
+    : isValidBrochureImageDataUrl(selectedProduct?.brochureImageDataUrl)
+      ? selectedProduct.brochureImageDataUrl
+      : null;
+
   const activeMaterials = useMemo(
     () => materials.filter((material) => material.isActive),
     [materials],
   );
-
-  const compatibleMixes = useMemo(() => {
-    if (!selectedProduct) return [];
-    return mixPresets.filter(
-      (preset) => preset.isActive && isMixPresetCompatibleWithCategory(preset, selectedProduct.category),
-    );
-  }, [mixPresets, selectedProduct]);
 
   const materialById = useMemo(
     () => new Map(materials.map((material) => [material.id.toLocaleLowerCase(), material])),
@@ -175,25 +257,61 @@ export function YieldPage() {
     return material?.isActive && quantity !== null && quantity > 0
       && (areUnitsCompatible(input.unit, material.baseUnit) || isMaterialCupWeightBridge(input.unit, material.baseUnit));
   }).length;
-  const draftMixReady = !form.mixPresetId || compatibleMixes.some((mix) => mix.id === form.mixPresetId);
+  const draftMoldFormulaReady =
+    form.recipeSourceKind !== 'mold-formula' ||
+    (formulaDraftSource !== null &&
+      selectedProduct !== null &&
+      formulaDraftSource.productId.toLocaleLowerCase() ===
+        selectedProduct.id.toLocaleLowerCase());
+  const draftSourceReady =
+    form.recipeSourceKind === 'manual' ? true : draftMoldFormulaReady;
   const generatedSampleId = useMemo(() => nextSequentialId(knownSampleIds, 'YLD'), [knownSampleIds]);
-  const draftReferenceReady = Boolean(Number.isFinite(new Date(form.recordedAt).getTime()) && draftMixReady);
-  const draftMaterialsReady = form.materialInputs.length > 0 && completeMaterialInputs === form.materialInputs.length;
-  const draftReady = Boolean(selectedProduct?.isActive && draftReferenceReady && draftMaterialsReady && draftOutcomeReady);
+  const draftReferenceReady = Boolean(
+    Number.isFinite(new Date(form.recordedAt).getTime()) && draftSourceReady,
+  );
+  const draftMaterialLinesReady =
+    form.materialInputs.length > 0 &&
+    completeMaterialInputs === form.materialInputs.length;
+  const draftFormulaEvidenceConfirmed =
+    form.recipeSourceKind !== 'mold-formula' ||
+    (formulaDraftSource !== null && formulaDraftConfirmed);
+  const draftMaterialsReady =
+    draftMaterialLinesReady && draftFormulaEvidenceConfirmed;
+  const draftReady = Boolean(
+    selectedProduct?.isActive &&
+      draftReferenceReady &&
+      draftMaterialsReady &&
+      draftOutcomeReady,
+  );
 
   function replaceDraft(next: YieldFormState) {
     setForm(next);
     setDraftBaseline(draftKey(next));
     setPendingAction(null);
+    setFormulaDraftSource(null);
+    setFormulaDraftConfirmed(false);
   }
 
   useEffect(() => {
     if (pendingAction) draftWarning.current?.focus();
   }, [pendingAction]);
 
+  // A Product selected on the catalog tab follows Yield automatically. A dirty
+  // batch is never overwritten: the normal Yield draft confirmation is reused.
+  useEffect(() => {
+    if (!preferredProductId || preferredProductId === selectedProductId ||
+      !products.some((product) => product.id === preferredProductId)) return;
+    if (pendingAction?.kind === 'product' && pendingAction.id === preferredProductId) return;
+    if (mutationInFlight.current) return;
+    if (draftDirty) setPendingAction({ kind: 'product', id: preferredProductId });
+    else setSelectedProductId(preferredProductId);
+  }, [preferredProductId, selectedProductId, products, draftDirty, pendingAction]);
+
   const loadHistory = useCallback(async (productId: string) => {
     const request = ++historyRequest.current;
     setHistory([]);
+    setHistoryRecipeSources({});
+    setHistoryMoldFormulaTraces({});
     setEffective(null);
     setHistoryError(null);
     setEffectiveNotice(productId ? 'Loading yield evidence...' : 'Select a product to inspect yield history.');
@@ -201,6 +319,39 @@ export function YieldPage() {
     if (!productId) return;
     try {
       const nextHistory = await yieldHistoryService.listHistory(productId);
+      const sourceEntries = await Promise.all(
+        nextHistory.map(async (sample) => [
+          sample.id,
+          await yieldMoldFormulaSourceService.resolveRecipeSourceForYieldSample(
+            sample.id,
+          ),
+        ] as const),
+      );
+      const moldFormulaTraceEntries = await Promise.all(
+        sourceEntries.map(async ([sampleId, source]) => {
+          if (source.kind !== 'mold-formula') {
+            return [sampleId, null] as const;
+          }
+
+          const [mold, profile] = await Promise.all([
+            moldService.getMold(source.moldId),
+            plasterMoldYieldProfileService.getProfile(
+              source.moldYieldProfileId,
+            ),
+          ]);
+
+          return [
+            sampleId,
+            {
+              moldId: source.moldId,
+              moldName: mold?.name ?? null,
+              moldIsActive: mold?.isActive ?? null,
+              moldYieldProfileId: source.moldYieldProfileId,
+              profileIsActive: profile?.isActive ?? null,
+            },
+          ] as const;
+        }),
+      );
       if (request !== historyRequest.current) return;
       let nextEffective: EffectiveYieldSelection | null = null;
       let notice: string;
@@ -219,13 +370,17 @@ export function YieldPage() {
         if (error instanceof YieldHistoryServiceError && error.code === 'NO_SAMPLES') {
           notice = 'No yield samples have been recorded for this product yet.';
         } else if (error instanceof YieldHistoryServiceError && error.code === 'NO_VALID_SAMPLES') {
-          notice = 'Yield history exists, but no sample can currently produce learned requirements. Check material calibration and references.';
+          notice = 'Yield history exists, but no sample can currently produce learned requirements. Check material conversions and references.';
         } else {
           throw error;
         }
       }
       if (request !== historyRequest.current) return;
       setHistory(nextHistory);
+      setHistoryRecipeSources(Object.fromEntries(sourceEntries));
+      setHistoryMoldFormulaTraces(
+        Object.fromEntries(moldFormulaTraceEntries),
+      );
       setEffective(nextEffective);
       setEffectiveNotice(notice);
     } catch (error) {
@@ -253,7 +408,12 @@ export function YieldPage() {
       setMixPresets(nextMixes);
       setKnownSampleIds(nextSamples.map((sample) => sample.id));
       setSelectedProductId((current) => {
+        // Keep a still-valid current batch while the new Product catalog loads.
+        // The preferredProductId effect requests a guarded switch if this
+        // Product has unsaved Yield evidence.
         if (current && nextProducts.some((product) => product.id === current)) return current;
+        const preferred = preferredProductRef.current;
+        if (preferred && nextProducts.some((product) => product.id === preferred)) return preferred;
         return nextProducts.find((product) => product.isActive)?.id ?? nextProducts[0]?.id ?? '';
       });
     } catch (error) {
@@ -265,19 +425,18 @@ export function YieldPage() {
 
   useEffect(() => {
     void loadMasters();
-  }, [loadMasters]);
+  }, [loadMasters, productCatalogRevision]);
 
   useEffect(() => {
     void loadHistory(selectedProductId);
-    const product = products.find((item) => item.id === selectedProductId);
-    replaceDraft(emptyForm(product?.mixPresetId ?? ''));
+    replaceDraft(emptyForm());
     setFeedback(null);
     setPendingDeleteId(null);
     setHistoryQuery('');
     setHistorySort('newest');
     setHistoryOutcome('all');
     return () => { historyRequest.current += 1; };
-  }, [loadHistory, products, selectedProductId]);
+  }, [loadHistory, selectedProductId]);
 
   const effectiveId = effective?.sample.id ?? null;
   const skippedIds = useMemo(
@@ -312,9 +471,14 @@ export function YieldPage() {
       if (historyOutcome === 'clean' && sample.rejectedPieces !== 0) return false;
       if (historyOutcome === 'with-rejects' && sample.rejectedPieces === 0) return false;
       if (!normalizedQuery) return true;
-      const mixName = sample.mixPresetId
-        ? mixById.get(sample.mixPresetId.toLocaleLowerCase())?.name ?? sample.mixPresetId
-        : 'no mix preset';
+      const source = historyRecipeSources[sample.id];
+      const sourceLabel = source ? recipeSourceLabel(source) : '';
+      const mixName =
+        source?.kind === 'mix-preset'
+          ? mixById.get(source.mixPresetId.toLocaleLowerCase())?.name ??
+            source.mixPresetId
+          : '';
+      const moldFormulaTrace = historyMoldFormulaTraces[sample.id];
       const materialNames = sample.materialInputs.map((input) =>
         materialById.get(input.materialId.toLocaleLowerCase())?.name ?? input.materialId,
       );
@@ -322,7 +486,11 @@ export function YieldPage() {
         sample.id,
         sample.notes ?? '',
         formatDate(sample.recordedAt),
+        sourceLabel,
         mixName,
+        moldFormulaTrace?.moldName ?? '',
+        moldFormulaTrace?.moldId ?? '',
+        moldFormulaTrace?.moldYieldProfileId ?? '',
         ...materialNames,
       ].some((value) => value.toLocaleLowerCase().includes(normalizedQuery));
     });
@@ -334,7 +502,59 @@ export function YieldPage() {
       const byId = left.id.localeCompare(right.id, undefined, { sensitivity: 'base' });
       return historySort === 'oldest' ? byTime || byId : -(byTime || byId);
     });
-  }, [history, historyOutcome, historyQuery, historySort, materialById, mixById]);
+  }, [
+    history,
+    historyOutcome,
+    historyQuery,
+    historyMoldFormulaTraces,
+    historyRecipeSources,
+    historySort,
+    materialById,
+    mixById,
+  ]);
+
+  const historyPageCount = Math.max(1, Math.ceil(visibleHistory.length / HISTORY_PAGE_SIZE));
+  const currentHistoryPage = Math.min(historyPage, historyPageCount);
+  const historyOffset = (currentHistoryPage - 1) * HISTORY_PAGE_SIZE;
+  const pagedHistory = visibleHistory.slice(historyOffset, historyOffset + HISTORY_PAGE_SIZE);
+
+  useEffect(() => {
+    setHistoryPage(1);
+    setPendingDeleteId(null);
+  }, [selectedProductId, historyQuery, historyOutcome, historySort]);
+
+  useEffect(() => {
+    if (!historyLoading && !historyError) {
+      setHistoryPage((page) => Math.min(page, historyPageCount));
+    }
+  }, [historyPageCount, historyLoading, historyError]);
+
+  function focusSection(heading: HTMLHeadingElement | null) {
+    heading?.focus({ preventScroll: true });
+    heading?.scrollIntoView?.({ block: 'start' });
+  }
+
+  function changeHistoryPage(page: number) {
+    setHistoryPage(page);
+    setPendingDeleteId(null);
+    focusSection(historyHeading.current);
+  }
+
+  function renderFeedback(location?: 'history' | 'learning') {
+    return feedback && feedback.location === location ? (
+      <div ref={actionFeedback} tabIndex={-1} className={`feedback feedback-${feedback.type}`} role={feedback.type === 'error' ? 'alert' : 'status'}>
+        {feedback.message}
+      </div>
+    ) : null;
+  }
+
+  useEffect(() => {
+    if (busy || historyLoading) return;
+    if (feedback?.location) {
+      actionFeedback.current?.focus({ preventScroll: true });
+    }
+    if (feedback) actionFeedback.current?.scrollIntoView?.({ block: 'nearest' });
+  }, [feedback, busy, historyLoading]);
 
   function unitOptions(materialId: string): InputUnit[] {
     const material = materialById.get(materialId.toLocaleLowerCase());
@@ -347,12 +567,14 @@ export function YieldPage() {
   }
 
   function updateMaterialInput(key: string, changes: Partial<Omit<YieldInputForm, 'key'>>) {
+    setOilEstimateMessage('');
     setForm((current) => ({
       ...current,
       materialInputs: current.materialInputs.map((input) =>
         input.key === key ? { ...input, ...changes } : input,
       ),
     }));
+    if (formulaDraftSource) setFormulaDraftConfirmed(false);
   }
 
   function changeMaterial(key: string, materialId: string) {
@@ -364,29 +586,84 @@ export function YieldPage() {
   }
 
   function addMaterialInput() {
+    setOilEstimateMessage('');
     setForm((current) => ({
       ...current,
       materialInputs: [...current.materialInputs, newInput()],
     }));
+    if (formulaDraftSource) setFormulaDraftConfirmed(false);
   }
 
   function removeMaterialInput(key: string) {
+    setOilEstimateMessage('');
     setForm((current) => ({
       ...current,
       materialInputs: current.materialInputs.filter((input) => input.key !== key),
     }));
+    if (formulaDraftSource) setFormulaDraftConfirmed(false);
+  }
+
+  function applyEssentialOilToDraft(oilMaterialId: string, oilGrams: number) {
+    const oil = materialById.get(oilMaterialId.toLocaleLowerCase());
+    if (
+      !selectedProduct?.isActive || selectedProduct.category !== 'candle' ||
+      !oil?.isActive || oil.group !== 'fragrance' || oil.baseUnit !== 'g' ||
+      !Number.isFinite(oilGrams) || oilGrams <= 0
+    ) return;
+    // Add an estimate explicitly; never silently turn guidance into recorded actual evidence.
+    const quantity = String(Number(oilGrams.toFixed(6)));
+    setForm((current) => {
+      const oldIndex = current.materialInputs.findIndex((input) =>
+        input.materialId.toLocaleLowerCase() === oilMaterialId.toLocaleLowerCase());
+      const blankIndex = current.materialInputs.findIndex((input) =>
+        !input.materialId && !input.quantity.trim());
+      const index = oldIndex >= 0 ? oldIndex : blankIndex;
+      if (index < 0) {
+        return {
+          ...current,
+          materialInputs: [...current.materialInputs, {
+            ...newInput('g'), materialId: oil.id, quantity,
+          }],
+        };
+      }
+      return {
+        ...current,
+        materialInputs: current.materialInputs.map((input, rowIndex) => rowIndex === index
+          ? { ...input, materialId: oil.id, quantity, unit: 'g' }
+          : input),
+      };
+    });
+    if (formulaDraftSource) setFormulaDraftConfirmed(false);
+    setOilEstimateMessage('Essential oil estimate applied to batch materials. Verify the actual grams before recording.');
   }
 
   function resetDraft() {
-    replaceDraft(emptyForm(selectedProduct?.mixPresetId ?? ''));
+    setOilEstimateMessage('');
+    replaceDraft(emptyForm());
     setFeedback(null);
+  }
+
+  function changeRecipeSource(kind: YieldSelectableRecipeSourceKind) {
+    if (kind === form.recipeSourceKind) return;
+    setOilEstimateMessage('');
+
+    setFormulaDraftSource(null);
+    setFormulaDraftConfirmed(false);
+    setFeedback(null);
+    setForm((current) => ({
+      ...current,
+      recipeSourceKind: kind,
+    }));
   }
 
   function useSampleAsDraft(sample: YieldSample) {
     if (!selectedProduct?.isActive) return;
+    setOilEstimateMessage('');
+    setFormulaDraftSource(null);
+    setFormulaDraftConfirmed(false);
     setForm({
       id: '',
-      mixPresetId: mixById.get(sample.mixPresetId?.toLocaleLowerCase() ?? '')?.id ?? sample.mixPresetId ?? '',
+      recipeSourceKind: 'manual',
       goodPieces: String(sample.goodPieces),
       rejectedPieces: String(sample.rejectedPieces),
       recordedAt: localDateTimeValue(),
@@ -404,15 +681,58 @@ export function YieldPage() {
     });
   }
 
+  function useFormulaAsDraft(draft: PlasterMoldYieldDraft) {
+    if (!selectedProduct?.isActive) return;
+    setOilEstimateMessage('');
+    setFormulaDraftSource(draft);
+    setFormulaDraftConfirmed(false);
+    setForm({
+      id: '',
+      recipeSourceKind: 'mold-formula',
+      goodPieces: '',
+      rejectedPieces: '',
+      recordedAt: localDateTimeValue(),
+      notes: '',
+      materialInputs: draft.materialInputs.map((input) => ({
+        ...newInput(input.unit),
+        materialId:
+          materialById.get(input.materialId.toLocaleLowerCase())?.id ??
+          input.materialId,
+        quantity: String(input.quantity),
+        unit: input.unit,
+      })),
+    });
+    setFeedback({
+      type: 'success',
+      message:
+        `Theoretical Mold Formula copied from ${draft.moldName} (${draft.moldId}) / ${draft.profileId}. ` +
+        'Measure the real batch, replace or confirm the copied material quantities, and enter actual good/rejected pieces before recording.',
+    });
+  }
+
   function performDraftAction(action: DraftAction) {
     setPendingAction(null);
-    if (action.kind === 'product') setSelectedProductId(action.id);
+    if (action.kind === 'product') {
+      setSelectedProductId(action.id);
+      onSelectedProductChange?.(action.id);
+    }
     else if (action.kind === 'copy') useSampleAsDraft(action.sample);
+    else if (action.kind === 'formula') useFormulaAsDraft(action.draft);
     else resetDraft();
+    if (action.kind !== 'product') focusSection(batchHeading.current);
   }
 
   function requestDraftAction(action: DraftAction) {
     if (mutationInFlight.current) return;
+    if (
+      action.kind === 'formula' &&
+      form.recipeSourceKind === 'mold-formula' &&
+      formulaDraftSource === null &&
+      !draftEvidenceDirty
+    ) {
+      performDraftAction(action);
+      return;
+    }
     if (draftDirty) setPendingAction(action);
     else performDraftAction(action);
   }
@@ -443,10 +763,9 @@ export function YieldPage() {
       const currentSamples = await yieldSampleEvidenceService.listSamples();
       const reservedIds = new Set([...knownSampleIds, ...currentSamples.map((sample) => sample.id)]);
       const sampleId = nextSequentialId([...reservedIds], 'YLD');
-      await yieldSampleEvidenceService.recordSample({
+      const sample = {
         id: sampleId,
         productId: selectedProduct.id,
-        mixPresetId: form.mixPresetId.trim() || undefined,
         materialInputs: form.materialInputs.map((input) => ({
           materialId: input.materialId,
           quantity: Number(input.quantity),
@@ -454,14 +773,40 @@ export function YieldPage() {
         })),
         goodPieces: Number(form.goodPieces),
         rejectedPieces: Number(form.rejectedPieces),
-        recordedAt: Number.isFinite(recordedAt.getTime()) ? recordedAt.toISOString() : form.recordedAt,
+        recordedAt: Number.isFinite(recordedAt.getTime())
+          ? recordedAt.toISOString()
+          : form.recordedAt,
         notes: form.notes,
-      });
+      };
+
+      if (form.recipeSourceKind === 'mold-formula') {
+        if (!formulaDraftSource) {
+          throw new Error(
+            'Choose a Mold Formula draft before recording a Mold Formula sourced Yield sample.',
+          );
+        }
+        await yieldRecipeSourceRecordingService.record({
+          sample,
+          source: {
+            kind: 'mold-formula',
+            moldId: formulaDraftSource.moldId,
+            moldYieldProfileId: formulaDraftSource.profileId,
+          },
+        });
+      } else {
+        await yieldRecipeSourceRecordingService.record({
+          sample,
+          source: { kind: 'manual' },
+        });
+      }
 
       setKnownSampleIds((current) => current.includes(sampleId) ? current : [...current, sampleId]);
-      replaceDraft(emptyForm(selectedProduct.mixPresetId ?? ''));
+      clearHistoryFilters();
+      setHistoryPage(1);
+      replaceDraft(emptyForm());
       setFeedback({ type: 'success', message: `Yield sample ${sampleId} recorded.` });
       await loadHistory(selectedProduct.id);
+      onYieldEvidenceSaved?.(selectedProduct.id);
     } catch (error) {
       setFeedback({ type: 'error', message: errorMessage(error) });
     } finally {
@@ -477,10 +822,11 @@ export function YieldPage() {
     setFeedback(null);
     try {
       await yieldHistoryService.setPreferred(selectedProduct.id, sample.id);
-      setFeedback({ type: 'success', message: `Yield sample ${sample.id} is now preferred for ${selectedProduct.name}.` });
+      setFeedback({ type: 'success', location: 'history', message: `Yield sample ${sample.id} is now preferred for ${selectedProduct.name}.` });
       await loadHistory(selectedProduct.id);
+      onYieldEvidenceSaved?.(selectedProduct.id);
     } catch (error) {
-      setFeedback({ type: 'error', message: errorMessage(error) });
+      setFeedback({ type: 'error', location: 'history', message: errorMessage(error) });
     } finally {
       mutationInFlight.current = false;
       setBusy(null);
@@ -495,12 +841,13 @@ export function YieldPage() {
     try {
       const automatic = await yieldHistoryService.clearPreferred(selectedProduct.id);
       setFeedback({
-        type: 'success',
+        type: 'success', location: 'learning',
         message: `Automatic Yield selection restored. ${automatic.sample.id} is now effective.`,
       });
       await loadHistory(selectedProduct.id);
+      onYieldEvidenceSaved?.(selectedProduct.id);
     } catch (error) {
-      setFeedback({ type: 'error', message: errorMessage(error) });
+      setFeedback({ type: 'error', location: 'learning', message: errorMessage(error) });
     } finally {
       mutationInFlight.current = false;
       setBusy(null);
@@ -513,12 +860,20 @@ export function YieldPage() {
     setBusy('delete');
     setFeedback(null);
     try {
+      const moldFormulaSource =
+        await yieldMoldFormulaSourceService.getSourceForYieldSample(sample.id);
+      if (moldFormulaSource) {
+        throw new Error(
+          `Yield sample ${sample.id} uses Mold Formula provenance. Its correction must remove the Yield evidence and physical provenance together, so deletion is blocked until that coordinated correction workflow is available.`,
+        );
+      }
       await yieldHistoryService.deleteSample(sample.id);
       setPendingDeleteId(null);
-      setFeedback({ type: 'success', message: `Yield sample ${sample.id} deleted as a correction.` });
+      setFeedback({ type: 'success', location: 'history', message: `Yield sample ${sample.id} deleted as a correction.` });
       await loadHistory(sample.productId);
+      onYieldEvidenceSaved?.(sample.productId);
     } catch (error) {
-      setFeedback({ type: 'error', message: errorMessage(error) });
+      setFeedback({ type: 'error', location: 'history', message: errorMessage(error) });
     } finally {
       mutationInFlight.current = false;
       setBusy(null);
@@ -537,11 +892,8 @@ export function YieldPage() {
     <section className="materials-workspace yield-workspace" aria-labelledby="yield-heading">
       <div className="page-heading-row yield-page-heading">
         <div>
-          <p className="eyebrow">PHASE 2 · REAL PRODUCTION EVIDENCE</p>
           <h1 id="yield-heading">Yield &amp; history</h1>
-          <p className="page-lead">
-            Record what a real batch consumed and how many good or rejected pieces it produced. Choose a preferred historical sample when it best represents normal production, or leave selection automatic to use the newest currently derivable sample.
-          </p>
+          <p className="page-lead">Record a batch. See your yield. Improve the next one.</p>
         </div>
         <div
           className="session-badge"
@@ -551,6 +903,8 @@ export function YieldPage() {
         </div>
       </div>
 
+      <details className="yield-guide-disclosure">
+        <summary><AppIcon name="check-circle" size={17} /> How yield works <AppIcon name="chevron-down" size={16} /></summary>
       <ol className="yield-guide panel" aria-label="Yield workflow">
         <li>
           <span className="yield-step-number">1</span>
@@ -565,6 +919,7 @@ export function YieldPage() {
           <div><strong>Review effective learning</strong><small>The newest derivable sample becomes the active per-good-piece evidence.</small></div>
         </li>
       </ol>
+      </details>
 
       {loading ? (
         <div className="panel yield-state-panel" role="status" aria-live="polite">
@@ -596,6 +951,11 @@ export function YieldPage() {
       ) : (
         <>
           <div className="yield-product-bar panel">
+            {onOpenProducts ? (
+              <button type="button" className="button button-secondary yield-change-product" onClick={onOpenProducts}>
+                <AppIcon name="products" size={18} /> Change product in Products
+              </button>
+            ) : (
             <div className="yield-product-picker-shell">
               <YieldProductSearchPicker
                 products={products}
@@ -618,26 +978,24 @@ export function YieldPage() {
                 ))}
               </select>
             </div>
+            )}
             <div className="yield-product-context">
-              <div>
-                <span className="yield-context-label">Selected product</span>
-                <strong>{selectedProduct?.name ?? 'Select a product'}</strong>
-                <small>{selectedProduct ? PRODUCT_CATEGORY_RULES[selectedProduct.category].productionStyle : 'No production style'}</small>
-              </div>
-              <div>
-                <span className="yield-context-label">Compatible mixes</span>
-                <strong>{compatibleMixes.length}</strong>
-                <small>{compatibleMixes.length === 1 ? 'active preset' : 'active presets'}</small>
-              </div>
-              <div>
-                <span className="yield-context-label">Evidence</span>
-                <strong>{history.length}</strong>
-                <small>{effectiveId ? `effective: ${effectiveId}` : 'no effective sample yet'}</small>
-              </div>
-              <div>
-                <span className="yield-context-label">Status</span>
-                <strong>{selectedProduct?.isActive ? 'Active' : 'Archived'}</strong>
-                <small>{selectedProduct?.isActive ? 'ready for new evidence' : 'history view only'}</small>
+              <div className="yield-selected-product-card" aria-label="Selected Yield product">
+                {selectedProduct && selectedProductImage && (
+                  <ProductImageZoom product={selectedProduct} imageClassName="yield-product-reference-image" />
+                )}
+                <div className="yield-selected-product-copy">
+                  <span className="yield-context-label">YOUR PRODUCT</span>
+                  <strong className="yield-selected-product-name">{selectedProduct?.name ?? 'Select a product'}</strong>
+                  {selectedProduct && (
+                    <small className="yield-selected-product-details">
+                      {selectedProduct.id} · {PRODUCT_CATEGORY_RULES[selectedProduct.category].label}
+                    </small>
+                  )}
+                  <span className={`yield-product-availability ${selectedProduct?.isActive ? 'is-active' : ''}`}>
+                    {selectedProduct?.isActive ? 'Ready for batches' : 'Archived · history only'}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -646,39 +1004,60 @@ export function YieldPage() {
             {historyLoading || historyError ? (
               <div className="yield-insight-card yield-insights-message" role="status">
                 <strong>{historyLoading ? 'Loading batch evidence...' : 'Evidence summary unavailable'}</strong>
-                <small>{historyLoading ? 'Reading history for the selected product.' : 'Retry history below to refresh the summary.'}</small>
+                <small>{historyLoading ? 'Reading saved batches.' : 'Retry from history below.'}</small>
               </div>
-            ) : <>
-            <div className="yield-insight-card">
-              <span>Recorded batches</span>
-              <strong>{historySnapshot.totalSamples}</strong>
-              <small>{historySnapshot.latest ? `Latest ${formatDate(historySnapshot.latest.recordedAt)}` : 'No evidence yet'}</small>
-            </div>
-            <div className="yield-insight-card is-primary">
-              <span>Effective good yield</span>
-              <strong>{effectiveGoodYield === null ? '—' : `${formatNumber(effectiveGoodYield * 100, 2)}%`}</strong>
-              <small>{effectiveId ? `From ${effectiveId}` : 'Waiting for derivable evidence'}</small>
-            </div>
-            <div className="yield-insight-card">
-              <span>Historical good-piece rate</span>
-              <strong>{historySnapshot.goodRate === null ? '—' : `${formatNumber(historySnapshot.goodRate * 100, 2)}%`}</strong>
-              <small>{historySnapshot.goodPieces} good · {historySnapshot.rejectedPieces} rejected</small>
-            </div>
-            <div className={`yield-insight-card ${skippedIds.size > 0 ? 'needs-attention' : ''}`}>
-              <span>Evidence needing attention</span>
-              <strong>{skippedIds.size}</strong>
-              <small>{skippedIds.size > 0 ? 'Newer sample(s) skipped from learning' : 'No skipped newer evidence'}</small>
-            </div>
-            </>}
+            ) : (
+              <>
+                <div className="yield-insight-card is-primary">
+                  <span>Effective good yield</span>
+                  <strong>{effectiveGoodYield === null ? '—' : `${formatNumber(effectiveGoodYield * 100, 2)}%`}</strong>
+                  <small>{effectiveId ? `Sample ${effectiveId}` : 'Record a batch to begin'}</small>
+                </div>
+                <div className="yield-insight-card">
+                  <span>Recorded batches</span>
+                  <strong>{historySnapshot.totalSamples}</strong>
+                  <small>{historySnapshot.latest ? `Latest ${formatDate(historySnapshot.latest.recordedAt)}` : 'No batches yet'}</small>
+                </div>
+                {skippedIds.size > 0 && (
+                  <div className="yield-insight-card needs-attention" role="status">
+                    <span>Needs attention</span>
+                    <strong>{skippedIds.size}</strong>
+                    <small>Newer batches cannot be used for learning</small>
+                  </div>
+                )}
+                <details className="yield-secondary-insights">
+                  <summary>More yield statistics <AppIcon name="chevron-down" size={16} /></summary>
+                  <div className="yield-secondary-insights-grid">
+                    <div className="yield-insight-card">
+                      <span>Historical good-piece rate</span>
+                      <strong>{historySnapshot.goodRate === null ? '—' : `${formatNumber(historySnapshot.goodRate * 100, 2)}%`}</strong>
+                      <small>{historySnapshot.goodPieces} good · {historySnapshot.rejectedPieces} rejected</small>
+                    </div>
+                    <div className="yield-insight-card">
+                      <span>Evidence needing attention</span>
+                      <strong>{skippedIds.size}</strong>
+                      <small>{skippedIds.size > 0 ? 'Newer sample(s) skipped from learning' : 'No skipped newer evidence'}</small>
+                    </div>
+                  </div>
+                </details>
+              </>
+            )}
           </section>
+
+          <nav className="yield-section-nav" aria-label="Yield sections">
+            <button type="button" className="button button-quiet" onClick={() => focusSection(batchHeading.current)}>Batch evidence</button>
+            <button type="button" className="button button-quiet" onClick={() => focusSection(learningHeading.current)}>Effective learning</button>
+            <button type="button" className="button button-quiet" onClick={() => focusSection(historyHeading.current)}>Recorded batches</button>
+          </nav>
 
           <div className="materials-layout yield-layout">
             <section className="yield-evidence-column" aria-labelledby="yield-evidence-column-heading">
               <div className="yield-column-heading">
                 <span className="yield-column-label">BATCH INPUT</span>
-                <h2 id="yield-evidence-column-heading">Batch evidence</h2>
-                <p>Enter this batch's actual consumption and piece counts. Draft values become evidence when you record the sample.</p>
+                <h2 ref={batchHeading} tabIndex={-1} id="yield-evidence-column-heading">Batch evidence</h2>
+                <p>Enter actual materials and finished pieces.</p>
               </div>
+
             <form className="panel material-form yield-form" aria-busy={Boolean(busy)} aria-label="Yield sample" onSubmit={submitSample}>
               <div className="panel-heading yield-form-heading">
                 <div>
@@ -690,12 +1069,24 @@ export function YieldPage() {
                 </span>
               </div>
 
+              {renderFeedback()}
               {pendingAction && (
                 <div className="yield-draft-confirm" role="alert" ref={draftWarning} tabIndex={-1}>
                   <strong>Keep your unsaved batch?</strong>
-                  <p>{pendingAction.kind === 'product' ? 'Switching products will replace the current draft.' : pendingAction.kind === 'copy' ? `Using ${pendingAction.sample.id} will replace the current draft.` : 'Resetting will clear your current draft.'}</p>
+                  <p>{pendingAction.kind === 'product'
+  ? 'Switching products will replace the current draft.'
+  : pendingAction.kind === 'copy'
+    ? `Using ${pendingAction.sample.id} will replace the current draft.`
+    : pendingAction.kind === 'formula'
+      ? `Using the Mold Formula from ${pendingAction.draft.moldName} will replace the current draft.`
+      : 'Resetting will clear your current draft.'}</p>
                   <div>
-                    <button type="button" className="button button-primary" disabled={Boolean(busy)} onClick={() => { setPendingAction(null); }}>Keep editing</button>
+                    <button type="button" className="button button-primary" disabled={Boolean(busy)} onClick={() => {
+                      // Keep both tabs pointed at the draft's original product.
+                      if (pendingAction.kind === 'product') onSelectedProductChange?.(selectedProductId);
+                      setPendingAction(null);
+                      focusSection(batchHeading.current);
+                    }}>Keep editing</button>
                     <button type="button" className="button button-quiet" disabled={Boolean(busy)} onClick={() => performDraftAction(pendingAction)}>Discard draft and continue</button>
                   </div>
                 </div>
@@ -724,18 +1115,22 @@ export function YieldPage() {
                   <strong>{completeMaterialInputs}/{form.materialInputs.length}</strong>
                 </div>
               </div>
-              <p className="yield-draft-help">
+              {!draftReady && <p className="yield-draft-help">
                 {draftReady
                   ? 'This draft has the minimum evidence needed to record the batch.'
-                  : 'Use a valid date, complete each active material line, and enter whole-piece counts. The Sample ID is assigned automatically.'}
-              </p>
+                  : form.recipeSourceKind === 'mold-formula' && formulaDraftSource === null
+                    ? 'Choose a saved Mold Formula in the Mold Formula source area below before recording this source type.'
+                    : formulaDraftSource && !formulaDraftConfirmed
+                      ? 'Complete Actual measurement confirmation in the Mold Formula source area after checking the real batch quantities.'
+                      : 'Use a valid date, complete each active material line, and enter whole-piece counts. The Sample ID is assigned automatically.'}
+              </p>}
 
               <section className="yield-form-section" aria-labelledby="yield-batch-reference-heading">
                 <div className="yield-section-heading">
                   <span className="yield-section-number">1</span>
                   <div>
                     <h3 id="yield-batch-reference-heading">Batch reference</h3>
-                    <p>Identify when the batch happened and which preset, if any, you followed.</p>
+                    <p>When and how you made it.</p>
                   </div>
                 </div>
                 <div className="form-grid">
@@ -758,21 +1153,42 @@ export function YieldPage() {
                       onChange={(event) => setForm({ ...form, recordedAt: event.target.value })}
                     />
                   </label>
-                  <label className="field field-wide">
-                    <span>Mix preset used</span>
-                    <select
-                      value={form.mixPresetId}
+                  <div className="field field-wide">
+                    <YieldRecipeSourceSelector
+                      value={form.recipeSourceKind}
                       disabled={Boolean(busy) || !selectedProduct?.isActive}
-                      onChange={(event) => setForm({ ...form, mixPresetId: event.target.value })}
-                    >
-                      <option value="">No preset / manual batch</option>
-                      {!draftMixReady && <option value={form.mixPresetId}>{mixById.get(form.mixPresetId.toLocaleLowerCase())?.name ?? form.mixPresetId} (unavailable)</option>}
-                      {compatibleMixes.map((preset) => (
-                        <option key={preset.id} value={preset.id}>{preset.name}</option>
-                      ))}
-                    </select>
-                    <small>{draftMixReady ? 'Optional reference. Actual material quantities below remain authoritative.' : 'This copied preset is unavailable. Select an active compatible preset or a manual batch.'}</small>
-                  </label>
+                      onChange={changeRecipeSource}
+                    />
+                  </div>
+                  {form.recipeSourceKind === 'manual' && (
+                    <div className="field field-wide">
+                      <YieldManualMode />
+                    </div>
+                  )}
+                  {form.recipeSourceKind === 'mold-formula' && selectedProduct && (
+                    <div className="field field-wide">
+                      <YieldMoldFormulaMode
+                        draft={formulaDraftSource}
+                        selectedProductId={selectedProduct.id}
+                        assistant={
+                          <PlasterMoldYieldDraftAssist
+                            product={selectedProduct}
+                            disabled={Boolean(busy) || !selectedProduct.isActive}
+                            onUseDraft={(draft) =>
+                              requestDraftAction({ kind: 'formula', draft })
+                            }
+                          />
+                        }
+                        measurementConfirmed={formulaDraftConfirmed}
+                        measurementDisabled={
+                          Boolean(busy) || !selectedProduct.isActive
+                        }
+                        onMeasurementConfirmationChange={
+                          setFormulaDraftConfirmed
+                        }
+                      />
+                    </div>
+                  )}
                 </div>
               </section>
 
@@ -781,7 +1197,7 @@ export function YieldPage() {
                   <span className="yield-section-number">2</span>
                   <div>
                     <h3 id="yield-materials-heading">Materials actually consumed</h3>
-                    <p>Use measured batch consumption, including material lost to rejects, spills, or process waste.</p>
+                    <p>What you actually used.</p>
                   </div>
                   <span className="yield-line-count">{completeMaterialInputs}/{form.materialInputs.length} complete</span>
                 </div>
@@ -850,6 +1266,17 @@ export function YieldPage() {
                 >
                   + Add material
                 </button>
+                {selectedProduct?.category === 'candle' && (
+                  <>
+                    <ScentedCandleOilPanel
+                      materials={materials}
+                      inputs={form.materialInputs}
+                      disabled={Boolean(busy) || !selectedProduct.isActive}
+                      onApply={applyEssentialOilToDraft}
+                    />
+                    {oilEstimateMessage && <p className="feedback feedback-success" role="status">{oilEstimateMessage}</p>}
+                  </>
+                )}
               </section>
 
               <section className="yield-form-section" aria-labelledby="yield-outcome-heading">
@@ -857,7 +1284,7 @@ export function YieldPage() {
                   <span className="yield-section-number">3</span>
                   <div>
                     <h3 id="yield-outcome-heading">Batch outcome</h3>
-                    <p>Count saleable pieces separately from rejected pieces so the learned requirement reflects real yield.</p>
+                    <p>How many turned out well?</p>
                   </div>
                 </div>
                 <div className="form-grid yield-outcome-grid">
@@ -915,22 +1342,14 @@ export function YieldPage() {
               {selectedProduct && !selectedProduct.isActive && (
                 <div className="feedback">Archived products keep their history, but new yield evidence cannot be recorded.</div>
               )}
-              {feedback && (
-                <div
-                  className={`feedback feedback-${feedback.type}`}
-                  role={feedback.type === 'error' ? 'alert' : 'status'}
-                >
-                  {feedback.message}
-                </div>
-              )}
             </form>
             </section>
 
             <section className="yield-history-stack yield-learning-column" aria-labelledby="yield-learning-column-heading">
               <div className="yield-column-heading">
                 <span className="yield-column-label">SAVED RESULTS</span>
-                <h2 id="yield-learning-column-heading">Effective learning</h2>
-                <p>Review learned requirements from recorded samples. Editing the batch draft does not change these saved results.</p>
+                <h2 ref={learningHeading} tabIndex={-1} id="yield-learning-column-heading">Effective learning</h2>
+                <p>Results from your saved batches.</p>
               </div>
               <section className="panel effective-yield-card" aria-label="Effective yield learning">
                 <div className="panel-heading">
@@ -944,7 +1363,10 @@ export function YieldPage() {
                     </span>
                   )}
                 </div>
-                <p className="yield-notice">{effectiveNotice}</p>
+                {renderFeedback('learning')}
+                {(!effective || effective.preferredSampleUnavailable || skippedIds.size > 0) && (
+                  <p className="yield-notice">{effectiveNotice}</p>
+                )}
                 {effective?.preferredSampleId && (
                   <div className="yield-preference-actions">
                     <button
@@ -969,19 +1391,18 @@ export function YieldPage() {
                       <div><span>Good yield</span><strong>{effectiveGoodYield === null ? '—' : `${formatNumber(effectiveGoodYield * 100, 2)}%`}</strong></div>
                       <div><span>Defect rate</span><strong>{formatNumber(effective.learning.defectRate * 100, 2)}%</strong></div>
                     </div>
-                    <div className="learned-requirements-heading">
-                      <strong>Material required per good piece</strong>
-                      <span>Derived from this effective batch</span>
-                    </div>
+                    <details className="yield-learned-details">
+                      <summary><strong>Materials per good piece</strong><span>{effective.learning.materialRequirements.length} materials <AppIcon name="chevron-down" size={16} /></span></summary>
                     <div className="learned-requirements">
                       {effective.learning.materialRequirements.map((requirement) => (
                         <div key={requirement.materialId}>
                           <span>{materialById.get(requirement.materialId.toLocaleLowerCase())?.name ?? requirement.materialId}</span>
                           <strong>{formatNumber(requirement.baseQuantityPerGoodPiece)} {requirement.baseUnit} / good piece</strong>
-                          <small>{requirement.conversionSource}{requirement.calibrationId ? ` · ${requirement.calibrationId}` : ''}</small>
+                          <small>{requirement.conversionSource} conversion</small>
                         </div>
                       ))}
                     </div>
+                    </details>
                   </>
                 )}
               </section>
@@ -990,11 +1411,39 @@ export function YieldPage() {
                 <div className="panel-heading list-heading yield-history-heading-row">
                   <div>
                     <p className="panel-kicker">IMMUTABLE HISTORY</p>
-                    <h2>Recorded batches</h2>
-                    <p className="yield-history-subtitle">Compare outcomes, reuse a previous setup for a new batch, or correct evidence deliberately.</p>
+                    <h2 ref={historyHeading} tabIndex={-1}>Recorded batches</h2>
+                    <p className="yield-history-subtitle">Find or reuse previous batches.</p>
                   </div>
                   <div className="material-count"><strong>{history.length}</strong><span>samples</span></div>
                 </div>
+
+                {renderFeedback('history')}
+
+                <details
+                  className="yield-history-legacy-compatibility"
+                  aria-label="Legacy Yield sample compatibility"
+                >
+                  <summary>How legacy samples are shown</summary>
+                  <div>
+                    <p>
+                      Pre-YRS samples keep their original saved meaning. History
+                      does not guess source origin from dates or migration age.
+                    </p>
+                    <ul>
+                      <li>
+                        Saved Mix preset reference → <strong>Mix preset</strong>
+                      </li>
+                      <li>
+                        No saved Mix preset and no Mold Formula provenance →{' '}
+                        <strong>Manual</strong>
+                      </li>
+                      <li>
+                        Explicit Mold/profile provenance →{' '}
+                        <strong>Mold formula</strong>
+                      </li>
+                    </ul>
+                  </div>
+                </details>
 
                 <div className="yield-history-toolbar">
                   <label className="field yield-history-search">
@@ -1004,7 +1453,7 @@ export function YieldPage() {
                       type="search"
                       value={historyQuery}
                       onChange={(event) => setHistoryQuery(event.target.value)}
-                      placeholder="Sample, material, mix, notes…"
+                      placeholder="Sample, material, source, notes…"
                     />
                   </label>
                   <label className="field yield-history-outcome">
@@ -1059,13 +1508,22 @@ export function YieldPage() {
                       <div className="empty-state">
                         <div className="empty-icon" aria-hidden="true"><AppIcon name="search" size={28} /></div>
                         <h3>No matching batches</h3>
-                        <p>Try a different sample ID, material, mix preset, outcome, date, or note.</p>
+                        <p>Try a different sample ID, material, recipe source, outcome, date, or note.</p>
                         <button type="button" className="button button-quiet" onClick={clearHistoryFilters}>Clear history filters</button>
                       </div>
-                    ) : visibleHistory.map((sample) => {
+                    ) : pagedHistory.map((sample) => {
                       const sampleIsEffective = sample.id === effectiveId;
                       const sampleIsPreferred = effective?.preferredSampleId === sample.id;
                       const skippedInvalid = skippedIds.has(sample.id);
+                      const recipeSource = historyRecipeSources[sample.id];
+                      const recipeSourceMixName =
+                        recipeSource?.kind === 'mix-preset'
+                          ? mixById.get(
+                              recipeSource.mixPresetId.toLocaleLowerCase(),
+                            )?.name ?? recipeSource.mixPresetId
+                          : null;
+                      const moldFormulaTrace =
+                        historyMoldFormulaTraces[sample.id] ?? null;
                       return (
                         <article
                           className={`yield-history-item ${sampleIsEffective ? 'effective-history-item' : ''}`}
@@ -1090,7 +1548,49 @@ export function YieldPage() {
                             <span><small>Good pieces</small><strong>{sample.goodPieces}</strong></span>
                             <span><small>Good yield</small><strong>{formatNumber((1 - defectRate(sample)) * 100, 2)}%</strong></span>
                             <span><small>Defect rate</small><strong>{formatNumber(defectRate(sample) * 100, 2)}%</strong></span>
-                            <span><small>Mix</small><strong>{sample.mixPresetId ? (mixById.get(sample.mixPresetId.toLocaleLowerCase())?.name ?? sample.mixPresetId) : 'Manual batch'}</strong></span>
+                            <span className="yield-history-recipe-source">
+                              <small>Recipe source</small>
+                              <strong>
+                                {recipeSource
+                                  ? recipeSourceLabel(recipeSource)
+                                  : 'Unavailable'}
+                              </strong>
+                              {recipeSource?.kind === 'mix-preset' && (
+                                <>
+                                  {recipeSourceMixName && (
+                                    <em>{recipeSourceMixName}</em>
+                                  )}
+                                  <em className="yield-history-source-basis">
+                                    Saved Mix preset reference
+                                  </em>
+                                </>
+                              )}
+                              {recipeSource?.kind === 'manual' && (
+                                <em className="yield-history-source-basis">
+                                  No saved recipe reference
+                                </em>
+                              )}
+                              {recipeSource?.kind === 'mold-formula' && (
+                                <span
+                                  className="yield-history-formula-trace"
+                                  aria-label={`Mold Formula traceability ${sample.id}`}
+                                >
+                                  <em>
+                                    {moldFormulaTrace?.moldName ?? 'Mold'} ·{' '}
+                                    {recipeSource.moldId}
+                                    {moldFormulaTrace?.moldIsActive === false
+                                      ? ' · archived'
+                                      : ''}
+                                  </em>
+                                  <em>
+                                    Profile {recipeSource.moldYieldProfileId}
+                                    {moldFormulaTrace?.profileIsActive === false
+                                      ? ' · archived'
+                                      : ''}
+                                  </em>
+                                </span>
+                              )}
+                            </span>
                           </div>
                           <details className="history-evidence-details">
                             <summary>Evidence details · {sample.materialInputs.length} material{sample.materialInputs.length === 1 ? '' : 's'}</summary>
@@ -1136,6 +1636,15 @@ export function YieldPage() {
                       );
                     })}
                   </div>
+                )}
+                {!historyLoading && !historyError && visibleHistory.length > 0 && (
+                  <nav className="yield-history-pagination" aria-label="Yield history pages">
+                    <span role="status">Batches {historyOffset + 1}–{historyOffset + pagedHistory.length} of {visibleHistory.length}{historyFiltered ? ' matching' : ''} · Page {currentHistoryPage} of {historyPageCount}</span>
+                    {historyPageCount > 1 && <div>
+                      <button type="button" className="button button-quiet" disabled={Boolean(busy) || currentHistoryPage === 1} onClick={() => changeHistoryPage(currentHistoryPage - 1)}>Previous page</button>
+                      <button type="button" className="button button-quiet" disabled={Boolean(busy) || currentHistoryPage === historyPageCount} onClick={() => changeHistoryPage(currentHistoryPage + 1)}>Next page</button>
+                    </div>}
+                  </nav>
                 )}
                 <div className="list-footer yield-history-footer">
                   <span>

@@ -35,6 +35,35 @@ async function clickButton(label: string) {
 }
 
 describe('application navigation drawer', () => {
+  it('shows My Lovely Craft and the supplied botanical brand mark', async () => {
+    await mount();
+    const drawer = container.querySelector('#app-navigation-drawer')!;
+    expect(drawer.textContent).toContain('My Lovely Craft');
+    expect(drawer.textContent).toContain('Crafted with love');
+    expect(drawer.querySelector<HTMLImageElement>('.brand-mark img')?.getAttribute('src')).toBe('/brand/mlc-mark.webp');
+  });
+
+  it('switches appearance and remembers Light, Dark and System choices', async () => {
+    await mount();
+    const group = container.querySelector('[aria-label="Appearance theme"]')!;
+    expect(group.querySelector('[aria-pressed="true"]')?.textContent).toBe('System');
+    await clickButton('Dark');
+    expect(document.documentElement.dataset.theme).toBe('dark');
+    expect(window.localStorage.getItem('craft-business-manager.appearance')).toBe('dark');
+    await clickButton('Light');
+    expect(document.documentElement.dataset.theme).toBe('light');
+    expect(window.localStorage.getItem('craft-business-manager.appearance')).toBe('light');
+    await clickButton('System');
+    expect(group.querySelector('[aria-pressed="true"]')?.textContent).toBe('System');
+  });
+
+  it('restores a saved appearance preference at launch', async () => {
+    window.localStorage.setItem('craft-business-manager.appearance', 'dark');
+    await mount();
+    expect(document.documentElement.dataset.theme).toBe('dark');
+    expect(container.querySelector('[aria-label="Appearance theme"] [aria-pressed="true"]')?.textContent).toBe('Dark');
+  });
+
   it('renders the primary sections in a left drawer instead of a top header', async () => {
     await mount();
 
@@ -44,11 +73,12 @@ describe('application navigation drawer', () => {
     expect(container.querySelector('.app-header')).toBeNull();
     expect(drawer?.querySelector('[aria-label="Application sections"]')).not.toBeNull();
     expect(drawer?.textContent).toContain('Materials');
-    expect(drawer?.textContent).toContain('Calibration');
+    expect(drawer?.textContent).not.toContain('Calibration');
     expect(drawer?.textContent).toContain('Products');
-    expect(drawer?.textContent).toContain('Yield');
+    expect(drawer?.textContent).not.toContain('Yield');
     expect(drawer?.textContent).toContain('Production');
-    expect(drawer?.textContent).toContain('Pricing');
+    expect(Array.from(drawer!.querySelectorAll('.app-drawer-nav button')).map((button) => button.textContent?.trim()))
+      .toEqual(['Materials', 'Products', 'Production']);
     expect(drawer?.querySelector('[aria-label="Workbook tools"]')).not.toBeNull();
   });
 
@@ -117,5 +147,16 @@ describe('application navigation drawer', () => {
     expect(productsButton?.getAttribute('aria-current')).toBe('page');
     expect(container.querySelector('.app-shell-with-drawer')?.classList.contains('is-drawer-open')).toBe(false);
     expect(container.textContent).toContain('Your product workshop');
+    const productsTabs = container.querySelector('[aria-label="Product workspace views"]')!;
+    expect(productsTabs.textContent).toContain('Pricing');
+    await act(async () => productsTabs.querySelector<HTMLButtonElement>('[aria-controls="products-view-pricing"]')!.click());
+    expect(container.querySelector('[aria-label="Selected pricing Product"]')).not.toBeNull();
+    expect(productsButton?.getAttribute('aria-current')).toBe('page');
+    expect(drawerPricingEntries()).toHaveLength(0);
   });
 });
+
+function drawerPricingEntries() {
+  return Array.from(container.querySelectorAll<HTMLButtonElement>('.app-drawer-nav button'))
+    .filter((button) => button.textContent?.trim() === 'Pricing');
+}

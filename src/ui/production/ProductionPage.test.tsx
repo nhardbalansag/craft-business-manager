@@ -22,6 +22,9 @@ beforeEach(async () => {
     session.productComponentRepository.replaceAll([]),
     session.productStockRepository.replaceAll([]),
     session.productFinancialProfileRepository.replaceAll([]),
+    session.storageLocationRepository.replaceAll([]),
+    session.moldRepository.replaceAll([]),
+    session.plasterMoldYieldProfileRepository.replaceAll([]),
   ]);
   container = document.createElement('div');
   document.body.append(container);
@@ -220,6 +223,157 @@ describe('production planning interactions', () => {
     await session.productStockRepository.replaceAll([{ productId: 'POT', onHandQuantity: 0 }]);
     await click('10');
     expect(container.querySelector('#production-preparation')?.textContent).toContain('10 pc short');
+  });
+
+
+  it('shows a parallel Mold Formula cost/capacity estimate without replacing the existing Production result', async () => {
+    await seed();
+    await session.materialService.createMaterial({
+      id: 'WATER',
+      name: 'Water',
+      group: 'liquid',
+      baseUnit: 'g',
+      purchaseQuantity: 1000,
+      purchaseUnit: 'g',
+      packageCost: 20,
+      onHandQuantity: 1000,
+      onHandUnit: 'g',
+      isActive: true,
+    });
+    await session.materialService.createMaterial({
+      id: 'PLASTER',
+      name: 'Plaster',
+      group: 'plaster',
+      baseUnit: 'g',
+      purchaseQuantity: 1000,
+      purchaseUnit: 'g',
+      packageCost: 100,
+      onHandQuantity: 1000,
+      onHandUnit: 'g',
+      isActive: true,
+    });
+    await session.materialService.createMaterial({
+      id: 'GLUE',
+      name: 'White Glue',
+      group: 'other',
+      baseUnit: 'g',
+      purchaseQuantity: 1000,
+      purchaseUnit: 'g',
+      packageCost: 200,
+      onHandQuantity: 1000,
+      onHandUnit: 'g',
+      isActive: true,
+    });
+    await session.moldRepository.replaceAll([
+      {
+        id: 'MOLD-CANDLE',
+        productId: 'CANDLE',
+        name: 'Four Cavity Pot Mold',
+        isActive: true,
+      },
+    ]);
+    await session.plasterMoldYieldProfileRepository.replaceAll([
+      {
+        id: 'PMYP-CANDLE',
+        moldId: 'MOLD-CANDLE',
+        waterMaterialId: 'WATER',
+        plasterMaterialId: 'PLASTER',
+        glueMaterialId: 'GLUE',
+        waterFillWeightGrams: 50,
+        waterAdjustmentRate: 0.3,
+        plasterFactor: 0.75,
+        glueFactor: 0.05,
+        piecesPerPour: 4,
+        isActive: true,
+      },
+    ]);
+
+    await mount();
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(overview().textContent).toContain('Within current capacity');
+    expect(overview().textContent).toContain('MOLD FORMULA ESTIMATE');
+    expect(overview().textContent).toContain('Formula cost & stock preview');
+    expect(overview().textContent).toContain('3.68');
+    expect(overview().textContent).toContain('112 pc');
+    expect(overview().textContent).toContain(
+      'does not replace the Product/Yield production plan',
+    );
+
+    await click('25');
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(overview().textContent).toContain('7 complete pours');
+    expect(overview().textContent).toContain('28 Mold-capacity pieces');
+    expect(overview().textContent).toContain('3 extra capacity');
+  });
+});
+
+describe('multi-product production workflow', () => {
+  it('adds a second Product and combines its direct material requirements without modifying inventory', async () => {
+    await seed();
+    await session.productService.createProduct({
+      id: 'SECOND', name: 'Small Candle',
+      category: 'candle', safetyWasteRate: 0, isActive: true,
+    });
+    await session.fixedRecipeItemService.createItem({
+      id: 'RECIPE-SECOND', productId: 'SECOND',
+      materialId: 'WAX', quantityPerProduct: 7, unit: 'g', role: 'consumable',
+    });
+    const before = await session.completeSourceSnapshotService.snapshot();
+    await mount();
+    await click('Multiple products');
+    await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+    expect(container.querySelector('[aria-label="Multi-product production batch"]')).not.toBeNull();
+    expect(container.querySelector('.multi-production-setup')).not.toBeNull();
+    expect(container.querySelector('.multi-production-lines')).not.toBeNull();
+    expect(container.textContent).toContain('1 product selected');
+    await click('Add another product');
+    expect(container.querySelectorAll('.multi-production-line')).toHaveLength(2);
+    expect(container.textContent).toContain('2 products selected');
+    const second = container.querySelector<HTMLElement>('[aria-label="Production item 2"]')!;
+    const qty = second.querySelector<HTMLInputElement>('input[type="number"]')!;
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(qty, '2');
+      qty.dispatchEvent(new Event('input', { bubbles: true }));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+    const quantityInputs = Array.from(container.querySelectorAll<HTMLInputElement>(
+      '.multi-production-line input[type="number"]',
+    ));
+    const productInputs = Array.from(container.querySelectorAll<HTMLSelectElement>(
+      '.multi-production-line select[aria-label^="Production product"]',
+    ));
+    expect(quantityInputs.map((input) => input.value)).toEqual(['1', '2']);
+    expect(new Set(productInputs.map((input) => input.value))).toEqual(new Set(['CANDLE', 'SECOND']));
+    const gramsPerProduct: Record<string, number> = { CANDLE: 10, SECOND: 7 };
+    const expectedGrams = quantityInputs.reduce(
+      (total, input, index) =>
+        total + Number(input.value) * gramsPerProduct[productInputs[index].value],
+      0,
+    );
+    const combined = container.querySelector<HTMLElement>('[aria-label="Combined direct material requirements"]')!;
+    expect(combined.textContent).toContain(`${expectedGrams} g`);
+    expect(combined.textContent).toContain('50 g');
+    expect(container.textContent).toContain('3 pieces');
+    expect(container.querySelector('.multi-production-summary')).not.toBeNull();
+    expect(container.querySelector('[aria-label="Formula mixing groups"]')).toBeNull();
+    expect(container.textContent).not.toContain('Mixtures to prepare');
+    expect(container.querySelector('[aria-label="Combined theoretical material totals"]')).not.toBeNull();
+    expect(container.querySelector('.multi-production-materials-panel')).not.toBeNull();
+    expect(container.querySelector('.multi-production-table-wrap')).not.toBeNull();
+    expect(await session.completeSourceSnapshotService.snapshot()).toEqual(before);
+    await click('Single product');
+    expect(container.querySelector('[aria-label="Batch setup"]')).not.toBeNull();
   });
 });
 

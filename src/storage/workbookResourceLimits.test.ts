@@ -18,7 +18,7 @@ function document(
 describe('workbook resource limits', () => {
   it('publishes immutable practical defaults', () => {
     expect(DEFAULT_WORKBOOK_RESOURCE_LIMITS).toEqual({
-      maxWorkbookBytes: 20 * 1024 * 1024,
+      maxWorkbookBytes: 48 * 1024 * 1024,
       maxWorksheetCount: 32,
       maxColumnsPerSheet: 64,
       maxRowsPerSheet: 50_000,
@@ -48,6 +48,18 @@ describe('workbook resource limits', () => {
         maximum: 3,
       }),
     ]);
+  });
+
+  it('accepts the reported 33,122,274-byte photo-heavy workbook under defaults', () => {
+    const bytes = new Uint8Array(33_122_274);
+    expect(validateWorkbookBinaryResourceLimit(bytes)).toEqual([]);
+    expect(validateWorkbookBinaryResourceLimit(bytes, createWorkbookResourceLimits({
+      maxWorkbookBytes: 20 * 1024 * 1024,
+    }))).toContainEqual(expect.objectContaining({
+      code: 'WORKBOOK_BYTES_EXCEEDED',
+      actual: 33_122_274,
+      maximum: 20 * 1024 * 1024,
+    }));
   });
 
   it('reports worksheet-count excess deterministically', () => {
