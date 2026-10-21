@@ -4,7 +4,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PersistenceLifecycleRejected } from '../../application/persistence/PersistenceLifecycle';
 import type { BusinessDatasetWorkbookImportIssue } from '../../storage/businessDatasetWorkbookImport';
-import { WorkbookImportRejectionDetails } from './WorkbookImportRejectionDetails';
+import { formatWorkbookImportDiagnostics, WorkbookImportRejectionDetails } from './WorkbookImportRejectionDetails';
 
 let container: HTMLDivElement;
 let root: Root;
@@ -69,6 +69,53 @@ describe('WorkbookImportRejectionDetails Phase 5.5C2 recovery guidance', () => {
     expect(content).toContain('Column packageCost');
     expect(content).toContain('Path materials[2].packageCost');
     expect(content).toContain('technical source of truth');
+  });
+
+  it('provides a copyable error report with issue code and exact Excel location, without workbook cell contents', async () => {
+    const result: PersistenceLifecycleRejected = {
+      status: 'rejected',
+      stage: 'import',
+      issues: [importIssue('schema', 'INVALID_CELL_TYPE', {
+        sheetName: 'Materials', excelRow: 8, column: 'packageCost',
+        message: 'packageCost must be a number.',
+        input: 'PRIVATE CELL VALUE',
+      })],
+    };
+    const expected = formatWorkbookImportDiagnostics(result);
+    expect(expected).toContain('Issue 1: [INVALID_CELL_TYPE] (schema)');
+    expect(expected).toContain('Sheet: Materials');
+    expect(expected).toContain('Excel row: 8');
+    expect(expected).toContain('Column: packageCost');
+    expect(expected).toContain('packageCost must be a number.');
+    expect(expected).not.toContain('PRIVATE CELL VALUE');
+
+    await renderResult(result);
+    const details = container.querySelector<HTMLDetailsElement>('.workbook-recovery-report')!;
+    expect(details).not.toBeNull();
+    await act(async () => details.querySelector('summary')!.click());
+    expect(details.querySelector('pre')?.textContent).toBe(expected);
+    const copy = details.querySelector<HTMLButtonElement>('button')!;
+    await act(async () => copy.click());
+    expect(details.querySelector('[role="status"]')?.textContent).toContain('Select and copy');
+  });
+
+  it('includes hydration rejection field and record location in copyable diagnostics', () => {
+    const report = formatWorkbookImportDiagnostics({
+      status: 'rejected',
+      stage: 'hydrate',
+      issues: [{
+        code: 'INVALID_RECORD',
+        message: 'Invalid product cost.',
+        path: 'products[2].packageCost',
+        collection: 'products',
+        index: 2,
+        field: 'packageCost',
+      }],
+    });
+    expect(report).toContain('Dataset hydration validation');
+    expect(report).toContain('Record: 2');
+    expect(report).toContain('Field: packageCost');
+    expect(report).toContain('Path: products[2].packageCost');
   });
 
   it('renders deterministic future-version guidance from the recovery classifier', async () => {

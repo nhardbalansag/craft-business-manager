@@ -40,7 +40,35 @@ function rejectionMessage(result: Extract<PersistenceWorkbookApplyResult, { stat
   const count = result.issues.length;
   const issueLabel = count === 1 ? 'issue' : 'issues';
   const stageLabel = result.stage === 'import' ? 'workbook validation' : 'dataset validation';
-  return `Import rejected during ${stageLabel}: ${count} ${issueLabel}. The current workspace was not refreshed.`;
+  const prefix = `Import rejected during ${stageLabel}: ${count} ${issueLabel}. The current workspace was not refreshed.`;
+  const first = result.issues[0];
+  if (!first) return prefix;
+
+  // Surface the actual failing constraint beside the alert, instead of only an
+  // issue count. The full, unaltered validation records remain available below.
+  const location = result.stage === 'import'
+    ? (() => {
+        const issue = result.issues[0]!;
+        return [
+          issue.sheetName && `Sheet: ${issue.sheetName}`,
+          issue.excelRow !== undefined
+            ? `Excel row: ${issue.excelRow}`
+            : issue.rowIndex !== undefined ? `Record index: ${issue.rowIndex}` : null,
+          issue.column && `Column: ${issue.column}`,
+          issue.path && `Path: ${issue.path}`,
+        ];
+      })()
+    : (() => {
+        const issue = result.issues[0]!;
+        return [
+          issue.collection && `Collection: ${issue.collection}`,
+          issue.index !== undefined && `Record: ${issue.index}`,
+          issue.field && `Field: ${issue.field}`,
+          issue.path && `Path: ${issue.path}`,
+        ];
+      })();
+  const where = location.filter(Boolean).join(' · ');
+  return `${prefix} First issue [${first.code}]: ${first.message}${where ? ` — ${where}` : ''}. See validation details below.`;
 }
 
 function workflowErrorMessage(error: unknown): string {
