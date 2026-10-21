@@ -1,5 +1,12 @@
 import type { ProductPriceResolutionResult } from '../../application/pricing/ProductPriceResolutionService';
 import type { CustomerQuotationView } from './customerQuotation';
+import type { Material } from '../../domain/materials';
+import {
+  resolveOwnerQuotationMaterials,
+  summarizeOwnerQuotationMaterials,
+  type OwnerQuotationMaterialLine,
+  type OwnerQuotationMaterialTotal,
+} from './ownerQuotationMaterials';
 
 /**
  * Private reporting model. Never attach these values to CustomerQuotationView:
@@ -18,6 +25,10 @@ export interface OwnerQuotationItem {
   profitPerUnit: number | null;
   totalProfit: number | null;
   grossMargin: number | null;
+  /** Component and recipe material usage for this entire quoted quantity. */
+  materialLines?: OwnerQuotationMaterialLine[];
+  materialCostTotal?: number | null;
+  materialBreakdownComplete?: boolean;
 }
 
 export interface OwnerQuotationView {
@@ -34,6 +45,10 @@ export interface OwnerQuotationView {
   totalProfit: number | null;
   grossMargin: number | null;
   unresolvedCostCount: number;
+  /** One consolidated row per saved material ID and base unit. */
+  materials?: OwnerQuotationMaterialTotal[];
+  totalMaterialCost?: number | null;
+  materialBreakdownComplete?: boolean;
 }
 
 export class OwnerQuotationError extends Error {
@@ -63,6 +78,7 @@ function nearlyEqual(a: number, b: number): boolean {
 export function buildOwnerQuotationView(
   customer: CustomerQuotationView,
   resolutions: readonly ProductPriceResolutionResult[],
+  materials: readonly Pick<Material, 'id' | 'name'>[] = [],
 ): OwnerQuotationView {
   if (customer.items.length === 0 || customer.items.length !== resolutions.length) {
     throw new OwnerQuotationError('Owner quotation items do not match the customer quotation.');
@@ -109,6 +125,7 @@ export function buildOwnerQuotationView(
     const totalProfit = totalProfitCandidate !== null && finiteAmount(totalProfitCandidate)
       ? totalProfitCandidate : null;
     const margin = totalProfit !== null && sales > 0 ? totalProfit / sales : null;
+    const materialBreakdown = resolveOwnerQuotationMaterials(resolved, materials);
 
     return {
       productId: quoted.product.id,
@@ -122,9 +139,17 @@ export function buildOwnerQuotationView(
       profitPerUnit: totalProfit === null ? null : totalProfit / quantity,
       totalProfit,
       grossMargin: margin,
+      materialLines: materialBreakdown.lines,
+      materialCostTotal: materialBreakdown.totalMaterialCost,
+      materialBreakdownComplete: materialBreakdown.complete,
     };
   });
 
+  const materialSummary = summarizeOwnerQuotationMaterials(items.map((item) => ({
+    productId: item.productId,
+    materialLines: item.materialLines ?? [],
+    materialBreakdownComplete: item.materialBreakdownComplete ?? false,
+  })));
   const unresolvedCostCount = items.filter((item) => item.totalProductCost === null).length;
   const totalSales = customer.total;
   const totalProductCost = unresolvedCostCount === 0
@@ -144,5 +169,8 @@ export function buildOwnerQuotationView(
     totalProfit,
     grossMargin: totalProfit !== null && totalSales > 0 ? totalProfit / totalSales : null,
     unresolvedCostCount,
+    materials: materialSummary.materials,
+    totalMaterialCost: materialSummary.totalMaterialCost,
+    materialBreakdownComplete: materialSummary.complete,
   };
 }
