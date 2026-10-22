@@ -390,3 +390,29 @@
   .app-drawer, .app-content, .app-sidebar-toggle { transition: none; }
   .workbook-tools-dialog { animation: none; }
 }
+
+/* Public Play Store privacy policy link remains accessible from the web navigation. */
+.app-drawer-legal {
+  padding: 12px 8px 4px;
+}
+.app-drawer-legal .app-drawer-section-label {
+  padding-left: 6px;
+}
+.app-drawer-privacy-link {
+  display: flex;
+  align-items: center;
+  margin-top: 5px;
+  padding: 11px 12px;
+  min-height: 44px;
+  border-radius: 10px;
+  color: #dae8db;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  font-size: .88rem;
+  font-weight: 650;
+}
+.app-drawer-privacy-link:hover,
+.app-drawer-privacy-link:focus-visible {
+  background: rgba(255, 255, 255, .09);
+  color: #ffffff;
+}
