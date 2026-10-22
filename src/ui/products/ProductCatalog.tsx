@@ -5,6 +5,7 @@ import { ProductImageZoom } from './ProductImageZoom';
 import { isValidProductImageDataUrl } from '../../domain/productImage';
 import { isValidBrochureImageDataUrl } from '../../domain/productBrochureImage';
 import { ProductLabelPrintDialog } from './ProductLabelPrintDialog';
+import { ProductBarcodeA4Dialog } from './ProductBarcodeA4Dialog';
 import { ProductDetailsDialog } from './ProductDetailsDialog';
 import { ProductBrochureDialog } from './ProductBrochureDialog';
 import './productCatalogEditorSeparation.css';
@@ -57,6 +58,7 @@ export function ProductCatalog({
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<10 | 25 | 50>(10);
   const [labelProduct, setLabelProduct] = useState<Product | null>(null);
+  const [barcodeProduct, setBarcodeProduct] = useState<Product | null>(null);
   const [viewProductId, setViewProductId] = useState<string | null>(null);
   const [brochureProductId, setBrochureProductId] = useState<string | null>(null);
   const viewTriggerRef = useRef<HTMLButtonElement | null>(null);
@@ -450,6 +452,15 @@ export function ProductCatalog({
                           </button>
                           <button
                             type="button"
+                            className="text-button"
+                            disabled={disabled}
+                            aria-label={`Print A4 barcodes for ${product.name}`}
+                            onClick={() => setBarcodeProduct(product)}
+                          >
+                            Barcode / A4
+                          </button>
+                          <button
+                            type="button"
                             className={`text-button ${product.isActive ? 'danger' : ''}`}
                             disabled={disabled}
                             aria-label={`${product.isActive ? 'Archive' : 'Restore'} ${product.name}`}
@@ -556,6 +567,15 @@ export function ProductCatalog({
                     </button>
                     <button
                       type="button"
+                      className="text-button"
+                      disabled={disabled}
+                      aria-label={`Print A4 barcodes for ${product.name}`}
+                      onClick={() => setBarcodeProduct(product)}
+                    >
+                      Barcode / A4
+                    </button>
+                    <button
+                      type="button"
                       className={`text-button ${product.isActive ? 'danger' : ''}`}
                       disabled={disabled}
                       aria-label={`${product.isActive ? 'Archive' : 'Restore'} ${product.name}`}
@@ -650,6 +670,7 @@ export function ProductCatalog({
         />
       )}
       {labelProduct && <ProductLabelPrintDialog product={labelProduct} onClose={() => setLabelProduct(null)} />}
+      {barcodeProduct && <ProductBarcodeA4Dialog product={barcodeProduct} onClose={() => setBarcodeProduct(null)} />}
     </section>
   );
 }
