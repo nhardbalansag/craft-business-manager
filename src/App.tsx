@@ -263,7 +263,7 @@ export default function App({
           <div className="app-drawer-section-label">Public website</div>
           <a
             href="/shop/"
-            className="app-drawer-privacy-link"
+            className="app-drawer-public-link"
             aria-label="Open public My Lovely Craft product showcase"
           >
             Shop landing page
