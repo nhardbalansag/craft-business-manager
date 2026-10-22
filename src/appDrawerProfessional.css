@@ -398,7 +398,8 @@
 .app-drawer-legal .app-drawer-section-label {
   padding-left: 6px;
 }
-.app-drawer-privacy-link {
+.app-drawer-privacy-link,
+.app-drawer-public-link {
   display: flex;
   align-items: center;
   margin-top: 5px;
@@ -412,7 +413,9 @@
   font-weight: 650;
 }
 .app-drawer-privacy-link:hover,
-.app-drawer-privacy-link:focus-visible {
+.app-drawer-privacy-link:focus-visible,
+.app-drawer-public-link:hover,
+.app-drawer-public-link:focus-visible {
   background: rgba(255, 255, 255, .09);
   color: #ffffff;
 }
