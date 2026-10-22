@@ -10,7 +10,7 @@
   const update = (value) => {
     let visible = 0;
     cards.forEach((card) => {
-      const categories = (card.getAttribute('data-category') || '').split(/\\s+/).filter(Boolean);
+      const categories = (card.getAttribute('data-category') || '').split(/\s+/).filter(Boolean);
       const matches = value === 'all' || categories.includes(value);
       card.hidden = !matches;
       if (matches) visible += 1;
