@@ -95,6 +95,19 @@ describe('application navigation drawer', () => {
     )).toEqual(['Materials', 'Products', 'Production']);
   });
 
+  it('links the public product showcase without changing private workspace tabs', async () => {
+    await mount();
+    const drawer = container.querySelector<HTMLElement>('#app-navigation-drawer')!;
+    const shop = drawer.querySelector<HTMLAnchorElement>('a[aria-label="Open public My Lovely Craft product showcase"]');
+    expect(shop).not.toBeNull();
+    expect(shop?.getAttribute('href')).toBe('/shop/');
+    expect(shop?.textContent).toContain('Shop landing page');
+    const navigation = drawer.querySelectorAll('.app-drawer-nav button');
+    expect(Array.from(navigation).map((item) => item.textContent?.trim()))
+      .toEqual(['Materials', 'Products', 'Production']);
+    expect(drawer.querySelector<HTMLAnchorElement>('a[href="/privacy-policy/"]')).not.toBeNull();
+  });
+
   it('hides and shows the desktop sidebar while remembering the preference', async () => {
     await mount();
 
