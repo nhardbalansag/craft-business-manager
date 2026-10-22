@@ -56,7 +56,7 @@
 .barcode-a4-preview-panel h3 { font-size: 1.02rem; margin: 0 0 12px; }
 .barcode-a4-stats { display: flex; flex-direction: column; gap: 4px; font-size: .88rem; margin-bottom: 14px; }
 .barcode-a4-stats span { color: var(--text-muted, #667085); }
-.barcode-a4-preview-frame { display: flex; justify-content: center; padding: 12px; background: #e7e9ed; border-radius: 10px; min-height: 320px; }
+.barcode-a4-preview-frame { display: flex; justify-content: center; align-items: flex-start; padding: 12px; background: #e7e9ed; border-radius: 10px; min-height: 320px; }
 .barcode-a4-preview-paper { position: relative; width: min(100%, 310px); height: auto; background: #fff; color: #000; box-shadow: 0 4px 16px rgb(0 0 0 / 18%); }
 .barcode-a4-preview-sticker { position: absolute; min-width: 0; min-height: 0; padding: .2%; overflow: hidden; border: .4px solid #ddd; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .barcode-a4-preview-name,.barcode-a4-preview-id { display: block; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; line-height: 1.15; font-size: clamp(3px, .5vw, 5px); }
