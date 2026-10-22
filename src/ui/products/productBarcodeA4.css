@@ -1,0 +1,77 @@
+.barcode-a4-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgb(15 23 42 / 56%);
+  backdrop-filter: blur(4px);
+}
+.barcode-a4-dialog {
+  width: min(1120px, 100%);
+  max-height: calc(100dvh - 40px);
+  overflow: auto;
+  border-radius: 19px;
+  padding: 24px;
+  border: 1px solid var(--border, #d7dce4);
+  background: var(--surface, #fff);
+  box-shadow: 0 24px 70px rgb(15 23 42 / 25%);
+}
+.barcode-a4-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 20px;
+}
+.barcode-a4-heading h2 { margin: 0 0 6px; }
+.barcode-a4-heading p { margin: 0; overflow-wrap: anywhere; }
+.barcode-a4-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(290px, .95fr);
+  gap: 24px;
+  margin-top: 22px;
+}
+.barcode-a4-form { display: grid; align-content: start; gap: 15px; }
+.barcode-a4-explainer { margin: 0; color: var(--text-muted, #667085); font-size: .87rem; line-height: 1.5; }
+.barcode-a4-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.barcode-a4-fields .field { min-width: 0; }
+.barcode-a4-fields input, .barcode-a4-fields select { width: 100%; min-width: 0; }
+.barcode-a4-options {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin: 0;
+  border-radius: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border, #d7dce4);
+}
+.barcode-a4-options legend { padding: 0 5px; font-weight: 700; }
+.barcode-a4-options label { display: flex; align-items: center; gap: 8px; }
+.barcode-a4-options input { width: 16px; height: 16px; }
+.barcode-a4-print-advice { background: var(--surface-soft, #f7f8fa); border-radius: 12px; border: 1px solid var(--border, #d7dce4); padding: 13px 14px; font-size: .85rem; }
+.barcode-a4-print-advice p { margin: 7px 0 0; line-height: 1.5; }
+.barcode-a4-buttons { display: flex; flex-wrap: wrap; gap: 10px; }
+.barcode-a4-preview-panel { min-width: 0; background: var(--surface-soft, #f7f8fa); border: 1px solid var(--border, #d7dce4); border-radius: 15px; padding: 16px; }
+.barcode-a4-preview-panel h3 { font-size: 1.02rem; margin: 0 0 12px; }
+.barcode-a4-stats { display: flex; flex-direction: column; gap: 4px; font-size: .88rem; margin-bottom: 14px; }
+.barcode-a4-stats span { color: var(--text-muted, #667085); }
+.barcode-a4-preview-frame { display: flex; justify-content: center; padding: 12px; background: #e7e9ed; border-radius: 10px; min-height: 320px; }
+.barcode-a4-preview-paper { position: relative; width: min(100%, 310px); height: fit-content; background: #fff; color: #000; box-shadow: 0 4px 16px rgb(0 0 0 / 18%); }
+.barcode-a4-preview-sticker { position: absolute; min-width: 0; min-height: 0; padding: .2%; overflow: hidden; border: .4px solid #ddd; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.barcode-a4-preview-name,.barcode-a4-preview-id { display: block; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; line-height: 1.15; font-size: clamp(3px, .5vw, 5px); }
+.barcode-a4-preview-id { font-family: monospace; }
+.barcode-a4-preview-bars { display: block; min-height: 0; flex: 1; width: 100%; }
+.barcode-a4-preview-bars svg { display: block; width: 100%; height: 100%; }
+.barcode-a4-preview-note { color: var(--text-muted, #667085); font-size: .84rem; line-height: 1.5; margin: 12px 0 0; }
+@media (max-width: 850px) {
+ .barcode-a4-layout { grid-template-columns: 1fr; }
+ .barcode-a4-preview-frame { min-height: 0; }
+}
+@media (max-width: 520px) {
+ .barcode-a4-backdrop { padding: 8px; }
+ .barcode-a4-dialog { max-height: calc(100dvh - 16px); padding: 15px; }
+ .barcode-a4-fields { grid-template-columns: 1fr; }
+ .barcode-a4-buttons { flex-direction: column; }
+ .barcode-a4-buttons button { width: 100%; }
+}
