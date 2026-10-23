@@ -259,6 +259,28 @@ export default function App({
           ))}
         </nav>
 
+        <div className="app-drawer-legal">
+          <div className="app-drawer-section-label">Public website</div>
+          <a
+            href="/shop/"
+            className="app-drawer-public-link"
+            aria-label="Open public My Lovely Craft product showcase"
+          >
+            Shop landing page
+          </a>
+        </div>
+
+        <div className="app-drawer-legal">
+          <div className="app-drawer-section-label">Legal</div>
+          <a
+            href="/privacy-policy/"
+            className="app-drawer-privacy-link"
+            aria-label="Privacy Policy for My Lovely Craft mobile app"
+          >
+            Privacy Policy
+          </a>
+        </div>
+
         <div className="app-drawer-theme">
           <div className="app-drawer-section-label">Appearance</div>
           <div className="theme-switcher" role="group" aria-label="Appearance theme">
