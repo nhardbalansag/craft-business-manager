@@ -18,7 +18,7 @@ function document(
 describe('workbook resource limits', () => {
   it('publishes immutable practical defaults', () => {
     expect(DEFAULT_WORKBOOK_RESOURCE_LIMITS).toEqual({
-      maxWorkbookBytes: 48 * 1024 * 1024,
+      maxWorkbookBytes: 96 * 1024 * 1024,
       maxWorksheetCount: 32,
       maxColumnsPerSheet: 64,
       maxRowsPerSheet: 50_000,

@@ -1,4 +1,5 @@
 import { SheetJsWorkbookCodec } from '../storage/sheetJsWorkbookCodec';
+import { getWorkbookImportMaxBytes } from './persistence/workbookImportPreferences';
 import { InMemoryCalibrationRepository } from './calibrations/InMemoryCalibrationRepository';
 import { InMemoryMaterialRepository } from './materials/InMemoryMaterialRepository';
 import { MaterialService } from './materials/MaterialService';
@@ -191,6 +192,7 @@ export const persistenceCoordinator = new PersistenceCoordinator(
   physicalSourceSnapshotServiceV5,
   physicalDatasetHydrationServiceV5,
   persistenceWorkbookCodec,
+  { maxWorkbookBytes: getWorkbookImportMaxBytes },
 );
 
 export const productComponentService = new ProductComponentService(

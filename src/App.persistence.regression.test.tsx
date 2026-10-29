@@ -13,6 +13,7 @@ import {
 } from './storage/businessDatasetWorkbookExport';
 import { DEFAULT_WORKBOOK_RESOURCE_LIMITS } from './storage/workbookResourceLimits';
 import { SheetJsWorkbookCodec } from './storage/sheetJsWorkbookCodec';
+import { MEBIBYTE, WORKBOOK_SIZE_PREFERENCE_KEY } from './application/persistence/workbookImportPreferences';
 import {
   CURRENT_WORKBOOK_FORMAT_VERSION,
   type WorkbookNeutralDocument,
@@ -26,6 +27,7 @@ let root: Root;
 
 beforeEach(async () => {
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
+  window.localStorage.removeItem(WORKBOOK_SIZE_PREFERENCE_KEY);
   await Promise.all([
     session.materialRepository.replaceAll([]),
     session.calibrationRepository.replaceAll([]),
@@ -47,6 +49,7 @@ afterEach(async () => {
   container.remove();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
+  window.localStorage.removeItem(WORKBOOK_SIZE_PREFERENCE_KEY);
 });
 
 function datasetWithMaterial(id: string, name: string): BusinessDataset {
@@ -296,6 +299,39 @@ describe('Phase 5.5A3 real browser import regression gate', () => {
     expect(container.querySelector('.workbook-import-panel [role="alert"]')?.textContent).toContain('Import rejected');
     expect(container.textContent).toContain('Previous live material');
     expect(command.getPendingSelection()?.name).toBe('oversized.xlsx');
+    expect(await session.completeSourceSnapshotService.snapshot()).toEqual(before);
+  });
+
+  it('applies a saved size change to the same selected file without reloading or bypassing validation', async () => {
+    const before = await seedPreviousWorkspace();
+    const command = realImportCommand();
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    await mount(command);
+    async function saveLimit(value: string) {
+      const input = container.querySelector<HTMLInputElement>('#workbook-size-limit')!;
+      await act(async () => {
+        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, value);
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+      await click('Save size limit');
+    }
+
+    await saveLimit('1');
+    // A non-workbook must still fail validation once it fits the increased limit.
+    const file = workbookFile('retry.xlsx', new Uint8Array(MEBIBYTE + 1));
+    await choose(file);
+    await click('Apply import');
+    expect(container.textContent).toContain('WORKBOOK_BYTES_EXCEEDED');
+    expect(container.textContent).toContain('at least 2 MiB');
+    expect(revision()).toBe('0');
+
+    await saveLimit('2');
+    await click('Apply import');
+    expect(container.textContent).not.toContain('WORKBOOK_BYTES_EXCEEDED');
+    expect(container.textContent).toContain('MISSING_META_SHEET');
+    expect(command.getPendingSelection()?.name).toBe('retry.xlsx');
+    expect(file.arrayBuffer).toHaveBeenCalledOnce();
+    expect(revision()).toBe('0');
     expect(await session.completeSourceSnapshotService.snapshot()).toEqual(before);
   });
 

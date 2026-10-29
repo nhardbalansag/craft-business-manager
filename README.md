@@ -30,6 +30,20 @@ Tauri filesystem boundary (planned Phase 6)
 
 React components do not directly manipulate spreadsheet cells or repositories for persistence.
 
+## Workbook import size setting
+
+Open **Workbook → Open / Import workbook → Maximum workbook size (MiB)** to increase
+or decrease the file-size limit, then select **Save size limit**. The default is **96 MiB**
+(100,663,296 bytes), which accommodates the reported 54,594,185-byte workbook. The setting
+accepts whole numbers from 1 to 1024 MiB and is saved in local browser storage on this device;
+it is not exported with business data. Larger files use more memory during decoding.
+**Reset size limit** restores 96 MiB.
+
+Changes apply to the next import without a reload. If a workbook was rejected for size,
+increase the limit and click **Apply import** again with the same selected file. Lowering
+the limit does not alter the current workspace. Worksheet, row, column, cell, schema, and
+business-data validation remain enforced. Clearing browser storage restores the default.
+
 ## Implemented business foundation
 
 Phases 1–4 are complete and include:
