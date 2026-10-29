@@ -1,5 +1,8 @@
 import { SheetJsWorkbookCodec } from '../storage/sheetJsWorkbookCodec';
 import { getWorkbookImportMaxBytes } from './persistence/workbookImportPreferences';
+import { BrowserWorkspaceStore } from '../storage/BrowserWorkspaceStore';
+import { WorkspaceAutosave } from './persistence/WorkspaceAutosave';
+import { WorkspaceChangeTracker } from './persistence/WorkspaceChangeTracker';
 import { InMemoryCalibrationRepository } from './calibrations/InMemoryCalibrationRepository';
 import { InMemoryMaterialRepository } from './materials/InMemoryMaterialRepository';
 import { MaterialService } from './materials/MaterialService';
@@ -69,6 +72,7 @@ import { YieldRecipeSourceRecordingService } from './yieldRecipeSources/YieldRec
 import { InMemoryYieldMoldFormulaSourceRepository } from './yieldMoldFormulaSources/InMemoryYieldMoldFormulaSourceRepository';
 import { YieldMoldFormulaSourceService } from './yieldMoldFormulaSources/YieldMoldFormulaSourceService';
 
+export const workspaceChanges = new WorkspaceChangeTracker();
 export const materialRepository = new InMemoryMaterialRepository();
 // Legacy workbook compatibility only. Runtime calculations intentionally do not consume
 // calibration evidence after the Calibration feature removal.
@@ -88,6 +92,14 @@ export const plasterMoldYieldProfileRepository =
   new InMemoryPlasterMoldYieldProfileRepository();
 export const yieldMoldFormulaSourceRepository =
   new InMemoryYieldMoldFormulaSourceRepository();
+
+[
+  materialRepository, calibrationRepository, mixPresetRepository, productRepository,
+  productComponentRepository, productStockRepository, productFinancialProfileRepository,
+  productPriceTierRepository, yieldSampleRepository, fixedRecipeItemRepository,
+  storageLocationRepository, moldRepository, plasterMoldYieldProfileRepository,
+  yieldMoldFormulaSourceRepository,
+].forEach((repository) => workspaceChanges.observeRepository(repository));
 
 export const completeSourceSnapshotService = new CompleteSourceSnapshotService({
   materials: materialRepository,
@@ -185,6 +197,21 @@ export const physicalDatasetHydrationServiceV5 = new PhysicalDatasetHydrationSer
   physicalDatasetHydrationServiceV4,
   physicalSourceSnapshotServiceV5,
   yieldMoldFormulaSourceRepository,
+);
+
+// Keep full import/restore/rollback operations out of intermediate autosaves.
+workspaceChanges.observeOperations(validatedAtomicDatasetHydrationService, ['hydrate']);
+workspaceChanges.observeOperations(validatedAtomicDatasetHydrationServiceV2, ['hydrate']);
+workspaceChanges.observeOperations(physicalDatasetHydrationService, ['hydrate']);
+workspaceChanges.observeOperations(physicalDatasetHydrationServiceV3, ['hydrate']);
+workspaceChanges.observeOperations(physicalDatasetHydrationServiceV4, ['hydrate']);
+workspaceChanges.observeOperations(physicalDatasetHydrationServiceV5, ['hydrate']);
+
+export const workspaceAutosave = new WorkspaceAutosave(
+  physicalSourceSnapshotServiceV5,
+  physicalDatasetHydrationServiceV5,
+  new BrowserWorkspaceStore(),
+  workspaceChanges,
 );
 
 const persistenceWorkbookCodec = new SheetJsWorkbookCodec();
@@ -299,6 +326,7 @@ export const yieldRecipeSourceRecordingService =
     yieldSampleRepository,
     yieldMoldFormulaSourceRepository,
   );
+workspaceChanges.observeOperations(yieldRecipeSourceRecordingService, ['record']);
 export const yieldLearningService = new YieldLearningService(
   yieldSampleRepository,
   materialRepository,

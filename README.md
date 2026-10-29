@@ -30,6 +30,24 @@ Tauri filesystem boundary (planned Phase 6)
 
 React components do not directly manipulate spreadsheet cells or repositories for persistence.
 
+## Refresh protection
+
+The app automatically saves a validated copy of the complete workspace in **IndexedDB**
+on this browser after changes, including workbook imports, materials, products, photos,
+inventory, pricing, yields, molds, profiles, and provenance. Refreshing or reopening the
+same app URL in the same browser restores this copy before the editor opens.
+The status bar confirms when local saving has finished. Pending or failed saves trigger
+a browser leave-page warning; failed saves retain the previously committed copy and
+provide a retry action. Conflicting writes from another tab are rejected rather than
+silently overwriting its newer copy.
+
+Save form edits before refreshing. Material, Product, Financial Source, and Yield drafts
+warn before refresh while unsaved; they are not automatically committed as records.
+Browser clearing, private-mode cleanup, storage eviction, or using another browser/device
+can remove or bypass the local copy. Continue downloading workbook copies for independent
+backups. If recovery fails, retry it or explicitly continue without refresh protection;
+the existing recovery copy is preserved instead of being replaced with an empty workspace.
+
 ## Workbook import size setting
 
 Open **Workbook → Open / Import workbook → Maximum workbook size (MiB)** to increase

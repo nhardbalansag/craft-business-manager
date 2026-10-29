@@ -1,4 +1,5 @@
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useRefreshDraftWarning } from '../persistence/useRefreshDraftWarning';
 import {
   productFinancialProfileService,
   productPriceResolutionService,
@@ -356,6 +357,7 @@ export function PricingPage({ preferredProductId, productCatalogRevision = 0, co
   );
 
   const formDirty = selectedProduct !== null && JSON.stringify(form) !== JSON.stringify(savedForm);
+  useRefreshDraftWarning(formDirty);
   const laborDraft = parseDraftAmount(form.laborCostPerUnit);
   const overheadDraft = parseDraftAmount(form.overheadCostPerUnit);
   const draftReady =

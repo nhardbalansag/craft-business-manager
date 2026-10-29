@@ -1,5 +1,6 @@
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { materialService } from '../../application/session';
+import { useRefreshDraftWarning } from '../persistence/useRefreshDraftWarning';
 import { MaterialApplicationError } from '../../application/materials/MaterialService';
 import { nextSequentialId } from '../../domain/identifiers';
 import {
@@ -246,6 +247,9 @@ export function MaterialsPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  const savedMaterial = materials.find((material) => material.id === editingId);
+  useRefreshDraftWarning(JSON.stringify(form) !== JSON.stringify(savedMaterial ? materialToForm(savedMaterial) : EMPTY_FORM));
 
   const generatedMaterialId = useMemo(() => nextSequentialId(materials.map((material) => material.id), 'MAT'), [materials]);
   const purchaseOptions = useMemo(() => purchaseUnitOptions(form.baseUnit), [form.baseUnit]);
