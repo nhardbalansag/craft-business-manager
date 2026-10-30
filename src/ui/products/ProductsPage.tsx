@@ -1,4 +1,5 @@
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useRefreshDraftWarning } from '../persistence/useRefreshDraftWarning';
 import { materialService, mixPresetService, productService } from '../../application/session';
 import { nextSequentialId } from '../../domain/identifiers';
 import type { Material } from '../../domain/materials';
@@ -150,6 +151,7 @@ export function ProductsPage() {
   const generatedProductId = useMemo(() => nextSequentialId(products.map((product) => product.id), 'PROD'), [products]);
   const savedProduct = products.find((product) => product.id === editingProductId);
   const productDirty = JSON.stringify(productForm) !== JSON.stringify(savedProduct ? productToForm(savedProduct) : EMPTY_PRODUCT_FORM);
+  useRefreshDraftWarning(productDirty);
   const reservePercent = Number(productForm.safetyWastePercent);
   const productErrors: Record<string, string> = {};
   if (!productForm.name.trim()) productErrors.name = 'Enter a product name.';

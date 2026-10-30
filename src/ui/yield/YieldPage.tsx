@@ -1,4 +1,5 @@
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useRefreshDraftWarning } from '../persistence/useRefreshDraftWarning';
 import {
   materialService,
   mixPresetService,
@@ -212,6 +213,7 @@ export function YieldPage({ preferredProductId, productCatalogRevision = 0, onSe
   const historyHeading = useRef<HTMLHeadingElement>(null);
   const actionFeedback = useRef<HTMLDivElement>(null);
   const draftDirty = draftKey(form) !== draftBaseline;
+  useRefreshDraftWarning(draftDirty);
   const draftEvidenceDirty =
     draftEvidenceKey(form) !==
     draftEvidenceKey(JSON.parse(draftBaseline) as YieldFormState);
