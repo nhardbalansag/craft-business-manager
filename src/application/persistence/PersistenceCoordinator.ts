@@ -52,6 +52,11 @@ import {
 } from '../../storage/physicalBusinessDatasetV5Workbook';
 import type { WorkbookBinaryInput, WorkbookCodec } from '../../storage/workbookCodec';
 import {
+  createWorkbookResourceLimits,
+  validateWorkbookBinaryResourceLimit,
+  type WorkbookResourceLimits,
+} from '../../storage/workbookResourceLimits';
+import {
   cloneWorkbookBytes,
   type WorkbookSaveOptions,
   type WorkbookSaveReceipt,
@@ -69,6 +74,8 @@ import {
 export type PersistenceClock = () => Date;
 
 export interface PersistenceCoordinatorOptions {
+  /** Resolved for each import, so a saved size change applies without reloading. */
+  readonly maxWorkbookBytes?: number | (() => number);
   readonly clock?: PersistenceClock;
   readonly applicationVersion?: string;
   /** Explicit override for physical-identification persistence. */
@@ -221,14 +228,15 @@ function workbookHasPhysicalSheets(
 function importTieredPhysicalOrCore(
   bytes: WorkbookBinaryInput,
   codec: WorkbookCodec,
+  limits: Readonly<WorkbookResourceLimits>,
 ): PhysicalBusinessDatasetV3WorkbookImportResult {
   const physicalShape = workbookHasPhysicalSheets(bytes, codec);
 
   if (physicalShape) {
-    return importPhysicalBusinessDatasetV3FromXlsx(bytes, codec);
+    return importPhysicalBusinessDatasetV3FromXlsx(bytes, codec, limits);
   }
 
-  const core = importBusinessDatasetV2FromXlsx(bytes, codec);
+  const core = importBusinessDatasetV2FromXlsx(bytes, codec, limits);
   if (core.ok) {
     return {
       ok: true,
@@ -243,14 +251,15 @@ function importTieredPhysicalOrCore(
 function importProfilePhysicalOrCore(
   bytes: WorkbookBinaryInput,
   codec: WorkbookCodec,
+  limits: Readonly<WorkbookResourceLimits>,
 ): PhysicalBusinessDatasetV4WorkbookImportResult {
   const physicalShape = workbookHasPhysicalSheets(bytes, codec);
 
   if (physicalShape) {
-    return importPhysicalBusinessDatasetV4FromXlsx(bytes, codec);
+    return importPhysicalBusinessDatasetV4FromXlsx(bytes, codec, limits);
   }
 
-  const core = importBusinessDatasetV2FromXlsx(bytes, codec);
+  const core = importBusinessDatasetV2FromXlsx(bytes, codec, limits);
   if (core.ok) {
     return {
       ok: true,
@@ -267,14 +276,15 @@ function importProfilePhysicalOrCore(
 function importProvenancePhysicalOrCore(
   bytes: WorkbookBinaryInput,
   codec: WorkbookCodec,
+  limits: Readonly<WorkbookResourceLimits>,
 ): PhysicalBusinessDatasetV5WorkbookImportResult {
   const physicalShape = workbookHasPhysicalSheets(bytes, codec);
 
   if (physicalShape) {
-    return importPhysicalBusinessDatasetV5FromXlsx(bytes, codec);
+    return importPhysicalBusinessDatasetV5FromXlsx(bytes, codec, limits);
   }
 
-  const core = importBusinessDatasetV2FromXlsx(bytes, codec);
+  const core = importBusinessDatasetV2FromXlsx(bytes, codec, limits);
   if (core.ok) {
     return {
       ok: true,
@@ -340,6 +350,7 @@ function hydrationOperationalError(
  * physical live path to workbook/dataset v5 while retaining earlier physical/core imports.
  */
 export class PersistenceCoordinator {
+  private readonly maxWorkbookBytes: PersistenceCoordinatorOptions['maxWorkbookBytes'];
   private readonly clock: PersistenceClock;
   private readonly applicationVersion?: string;
   private readonly physicalIdentification: boolean;
@@ -353,6 +364,7 @@ export class PersistenceCoordinator {
     private readonly codec: WorkbookCodec,
     options: PersistenceCoordinatorOptions = {},
   ) {
+    this.maxWorkbookBytes = options.maxWorkbookBytes;
     this.clock = options.clock ?? systemClock;
     this.applicationVersion = options.applicationVersion;
     this.physicalIdentification =
@@ -414,6 +426,29 @@ export class PersistenceCoordinator {
   ): Promise<PersistenceWorkbookApplyResult> {
     let imported;
     try {
+      const maxWorkbookBytes = typeof this.maxWorkbookBytes === 'function'
+        ? this.maxWorkbookBytes()
+        : this.maxWorkbookBytes;
+      const limits = createWorkbookResourceLimits(
+        maxWorkbookBytes === undefined ? {} : { maxWorkbookBytes },
+      );
+      // Check before cloning or decoding to detect the physical/core shape.
+      const binaryIssues = validateWorkbookBinaryResourceLimit(bytes, limits);
+      if (binaryIssues.length > 0) {
+        return {
+          status: 'rejected',
+          stage: 'import',
+          issues: binaryIssues.map((issue) => ({
+            stage: 'resource-limit',
+            code: issue.code,
+            message: issue.message,
+            limitKind: issue.kind,
+            actual: issue.actual,
+            maximum: issue.maximum,
+            input: { kind: issue.kind, actual: issue.actual, maximum: issue.maximum },
+          })),
+        };
+      }
       const ownedBytes = cloneWorkbookBytes(bytes);
       if (this.yieldMoldFormulaSources) {
         if (
@@ -425,22 +460,22 @@ export class PersistenceCoordinator {
             'Mold Formula provenance persistence requires plaster-profile-aware tiered physical persistence.',
           );
         }
-        imported = importProvenancePhysicalOrCore(ownedBytes, this.codec);
+        imported = importProvenancePhysicalOrCore(ownedBytes, this.codec, limits);
       } else if (this.plasterMoldYieldProfiles) {
         if (!this.physicalIdentification || !this.tieredPricing) {
           throw new Error(
             'Plaster mold yield profile persistence requires tiered physical persistence.',
           );
         }
-        imported = importProfilePhysicalOrCore(ownedBytes, this.codec);
+        imported = importProfilePhysicalOrCore(ownedBytes, this.codec, limits);
       } else if (this.tieredPricing) {
         imported = this.physicalIdentification
-          ? importTieredPhysicalOrCore(ownedBytes, this.codec)
-          : importBusinessDatasetV2FromXlsx(ownedBytes, this.codec);
+          ? importTieredPhysicalOrCore(ownedBytes, this.codec, limits)
+          : importBusinessDatasetV2FromXlsx(ownedBytes, this.codec, limits);
       } else {
         imported = this.physicalIdentification
-          ? importPhysicalBusinessDatasetFromXlsx(ownedBytes, this.codec)
-          : importBusinessDatasetFromXlsx(ownedBytes, this.codec);
+          ? importPhysicalBusinessDatasetFromXlsx(ownedBytes, this.codec, limits)
+          : importBusinessDatasetFromXlsx(ownedBytes, this.codec, limits);
       }
     } catch (error) {
       throw new PersistenceLifecycleOperationalError(

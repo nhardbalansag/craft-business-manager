@@ -13,6 +13,8 @@ import type {
   PersistenceWorkbookHydrated,
 } from '../../application/persistence/PersistenceCoordinator';
 import { WorkbookImportRejectionDetails } from './WorkbookImportRejectionDetails';
+import { WorkbookImportSizeSettings } from './WorkbookImportSizeSettings';
+import { MEBIBYTE } from '../../application/persistence/workbookImportPreferences';
 import './workbookImport.css';
 
 interface WorkbookImportFeedback {
@@ -103,6 +105,9 @@ export function WorkbookImportPanel({ command, onHydrated }: WorkbookImportPanel
   const [feedback, setFeedback] = useState<WorkbookImportFeedback | null>(null);
   const [rejection, setRejection] = useState<PersistenceLifecycleRejected | null>(null);
   const busy = reading || importing;
+  const byteLimitIssue = rejection?.stage === 'import'
+    ? rejection.issues.find((issue) => issue.code === 'WORKBOOK_BYTES_EXCEEDED')
+    : undefined;
 
   function openFileChooser() {
     if (!busy) inputRef.current?.click();
@@ -217,6 +222,16 @@ export function WorkbookImportPanel({ command, onHydrated }: WorkbookImportPanel
           <span>{formatBytes(selection.byteLength)}</span>
           <small>A successful import replaces the currently loaded authoritative source data.</small>
         </div>
+      )}
+
+      <WorkbookImportSizeSettings disabled={busy} />
+
+      {byteLimitIssue && (
+        <p className="workbook-size-guidance">
+          Set Maximum workbook size to at least
+          {' '}{byteLimitIssue.actual === undefined ? 'the selected file size' : `${Math.ceil(byteLimitIssue.actual / MEBIBYTE)} MiB`}
+          {' '}using Save size limit, then click Apply import again. Your selected file is still available.
+        </p>
       )}
 
       {feedback !== null && (

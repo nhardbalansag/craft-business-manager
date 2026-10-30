@@ -40,7 +40,7 @@ export const DEFAULT_WORKBOOK_RESOURCE_LIMITS: Readonly<WorkbookResourceLimits> 
     // Browser-oriented cap includes workbooks storing high-resolution product
     // photos as base64 data in cells. Retain a finite limit before XLSX decode,
     // while existing worksheet/row/cell caps still bound reconstruction.
-    maxWorkbookBytes: 48 * 1024 * 1024,
+    maxWorkbookBytes: 96 * 1024 * 1024,
     maxWorksheetCount: 32,
     maxColumnsPerSheet: 64,
     maxRowsPerSheet: 50_000,

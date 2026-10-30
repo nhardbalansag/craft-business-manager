@@ -1,0 +1,22 @@
+.workspace-autosave-bar {
+  position: relative;
+  z-index: 1;
+  padding: 9px 20px 9px max(20px, calc(100vw - 100% + 306px));
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px 14px;
+  background: var(--mlc-leaf-soft, #e8eee0);
+  color: var(--mlc-ink, #35251e);
+  border-bottom: 1px solid var(--mlc-line, #e4d6c9);
+  font-size: .84rem;
+}
+
+.workspace-autosave-bar small { flex-basis: 100%; }
+.workspace-autosave-bar.has-error { border-bottom: 3px solid #b64a36; }
+.workspace-autosave-bar .button { padding: 5px 10px; }
+.workspace-recovery-start { max-width: 720px; margin: 12vh auto; padding: 24px; line-height: 1.6; }
+.workspace-recovery-start .button { margin: 8px 12px 8px 0; }
+@media (max-width: 900px) {
+  .workspace-autosave-bar { padding: 9px 16px 9px 96px; }
+}

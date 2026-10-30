@@ -33,6 +33,49 @@
   gap: 8px;
 }
 
+.workbook-size-settings {
+  grid-column: 1 / -1;
+  min-width: 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--mlc-line, #d9d2c6);
+}
+
+.workbook-size-settings label {
+  font-weight: 600;
+}
+
+.workbook-size-settings p,
+.workbook-size-guidance {
+  margin: 6px 0;
+  font-size: .84rem;
+  line-height: 1.5;
+}
+
+.workbook-size-settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.workbook-size-settings input {
+  width: 100px;
+  max-width: 100%;
+  border-color: var(--mlc-line, #d9d2c6);
+  background: var(--mlc-surface, #fffdf8);
+  color: var(--mlc-ink, #35251e);
+}
+
+.workbook-size-settings .button {
+  border-color: var(--mlc-line, #d9d2c6);
+  background: var(--mlc-soft, #f2e9df);
+  color: var(--mlc-ink, #35251e);
+}
+
+.workbook-size-guidance {
+  grid-column: 1 / -1;
+}
+
 .workbook-selection {
   grid-column: 1 / -1;
   display: grid;

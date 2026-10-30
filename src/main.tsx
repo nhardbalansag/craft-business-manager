@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
+import { BrowserWorkspace } from './ui/persistence/BrowserWorkspace';
 import './styles.css';
 import './responsive.css';
 import './ui/icons/appIcons.css';
@@ -10,6 +11,6 @@ import './brandingTheme.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <BrowserWorkspace><App /></BrowserWorkspace>
   </StrictMode>,
 );

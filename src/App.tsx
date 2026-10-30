@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { BrowserWorkbookExportCommand } from './application/persistence/BrowserWorkbookExportCommand';
 import { BrowserWorkbookImportCommand } from './application/persistence/BrowserWorkbookImportCommand';
 import { PublicGoogleSheetsImportCommand } from './application/persistence/PublicGoogleSheetsImportCommand';
+import { GoogleDriveWorkbookImportCommand } from './application/persistence/GoogleDriveWorkbookImportCommand';
+import { GoogleDriveWorkbookImportPanel, type GoogleDriveWorkbookImportPort } from './ui/persistence/GoogleDriveWorkbookImportPanel';
 import { persistenceCoordinator } from './application/session';
 import { MaterialsPage } from './ui/materials/MaterialsPage';
 import {
@@ -56,6 +58,7 @@ const APP_SECTIONS: readonly { id: AppSection; label: string; icon: AppIconName 
 export interface AppProps {
   readonly workbookImportCommand?: BrowserWorkbookImportCommand;
   readonly publicGoogleSheetsImportCommand?: PublicGoogleSheetsImportCommandPort;
+  readonly googleDriveWorkbookImportCommand?: GoogleDriveWorkbookImportPort;
   readonly workbookExportCommand?: WorkbookExportCommandPort;
   readonly persistenceUiClock?: PersistenceUiClock;
 }
@@ -77,6 +80,7 @@ function initialSidebarVisible(): boolean {
 export default function App({
   workbookImportCommand,
   publicGoogleSheetsImportCommand,
+  googleDriveWorkbookImportCommand,
   workbookExportCommand,
   persistenceUiClock,
 }: AppProps = {}) {
@@ -99,6 +103,9 @@ export default function App({
   );
   const [defaultPublicGoogleSheetsImportCommand] = useState(
     () => new PublicGoogleSheetsImportCommand(persistenceCoordinator),
+  );
+  const [defaultGoogleDriveWorkbookImportCommand] = useState(
+    () => new GoogleDriveWorkbookImportCommand(persistenceCoordinator),
   );
   const [defaultWorkbookExportCommand] = useState(
     () => new BrowserWorkbookExportCommand(persistenceCoordinator),
@@ -354,7 +361,7 @@ export default function App({
               <p className="panel-kicker">WORKBOOK TOOLS</p>
               <h2 id="workbook-tools-dialog-title">Data sources &amp; workbook copies</h2>
               <p>
-                Open local XLSX files, import a public Google Sheets snapshot, review session
+                Open local XLSX files, fetch Excel from Google Drive or a public Google Sheet, review session
                 status, or download the current workspace as a workbook copy.
               </p>
             </div>
@@ -367,6 +374,10 @@ export default function App({
           <WorkbookPersistenceStatusPanel status={persistenceStatus} />
           <div className="workbook-tools-action-stack">
             <WorkbookImportPanel command={importCommand} onHydrated={handleWorkbookHydrated} />
+            <GoogleDriveWorkbookImportPanel
+              command={googleDriveWorkbookImportCommand ?? defaultGoogleDriveWorkbookImportCommand}
+              onHydrated={handleWorkbookHydrated}
+            />
             <PublicGoogleSheetsImportPanel
               command={googleSheetsImportCommand}
               onHydrated={handleWorkbookHydrated}
