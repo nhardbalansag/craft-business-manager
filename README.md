@@ -50,6 +50,11 @@ the existing recovery copy is preserved instead of being replaced with an empty 
 
 ## Workbook import size setting
 
+For uploaded Excel files in Google Drive, use **Workbook → Import Excel from Google Drive**.
+Paste an **Anyone with the link** file URL, fetch it, then apply the import. The original `.xlsx`
+is downloaded directly; Google Sheets conversion is unnecessary. A one-time browser API key
+setup is required. See [Google Drive Excel import](docs/GOOGLE_DRIVE_EXCEL_IMPORT.md).
+
 Open **Workbook → Open / Import workbook → Maximum workbook size (MiB)** to increase
 or decrease the file-size limit, then select **Save size limit**. The default is **96 MiB**
 (100,663,296 bytes), which accommodates the reported 54,594,185-byte workbook. The setting

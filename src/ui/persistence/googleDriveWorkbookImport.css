@@ -1,0 +1,40 @@
+.google-drive-import-panel {
+  display: grid;
+  gap: 14px;
+  width: 100%;
+  min-width: 0;
+  padding: 18px 20px;
+  border: 1px solid var(--mlc-line, #d9d2c6);
+  border-radius: 20px;
+  background: var(--mlc-surface, #fffdf8);
+  color: var(--mlc-ink, #35251e);
+}
+.google-drive-import-panel h2 { margin: 4px 0 6px; font-size: 1.2rem; }
+.google-drive-import-panel p, .google-drive-import-panel small { margin: 5px 0; font-size: .84rem; line-height: 1.5; }
+.google-drive-import-panel a { color: var(--mlc-primary, #763923); overflow-wrap: anywhere; }
+.google-drive-url-field { display: grid; gap: 6px; min-width: 0; }
+.google-drive-url-field > span { font-weight: 700; font-size: .84rem; }
+.google-drive-url-field input {
+  width: 100%; min-width: 0;
+  background: var(--mlc-surface, #fffdf8);
+  border-color: var(--mlc-line, #d9d2c6);
+  color: var(--mlc-ink, #35251e);
+}
+.google-drive-import-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.google-drive-import-panel .button-quiet {
+  background: var(--mlc-soft, #f2e9df);
+  color: var(--mlc-ink, #35251e);
+  border-color: var(--mlc-line, #d9d2c6);
+}
+.google-drive-import-help { padding: 12px 14px; border-radius: 12px; background: var(--mlc-soft, #f2e9df); line-height: 1.5; font-size: .84rem; }
+.google-drive-import-help summary { font-weight: 700; cursor: pointer; }
+.google-drive-import-help ol { padding-left: 22px; }
+.google-drive-import-help .google-drive-url-field { margin: 10px 0; }
+.google-drive-fetched-file { display: grid; gap: 6px; min-width: 0; padding: 12px 14px; border-radius: 12px; background: var(--mlc-leaf-soft, #e8eee0); }
+.google-drive-fetched-file strong { overflow-wrap: anywhere; }
+.google-drive-feedback { padding: 10px 12px; border: 1px solid var(--mlc-line, #d9d2c6); border-radius: 12px; }
+.google-drive-feedback.has-error { border-color: #b64a36; }
+@media (max-width: 560px) {
+  .google-drive-import-panel { padding: 15px; }
+  .google-drive-import-actions { display: grid; grid-template-columns: 1fr; }
+}
