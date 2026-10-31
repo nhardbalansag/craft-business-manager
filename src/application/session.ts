@@ -1,4 +1,3 @@
-import { SheetJsWorkbookCodec } from '../storage/sheetJsWorkbookCodec';
 import { getWorkbookImportMaxBytes } from './persistence/workbookImportPreferences';
 import { BrowserWorkspaceStore } from '../storage/BrowserWorkspaceStore';
 import { WorkspaceAutosave } from './persistence/WorkspaceAutosave';
@@ -214,7 +213,10 @@ export const workspaceAutosave = new WorkspaceAutosave(
   workspaceChanges,
 );
 
-const persistenceWorkbookCodec = new SheetJsWorkbookCodec();
+const persistenceWorkbookCodec = async () => {
+  const { SheetJsWorkbookCodec } = await import('../storage/sheetJsWorkbookCodec');
+  return new SheetJsWorkbookCodec();
+};
 export const persistenceCoordinator = new PersistenceCoordinator(
   physicalSourceSnapshotServiceV5,
   physicalDatasetHydrationServiceV5,

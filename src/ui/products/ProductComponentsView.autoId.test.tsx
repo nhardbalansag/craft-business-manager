@@ -6,6 +6,8 @@ import * as session from '../../application/session';
 import type { Material } from '../../domain/materials';
 import type { Product } from '../../domain/products';
 import { ProductComponentsView } from './ProductComponentsView';
+import * as candidateFilter from './componentProductCandidates';
+import * as compositionPreview from './productCompositionPreview';
 
 const product: Product = {
   id: 'LEGACY-PRODUCT',
@@ -77,6 +79,49 @@ async function fill(element: HTMLInputElement | HTMLSelectElement | HTMLTextArea
 }
 
 describe('ProductComponentsView automatic identity', () => {
+  it('defers product graph work until needed and keeps it out of role, quantity and notes edits', async () => {
+    const child: Product = { ...product, id: 'CHILD', name: 'Child product' };
+    const candidates = vi.spyOn(candidateFilter, 'componentProductCandidates');
+    const preview = vi.spyOn(compositionPreview, 'buildProductCompositionPreview');
+    await act(async () => root.render(<ProductComponentsView products={[product, child]} materials={[pieceMaterial]} catalogLoading={false} />));
+    expect(candidates).not.toHaveBeenCalled();
+    expect(preview).not.toHaveBeenCalled();
+    await fill(field('Source type'), 'product');
+    expect(candidates).toHaveBeenCalledOnce();
+    expect(field('Product source').textContent).toContain('Child product');
+    await fill(field('Role'), 'accessory');
+    await fill(field('Quantity per parent'), '3');
+    await fill(field('Notes'), 'Assembly note');
+    await fill(field('Product source'), 'CHILD');
+    expect(candidates).toHaveBeenCalledOnce();
+    expect(preview).not.toHaveBeenCalled();
+    const show = Array.from(container.querySelectorAll('button')).find((button) => button.textContent === 'Show assembly tree')!;
+    await act(async () => show.click());
+    expect(preview).toHaveBeenCalledOnce();
+  });
+
+  it('blocks duplicate component submissions while a save is pending', async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => { release = resolve; });
+    const create = session.productComponentService.createComponent.bind(session.productComponentService);
+    const saving = vi.spyOn(session.productComponentService, 'createComponent').mockImplementation(async (candidate) => {
+      await gate;
+      return create(candidate);
+    });
+    await act(async () => root.render(<ProductComponentsView products={[product]} materials={[pieceMaterial]} catalogLoading={false} />));
+    await fill(field('Material source'), 'LEGACY-JAR');
+    await act(async () => {
+      componentForm().dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      componentForm().dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    });
+    expect(saving).toHaveBeenCalledOnce();
+    expect(componentForm().querySelector('fieldset')?.disabled).toBe(true);
+    await act(async () => release());
+    expect(await session.productComponentService.listComponents()).toHaveLength(1);
+    expect(container.textContent).toContain('Component added.');
+    expect(componentForm().querySelector('fieldset')?.disabled).toBe(false);
+  });
+
   it('shows the chosen parent Product photo and enlarges it without changing the composition', async () => {
     const photo = 'data:image/jpeg;base64,/9j/AAAA';
     const brochure = 'data:image/jpeg;base64,/9j/BBBB';

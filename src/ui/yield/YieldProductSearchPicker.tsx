@@ -1,3 +1,4 @@
+import { catalogNameCollator } from '../catalogSort';
 import { useEffect, useId, useMemo, useState, type KeyboardEvent } from 'react';
 import type { Product } from '../../domain/products';
 import { PRODUCT_CATEGORY_RULES } from '../../domain/products';
@@ -44,8 +45,8 @@ export function YieldProductSearchPicker({
         if (left.id === selectedProductId && right.id !== selectedProductId) return -1;
         if (right.id === selectedProductId && left.id !== selectedProductId) return 1;
         if (left.isActive !== right.isActive) return left.isActive ? -1 : 1;
-        return left.name.localeCompare(right.name, undefined, { sensitivity: 'base' })
-          || left.id.localeCompare(right.id, undefined, { sensitivity: 'base' });
+        return catalogNameCollator.compare(left.name, right.name)
+          || catalogNameCollator.compare(left.id, right.id);
       });
   }, [products, query, selectedProductId]);
 

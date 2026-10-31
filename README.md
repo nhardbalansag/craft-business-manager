@@ -67,6 +67,22 @@ increase the limit and click **Apply import** again with the same selected file.
 the limit does not alter the current workspace. Worksheet, row, column, cell, schema, and
 business-data validation remain enforced. Clearing browser storage restores the default.
 
+## Product price lists
+
+Open **Products → Product catalog → Price list** to create a customer price list.
+Search a product name or code, such as `P (1pcs)`, then narrow the results by
+category, active/archived status, or picture availability. Check individual products
+or **Select all matches** to select every matching product across all result pages.
+Selections remain checked when the search or filters change; use **Show selected only**
+to review them, or **Clear selection** to start again.
+
+Choose whether to include product pictures and bulk/package prices, then select
+**Generate price list**. Review the preview and choose **Print / Save as PDF**.
+The list uses saved selling prices in PHP per piece, displays package minimums when
+included, and shows **Contact us for pricing** when a price is not ready.
+Previews show 25 products per page to keep large selections responsive;
+printing and saving as PDF include every selected product.
+
 ## Implemented business foundation
 
 Phases 1–4 are complete and include:
