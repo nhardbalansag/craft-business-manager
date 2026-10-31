@@ -1,8 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { Product } from '../../domain/products';
-import { isValidProductImageDataUrl } from '../../domain/productImage';
-import { isValidBrochureImageDataUrl } from '../../domain/productBrochureImage';
+import { getProductPhotos } from '../../domain/productPhotos';
 import { AppIcon } from '../icons/AppIcon';
 import './productImageZoom.css';
 
@@ -21,8 +20,7 @@ export function ProductImageZoom({ product, imageClassName = '', alt, disabled =
   const titleId = useId();
   const triggerRef = useRef<HTMLButtonElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
-  const thumbnail = isValidProductImageDataUrl(product.imageDataUrl) ? product.imageDataUrl : null;
-  const brochure = isValidBrochureImageDataUrl(product.brochureImageDataUrl) ? product.brochureImageDataUrl : null;
+  const { thumbnail, brochure } = getProductPhotos(product);
   const preview = thumbnail ?? brochure;
   const enlarged = brochure ?? thumbnail;
 

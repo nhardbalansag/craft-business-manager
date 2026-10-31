@@ -65,6 +65,7 @@ describe('PersistenceCoordinator resource-limit safety', () => {
     maximum = 64 * 1024 * 1024;
     expect(await coordinator.importAndApplyWorkbook(bytes)).toMatchObject({ status: 'hydrated' });
     expect(hydrate).toHaveBeenCalledOnce();
+    expect(decode.mock.calls.filter(([input]) => input.byteLength === bytes.byteLength)).toHaveLength(1);
     decode.mockClear();
 
     maximum = 48 * 1024 * 1024;

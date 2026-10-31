@@ -16,11 +16,13 @@ export interface BrochurePriceOption {
 export interface BrochurePricingProvider {
   listTiersByProduct(productId: string): Promise<ProductPriceTier[]>;
   resolve(request: ProductPriceResolutionRequest): Promise<ProductPriceResolutionResult>;
+  resolveMany?(requests: readonly ProductPriceResolutionRequest[]): Promise<ProductPriceResolutionResult[]>;
 }
 
 const defaultProvider: BrochurePricingProvider = {
   listTiersByProduct: (productId) => productPriceTierService.listTiersByProduct(productId),
   resolve: (request) => productPriceResolutionService.resolve(request),
+  resolveMany: (requests) => productPriceResolutionService.resolveMany(requests),
 };
 
 function readyUnitPrice(result: ProductPriceResolutionResult | null): number | null {
@@ -59,13 +61,14 @@ export async function loadProductBrochurePrices(
     })),
   ];
 
-  const results = await Promise.all(requests.map(async (candidate) => {
+  const priceRequests = requests.map((candidate) => ({
+    productId, quantity: candidate.quantity,
+    ...(candidate.tierId ? { selectedTierId: candidate.tierId } : {}),
+  }));
+  const batch = provider.resolveMany ? await provider.resolveMany(priceRequests) : null;
+  const results = await Promise.all(requests.map(async (candidate, index) => {
     try {
-      const result = await provider.resolve({
-        productId,
-        quantity: candidate.quantity,
-        ...(candidate.tierId ? { selectedTierId: candidate.tierId } : {}),
-      });
+      const result = batch ? batch[index] : await provider.resolve(priceRequests[index]);
       const price = readyUnitPrice(result);
       return price === null ? null : {
         id: candidate.id,
