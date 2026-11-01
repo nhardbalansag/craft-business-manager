@@ -2,6 +2,10 @@
 
 Desktop-first business costing, inventory, production-yield, production-planning, pricing, and persistence manager for a craft business producing paintable plaster art/toys, handmade candle vessels, candles, event crafts, and multi-component products.
 
+## Mobile transaction history
+
+The **Transactions** drawer page imports transaction-only JSON/Excel files from My Lovely Craft mobile, appends receipts and optional quotations without replacing the catalog, filters daily/date-range history, and provides private financial reports and debit/credit management. History is retained in a separate browser IndexedDB store and can be downloaded for backup or transfer back to mobile. Deploy this web build to enable the page on the live site. See [transaction-history instructions](docs/TRANSACTION_HISTORY.md).
+
 ## Project direction
 
 The application uses **React + TypeScript + Vite** and is intended to be wrapped by **Tauri** for safe local desktop file access.

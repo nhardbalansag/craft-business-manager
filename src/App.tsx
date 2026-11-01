@@ -27,8 +27,9 @@ import {
 import { ProductsWorkspacePage } from './ui/products/ProductsWorkspacePage';
 import { ProductionPage } from './ui/production/ProductionPage';
 import { AppIcon, type AppIconName } from './ui/icons/AppIcon';
+import { TransactionsPage } from './ui/transactions/TransactionsPage';
 
-type AppSection = 'materials' | 'products' | 'production';
+type AppSection = 'materials' | 'products' | 'production' | 'transactions';
 export type PersistenceUiClock = () => Date;
 
 const SIDEBAR_VISIBILITY_STORAGE_KEY = 'craft-business-manager.sidebar-visible';
@@ -53,6 +54,7 @@ const APP_SECTIONS: readonly { id: AppSection; label: string; icon: AppIconName 
   { id: 'materials', label: 'Materials', icon: 'materials' },
   { id: 'products', label: 'Products', icon: 'products' },
   { id: 'production', label: 'Production', icon: 'production' },
+  { id: 'transactions', label: 'Transactions', icon: 'history' },
 ];
 
 export interface AppProps {
@@ -409,6 +411,7 @@ export default function App({
           {section === 'materials' && <MaterialsPage />}
           {section === 'products' && <ProductsWorkspacePage />}
           {section === 'production' && <ProductionPage onOpenProducts={() => selectSection('products')} />}
+          {section === 'transactions' && <TransactionsPage />}
         </div>
       </section>
     </main>
