@@ -205,6 +205,28 @@ export class ProductPriceResolutionService {
   async resolve(
     request: ProductPriceResolutionRequest,
   ): Promise<ProductPriceResolutionResult> {
+    const quote = await this.quotes.quoteProduct(request.productId.trim());
+    return this.resolveQuote(request, quote);
+  }
+
+  /** Share expensive cost evidence within this batch only; later batches always read fresh prices. */
+  async resolveMany(requests: readonly ProductPriceResolutionRequest[]): Promise<ProductPriceResolutionResult[]> {
+    const quotes = new Map<string, Promise<IntegratedProductPricingQuoteResult>>();
+    return Promise.all(requests.map(async (request) => {
+      const id = comparable(request.productId);
+      let pending = quotes.get(id);
+      if (!pending) {
+        pending = this.quotes.quoteProduct(request.productId.trim());
+        quotes.set(id, pending);
+      }
+      return this.resolveQuote(request, await pending);
+    }));
+  }
+
+  private resolveQuote(
+    request: ProductPriceResolutionRequest,
+    quote: IntegratedProductPricingQuoteResult,
+  ): ProductPriceResolutionResult {
     const requestedProductId = request.productId.trim();
     const explicitTierRequested = request.selectedTierId !== undefined;
     const selectedTierId = explicitTierRequested
@@ -214,7 +236,6 @@ export class ProductPriceResolutionService {
       ? 'explicit-tier'
       : 'default';
 
-    const quote = await this.quotes.quoteProduct(requestedProductId);
     const quantityValidation =
       evaluateProductPriceResolutionQuantity(request.quantity);
     const issues: ProductPriceResolutionIssue[] = [];

@@ -706,3 +706,5 @@
   .products-yield-area .yield-product-context { flex: 1 1 auto; }
   .products-workspace .workspace-switcher { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+.component-source-picker { display: grid; gap: 10px; min-width: 0; }
+.component-source-picker > small { color: #786b60; font-size: .75rem; line-height: 1.4; }

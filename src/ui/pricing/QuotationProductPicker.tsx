@@ -1,7 +1,7 @@
+import { catalogNameCollator } from '../catalogSort';
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { PRODUCT_CATEGORIES, PRODUCT_CATEGORY_RULES, type Product, type ProductCategory } from '../../domain/products';
-import { isValidProductImageDataUrl } from '../../domain/productImage';
-import { isValidBrochureImageDataUrl } from '../../domain/productBrochureImage';
+import { getProductPhotos } from '../../domain/productPhotos';
 import { ProductImageZoom } from '../products/ProductImageZoom';
 import { AppIcon } from '../icons/AppIcon';
 
@@ -21,10 +21,11 @@ export function searchQuotationProducts(
   return products
     .filter((product) => {
       if (!product.isActive || (category !== 'all' && product.category !== category)) return false;
-      const hasImage = isValidProductImageDataUrl(product.imageDataUrl) ||
-        isValidBrochureImageDataUrl(product.brochureImageDataUrl);
-      if (photoFilter === 'with-image' && !hasImage) return false;
-      if (photoFilter === 'without-image' && hasImage) return false;
+      if (photoFilter !== 'all') {
+        const photos = getProductPhotos(product);
+        const hasImage = photos.thumbnail !== null || photos.brochure !== null;
+        if ((photoFilter === 'with-image') !== hasImage) return false;
+      }
       const haystack = normalize([
         product.name,
         product.id,
@@ -34,8 +35,8 @@ export function searchQuotationProducts(
       return keywords.every((keyword) => haystack.includes(keyword));
     })
     .sort((left, right) =>
-      left.name.localeCompare(right.name, undefined, { sensitivity: 'base' }) ||
-      left.id.localeCompare(right.id, undefined, { sensitivity: 'base' }));
+      catalogNameCollator.compare(left.name, right.name) ||
+      catalogNameCollator.compare(left.id, right.id));
 }
 
 export interface QuotationProductPickerProps {
@@ -155,12 +156,9 @@ export function QuotationProductPicker({
         disabled={disabled}
         onClick={() => open ? closeSearch() : openSearch()}
       >
-        {selected && (isValidProductImageDataUrl(selected.imageDataUrl) ||
-          isValidBrochureImageDataUrl(selected.brochureImageDataUrl)) && (
+        {selected && (getProductPhotos(selected).thumbnail || getProductPhotos(selected).brochure) && (
           <img
-            src={isValidProductImageDataUrl(selected.imageDataUrl)
-              ? selected.imageDataUrl
-              : selected.brochureImageDataUrl}
+            src={getProductPhotos(selected).thumbnail ?? getProductPhotos(selected).brochure ?? undefined}
             alt=""
             className="quotation-product-picker-thumbnail"
           />
@@ -261,8 +259,7 @@ export function QuotationProductPicker({
               </div>
             ) : shown.map((product, index) => (
               <div key={product.id} className="quotation-product-picker-result-row" role="presentation">
-                {(isValidProductImageDataUrl(product.imageDataUrl) ||
-                  isValidBrochureImageDataUrl(product.brochureImageDataUrl)) && (
+                {(getProductPhotos(product).thumbnail || getProductPhotos(product).brochure) && (
                   <ProductImageZoom
                     product={product}
                     imageClassName="quotation-product-picker-thumbnail"

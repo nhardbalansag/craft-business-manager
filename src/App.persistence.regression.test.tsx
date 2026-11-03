@@ -166,7 +166,7 @@ async function click(text: string) {
 }
 
 async function choose(file: File | null) {
-  const input = container.querySelector<HTMLInputElement>('input[type="file"]')!;
+  const input = container.querySelector<HTMLInputElement>('[aria-label="Workbook file"]')!;
   Object.defineProperty(input, 'files', {
     configurable: true,
     value: file === null ? [] : [file],

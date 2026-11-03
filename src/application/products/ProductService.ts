@@ -10,6 +10,8 @@ import type { MixPresetRepository } from '../mixPresets/MixPresetRepository';
 import type { ProductComponentRelationshipGuard } from '../productComponents/ProductComponentRelationshipGuard';
 import type { ProductRepository } from './ProductRepository';
 
+const productNameCollator = new Intl.Collator(undefined, { sensitivity: 'base' });
+
 export interface ProductListFilter {
   category?: ProductCategory;
   active?: boolean;
@@ -131,8 +133,8 @@ export class ProductService {
       .filter((product) => filter.active === undefined || product.isActive === filter.active)
       .filter((product) => filter.query === undefined || matchesQuery(product, filter.query))
       .sort((a, b) => {
-        const byName = a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
-        return byName || a.id.localeCompare(b.id, undefined, { sensitivity: 'base' });
+        const byName = productNameCollator.compare(a.name, b.name);
+        return byName || productNameCollator.compare(a.id, b.id);
       })
       .map(cloneProduct);
   }

@@ -53,6 +53,34 @@ beforeEach(() => vi.useFakeTimers());
 afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); });
 
 describe('WorkspaceAutosave', () => {
+  it('commits a restored dataset and adopts its new durable revision', async () => {
+    const store = new MemoryStore(); const { autosave, dataset } = fixture(store);
+    await autosave.start(); await autosave.checkpoint();
+    const restored = materialWorkspace('Restored SQLite catalog');
+    await autosave.replaceDataset(restored, (copy, revision) => store.save(copy, revision));
+    expect(dataset()).toEqual(restored);
+    expect((store.value as WorkspaceRecoveryCopy).dataset).toEqual(restored);
+    expect(autosave.hasUnsavedChanges()).toBe(false);
+    await autosave.checkpoint();
+    expect(autosave.getStatus().state).toBe('saved');
+  });
+
+  it('rolls back live repositories when a restored database cannot be committed', async () => {
+    const store = new MemoryStore(); const { autosave, dataset } = fixture(store);
+    await autosave.start(); await autosave.checkpoint(); const before = structuredClone(store.value);
+    await expect(autosave.replaceDataset(materialWorkspace('Do not apply'), async () => { throw new Error('Disk full'); })).rejects.toThrow('Disk full');
+    expect(dataset()).toEqual(emptyWorkspace()); expect(store.value).toEqual(before);
+    expect(autosave.getStatus().state).toBe('error');
+  });
+
+  it('can capture a rescue backup after a durable write failure without claiming the workspace was saved', async () => {
+    const store = new MemoryStore(); const { autosave, repository } = fixture(store);
+    await autosave.start(); store.fail = true;
+    await repository.replaceAll(materialWorkspace('Rescue this data')); await autosave.flush();
+    expect(await autosave.snapshotForBackup()).toEqual(materialWorkspace('Rescue this data'));
+    expect(autosave.getStatus().state).toBe('error'); expect(autosave.hasUnsavedChanges()).toBe(true);
+  });
+
   it('does not overwrite storage on an empty startup; saves edits and restores a fresh session', async () => {
     const store = new MemoryStore();
     const first = fixture(store);

@@ -26,9 +26,8 @@ function comparable(value: string): string {
   return value.trim().toLocaleLowerCase();
 }
 
-function compareText(left: string, right: string): number {
-  return left.localeCompare(right, undefined, { sensitivity: 'base' });
-}
+const previewCollator = new Intl.Collator(undefined, { sensitivity: 'base' });
+function compareText(left: string, right: string): number { return previewCollator.compare(left, right); }
 
 function deterministicLines(lines: readonly ProductComponent[]): ProductComponent[] {
   return [...lines].sort((left, right) => {

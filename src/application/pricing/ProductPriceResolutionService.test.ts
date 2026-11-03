@@ -155,6 +155,25 @@ class QuoteProvider implements ProductPriceResolutionQuoteProvider {
 }
 
 describe('TP8C ProductPriceResolutionService', () => {
+  it('resolves a price-list batch with one quote per product, preserving eligibility and caller isolation', async () => {
+    const provider = new QuoteProvider(integratedQuote());
+    const service = new ProductPriceResolutionService(provider);
+    const requests = [
+      { productId: 'P', quantity: 1 },
+      { productId: ' p ', quantity: 20, selectedTierId: 'TIER-0001' },
+      { productId: 'P', quantity: 1, selectedTierId: 'TIER-0001' },
+    ];
+    const batch = await service.resolveMany(requests);
+    expect(provider.calls).toEqual(['P']);
+    expect(batch).toEqual(await Promise.all(requests.map((request) => service.resolve(request))));
+    expect(batch.map((result) => result.unitSellingPrice)).toEqual([70, 60, null]);
+    batch[0].integratedQuote.sellingPrice = 999;
+    expect(batch[1].integratedQuote.sellingPrice).toBe(70);
+    provider.result.sellingPrice = 90;
+    expect((await service.resolveMany([requests[0]]))[0].unitSellingPrice).toBe(90);
+    expect(await service.resolveMany([])).toEqual([]);
+  });
+
   it('resolves Default / Single when no tier ID is supplied even when a cheaper tier is eligible', async () => {
     const quote = integratedQuote({}, [
       tierLine(),

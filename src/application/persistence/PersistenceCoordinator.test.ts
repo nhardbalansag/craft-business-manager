@@ -54,6 +54,17 @@ const directTransportCapabilities = createWorkbookTransportCapabilities({
 });
 
 describe('PersistenceCoordinator export/save orchestration', () => {
+  it('loads Excel support on demand, shares concurrent loading, and retries failed loads', async () => {
+    const codec = new SheetJsWorkbookCodec();
+    const factory = vi.fn().mockRejectedValueOnce(new Error('Temporary load failure')).mockResolvedValue(codec);
+    const coordinator = new PersistenceCoordinator(snapshotSource(createEmptyBusinessDataset()), acceptingHydration(), factory);
+    expect(factory).not.toHaveBeenCalled();
+    await expect(coordinator.exportCurrentWorkbook()).rejects.toMatchObject({ code: 'EXPORT_FAILED' });
+    const results = await Promise.all([coordinator.exportCurrentWorkbook(), coordinator.exportCurrentWorkbook()]);
+    expect(factory).toHaveBeenCalledTimes(2);
+    expect(results.every((result) => result.bytes.length > 0)).toBe(true);
+  });
+
   it('exports the current complete snapshot with deterministic injected metadata', async () => {
     const snapshots = snapshotSource(createEmptyBusinessDataset());
     const hydration = acceptingHydration();

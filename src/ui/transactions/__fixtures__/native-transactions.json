@@ -1,0 +1,151 @@
+{
+  "format": "my-lovely-craft-transactions",
+  "version": 1,
+  "exportedAt": "2026-10-31T02:00:00.000Z",
+  "customerReceipts": [
+    {
+      "id": "SALE-INTEROP-1",
+      "reference": "CR-INTEROP-1",
+      "createdAt": "2026-10-31T02:00:00.000Z",
+      "revision": "interop-fixture",
+      "businessName": "My Lovely Craft",
+      "customerName": "Sample customer",
+      "customerContact": "",
+      "paymentMethod": "Cash",
+      "notes": "",
+      "items": [
+        {
+          "productId": "A",
+          "name": "Product A",
+          "quantity": 2,
+          "unitPrice": 30,
+          "amount": 60,
+          "sourceLabel": "Default / Single",
+          "totalProductCost": 44
+        }
+      ],
+      "subtotal": 60,
+      "discount": 2,
+      "total": 58,
+      "amountPaid": 100,
+      "balance": 0,
+      "change": 42,
+      "receipt": {
+        "title": "Customer receipt",
+        "text": "MY LOVELY CRAFT\nCUSTOMER RECEIPT\nCR-INTEROP-1\n31 Oct 2026, 11:06 SGT\n--------------------------------\nSample customer\n\nITEMS\nProduct A\n2 pc @ PHP 30.00\nDefault / Single\nAmount: PHP 60.00\n\n--------------------------------\nSubtotal: PHP 60.00\nDiscount: PHP 2.00\nTOTAL: PHP 58.00\nAmount received: PHP 100.00\nBalance due: PHP 0.00\nChange: PHP 42.00\nPayment: Cash\nPAID\n\nThank you for your purchase!\nMy Lovely Craft"
+      }
+    }
+  ],
+  "quotations": [
+    {
+      "id": "QT-INTEROP-1",
+      "createdAt": "2026-10-31T02:00:00.000Z",
+      "revision": "interop-fixture",
+      "customer": {
+        "businessName": "My Lovely Craft",
+        "quotationReference": "QT-INTEROP-1",
+        "generatedAtIso": "2026-10-31T02:00:00.000Z",
+        "validUntil": null,
+        "customer": {
+          "name": "Sample customer",
+          "contact": null,
+          "address": null
+        },
+        "items": [
+          {
+            "product": { "id": "A", "name": "Product A", "quantity": 2 },
+            "pricing": {
+              "sourceLabel": "Default / Single",
+              "tierId": null,
+              "unitSellingPrice": 30,
+              "totalSellingPrice": 60,
+              "offerCount": 2
+            }
+          }
+        ],
+        "subtotal": 60,
+        "total": 60,
+        "product": { "id": "A", "name": "Product A", "quantity": 2 },
+        "pricing": {
+          "sourceLabel": "Default / Single",
+          "tierId": null,
+          "unitSellingPrice": 30,
+          "totalSellingPrice": 60,
+          "offerCount": 2
+        },
+        "notes": null,
+        "terms": "Prices are valid until the date shown. Production schedule and delivery arrangements are confirmed separately."
+      },
+      "owner": {
+        "businessName": "My Lovely Craft",
+        "quotationReference": "QT-INTEROP-1",
+        "generatedAtIso": "2026-10-31T02:00:00.000Z",
+        "validUntil": null,
+        "customer": {
+          "name": "Sample customer",
+          "contact": null,
+          "address": null
+        },
+        "notes": null,
+        "terms": "Prices are valid until the date shown. Production schedule and delivery arrangements are confirmed separately.",
+        "items": [
+          {
+            "productId": "A",
+            "productName": "Product A",
+            "quantity": 2,
+            "sourceLabel": "Default / Single",
+            "unitSellingPrice": 30,
+            "totalSellingPrice": 60,
+            "unitProductCost": 22,
+            "totalProductCost": 44,
+            "profitPerUnit": 8,
+            "totalProfit": 16,
+            "grossMargin": 0.26666666666666666,
+            "materialLines": [
+              {
+                "materialId": "plaster",
+                "materialName": "Plaster",
+                "unit": "g",
+                "source": "Yield / recipe (includes safety waste)",
+                "quantityPerProduct": 600,
+                "totalQuantity": 1200,
+                "unitCost": 0.025,
+                "totalCost": 30
+              }
+            ],
+            "materialCostTotal": 30,
+            "materialBreakdownComplete": true
+          }
+        ],
+        "totalSales": 60,
+        "totalProductCost": 44,
+        "totalProfit": 16,
+        "grossMargin": 0.26666666666666666,
+        "unresolvedCostCount": 0,
+        "materials": [
+          {
+            "materialId": "plaster",
+            "materialName": "Plaster",
+            "unit": "g",
+            "totalQuantity": 1200,
+            "unitCost": 0.025,
+            "totalCost": 30,
+            "contributingProducts": 1
+          }
+        ],
+        "totalMaterialCost": 30,
+        "materialBreakdownComplete": true
+      },
+      "photos": {
+        "A": {
+          "uri": "backup://image/b4a7f40a33dde4341763b2eb9a3a5b38dfc6e33bfc818986765fb8bea22155e7",
+          "thumbnailUri": "backup://image/b4a7f40a33dde4341763b2eb9a3a5b38dfc6e33bfc818986765fb8bea22155e7"
+        }
+      }
+    }
+  ],
+  "transactionEntries": [],
+  "images": {
+    "b4a7f40a33dde4341763b2eb9a3a5b38dfc6e33bfc818986765fb8bea22155e7": "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCAAIAAgDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAX/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAABQb/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCIAnQr/9k="
+  }
+}

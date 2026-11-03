@@ -7,6 +7,24 @@ export interface WorkbookCodec {
   decode(bytes: WorkbookBinaryInput): WorkbookNeutralDocument;
 }
 
+/** Import-local cache: shape detection and validation share one binary decode. */
+export function createWorkbookDecodeSession(codec: WorkbookCodec): WorkbookCodec {
+  const decoded = new WeakMap<WorkbookBinaryInput, { document: WorkbookNeutralDocument } | { error: unknown }>();
+  return {
+    encode: (document) => codec.encode(document),
+    decode(bytes) {
+      let result = decoded.get(bytes);
+      if (!result) {
+        try { result = { document: codec.decode(bytes) }; }
+        catch (error) { result = { error }; }
+        decoded.set(bytes, result);
+      }
+      if ('error' in result) throw result.error;
+      return result.document;
+    },
+  };
+}
+
 export type WorkbookCodecErrorCode =
   | 'INVALID_DOCUMENT'
   | 'INVALID_SHEET'

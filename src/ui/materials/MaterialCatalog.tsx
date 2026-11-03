@@ -1,4 +1,5 @@
 import { useMemo, useState, type Ref } from 'react';
+import { catalogNameCollator } from '../catalogSort';
 import { MATERIAL_GROUPS, type Material, type MaterialGroup } from '../../domain/materials';
 import { matchesMaterialSearch, type MaterialInventoryRow, type MaterialStockFilter } from './materialInventoryView';
 
@@ -54,7 +55,7 @@ export function MaterialCatalog({
             if (difference !== 0) return difference;
           }
           return (
-            a.material.name.localeCompare(b.material.name, undefined, { sensitivity: 'base' }) ||
+            catalogNameCollator.compare(a.material.name, b.material.name) ||
             a.material.id.localeCompare(b.material.id)
           );
         }),

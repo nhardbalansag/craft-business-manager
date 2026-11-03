@@ -1,8 +1,10 @@
-import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import { catalogNameCollator } from '../catalogSort';
+import { FormEvent, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { productComponentService } from '../../application/session';
 import { nextSequentialId } from '../../domain/identifiers';
 import type { Material } from '../../domain/materials';
-import { validateProductCompositionGraph } from '../../domain/productCompositionGraph';
+import { componentProductCandidates } from './componentProductCandidates';
+import { ComponentSourcePicker } from './ComponentSourcePicker';
 import {
   PRODUCT_COMPONENT_ROLES,
   type ProductComponent,
@@ -76,7 +78,7 @@ function sourceLabel(
   return products.find((product) => comparable(product.id) === comparable(component.sourceId))?.name ?? component.sourceId;
 }
 
-function PreviewBranch({ node }: { node: ProductCompositionPreviewNode }) {
+const PreviewBranch = memo(function PreviewBranch({ node }: { node: ProductCompositionPreviewNode }) {
   return (
     <li className={`composition-tree-item ${node.issue ? 'composition-tree-issue' : ''}`}>
       <div className="composition-tree-line">
@@ -98,7 +100,7 @@ function PreviewBranch({ node }: { node: ProductCompositionPreviewNode }) {
       )}
     </li>
   );
-}
+});
 
 export function ProductComponentsView({ products, materials, catalogLoading, initialProductId, onSelectedProductChange, onComponentsSaved }: ProductComponentsViewProps) {
   const initialParentId = products.find((product) => product.id === initialProductId)?.id ?? products.find((product) => product.isActive)?.id ?? products[0]?.id ?? '';
@@ -109,6 +111,9 @@ export function ProductComponentsView({ products, materials, catalogLoading, ini
   const [editingComponentId, setEditingComponentId] = useState<string | null>(null);
   const [form, setForm] = useState<ComponentFormState>(EMPTY_COMPONENT_FORM);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const mutationInFlight = useRef(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   const reloadComponents = useCallback(async () => {
     setComponentsLoading(true);
@@ -154,48 +159,21 @@ export function ProductComponentsView({ products, materials, catalogLoading, ini
     () => materials
       .filter((material) => material.isActive && material.baseUnit === 'pc')
       .filter((material) => !usedSourceKeys.has(`material:${comparable(material.id)}`))
-      .sort((left, right) => left.name.localeCompare(right.name, undefined, { sensitivity: 'base' })),
+      .sort((left, right) => catalogNameCollator.compare(left.name, right.name)),
     [materials, usedSourceKeys],
   );
 
-  const productCandidates = useMemo(() => {
-    if (!selectedParent) return [];
-
-    const graphWithoutCurrentEdit = components.filter(
-      (component) => comparable(component.id) !== comparable(editingComponentId ?? ''),
-    );
-
-    return products
-      .filter((product) => product.isActive)
-      .filter((product) => comparable(product.id) !== comparable(selectedParent.id))
-      .filter((product) => !usedSourceKeys.has(`product:${comparable(product.id)}`))
-      .filter((product) => {
-        const provisional: ProductComponent = {
-          id: editingComponentId ?? '__component-candidate__',
-          parentProductId: selectedParent.id,
-          sourceType: 'product',
-          sourceId: product.id,
-          role: form.role,
-          quantityPerParent: 1,
-        };
-
-        try {
-          validateProductCompositionGraph([...graphWithoutCurrentEdit, provisional]);
-          return true;
-        } catch {
-          return false;
-        }
-      })
-      .sort((left, right) => left.name.localeCompare(right.name, undefined, { sensitivity: 'base' }));
-  }, [components, editingComponentId, form.role, products, selectedParent, usedSourceKeys]);
+  const productCandidates = useMemo(() => selectedParent && form.sourceType === 'product'
+    ? componentProductCandidates(products, components, selectedParent.id, editingComponentId) : [],
+  [components, editingComponentId, form.sourceType, products, selectedParent]);
 
   const generatedComponentId = useMemo(() => nextSequentialId(components.map((component) => component.id), 'COMP'), [components]);
 
   const preview = useMemo(
-    () => selectedParent
+    () => selectedParent && previewOpen
       ? buildProductCompositionPreview(selectedParent.id, products, materials, components)
       : [],
-    [components, materials, products, selectedParent],
+    [components, materials, products, selectedParent, previewOpen],
   );
 
   const writable = Boolean(selectedParent?.isActive);
@@ -207,14 +185,21 @@ export function ProductComponentsView({ products, materials, catalogLoading, ini
     if (clearFeedback) setFeedback(null);
   }
 
-  function changeParent(parentId: string) {
+  const changeParent = useCallback((parentId: string) => {
+    if (mutationInFlight.current) return;
     setSelectedParentId(parentId);
     onSelectedProductChange?.(parentId);
-    resetForm();
-  }
+    setEditingComponentId(null);
+    setForm(EMPTY_COMPONENT_FORM);
+    setFeedback(null);
+    setPreviewOpen(false);
+  }, [onSelectedProductChange]);
+
+  const changeSource = useCallback((sourceId: string) => setForm((current) => ({ ...current, sourceId })), []);
 
   async function submitComponent(event: FormEvent) {
     event.preventDefault();
+    if (mutationInFlight.current || componentsLoading || catalogLoading || !writable) return;
     setFeedback(null);
 
     if (!selectedParent) {
@@ -232,6 +217,8 @@ export function ProductComponentsView({ products, materials, catalogLoading, ini
       notes: form.notes,
     };
 
+    mutationInFlight.current = true;
+    setBusy(true);
     try {
       if (editingComponentId) {
         await productComponentService.updateComponent(editingComponentId, {
@@ -255,10 +242,16 @@ export function ProductComponentsView({ products, materials, catalogLoading, ini
       }
     } catch (error) {
       setFeedback({ type: 'error', message: errorMessage(error) });
+    } finally {
+      mutationInFlight.current = false;
+      setBusy(false);
     }
   }
 
   async function removeComponent(component: ProductComponent) {
+    if (mutationInFlight.current || componentsLoading || catalogLoading || !writable) return;
+    mutationInFlight.current = true;
+    setBusy(true);
     setFeedback(null);
     try {
       await productComponentService.removeComponent(component.id);
@@ -268,6 +261,9 @@ export function ProductComponentsView({ products, materials, catalogLoading, ini
       setFeedback({ type: 'success', message: `${sourceLabel(component, products, materials)} removed from composition.` });
     } catch (error) {
       setFeedback({ type: 'error', message: errorMessage(error) });
+    } finally {
+      mutationInFlight.current = false;
+      setBusy(false);
     }
   }
 
@@ -310,21 +306,9 @@ export function ProductComponentsView({ products, materials, catalogLoading, ini
             </div>
           </div>
         )}
-        <label className="field">
-          <span>Product to compose</span>
-          <select value={selectedParentId} onChange={(event) => changeParent(event.target.value)}>
-            {products.map((product) => (
-              <option key={product.id} value={product.id}>
-                {product.name} · {product.id}{product.isActive ? '' : ' (archived)'}
-              </option>
-            ))}
-          </select>
-          <small>
-            {selectedParent
-              ? `${selectedParent.category} · ${parentComponents.length} immediate component${parentComponents.length === 1 ? '' : 's'}`
-              : 'Choose a parent Product.'}
-          </small>
-        </label>
+        <ComponentSourcePicker sources={products} label="Product to compose" searchLabel="Search products to compose"
+          value={selectedParentId} onChange={changeParent} disabled={busy || catalogLoading || componentsLoading}
+          help={selectedParent ? `${selectedParent.category} · ${parentComponents.length} immediate component${parentComponents.length === 1 ? '' : 's'}` : 'Choose a parent Product.'} />
       </div>
 
       <div className="components-editor-layout">
@@ -334,7 +318,7 @@ export function ProductComponentsView({ products, materials, catalogLoading, ini
               <p className="panel-kicker">COMPONENT LINE</p>
               <h2>{editingComponentId ? 'Edit component' : 'Add component'}</h2>
             </div>
-            {editingComponentId && <button type="button" className="text-button" onClick={() => resetForm()}>Cancel</button>}
+            {editingComponentId && <button type="button" className="text-button" disabled={busy} onClick={() => resetForm()}>Cancel</button>}
           </div>
 
           {!writable && (
@@ -343,7 +327,7 @@ export function ProductComponentsView({ products, materials, catalogLoading, ini
             </div>
           )}
 
-          <fieldset className="component-fieldset" disabled={!writable}>
+          <fieldset className="component-fieldset" disabled={!writable || busy || componentsLoading || catalogLoading}>
             <div className="form-grid">
               <label className="field">
                 <span>Component ID</span>
@@ -371,22 +355,15 @@ export function ProductComponentsView({ products, materials, catalogLoading, ini
                 </select>
               </label>
 
-              <label className="field field-wide">
-                <span>{form.sourceType === 'material' ? 'Material source' : 'Product source'}</span>
-                <select value={form.sourceId} onChange={(event) => setForm({ ...form, sourceId: event.target.value })}>
-                  <option value="">Select {form.sourceType}</option>
-                  {sourceCandidates.map((source) => (
-                    <option key={source.id} value={source.id}>
-                      {source.name} · {source.id}{'baseUnit' in source ? ` · ${source.baseUnit}` : ''}
-                    </option>
-                  ))}
-                </select>
-                <small>
-                  {form.sourceType === 'material'
+              <div className="field-wide">
+                <ComponentSourcePicker key={`${selectedParentId}:${form.sourceType}:${editingComponentId ?? 'new'}`}
+                  sources={sourceCandidates} label={form.sourceType === 'material' ? 'Material source' : 'Product source'}
+                  searchLabel="Search component sources" value={form.sourceId} onChange={changeSource}
+                  disabled={!writable || busy || componentsLoading || catalogLoading} placeholder={`Select ${form.sourceType}`}
+                  help={form.sourceType === 'material'
                     ? 'Only active count-based (pc) Materials not already used by this parent are shown.'
-                    : 'Only active non-self Product sources that keep the current composition graph acyclic are shown.'}
-                </small>
-              </label>
+                    : 'Only active non-self Product sources that keep the current composition graph acyclic are shown.'} />
+              </div>
 
               <label className="field">
                 <span>Role</span>
@@ -414,7 +391,7 @@ export function ProductComponentsView({ products, materials, catalogLoading, ini
             </div>
 
             <button className="button button-primary button-full" type="submit">
-              {editingComponentId ? 'Save component' : 'Add component'}
+              {busy ? 'Saving component…' : editingComponentId ? 'Save component' : 'Add component'}
             </button>
           </fieldset>
 
@@ -450,12 +427,12 @@ export function ProductComponentsView({ products, materials, catalogLoading, ini
                   </div>
                   {writable && (
                     <div className="row-actions">
-                      <button type="button" className="text-button" onClick={() => {
+                      <button type="button" className="text-button" disabled={busy || componentsLoading} onClick={() => {
                         setEditingComponentId(component.id);
                         setForm(componentToForm(component));
                         setFeedback(null);
                       }}>Edit</button>
-                      <button type="button" className="text-button danger" onClick={() => void removeComponent(component)}>Remove</button>
+                      <button type="button" className="text-button danger" disabled={busy || componentsLoading} onClick={() => void removeComponent(component)}>Remove</button>
                     </div>
                   )}
                 </article>
@@ -471,12 +448,14 @@ export function ProductComponentsView({ products, materials, catalogLoading, ini
             <p className="panel-kicker">NESTED COMPOSITION PREVIEW</p>
             <h2>Assembly tree</h2>
           </div>
-          <span className="status-pill">Read only</span>
+          <button type="button" className="button button-secondary" aria-expanded={previewOpen} aria-controls="component-assembly-tree"
+            onClick={() => setPreviewOpen((current) => !current)}>{previewOpen ? 'Hide assembly tree' : 'Show assembly tree'}</button>
         </div>
         <p className="composition-preview-help">
           Product-backed components expand into their own saved component lines for inspection only. This preview does not calculate capacity, cost, or manufacture missing child stock.
         </p>
-        {preview.length === 0 ? (
+        <div id="component-assembly-tree" hidden={!previewOpen}>
+        {previewOpen && (preview.length === 0 ? (
           <div className="empty-state compact-empty"><p>No nested composition to preview.</p></div>
         ) : (
           <div className="composition-tree-root">
@@ -488,7 +467,8 @@ export function ProductComponentsView({ products, materials, catalogLoading, ini
               {preview.map((node) => <PreviewBranch key={`${node.componentId}:${node.sourceType}:${node.sourceId}`} node={node} />)}
             </ul>
           </div>
-        )}
+        ))}
+        </div>
       </div>
     </div>
   );

@@ -2,12 +2,13 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { PRODUCT_CATEGORIES, PRODUCT_CATEGORY_RULES, type Product, type ProductCategory } from '../../domain/products';
 import { AppIcon } from '../icons/AppIcon';
 import { ProductImageZoom } from './ProductImageZoom';
-import { isValidProductImageDataUrl } from '../../domain/productImage';
-import { isValidBrochureImageDataUrl } from '../../domain/productBrochureImage';
+import { getProductPhotos } from '../../domain/productPhotos';
 import { ProductLabelPrintDialog } from './ProductLabelPrintDialog';
 import { ProductBarcodeA4Dialog } from './ProductBarcodeA4Dialog';
 import { ProductDetailsDialog } from './ProductDetailsDialog';
 import { ProductBrochureDialog } from './ProductBrochureDialog';
+import { ProductPriceListDialog } from './ProductPriceListDialog';
+import { catalogNameCollator } from '../catalogSort';
 import './productCatalogEditorSeparation.css';
 
 interface ProductCatalogProps {
@@ -61,6 +62,7 @@ export function ProductCatalog({
   const [barcodeProduct, setBarcodeProduct] = useState<Product | null>(null);
   const [viewProductId, setViewProductId] = useState<string | null>(null);
   const [brochureProductId, setBrochureProductId] = useState<string | null>(null);
+  const [priceListOpen, setPriceListOpen] = useState(false);
   const viewTriggerRef = useRef<HTMLButtonElement | null>(null);
   const brochureReturnRef = useRef<HTMLButtonElement | null>(null);
   const [localEditorIntent, setEditorIntent] = useState<ProductEditorIntent>(null);
@@ -69,9 +71,12 @@ export function ProductCatalog({
   const brochureProduct = products.find((product) => product.id === brochureProductId) ?? null;
   const editorIntent: ProductEditorIntent = editorOpen === undefined ? localEditorIntent : !editorOpen ? null
     : editingId ? { mode: 'edit', productName: editingProduct?.name ?? editingId, productId: editingId } : { mode: 'new' };
+  const sortedProducts = useMemo(() => [...products].sort((a, b) =>
+    (sort === 'category' ? PRODUCT_CATEGORY_RULES[a.category].label.localeCompare(PRODUCT_CATEGORY_RULES[b.category].label) : 0) ||
+    catalogNameCollator.compare(a.name, b.name) || a.id.localeCompare(b.id)), [products, sort]);
   const matchingProducts = useMemo(() => {
     const search = query.trim().toLowerCase();
-    return products
+    return sortedProducts
       .filter((product) => {
         return (
           (status === 'all' || product.isActive === (status === 'active')) &&
@@ -80,17 +85,9 @@ export function ProductCatalog({
           )
         );
       });
-  }, [products, query, status]);
-  const visible = useMemo(() => matchingProducts
-      .filter((product) => category === 'all' || category === product.category)
-      .sort(
-        (a, b) =>
-          (sort === 'category'
-            ? PRODUCT_CATEGORY_RULES[a.category].label.localeCompare(PRODUCT_CATEGORY_RULES[b.category].label)
-            : 0) ||
-          a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }) ||
-          a.id.localeCompare(b.id),
-      ), [matchingProducts, category, sort]);
+  }, [sortedProducts, query, status]);
+  const visible = useMemo(() => matchingProducts.filter((product) => category === 'all' || category === product.category),
+    [matchingProducts, category]);
   const filtered = query !== '' || category !== 'all' || status !== 'active';
   const totalPages = Math.max(1, Math.ceil(visible.length / pageSize));
   const pageStart = (page - 1) * pageSize;
@@ -249,6 +246,14 @@ export function ProductCatalog({
           <div className="product-catalog-heading-actions">
             <button
               type="button"
+              className="button button-secondary"
+              disabled={disabled || loading || loadFailed || products.length === 0}
+              onClick={() => setPriceListOpen(true)}
+            >
+              Price list
+            </button>
+            <button
+              type="button"
               className="button button-primary"
               disabled={disabled}
               aria-label="+ New product"
@@ -371,7 +376,7 @@ export function ProductCatalog({
                     >
                       <td>
                         <div className="product-table-identity">
-                          {(isValidProductImageDataUrl(product.imageDataUrl) || isValidBrochureImageDataUrl(product.brochureImageDataUrl)) ? <ProductImageZoom product={product} imageClassName="product-catalog-thumbnail" /> : <span className={`product-category-icon category-${product.category}`} aria-hidden="true">
+                          {(getProductPhotos(product).thumbnail || getProductPhotos(product).brochure) ? <ProductImageZoom product={product} imageClassName="product-catalog-thumbnail" /> : <span className={`product-category-icon category-${product.category}`} aria-hidden="true">
                             {product.category === 'candle'
                               ? <AppIcon name="flame" size={16} />
                               : product.category === 'candle-pot'
@@ -486,7 +491,7 @@ export function ProductCatalog({
                   aria-label={product.name}
                 >
                   <div className="product-card-top">
-                    {(isValidProductImageDataUrl(product.imageDataUrl) || isValidBrochureImageDataUrl(product.brochureImageDataUrl)) ? <ProductImageZoom product={product} imageClassName="product-catalog-thumbnail" /> : <span className={`product-category-icon category-${product.category}`} aria-hidden="true">
+                    {(getProductPhotos(product).thumbnail || getProductPhotos(product).brochure) ? <ProductImageZoom product={product} imageClassName="product-catalog-thumbnail" /> : <span className={`product-category-icon category-${product.category}`} aria-hidden="true">
                       {product.category === 'candle'
                         ? <AppIcon name="flame" size={18} />
                         : product.category === 'candle-pot'
@@ -653,6 +658,13 @@ export function ProductCatalog({
         )}
       </div>
 
+      {priceListOpen && (
+        <ProductPriceListDialog
+          products={products}
+          initialFilters={{ query, category, status }}
+          onClose={() => setPriceListOpen(false)}
+        />
+      )}
       {viewingProduct && (
         <ProductDetailsDialog
           product={viewingProduct}

@@ -2,11 +2,18 @@
 
 Desktop-first business costing, inventory, production-yield, production-planning, pricing, and persistence manager for a craft business producing paintable plaster art/toys, handmade candle vessels, candles, event crafts, and multi-component products.
 
+## Mobile transaction history
+
+The **Transactions** drawer page imports transaction-only JSON/Excel files from My Lovely Craft mobile, appends receipts and optional quotations without replacing the catalog, filters daily/date-range history, and provides private financial reports and debit/credit management. History now shares the primary SQLite database and its backups with the catalog. See [transaction-history instructions](docs/TRANSACTION_HISTORY.md).
+
 ## Project direction
 
 The application uses **React + TypeScript + Vite** and is intended to be wrapped by **Tauri** for safe local desktop file access.
 
-The business/domain layer remains storage-agnostic. Excel (`.xlsx`) is the first persisted business-data format, with SQLite remaining a future migration option without rewriting core business rules.
+**SQLite is the primary local database.** Excel and Google Sheets remain optional import sources;
+Excel export is retained for interchange. Open **Database → Download SQLite backup** for a complete
+portable `.sqlite` file, including catalog records, photos and saved transaction history.
+The same file imports into the existing My Lovely Craft Android app. See [SQLite storage and mobile backups](docs/SQLITE_STORAGE.md).
 
 ## Architecture
 
@@ -19,23 +26,24 @@ Domain Models + Costing / Production / Pricing Engines
    ↓
 Persistence Boundaries
    ├── BusinessDataset validation
-   ├── BusinessDataset ↔ Workbook mapping
-   ├── WorkbookCodec -> SheetJsWorkbookCodec
-   ├── Source snapshot / hydration coordination
-   ├── ExcelStorage (later Phase 5 wiring)
-   └── SQLiteStorage (future)
+   ├── Source snapshot / atomic hydration coordination
+   ├── SQLite worker → catalog records + state + image BLOBs
+   ├── Atomic browser SQLite file storage / revision checks
+   ├── Mobile-compatible SQLite backup / restore
+   └── Excel import / optional workbook export
    ↓
-Tauri filesystem boundary (planned Phase 6)
+SQLite .sqlite files downloaded for backup and mobile transfer
 ```
 
 React components do not directly manipulate spreadsheet cells or repositories for persistence.
 
 ## Refresh protection
 
-The app automatically saves a validated copy of the complete workspace in **IndexedDB**
-on this browser after changes, including workbook imports, materials, products, photos,
-inventory, pricing, yields, molds, profiles, and provenance. Refreshing or reopening the
-same app URL in the same browser restores this copy before the editor opens.
+The app automatically commits a validated **SQLite database** on this browser after changes,
+including Excel imports, materials, products, photos, inventory, pricing, yields, molds,
+profiles, provenance and transaction history. SQLite runs in a background worker; IndexedDB
+holds the binary SQLite file and revision coordination metadata. Refreshing or reopening
+the same app URL in the same browser restores this database before the editor opens.
 The status bar confirms when local saving has finished. Pending or failed saves trigger
 a browser leave-page warning; failed saves retain the previously committed copy and
 provide a retry action. Conflicting writes from another tab are rejected rather than
@@ -44,18 +52,20 @@ silently overwriting its newer copy.
 Save form edits before refreshing. Material, Product, Financial Source, and Yield drafts
 warn before refresh while unsaved; they are not automatically committed as records.
 Browser clearing, private-mode cleanup, storage eviction, or using another browser/device
-can remove or bypass the local copy. Continue downloading workbook copies for independent
-backups. If recovery fails, retry it or explicitly continue without refresh protection;
-the existing recovery copy is preserved instead of being replaced with an empty workspace.
+can remove or bypass local storage. Download SQLite backups for independent copies.
+Existing browser recovery data and transaction history migrate automatically; original
+copies remain intact. If recovery fails, retry or restore a verified SQLite backup on
+the recovery screen. Editing stays blocked until a database opens successfully.
+Use HTTPS or localhost for SQLite checksum verification and local storage.
 
 ## Workbook import size setting
 
-For uploaded Excel files in Google Drive, use **Workbook → Import Excel from Google Drive**.
+For uploaded Excel files in Google Drive, use **Database → Import Excel from Google Drive**.
 Paste an **Anyone with the link** file URL, fetch it, then apply the import. The original `.xlsx`
 is downloaded directly; Google Sheets conversion is unnecessary. A one-time browser API key
 setup is required. See [Google Drive Excel import](docs/GOOGLE_DRIVE_EXCEL_IMPORT.md).
 
-Open **Workbook → Open / Import workbook → Maximum workbook size (MiB)** to increase
+Open **Database → Open / Import workbook → Maximum workbook size (MiB)** to increase
 or decrease the file-size limit, then select **Save size limit**. The default is **96 MiB**
 (100,663,296 bytes), which accommodates the reported 54,594,185-byte workbook. The setting
 accepts whole numbers from 1 to 1024 MiB and is saved in local browser storage on this device;
@@ -66,6 +76,22 @@ Changes apply to the next import without a reload. If a workbook was rejected fo
 increase the limit and click **Apply import** again with the same selected file. Lowering
 the limit does not alter the current workspace. Worksheet, row, column, cell, schema, and
 business-data validation remain enforced. Clearing browser storage restores the default.
+
+## Product price lists
+
+Open **Products → Product catalog → Price list** to create a customer price list.
+Search a product name or code, such as `P (1pcs)`, then narrow the results by
+category, active/archived status, or picture availability. Check individual products
+or **Select all matches** to select every matching product across all result pages.
+Selections remain checked when the search or filters change; use **Show selected only**
+to review them, or **Clear selection** to start again.
+
+Choose whether to include product pictures and bulk/package prices, then select
+**Generate price list**. Review the preview and choose **Print / Save as PDF**.
+The list uses saved selling prices in PHP per piece, displays package minimums when
+included, and shows **Contact us for pricing** when a price is not ready.
+Previews show 25 products per page to keep large selections responsive;
+printing and saving as PDF include every selected product.
 
 ## Implemented business foundation
 

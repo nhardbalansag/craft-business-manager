@@ -35,3 +35,14 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Set up Python for native SQLite compatibility checks
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Verify production SQLite migration, backup and restore in browser
+        run: npm run test:browser

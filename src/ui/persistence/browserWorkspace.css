@@ -20,3 +20,6 @@
 @media (max-width: 900px) {
   .workspace-autosave-bar { padding: 9px 16px 9px 96px; }
 }
+.sqlite-backup-panel > .field { margin-top: 18px; }
+.sqlite-backup-panel > p { font-size: .86rem; line-height: 1.55; }
+.sqlite-backup-review { margin-top: 16px; padding: 16px; border: 1px solid #d6c8b9; border-radius: 12px; background: #f9f4ed; }

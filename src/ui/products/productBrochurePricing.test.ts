@@ -27,6 +27,18 @@ function resolution(productId: string, quantity: number, unitPrice: number | nul
   };
 }
 describe('A4 brochure price resolution', () => {
+  it('uses one batched resolution for every saved price option when supported', async () => {
+    const resolve = vi.fn();
+    const resolveMany = vi.fn(async (requests: Parameters<NonNullable<BrochurePricingProvider['resolveMany']>>[0]) =>
+      requests.map((request) => resolution(request.productId, request.quantity, request.selectedTierId ? 22 : 24)));
+    const result = await loadProductBrochurePrices('CND-001', {
+      listTiersByProduct: async () => [tier('BULK-30', 30)], resolve, resolveMany,
+    });
+    expect(resolve).not.toHaveBeenCalled();
+    expect(resolveMany).toHaveBeenCalledOnce();
+    expect(result.map((price) => price.unitPrice)).toEqual([24, 22]);
+  });
+
   it('uses quantity-aware resolved per-unit prices for default and active tiers, never source values', async () => {
     const resolve = vi.fn(async (request: { productId: string; quantity: number; selectedTierId?: string }) =>
       resolution(request.productId, request.quantity,

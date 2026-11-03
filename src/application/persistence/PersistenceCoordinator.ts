@@ -50,7 +50,7 @@ import {
   importPhysicalBusinessDatasetV5FromXlsx,
   type PhysicalBusinessDatasetV5WorkbookImportResult,
 } from '../../storage/physicalBusinessDatasetV5Workbook';
-import type { WorkbookBinaryInput, WorkbookCodec } from '../../storage/workbookCodec';
+import { createWorkbookDecodeSession, type WorkbookBinaryInput, type WorkbookCodec } from '../../storage/workbookCodec';
 import {
   createWorkbookResourceLimits,
   validateWorkbookBinaryResourceLimit,
@@ -357,11 +357,12 @@ export class PersistenceCoordinator {
   private readonly tieredPricing: boolean;
   private readonly plasterMoldYieldProfiles: boolean;
   private readonly yieldMoldFormulaSources: boolean;
+  private codecPromise?: Promise<WorkbookCodec>;
 
   constructor(
     private readonly snapshotService: SnapshotSource,
     private readonly hydrationService: HydrationTarget,
-    private readonly codec: WorkbookCodec,
+    private readonly codec: WorkbookCodec | (() => Promise<WorkbookCodec>),
     options: PersistenceCoordinatorOptions = {},
   ) {
     this.maxWorkbookBytes = options.maxWorkbookBytes;
@@ -381,6 +382,15 @@ export class PersistenceCoordinator {
       options.yieldMoldFormulaSources ??
       snapshotService.yieldMoldFormulaSources ??
       false;
+  }
+
+  private loadCodec(): Promise<WorkbookCodec> {
+    if (!this.codecPromise) {
+      const source = this.codec;
+      this.codecPromise = Promise.resolve().then(() => typeof source === 'function' ? source() : source)
+        .catch((error: unknown) => { this.codecPromise = undefined; throw error; });
+    }
+    return this.codecPromise;
   }
 
   async exportCurrentWorkbook(): Promise<PersistenceWorkbookExported> {
@@ -450,6 +460,7 @@ export class PersistenceCoordinator {
         };
       }
       const ownedBytes = cloneWorkbookBytes(bytes);
+      const codec = createWorkbookDecodeSession(await this.loadCodec());
       if (this.yieldMoldFormulaSources) {
         if (
           !this.physicalIdentification ||
@@ -460,22 +471,22 @@ export class PersistenceCoordinator {
             'Mold Formula provenance persistence requires plaster-profile-aware tiered physical persistence.',
           );
         }
-        imported = importProvenancePhysicalOrCore(ownedBytes, this.codec, limits);
+        imported = importProvenancePhysicalOrCore(ownedBytes, codec, limits);
       } else if (this.plasterMoldYieldProfiles) {
         if (!this.physicalIdentification || !this.tieredPricing) {
           throw new Error(
             'Plaster mold yield profile persistence requires tiered physical persistence.',
           );
         }
-        imported = importProfilePhysicalOrCore(ownedBytes, this.codec, limits);
+        imported = importProfilePhysicalOrCore(ownedBytes, codec, limits);
       } else if (this.tieredPricing) {
         imported = this.physicalIdentification
-          ? importTieredPhysicalOrCore(ownedBytes, this.codec, limits)
-          : importBusinessDatasetV2FromXlsx(ownedBytes, this.codec, limits);
+          ? importTieredPhysicalOrCore(ownedBytes, codec, limits)
+          : importBusinessDatasetV2FromXlsx(ownedBytes, codec, limits);
       } else {
         imported = this.physicalIdentification
-          ? importPhysicalBusinessDatasetFromXlsx(ownedBytes, this.codec, limits)
-          : importBusinessDatasetFromXlsx(ownedBytes, this.codec, limits);
+          ? importPhysicalBusinessDatasetFromXlsx(ownedBytes, codec, limits)
+          : importBusinessDatasetFromXlsx(ownedBytes, codec, limits);
       }
     } catch (error) {
       throw new PersistenceLifecycleOperationalError(
@@ -547,6 +558,7 @@ export class PersistenceCoordinator {
     }
 
     try {
+      const codec = await this.loadCodec();
       const metadata: WorkbookExportMetadata = {
         exportedAt: this.clock().toISOString(),
         ...(this.applicationVersion === undefined
@@ -579,7 +591,7 @@ export class PersistenceCoordinator {
             ? exportPhysicalBusinessDatasetV5ToXlsx(
                 dataset,
                 metadata,
-                this.codec,
+                codec,
               )
             : exportBusinessDatasetV2ToXlsx(
                 toBusinessDatasetV2(
@@ -588,7 +600,7 @@ export class PersistenceCoordinator {
                   ),
                 ),
                 metadata,
-                this.codec,
+                codec,
               );
       } else if (this.plasterMoldYieldProfiles) {
         if (!this.physicalIdentification || !this.tieredPricing) {
@@ -608,12 +620,12 @@ export class PersistenceCoordinator {
             ? exportPhysicalBusinessDatasetV4ToXlsx(
                 dataset,
                 metadata,
-                this.codec,
+                codec,
               )
             : exportBusinessDatasetV2ToXlsx(
                 toBusinessDatasetV2(toPhysicalBusinessDatasetV3(dataset)),
                 metadata,
-                this.codec,
+                codec,
               );
       } else if (this.tieredPricing) {
         if (this.physicalIdentification) {
@@ -627,12 +639,12 @@ export class PersistenceCoordinator {
             ? exportPhysicalBusinessDatasetV3ToXlsx(
                 dataset,
                 metadata,
-                this.codec,
+                codec,
               )
             : exportBusinessDatasetV2ToXlsx(
                 toBusinessDatasetV2(dataset),
                 metadata,
-                this.codec,
+                codec,
               );
         } else {
           if (!isBusinessDatasetV2(dataset)) {
@@ -644,7 +656,7 @@ export class PersistenceCoordinator {
           bytes = exportBusinessDatasetV2ToXlsx(
             dataset,
             metadata,
-            this.codec,
+            codec,
           );
         }
       } else if (this.physicalIdentification) {
@@ -658,18 +670,18 @@ export class PersistenceCoordinator {
           ? exportPhysicalBusinessDatasetToXlsx(
               dataset,
               metadata,
-              this.codec,
+              codec,
             )
           : exportBusinessDatasetToXlsx(
               toLegacyBusinessDataset(dataset),
               metadata,
-              this.codec,
+              codec,
             );
       } else {
         bytes = exportBusinessDatasetToXlsx(
           dataset as BusinessDataset,
           metadata,
-          this.codec,
+          codec,
         );
       }
 

@@ -150,7 +150,9 @@ export function ProductsPage() {
 
   const generatedProductId = useMemo(() => nextSequentialId(products.map((product) => product.id), 'PROD'), [products]);
   const savedProduct = products.find((product) => product.id === editingProductId);
-  const productDirty = JSON.stringify(productForm) !== JSON.stringify(savedProduct ? productToForm(savedProduct) : EMPTY_PRODUCT_FORM);
+  const savedProductForm = useMemo(() => savedProduct ? productToForm(savedProduct) : EMPTY_PRODUCT_FORM, [savedProduct]);
+  const productDirty = (Object.keys(productForm) as (keyof ProductFormState)[])
+    .some((key) => productForm[key] !== savedProductForm[key]);
   useRefreshDraftWarning(productDirty);
   const reservePercent = Number(productForm.safetyWastePercent);
   const productErrors: Record<string, string> = {};

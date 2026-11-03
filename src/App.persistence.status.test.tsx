@@ -97,7 +97,7 @@ async function click(text: string) {
 }
 
 async function choose(file: File) {
-  const input = container.querySelector<HTMLInputElement>('input[type="file"]');
+  const input = container.querySelector<HTMLInputElement>('[aria-label="Workbook file"]');
   if (!input) throw new Error('Missing workbook file input.');
   Object.defineProperty(input, 'files', { configurable: true, value: [file] });
   await act(async () => input.dispatchEvent(new Event('change', { bubbles: true })));
