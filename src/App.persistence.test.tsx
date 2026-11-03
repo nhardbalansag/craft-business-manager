@@ -112,7 +112,7 @@ async function click(text: string) {
 }
 
 async function choose(file: File = workbookFile()) {
-  const input = container.querySelector<HTMLInputElement>('input[type="file"]')!;
+  const input = container.querySelector<HTMLInputElement>('[aria-label="Workbook file"]')!;
   Object.defineProperty(input, 'files', { configurable: true, value: [file] });
   await act(async () => input.dispatchEvent(new Event('change', { bubbles: true })));
 }

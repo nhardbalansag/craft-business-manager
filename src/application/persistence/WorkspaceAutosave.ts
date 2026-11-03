@@ -114,9 +114,53 @@ export class WorkspaceAutosave {
     this.saving = this.savePending().catch((error: unknown) => {
       this.update({ ...this.status, state: 'error', message: error instanceof WorkspaceConflictError
         ? error.message
-        : `Local saving failed. Keep this tab open and download a workbook copy, then retry. ${error instanceof Error ? error.message : 'Check available browser storage.'}` });
+        : `Local saving failed. Keep this tab open and retry before making a SQLite backup. ${error instanceof Error ? error.message : 'Check available browser storage.'}` });
     }).finally(() => { this.saving = undefined; });
     return this.saving;
+  }
+
+  /** Explicitly commit a fresh durable catalog, even before the first record is created. */
+  async checkpoint(): Promise<void> {
+    if (!this.initialized || this.changes.activeOperations > 0) throw new Error('Wait for the current save to finish before making a backup.');
+    await this.changes.batch(async () => {}, true);
+    await this.flush();
+    if (this.hasUnsavedChanges() || this.status.state === 'error') throw new Error(this.status.message ?? 'SQLite has not finished saving. Retry the local save first.');
+  }
+
+  /** Backups can rescue the latest valid working data even when local storage is full. */
+  async snapshotForBackup(): Promise<PhysicalBusinessDatasetV5> {
+    if (!this.initialized || this.changes.activeOperations > 0) throw new Error('Wait for the current operation to finish before making a backup.');
+    const revision = this.changes.revision, dataset = await this.source.snapshot();
+    if (revision !== this.changes.revision || this.changes.activeOperations > 0) throw new Error('The workspace changed while preparing the backup. Try again.');
+    if (!validatePhysicalBusinessDatasetV5Integrity(dataset).valid) throw new Error('The current workspace is invalid. The existing database is retained.');
+    return dataset;
+  }
+
+  /** Restore the live projections and durable database together, rolling back on commit failure. */
+  async replaceDataset(
+    dataset: PhysicalBusinessDatasetV5,
+    commit: (copy: WorkspaceRecoveryCopy, expectedRevision: string | null) => Promise<void>,
+  ): Promise<void> {
+    if (!validatePhysicalBusinessDatasetV5Integrity(dataset).valid) throw new Error('The backup catalog is invalid. Nothing was replaced.');
+    await this.flush();
+    if (this.hasUnsavedChanges() || this.status.state === 'error') throw new Error('Save the current workspace successfully before restoring a backup.');
+    const revision = this.changes.revision, before = await this.source.snapshot();
+    if (revision !== this.changes.revision || this.changes.activeOperations > 0) throw new Error('The workspace changed while preparing restore. Try again.');
+    await this.changes.batch(async () => {
+      const applied = await this.hydrator.hydrate(dataset);
+      if (applied.status !== 'hydrated') throw new Error('The backup could not be restored. The existing workspace is retained.');
+      const copy: WorkspaceRecoveryCopy = { formatVersion: 1, revision: globalThis.crypto.randomUUID(), savedAt: new Date().toISOString(), dataset };
+      try { await commit(copy, this.storedRevision); }
+      catch (error) {
+        const rolledBack = await this.hydrator.hydrate(before);
+        if (rolledBack.status !== 'hydrated') throw new Error('Restore failed and the editor needs recovery. Reload to recover the unchanged SQLite database.');
+        this.savedRevision = this.changes.revision;
+        this.update({ ...this.status, state: 'error', message: error instanceof Error ? error.message : 'SQLite restore failed. The previous database is retained.' });
+        throw error;
+      }
+      this.storedRevision = copy.revision; this.savedRevision = this.changes.revision;
+      this.update({ state: 'saved', restored: true, savedAt: copy.savedAt });
+    });
   }
 
   private async savePending(): Promise<void> {

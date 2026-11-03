@@ -1,5 +1,3 @@
-// Frontend tsconfig intentionally excludes Node types; Vitest itself runs in Node.
-// @ts-expect-error -- node:fs is provided by the Vitest runtime
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 

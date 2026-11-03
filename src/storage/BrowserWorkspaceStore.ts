@@ -14,7 +14,7 @@ export interface WorkspaceRecoveryStore {
 
 export class WorkspaceConflictError extends Error {
   constructor() {
-    super('Another tab saved a newer workspace. Export your current workbook before reloading to recover that version.');
+    super('Another tab saved a newer workspace. Keep this tab open and resolve the conflict before reloading.');
     this.name = 'WorkspaceConflictError';
   }
 }

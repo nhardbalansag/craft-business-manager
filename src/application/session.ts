@@ -1,5 +1,6 @@
 import { getWorkbookImportMaxBytes } from './persistence/workbookImportPreferences';
-import { BrowserWorkspaceStore } from '../storage/BrowserWorkspaceStore';
+import { SqliteWorkspaceStore } from '../storage/SqliteWorkspaceStore';
+import { SqliteBackupService } from './persistence/SqliteBackupService';
 import { WorkspaceAutosave } from './persistence/WorkspaceAutosave';
 import { WorkspaceChangeTracker } from './persistence/WorkspaceChangeTracker';
 import { InMemoryCalibrationRepository } from './calibrations/InMemoryCalibrationRepository';
@@ -209,9 +210,11 @@ workspaceChanges.observeOperations(physicalDatasetHydrationServiceV5, ['hydrate'
 export const workspaceAutosave = new WorkspaceAutosave(
   physicalSourceSnapshotServiceV5,
   physicalDatasetHydrationServiceV5,
-  new BrowserWorkspaceStore(),
+  new SqliteWorkspaceStore(),
   workspaceChanges,
 );
+
+export const sqliteBackupService = new SqliteBackupService(workspaceAutosave);
 
 const persistenceWorkbookCodec = async () => {
   const { SheetJsWorkbookCodec } = await import('../storage/sheetJsWorkbookCodec');

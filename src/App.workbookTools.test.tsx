@@ -35,7 +35,7 @@ async function clickButton(label: string) {
   await act(async () => button.click());
 }
 
-describe('Workbook tools disclosure', () => {
+describe('Database tools disclosure', () => {
   it('returns focus to the visible mobile menu when the workbook closes', async () => {
     vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: true })));
     await mount();
@@ -54,8 +54,8 @@ describe('Workbook tools disclosure', () => {
     const dialog = container.querySelector<HTMLElement>('#workbook-tools-dialog');
     expect(details).not.toBeNull();
     expect(details?.open).toBe(false);
-    expect(details?.querySelector('.workbook-tools-trigger')?.textContent).toContain('Workbook');
-    expect(details?.querySelector('.workbook-tools-trigger')?.textContent).toContain('No workbook imported');
+    expect(details?.querySelector('.workbook-tools-trigger')?.textContent).toContain('Database');
+    expect(details?.querySelector('.workbook-tools-trigger')?.textContent).toContain('Local SQLite database');
     expect(overlay?.hidden).toBe(true);
     expect(dialog?.textContent).toContain('PERSISTENCE STATUS');
     expect(dialog?.textContent).toContain('DATA FILE');
@@ -115,7 +115,7 @@ describe('Workbook tools disclosure', () => {
     const close = container.querySelector<HTMLButtonElement>('.workbook-tools-close-row button')!;
     const backdrop = container.querySelector<HTMLButtonElement>('.workbook-tools-backdrop')!;
     const dialog = container.querySelector<HTMLElement>('#workbook-tools-dialog')!;
-    expect(summary.getAttribute('aria-label')).toBe('Workbook tools');
+    expect(summary.getAttribute('aria-label')).toBe('Database tools');
 
     await act(async () => summary.click());
     expect(document.activeElement).toBe(close);

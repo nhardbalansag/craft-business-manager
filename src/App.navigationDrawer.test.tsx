@@ -79,7 +79,7 @@ describe('application navigation drawer', () => {
     expect(drawer?.textContent).toContain('Production');
     expect(Array.from(drawer!.querySelectorAll('.app-drawer-nav button')).map((button) => button.textContent?.trim()))
       .toEqual(['Materials', 'Products', 'Production', 'Transactions']);
-    expect(drawer?.querySelector('[aria-label="Workbook tools"]')).not.toBeNull();
+    expect(drawer?.querySelector('[aria-label="Database tools"]')).not.toBeNull();
   });
 
   it('offers an explicit public Privacy Policy link without changing the workspace sections', async () => {
