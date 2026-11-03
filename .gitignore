@@ -10,3 +10,5 @@ src-tauri/target/
 Thumbs.db
 /data/*.xlsx
 /backups/*.xlsx
+test-results/
+playwright-report/

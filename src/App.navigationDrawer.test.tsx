@@ -78,8 +78,8 @@ describe('application navigation drawer', () => {
     expect(drawer?.textContent).not.toContain('Yield');
     expect(drawer?.textContent).toContain('Production');
     expect(Array.from(drawer!.querySelectorAll('.app-drawer-nav button')).map((button) => button.textContent?.trim()))
-      .toEqual(['Materials', 'Products', 'Production']);
-    expect(drawer?.querySelector('[aria-label="Workbook tools"]')).not.toBeNull();
+      .toEqual(['Materials', 'Products', 'Production', 'Transactions']);
+    expect(drawer?.querySelector('[aria-label="Database tools"]')).not.toBeNull();
   });
 
   it('offers an explicit public Privacy Policy link without changing the workspace sections', async () => {
@@ -92,7 +92,7 @@ describe('application navigation drawer', () => {
     expect(privacyLink?.getAttribute('aria-label')).toContain('My Lovely Craft mobile app');
     expect(Array.from(drawer.querySelectorAll('.app-drawer-nav button')).map(
       (button) => button.textContent?.trim(),
-    )).toEqual(['Materials', 'Products', 'Production']);
+    )).toEqual(['Materials', 'Products', 'Production', 'Transactions']);
   });
 
   it('links the public product showcase without changing private workspace tabs', async () => {
@@ -104,7 +104,7 @@ describe('application navigation drawer', () => {
     expect(shop?.textContent).toContain('Shop landing page');
     const navigation = drawer.querySelectorAll('.app-drawer-nav button');
     expect(Array.from(navigation).map((item) => item.textContent?.trim()))
-      .toEqual(['Materials', 'Products', 'Production']);
+      .toEqual(['Materials', 'Products', 'Production', 'Transactions']);
     expect(drawer.querySelector<HTMLAnchorElement>('a[href="/privacy-policy/"]')).not.toBeNull();
   });
 

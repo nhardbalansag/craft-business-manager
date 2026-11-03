@@ -78,7 +78,7 @@ async function typeGoogleSheetsUrl() {
 }
 
 describe('App public Google Sheets integration', () => {
-  it('keeps Google Sheets support inside the collapsed Workbook tools surface', async () => {
+  it('keeps Google Sheets support inside the collapsed Database tools surface', async () => {
     await act(async () =>
       root.render(<App publicGoogleSheetsImportCommand={command()} />),
     );
@@ -90,7 +90,7 @@ describe('App public Google Sheets integration', () => {
     expect(overlay.hidden).toBe(true);
     expect(dialog.textContent).toContain('GOOGLE SHEETS · PUBLIC');
     expect(details.querySelector('.workbook-tools-trigger')?.textContent).toContain(
-      'No workbook imported',
+      'Local SQLite database',
     );
   });
 

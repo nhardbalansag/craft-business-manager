@@ -19,6 +19,7 @@ import {
   type WorkbookImportHydratedEvent,
 } from './ui/persistence/WorkbookImportPanel';
 import { WorkbookPersistenceStatusPanel } from './ui/persistence/WorkbookPersistenceStatusPanel';
+import { SqliteBackupPanel } from './ui/persistence/SqliteBackupPanel';
 import {
   createWorkbookPersistenceSessionStatus,
   recordSuccessfulWorkbookExport,
@@ -27,8 +28,9 @@ import {
 import { ProductsWorkspacePage } from './ui/products/ProductsWorkspacePage';
 import { ProductionPage } from './ui/production/ProductionPage';
 import { AppIcon, type AppIconName } from './ui/icons/AppIcon';
+import { TransactionsPage } from './ui/transactions/TransactionsPage';
 
-type AppSection = 'materials' | 'products' | 'production';
+type AppSection = 'materials' | 'products' | 'production' | 'transactions';
 export type PersistenceUiClock = () => Date;
 
 const SIDEBAR_VISIBILITY_STORAGE_KEY = 'craft-business-manager.sidebar-visible';
@@ -53,6 +55,7 @@ const APP_SECTIONS: readonly { id: AppSection; label: string; icon: AppIconName 
   { id: 'materials', label: 'Materials', icon: 'materials' },
   { id: 'products', label: 'Products', icon: 'products' },
   { id: 'production', label: 'Production', icon: 'production' },
+  { id: 'transactions', label: 'Transactions', icon: 'history' },
 ];
 
 export interface AppProps {
@@ -116,7 +119,7 @@ export default function App({
   const exportCommand = workbookExportCommand ?? defaultWorkbookExportCommand;
   const uiClock = persistenceUiClock ?? systemPersistenceUiClock;
   const workbookIdentityLabel =
-    persistenceStatus.activeImportedWorkbook?.fileName ?? 'No workbook imported';
+    persistenceStatus.activeImportedWorkbook?.fileName ?? 'Local SQLite database';
 
   useEffect(() => {
     try {
@@ -307,14 +310,14 @@ export default function App({
             <summary
               className="workbook-tools-trigger"
               ref={workbookTriggerRef}
-              aria-label="Workbook tools"
+              aria-label="Database tools"
               aria-expanded={workbookToolsOpen}
               aria-controls="workbook-tools-dialog"
               onClick={toggleWorkbookTools}
             >
               <span className="workbook-tools-icon" aria-hidden="true"><AppIcon name="workbook" size={18} /></span>
               <span className="workbook-tools-trigger-copy">
-                <strong>Workbook</strong>
+                <strong>Database</strong>
                 <small title={workbookIdentityLabel}>{workbookIdentityLabel}</small>
               </span>
               <span className="workbook-tools-chevron" aria-hidden="true"><AppIcon name="chevron-down" size={16} /></span>
@@ -336,7 +339,7 @@ export default function App({
         <button
           type="button"
           className="workbook-tools-backdrop"
-          aria-label="Close workbook tools"
+          aria-label="Close database tools"
           onClick={closeWorkbookTools}
         />
         <section
@@ -353,16 +356,15 @@ export default function App({
               type="button"
               onClick={closeWorkbookTools}
             >
-              Close workbook tools
+              Close database tools
             </button>
           </div>
           <div className="workbook-tools-popover-heading">
             <div>
-              <p className="panel-kicker">WORKBOOK TOOLS</p>
-              <h2 id="workbook-tools-dialog-title">Data sources &amp; workbook copies</h2>
+              <p className="panel-kicker">DATABASE TOOLS</p>
+              <h2 id="workbook-tools-dialog-title">SQLite storage, backups &amp; imports</h2>
               <p>
-                Open local XLSX files, fetch Excel from Google Drive or a public Google Sheet, review session
-                status, or download the current workspace as a workbook copy.
+                Your main database is SQLite. Download or restore a mobile-compatible backup, or import an existing Excel file.
               </p>
             </div>
             <span className="workbook-tools-current-file" title={workbookIdentityLabel}>
@@ -371,6 +373,10 @@ export default function App({
             </span>
           </div>
 
+          <SqliteBackupPanel onRestored={() => {
+            setPersistenceStatus(createWorkbookPersistenceSessionStatus());
+            setWorkspaceRevision((current) => current + 1);
+          }} />
           <WorkbookPersistenceStatusPanel status={persistenceStatus} />
           <div className="workbook-tools-action-stack">
             <WorkbookImportPanel command={importCommand} onHydrated={handleWorkbookHydrated} />
@@ -409,6 +415,7 @@ export default function App({
           {section === 'materials' && <MaterialsPage />}
           {section === 'products' && <ProductsWorkspacePage />}
           {section === 'production' && <ProductionPage onOpenProducts={() => selectSection('products')} />}
+          {section === 'transactions' && <TransactionsPage />}
         </div>
       </section>
     </main>

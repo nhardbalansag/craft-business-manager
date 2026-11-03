@@ -9,19 +9,23 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest",
     "test:run": "vitest run",
+    "test:browser": "playwright test",
     "preview": "vite preview"
   },
   "dependencies": {
     "@bwip-js/generic": "^4.11.4",
     "@tauri-apps/api": "^2.0.0",
     "react": "^19.0.0",
-    "react-icons": "^5.7.0",
     "react-dom": "^19.0.0",
+    "react-icons": "^5.7.0",
+    "sql.js": "^1.13.0",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "@types/sql.js": "^1.4.9",
     "@vitejs/plugin-react": "^5.0.0",
     "fake-indexeddb": "^6.2.6",
     "jsdom": "^29.1.1",

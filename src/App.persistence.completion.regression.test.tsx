@@ -150,7 +150,7 @@ async function click(text: string) {
 }
 
 async function applyWorkbook(name: string, bytes: Uint8Array) {
-  const input = container.querySelector<HTMLInputElement>('input[type="file"]');
+  const input = container.querySelector<HTMLInputElement>('[aria-label="Workbook file"]');
   if (!input) throw new Error('Missing workbook file input.');
   Object.defineProperty(input, 'files', { configurable: true, value: [workbookFile(name, bytes)] });
   await act(async () => input.dispatchEvent(new Event('change', { bubbles: true })));
