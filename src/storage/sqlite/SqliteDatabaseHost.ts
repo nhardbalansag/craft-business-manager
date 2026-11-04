@@ -2,8 +2,9 @@ import type { WorkspaceRecoveryCopy } from '../BrowserWorkspaceStore';
 import { validatePhysicalBusinessDatasetV5Integrity } from '../../domain/physicalBusinessDatasetV5';
 import { decodeSqlite, encodeSqlite, historyFromDocument, newSqliteDocument, setDocumentHistory, type SqliteDocument } from './sqliteFormat';
 import { sqliteRuntime } from './sqliteRuntime';
+import { validateBusinessWorkspace } from '../../domain/businessInsights';
 
-export type SqliteAction = 'load' | 'save' | 'history.load' | 'history.save' | 'backup.export' | 'backup.inspect' | 'backup.restore' | 'backup.recover';
+export type SqliteAction = 'load' | 'save' | 'history.load' | 'history.save' | 'business.load' | 'business.save' | 'backup.export' | 'backup.inspect' | 'backup.restore' | 'backup.recover';
 export interface SqliteRequest { action: SqliteAction; payload?: any }
 const DATABASE = 'my-lovely-craft.sqlite';
 const STORE = 'database';
@@ -36,13 +37,13 @@ export class SqliteDatabaseHost {
   request(request: SqliteRequest): Promise<any> {
     const result = this.queue.catch(() => {}).then(() => this.execute(request)); this.queue = result; return result;
   }
-  private async readFile(): Promise<{ generation: string | null; bytes?: Uint8Array; historyRevision?: number }> {
+  private async readFile(): Promise<{ generation: string | null; bytes?: Uint8Array; historyRevision?: number; businessRevision?: number }> {
     const db = await openDatabase(this.factory(), DATABASE, STORE);
     try { return await new Promise((resolve, reject) => {
-      const transaction = db.transaction(STORE, 'readonly'), store = transaction.objectStore(STORE), generation = store.get('generation'), historyRevision = store.get('history_revision');
+      const transaction = db.transaction(STORE, 'readonly'), store = transaction.objectStore(STORE), generation = store.get('generation'), historyRevision = store.get('history_revision'), businessRevision = store.get('business_revision');
       let bytes: IDBRequest | undefined;
       generation.onsuccess = () => { if (!this.document || generation.result !== this.generation) bytes = store.get('main.sqlite'); };
-      transaction.oncomplete = () => resolve({ generation: generation.result ?? null, bytes: bytes?.result, historyRevision: historyRevision.result });
+      transaction.oncomplete = () => resolve({ generation: generation.result ?? null, bytes: bytes?.result, historyRevision: historyRevision.result, businessRevision: businessRevision.result });
       transaction.onabort = transaction.onerror = () => reject(transaction.error ?? new Error('The saved SQLite database could not be read.'));
     }); } finally { db.close(); }
   }
@@ -56,7 +57,7 @@ export class SqliteDatabaseHost {
         if ((current.result ?? null) !== this.generation) {
           failure = new Error('Another tab saved a newer SQLite database. Download your work before reloading.'); failure.name = 'WorkspaceConflictError'; transaction.abort(); return;
         }
-        const write = () => { store.put(bytes, 'main.sqlite'); store.put(next, 'generation'); store.put(document.historyRevision, 'history_revision'); };
+        const write = () => { store.put(bytes, 'main.sqlite'); store.put(next, 'generation'); store.put(document.historyRevision, 'history_revision'); store.put(document.businessRevision, 'business_revision'); };
         if (retainPrevious) {
           const previous = store.get('main.sqlite');
           previous.onsuccess = () => { if (previous.result) store.put(previous.result, 'previous.sqlite'); write(); };
@@ -102,7 +103,8 @@ export class SqliteDatabaseHost {
       return { databaseGeneration: saved.generation, hasCatalog: decoded.dataset !== null,
         dataset: payload.includeDataset ? decoded.dataset : null, products: decoded.dataset?.products.length ?? 0,
         materials: decoded.dataset?.materials.length ?? 0, receipts: decoded.state.customerReceipts?.length ?? 0,
-        quotations: decoded.state.quotations?.length ?? 0, images: decoded.images.size, savedAt: decoded.savedAt };
+        quotations: decoded.state.quotations?.length ?? 0, images: decoded.images.size, savedAt: decoded.savedAt,
+        ledgerEntries: decoded.business.ledger.length, businessDocuments: decoded.business.documents.length };
     }
     if (action === 'backup.recover') {
       const incoming = await decodeSqlite(await sqliteRuntime(), payload.bytes, true);
@@ -113,17 +115,25 @@ export class SqliteDatabaseHost {
       this.generation = saved.generation;
       incoming.workspaceRevision = token(); incoming.savedAt = new Date().toISOString();
       incoming.historyRevision = Math.max(saved.historyRevision ?? 0, incoming.historyRevision) + 1;
+      incoming.businessRevision = Math.max(saved.businessRevision ?? 0, incoming.businessRevision) + 1;
       await this.commit(incoming, true); return;
     }
     const current = await this.current();
     if (action === 'load') return current.dataset ? { formatVersion: 1, revision: current.workspaceRevision!, savedAt: current.savedAt, dataset: current.dataset } satisfies WorkspaceRecoveryCopy : undefined;
     if (action === 'history.load') return { revision: current.historyRevision, archive: await historyFromDocument(current) };
+    if (action === 'business.load') return { revision: current.businessRevision, workspace: structuredClone(current.business) };
     if (action === 'backup.export') {
       const backup = structuredClone(current);
       if (payload?.dataset) { backup.dataset = payload.dataset; backup.workspaceRevision = token(); backup.savedAt = new Date().toISOString(); }
       return encodeSqlite(await sqliteRuntime(), backup, true);
     }
     const next = structuredClone(current);
+    if (action === 'business.save') {
+      if (payload.expectedRevision !== current.businessRevision) conflict('Business records changed in another tab or restore. Reload business insights before saving.');
+      if (!Number.isSafeInteger(payload.expectedRevision) || payload.expectedRevision < 0 || payload.expectedRevision >= Number.MAX_SAFE_INTEGER) throw new Error('Invalid business workspace revision.');
+      next.business = structuredClone(validateBusinessWorkspace(payload.workspace)); next.businessRevision++; next.savedAt = new Date().toISOString();
+      await this.commit(next); return { revision: next.businessRevision, workspace: structuredClone(next.business) };
+    }
     if (action === 'history.save') {
       if (payload.expectedRevision !== current.historyRevision) conflict('Transaction history changed in another tab. Reload history before saving.');
       if (!Number.isSafeInteger(payload.expectedRevision) || payload.expectedRevision < 0 || payload.expectedRevision >= Number.MAX_SAFE_INTEGER) throw new Error('Invalid transaction history revision.');
@@ -139,6 +149,7 @@ export class SqliteDatabaseHost {
       const incoming = await decodeSqlite(await sqliteRuntime(), payload.bytes, true);
       incoming.workspaceRevision = copy.revision; incoming.savedAt = copy.savedAt; incoming.dataset = copy.dataset;
       incoming.historyRevision = current.historyRevision + 1;
+      incoming.businessRevision = current.businessRevision + 1;
       await this.commit(incoming, true); return;
     }
     if (action !== 'save') throw new Error('Unknown SQLite operation.');

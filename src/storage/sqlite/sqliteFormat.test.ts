@@ -19,6 +19,20 @@ export function datasetFixture() {
 }
 
 describe('Mobile-compatible SQLite database format', () => {
+  it('verifies and round-trips the optional business extension without changing Android state or record contracts', async () => {
+    const document = newSqliteDocument(); document.dataset = datasetFixture();
+    document.business.profile.description = 'Investor records'; document.businessRevision = 4;
+    const bytes = await encodeSqlite(SQL, document, true);
+    const decoded = await decodeSqlite(SQL, bytes, true);
+    expect(decoded.business).toEqual(document.business); expect(decoded.businessRevision).toBe(4);
+    const db = new SQL.Database(bytes);
+    db.run("UPDATE craft_web_meta SET value=value || ' ' WHERE key='business_workspace'");
+    await expect(decodeSqlite(SQL, db.export(), true)).rejects.toThrow('business workspace checksum'); db.close();
+    const android = new SQL.Database(bytes); android.run('DROP TABLE craft_web_meta');
+    const mobile = await decodeSqlite(SQL, android.export(), true); android.close();
+    expect(mobile.business.ledger).toEqual([]); expect(mobile.businessRevision).toBe(0);
+    expect(mobile.dataset).toEqual(document.dataset);
+  });
   it('writes a real SQLite file with Android application ID, normalized records, images and portable state', async () => {
     const document = newSqliteDocument(); document.dataset = datasetFixture(); document.workspaceRevision = 'test-revision';
     document.savedAt = '2026-11-04T00:00:00.000Z';
