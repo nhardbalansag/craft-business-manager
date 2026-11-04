@@ -3,7 +3,8 @@ import {
   BrowserWorkbookExportWorkflowError,
   type BrowserWorkbookExportResult,
 } from '../../application/persistence/BrowserWorkbookExportCommand';
-import { PersistenceLifecycleOperationalError } from '../../application/persistence/PersistenceLifecycle';
+import type { WorkbookExportOptions } from '../../application/persistence/PersistenceCoordinator';
+import { workbookExportErrorMessage } from '../../application/persistence/workbookExportErrors';
 import './workbookExport.css';
 
 interface WorkbookExportFeedback {
@@ -12,7 +13,7 @@ interface WorkbookExportFeedback {
 }
 
 export interface WorkbookExportCommandPort {
-  exportAndDownload(): Promise<BrowserWorkbookExportResult>;
+  exportAndDownload(options?: WorkbookExportOptions): Promise<BrowserWorkbookExportResult>;
 }
 
 export interface WorkbookExportPanelProps {
@@ -21,14 +22,8 @@ export interface WorkbookExportPanelProps {
 }
 
 function workflowErrorMessage(error: unknown): string {
-  if (
-    error instanceof BrowserWorkbookExportWorkflowError ||
-    error instanceof PersistenceLifecycleOperationalError
-  ) {
-    return error.message;
-  }
-  if (error instanceof Error) return error.message;
-  return 'The workbook export failed unexpectedly.';
+  if (error instanceof BrowserWorkbookExportWorkflowError) return error.message;
+  return workbookExportErrorMessage(error);
 }
 
 /**
@@ -44,7 +39,7 @@ export function WorkbookExportPanel({ command, onDownloaded }: WorkbookExportPan
   const [exporting, setExporting] = useState(false);
   const [feedback, setFeedback] = useState<WorkbookExportFeedback | null>(null);
 
-  async function exportWorkbook() {
+  async function exportWorkbook(includeProductPictures = true) {
     if (exportInFlightRef.current) return;
 
     exportInFlightRef.current = true;
@@ -52,10 +47,10 @@ export function WorkbookExportPanel({ command, onDownloaded }: WorkbookExportPan
     setFeedback(null);
 
     try {
-      const result = await command.exportAndDownload();
+      const result = includeProductPictures ? await command.exportAndDownload() : await command.exportAndDownload({ includeProductPictures: false });
       setFeedback({
         kind: 'success',
-        message: `Downloaded ${result.fileName} as a new workbook copy. The current workspace was not replaced or refreshed.`,
+        message: `Downloaded ${result.fileName} as a new workbook copy.${includeProductPictures ? '' : ' Product pictures were excluded from this copy; saved pictures are unchanged.'} The current workspace was not replaced or refreshed.`,
       });
       onDownloaded?.(result);
     } catch (error) {
@@ -77,6 +72,7 @@ export function WorkbookExportPanel({ command, onDownloaded }: WorkbookExportPan
           pre-save backup of an existing file. Native Save / Save As and managed filesystem backups
           remain desktop capabilities.
         </p>
+        <p>For a smaller export, choose the copy without pictures; that copy will not restore photos on import. Use a SQLite backup to include pictures, transaction history and Business insights.</p>
       </div>
 
       <div className="workbook-export-actions">
@@ -88,6 +84,7 @@ export function WorkbookExportPanel({ command, onDownloaded }: WorkbookExportPan
         >
           {exporting ? 'Preparing download…' : 'Download workbook'}
         </button>
+        <button className="button button-secondary" type="button" disabled={exporting} onClick={() => void exportWorkbook(false)}>Download workbook without pictures</button>
       </div>
 
       {feedback !== null && (

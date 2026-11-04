@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import * as XLSX from 'xlsx';
+import { EXCEL_TEXT_LIMIT, LONG_TEXT_SHEET } from './workbookLongText';
 import {
   validateWorkbookSchema,
   type WorkbookFormulaCell,
@@ -20,6 +21,30 @@ function workbookBytes(workbook: XLSX.WorkBook): Uint8Array {
 }
 
 describe('SheetJsWorkbookCodec', () => {
+  it('round-trips long source text that exceeds one Excel cell without truncating it', () => {
+    const codec = new SheetJsWorkbookCodec();
+    const source: WorkbookNeutralDocument = { sheets: [{ name: 'Products', columns: ['id', 'notes'], rows: [{ id: 'P-1', notes: 'Craft notes 🧸\n'.repeat(4000) }] }] };
+    expect(codec.decode(codec.encode(source))).toEqual(source);
+  });
+  it('keeps continuation text hidden, preserves surrogate pairs, and leaves source records unchanged', () => {
+    const codec = new SheetJsWorkbookCodec();
+    const original = 'x'.repeat(23999) + '🧸' + 'Gift notes\n'.repeat(5000);
+    const source: WorkbookNeutralDocument = { sheets: [{ name: 'Products', columns: ['id', 'notes'], rows: [{ id: 'P', notes: original }] }] };
+    const bytes = codec.encode(source), workbook = XLSX.read(bytes);
+    expect(workbook.Workbook?.Sheets?.find(s => s.name === LONG_TEXT_SHEET)?.Hidden).toBe(1);
+    for (const sheetName of workbook.SheetNames) for (const [address, cell] of Object.entries(workbook.Sheets[sheetName])) {
+      if (!address.startsWith('!') && typeof cell.v === 'string') expect(cell.v.length).toBeLessThanOrEqual(EXCEL_TEXT_LIMIT);
+    }
+    expect(source.sheets[0].rows[0].notes).toBe(original);
+    expect(codec.decode(bytes)).toEqual(source);
+  });
+  it.each(['sheet', 'fragment'])('rejects a missing long-text %s before importing a truncated preview', kind => {
+    const codec = new SheetJsWorkbookCodec();
+    const workbook = XLSX.read(codec.encode({ sheets: [{ name: 'Products', columns: ['notes'], rows: [{ notes: 'z'.repeat(60000) }] }] }));
+    if (kind === 'sheet') { workbook.SheetNames = workbook.SheetNames.filter(s => s !== LONG_TEXT_SHEET); delete workbook.Sheets[LONG_TEXT_SHEET]; }
+    else delete workbook.Sheets[LONG_TEXT_SHEET]['G3'];
+    expect(() => codec.decode(workbookBytes(workbook))).toThrow(/long-text|long text/);
+  });
   it('uses the exact evaluated SheetJS CE release', () => {
     expect(SHEETJS_CE_VERSION).toBe(SHEETJS_CE_EXPECTED_VERSION);
     expect(SHEETJS_CE_VERSION).toBe('0.20.3');

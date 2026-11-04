@@ -1,4 +1,5 @@
 import * as XLSX from 'xlsx';
+import { LONG_TEXT_SHEET, restoreWorkbookLongText, splitWorkbookLongText } from './workbookLongText';
 import type {
   WorkbookFormulaCell,
   WorkbookNeutralDocument,
@@ -267,8 +268,12 @@ export class SheetJsWorkbookCodec implements WorkbookCodec {
 
     try {
       const workbook = XLSX.utils.book_new();
-      for (const sheet of document.sheets) {
+      const portable = splitWorkbookLongText(document);
+      for (const sheet of portable.sheets) {
         XLSX.utils.book_append_sheet(workbook, encodeSheet(sheet), sheet.name);
+      }
+      if (portable !== document) {
+        workbook.Workbook = { Sheets: portable.sheets.map(sheet => ({ name: sheet.name, Hidden: sheet.name === LONG_TEXT_SHEET ? 1 : 0 })) };
       }
 
       const result = XLSX.write(workbook, {
@@ -300,11 +305,11 @@ export class SheetJsWorkbookCodec implements WorkbookCodec {
 
       assertWorkbookRangesWithinLimits(workbook, this.resourceLimits);
 
-      return {
+      return restoreWorkbookLongText({
         sheets: workbook.SheetNames.map((name) =>
           decodeSheet(name, worksheetOrThrow(workbook, name)),
         ),
-      };
+      });
     } catch (error) {
       if (error instanceof WorkbookCodecError || error instanceof WorkbookResourceLimitError) {
         throw error;
