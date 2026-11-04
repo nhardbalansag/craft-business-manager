@@ -3,9 +3,7 @@ import { productService } from '../../application/session';
 import { businessDay, emptyBusinessWorkspace, emptyInvestorProposal, validateBusinessDocument, validateBusinessWorkspace, type BusinessDocument, type BusinessReport, type BusinessSnapshot, type BusinessWorkspace } from '../../domain/businessInsights';
 import type { Product } from '../../domain/products';
 import { getProductPhotos } from '../../domain/productPhotos';
-import { loadTransactionHistory, type TransactionHistorySnapshot } from '../transactions/transactionHistoryStore';
-import { loadBusinessReport, loadBusinessWorkspace, saveBusinessWorkspace } from '../../application/insights/businessInsightsStore';
-import { emptyTransactionArchive } from '../transactions/portableTransactions';
+import { loadBusinessHistory, loadBusinessReport, loadBusinessWorkspace, saveBusinessWorkspace, type BusinessHistorySnapshot } from '../../application/insights/businessInsightsStore';
 import { renderBusinessDocument } from '../../application/insights/businessDocuments';
 import { registerBusinessFlush } from '../../application/insights/businessWorkingCopy';
 import { BusinessOverview } from './BusinessOverview';
@@ -28,18 +26,18 @@ function initialPeriod() {
 }
 export interface BusinessInsightsPageProps {
   load?: typeof loadBusinessWorkspace; save?: typeof saveBusinessWorkspace;
-  historyLoad?: typeof loadTransactionHistory; productsLoad?: typeof loadProducts; calculate?: typeof loadBusinessReport;
+  historyLoad?: typeof loadBusinessHistory; productsLoad?: typeof loadProducts; calculate?: typeof loadBusinessReport;
   active?: boolean;
 }
-export default function BusinessInsightsPage({ load = loadBusinessWorkspace, save = saveBusinessWorkspace, historyLoad = loadTransactionHistory, productsLoad = loadProducts, calculate = loadBusinessReport, active = true }: BusinessInsightsPageProps) {
+export default function BusinessInsightsPage({ load = loadBusinessWorkspace, save = saveBusinessWorkspace, historyLoad = loadBusinessHistory, productsLoad = loadProducts, calculate = loadBusinessReport, active = true }: BusinessInsightsPageProps) {
   const [snapshot, setSnapshot] = useState<BusinessSnapshot>(() => ({ revision: 0, workspace: emptyBusinessWorkspace() }));
-  const [workspace, setWorkspace] = useState(snapshot.workspace), [history, setHistory] = useState<TransactionHistorySnapshot>({ revision: 0, archive: emptyTransactionArchive() }), [products, setProducts] = useState<Product[]>([]);
+  const [workspace, setWorkspace] = useState(snapshot.workspace), [history, setHistory] = useState<BusinessHistorySnapshot>({ revision: 0, archive: { customerReceipts: [], transactionEntries: [] } }), [products, setProducts] = useState<Product[]>([]);
   const [initialInvestorDraft] = useState(emptyInvestorProposal);
-  const [ready, setReady] = useState(false), [busy, setBusy] = useState(false), [error, setError] = useState(''), [saveError, setSaveError] = useState(''), [notice, setNotice] = useState('');
+  const [ready, setReady] = useState(false), [busy, setBusy] = useState(false), [blocking, setBlocking] = useState(false), [error, setError] = useState(''), [saveError, setSaveError] = useState(''), [notice, setNotice] = useState('');
   const [tab, setTab] = useState<Tab>('overview'), [period, setPeriod] = useState(initialPeriod), [report, setReport] = useState<BusinessReport | null>(null), [reportError, setReportError] = useState(''), [calculating, setCalculating] = useState(false);
-  const mounted = useRef(true), occupied = useRef(false), snapshotRef = useRef(snapshot), workspaceRef = useRef(workspace);
+  const mounted = useRef(true), occupied = useRef(false), snapshotRef = useRef(snapshot), workspaceRef = useRef(workspace), wasActive = useRef(active);
   const inFlightSave = useRef<Promise<void> | null>(null);
-  const reportSources = useRef<{ ledger: BusinessWorkspace['ledger']; history: TransactionHistorySnapshot; from: string; to: string; openingCash: number | null; cashAsOf: string } | null>(null);
+  const reportSources = useRef<{ ledger: BusinessWorkspace['ledger']; history: BusinessHistorySnapshot; from: string; to: string; openingCash: number | null; cashAsOf: string } | null>(null);
   snapshotRef.current = snapshot; workspaceRef.current = workspace;
   const dirty = workspace !== snapshot.workspace;
   useEffect(() => {
@@ -52,32 +50,36 @@ export default function BusinessInsightsPage({ load = loadBusinessWorkspace, sav
   }, [load, historyLoad, productsLoad]);
   // Refresh source sales/catalog when returning from another workshop, retaining any working forms.
   useEffect(() => {
-    if (!active || !ready) return;
+    const returning = active && !wasActive.current; wasActive.current = active;
+    if (!returning || !ready) return;
     let cancelled = false;
-    Promise.all([historyLoad(), productsLoad()]).then(([h, p]) => { if (!cancelled) { setHistory(h); setProducts(p); } }).catch(e => { if (!cancelled) setError(message(e)); });
+    Promise.all([historyLoad(), productsLoad()]).then(([h, p]) => { if (!cancelled) { setHistory(current => current.revision === h.revision ? current : h); setProducts(p); } }).catch(e => { if (!cancelled) setError(message(e)); });
     return () => { cancelled = true; };
   }, [active, ready, historyLoad, productsLoad]);
-  const persist = useCallback(async (next: BusinessWorkspace, expectedHistoryRevision?: number): Promise<BusinessSnapshot | null> => {
+  const persist = useCallback(async (next: BusinessWorkspace, expectedHistoryRevision?: number, block = false): Promise<BusinessSnapshot | null> => {
     if (occupied.current) return null;
-    occupied.current = true; setBusy(true); setSaveError(''); setError('');
+    const workingAtStart = workspaceRef.current;
+    occupied.current = true; setBusy(true); setBlocking(block); setSaveError(''); setError('');
     let complete!: () => void;
     inFlightSave.current = new Promise<void>(resolve => { complete = resolve; });
     try {
-      validateBusinessWorkspace(next);
-      const saved = expectedHistoryRevision === undefined ? await save(next, snapshotRef.current.revision) : await save(next, snapshotRef.current.revision, expectedHistoryRevision);
+      // Authoritative validation happens in the SQLite worker. Avoid walking every saved document on the input thread.
+      const receipt = await save(next, snapshotRef.current.revision, expectedHistoryRevision, snapshotRef.current.workspace);
+      const saved = { revision: receipt.revision, workspace: next };
       snapshotRef.current = saved;
-      if (workspaceRef.current === next) workspaceRef.current = saved.workspace;
-      if (mounted.current) { setSnapshot(saved); setWorkspace(current => current === next ? saved.workspace : current); setNotice('Saved to SQLite.'); }
+      if (workspaceRef.current === workingAtStart || workspaceRef.current === next) workspaceRef.current = saved.workspace;
+      if (mounted.current) { setSnapshot(saved); setWorkspace(current => current === workingAtStart || current === next ? saved.workspace : current); setNotice('Saved to SQLite.'); }
       return saved;
     } catch (e) { if (mounted.current) setSaveError(message(e)); return null; }
-    finally { occupied.current = false; inFlightSave.current = null; complete(); if (mounted.current) setBusy(false); }
+    finally { occupied.current = false; inFlightSave.current = null; complete(); if (mounted.current) { setBusy(false); setBlocking(false); } }
   }, [save]);
   useEffect(() => {
     if (!ready) return;
     return registerBusinessFlush(async () => {
-      if (inFlightSave.current) await inFlightSave.current;
-      if (workspaceRef.current === snapshotRef.current.workspace) return;
-      if (!await persist(workspaceRef.current)) throw new Error('Business changes could not be saved. Correct the Business insights inputs before downloading a backup.');
+      while (inFlightSave.current || workspaceRef.current !== snapshotRef.current.workspace) {
+        if (inFlightSave.current) { await inFlightSave.current; continue; }
+        if (!await persist(workspaceRef.current)) throw new Error('Business changes could not be saved. Correct the Business insights inputs before downloading a backup.');
+      }
     });
   }, [ready, persist]);
   useEffect(() => {
@@ -91,8 +93,11 @@ export default function BusinessInsightsPage({ load = loadBusinessWorkspace, sav
     window.addEventListener('beforeunload', leave);
     return () => window.removeEventListener('beforeunload', leave);
   }, [dirty]);
+  const needsReport = tab === 'overview' || tab === 'documents';
   useEffect(() => {
-    if (!ready || !active) return;
+    if (!ready || !active || !needsReport) { setCalculating(false); return; }
+    const source = reportSources.current;
+    if (source && source.ledger === workspace.ledger && source.history === history && source.from === period.from && source.to === period.to && source.openingCash === workspace.profile.openingCash && source.cashAsOf === workspace.profile.cashAsOf) return;
     const controller = new AbortController();
     reportSources.current = null; setReport(null); setReportError(''); setCalculating(true);
     const timer = setTimeout(() => {
@@ -102,18 +107,19 @@ export default function BusinessInsightsPage({ load = loadBusinessWorkspace, sav
         .finally(() => { if (!controller.signal.aborted) setCalculating(false); });
     }, 120);
     return () => { clearTimeout(timer); controller.abort(); };
-  }, [ready, active, history, workspace.ledger, workspace.profile.openingCash, workspace.profile.cashAsOf, period, calculate]);
+  }, [ready, active, needsReport, history, workspace.ledger, workspace.profile.openingCash, workspace.profile.cashAsOf, period, calculate]);
   function update<K extends keyof BusinessWorkspace>(key: K, value: BusinessWorkspace[K]) {
-    setSaveError(''); setNotice(''); setWorkspace(current => ({ ...current, [key]: value }));
+    setSaveError(''); setNotice('');
+    const next = { ...workspaceRef.current, [key]: value }; workspaceRef.current = next; setWorkspace(next);
   }
   async function saveLedger(ledger: BusinessWorkspace['ledger']) {
     const next = { ...workspaceRef.current, ledger };
-    const saved = await persist(next);
+    const saved = await persist(next, undefined, true);
     if (saved && mounted.current) setWorkspace(saved.workspace);
     return !!saved;
   }
   async function removeDocument(id: string) {
-    const saved = await persist({ ...workspaceRef.current, documents: workspaceRef.current.documents.filter(d => d.id !== id) });
+    const saved = await persist({ ...workspaceRef.current, documents: workspaceRef.current.documents.filter(d => d.id !== id) }, undefined, true);
     if (saved && mounted.current) setWorkspace(saved.workspace);
     return !!saved;
   }
@@ -139,7 +145,7 @@ export default function BusinessInsightsPage({ load = loadBusinessWorkspace, sav
         proposal: kind === 'proposal' ? { ...source.proposal, pictures } : null };
       validateBusinessDocument(document); renderBusinessDocument(document);
       const next = { ...source, documents: [document, ...source.documents] };
-      const saved = await persist(next);
+      const saved = await persist(next, undefined, true);
       if (!saved) return null;
       if (mounted.current) { setWorkspace(saved.workspace); setNotice('Document snapshot saved to SQLite.'); }
       return document;
@@ -157,7 +163,7 @@ export default function BusinessInsightsPage({ load = loadBusinessWorkspace, sav
     projectInvestorProposal(checked);
     const frozen: BusinessDocument = { ...document, investment: checked, historyRevision: history.revision, businessRevision: revision + 1 };
     validateBusinessDocument(frozen);
-    const saved = await persist({ ...current, investorProposal: draft, documents: [frozen, ...current.documents] }, draft.source === 'history' ? history.revision : undefined);
+    const saved = await persist({ ...current, investorProposal: draft, documents: [frozen, ...current.documents] }, draft.source === 'history' ? history.revision : undefined, true);
     if (saved && mounted.current) { setWorkspace(saved.workspace); setNotice('Investor proposal snapshot saved. No investment or payment was recorded.'); }
     return saved ? frozen : null;
   }
@@ -169,10 +175,10 @@ export default function BusinessInsightsPage({ load = loadBusinessWorkspace, sav
   async function refreshSources() {
     if (occupied.current) return;
     setError('');
-    try { const [h, p] = await Promise.all([historyLoad(), productsLoad()]); if (mounted.current) { setHistory(h); setProducts(p); setNotice('Sales and catalog sources refreshed.'); } }
+    try { const [h, p] = await Promise.all([historyLoad(), productsLoad()]); if (mounted.current) { setHistory(current => current.revision === h.revision ? current : h); setProducts(p); setNotice('Sales and catalog sources refreshed.'); } }
     catch (e) { if (mounted.current) setError(message(e)); }
   }
-  return <div className="business-insights" aria-busy={!ready || busy}>
+  return <div className="business-insights" aria-busy={!ready || blocking}>
     <header className="insights-page-heading"><div><p className="panel-kicker">BUSINESS INSIGHTS &amp; PROPOSALS</p><h1>Plan your next chapter.</h1><p className="page-lead">Understand your performance, test growth plans, and prepare documents from your business records.</p></div><div className="insights-save-status"><span role="status">{!ready ? 'Loading SQLite records…' : busy ? 'Saving to SQLite…' : saveError ? 'Changes need attention' : dirty ? 'Changes waiting to save…' : 'Saved in SQLite'}</span>{ready && dirty && <button type="button" className="button button-secondary" disabled={busy} onClick={() => void persist(workspace)}>Save changes now</button>}</div></header>
     {(error || saveError) && <p role="alert" className="feedback feedback-error">{error || saveError}{saveError && ' Your working changes remain in this tab. Correct the inputs or retry saving.'}</p>}
     {notice && <p role="status" className="insights-muted">{notice}</p>}
@@ -183,10 +189,10 @@ export default function BusinessInsightsPage({ load = loadBusinessWorkspace, sav
       {reportError && <p role="alert" className="feedback feedback-error">{reportError}</p>}
       {tab === 'overview' && (report ? <BusinessOverview report={report} products={products} /> : <p role="status">{calculating ? 'Calculating business trends…' : 'Choose a valid report period.'}</p>)}
       {tab === 'ledger' && <BusinessLedgerPanel ledger={workspace.ledger} save={saveLedger} disabled={busy} />}
-      {tab === 'forecast' && <BusinessForecastPanel scenarios={workspace.scenarios} onChange={s => update('scenarios', s)} disabled={busy} />}
-      {tab === 'profile' && <BusinessProfileForm profile={workspace.profile} onChange={p => update('profile', p)} disabled={busy} />}
-      {tab === 'proposals' && <BusinessProposalForm draft={workspace.proposal} products={products} onChange={p => update('proposal', p)} disabled={busy} />}
-      {tab === 'investor' && <InvestorProposalPanel draft={workspace.investorProposal ?? initialInvestorDraft} workspace={workspace} history={history} businessRevision={snapshot.revision} disabled={busy} onChange={draft => update('investorProposal', draft)} saveDocument={saveInvestorDocument} calculate={calculate} />}
+      {tab === 'forecast' && <BusinessForecastPanel scenarios={workspace.scenarios} onChange={s => update('scenarios', s)} disabled={blocking} />}
+      {tab === 'profile' && <BusinessProfileForm profile={workspace.profile} onChange={p => update('profile', p)} disabled={blocking} />}
+      {tab === 'proposals' && <BusinessProposalForm draft={workspace.proposal} products={products} onChange={p => update('proposal', p)} disabled={blocking} />}
+      {tab === 'investor' && <InvestorProposalPanel draft={workspace.investorProposal ?? initialInvestorDraft} workspace={workspace} history={history} businessRevision={snapshot.revision} disabled={blocking} saveDisabled={busy} onChange={draft => update('investorProposal', draft)} saveDocument={saveInvestorDocument} calculate={calculate} />}
       {tab === 'documents' && <BusinessDocumentsPanel workspace={workspace} report={report} disabled={busy} generate={generate} remove={removeDocument} />}
     </>}
   </div>;

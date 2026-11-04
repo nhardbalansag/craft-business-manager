@@ -5,11 +5,23 @@ import { workspaceChanges } from '../session';
 import { calculateBusinessReport } from './businessReports';
 
 export const loadBusinessWorkspace = (): Promise<BusinessSnapshot> => sqliteRequest({ action: 'business.load' });
-export const saveBusinessWorkspace = (workspace: BusinessWorkspace, expectedRevision: number, expectedHistoryRevision?: number): Promise<BusinessSnapshot> =>
-  workspaceChanges.batch(() => sqliteRequest({ action: 'business.save', payload: { workspace, expectedRevision, expectedHistoryRevision } }));
+export type BusinessHistorySnapshot = { revision: number; archive: Pick<TransactionHistorySnapshot['archive'], 'customerReceipts' | 'transactionEntries'> };
+/** Reports need sales and movements, never the history archive's photos or quotations. */
+export const loadBusinessHistory = (): Promise<BusinessHistorySnapshot> => sqliteRequest({ action: 'business.history' });
+export const saveBusinessWorkspace = (workspace: BusinessWorkspace, expectedRevision: number, expectedHistoryRevision?: number, previous?: BusinessWorkspace): Promise<BusinessSnapshot> =>
+  workspaceChanges.batch(async () => {
+    // Autosaving a small draft must not copy megabytes of unchanged document pictures into the worker.
+    const changes = previous && workspace.version === previous.version ? Object.fromEntries((['profile', 'ledger', 'scenarios', 'proposal', 'investorProposal', 'documents'] as const)
+      .filter(key => workspace[key] !== previous[key]).map(key => [key, workspace[key]])) : undefined;
+    const { revision } = await sqliteRequest<{ revision: number }>({ action: 'business.save', payload: {
+      ...(changes ? { changes } : { workspace }), expectedRevision, expectedHistoryRevision, revisionOnly: true,
+    } });
+    // Validation does not normalize inputs. Retain immutable UI references instead of returning copies of every document/ledger row.
+    return { revision, workspace };
+  });
 
 /** The browser calculation stays off the UI thread; callers cancel superseded date ranges. */
-export async function loadBusinessReport(history: TransactionHistorySnapshot, workspace: BusinessWorkspace, from: string, to: string, signal: AbortSignal): Promise<BusinessReport> {
+export async function loadBusinessReport(history: BusinessHistorySnapshot, workspace: BusinessWorkspace, from: string, to: string, signal: AbortSignal): Promise<BusinessReport> {
   if (signal.aborted) throw new DOMException('Cancelled', 'AbortError');
   if (typeof Worker === 'undefined') return calculateBusinessReport(history.archive.customerReceipts, history.archive.transactionEntries ?? [], workspace, from, to);
   return new Promise((resolve, reject) => {
