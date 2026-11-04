@@ -70,6 +70,7 @@ export type AppIconName =
   | 'palette'
   | 'activity'
   | 'history'
+  | 'insights'
   | 'loader'
   | 'printer'
   | 'edit'
@@ -117,6 +118,7 @@ const iconMap: Record<AppIconName, IconType> = {
   palette: LuPalette,
   activity: LuActivity,
   history: LuHistory,
+  insights: LuTrendingUp,
   loader: LuLoader,
   printer: LuPrinter,
   edit: LuPencil,

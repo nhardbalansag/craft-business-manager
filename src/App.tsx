@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { BrowserWorkbookExportCommand } from './application/persistence/BrowserWorkbookExportCommand';
 import { BrowserWorkbookImportCommand } from './application/persistence/BrowserWorkbookImportCommand';
 import { PublicGoogleSheetsImportCommand } from './application/persistence/PublicGoogleSheetsImportCommand';
@@ -30,7 +30,8 @@ import { ProductionPage } from './ui/production/ProductionPage';
 import { AppIcon, type AppIconName } from './ui/icons/AppIcon';
 import { TransactionsPage } from './ui/transactions/TransactionsPage';
 
-type AppSection = 'materials' | 'products' | 'production' | 'transactions';
+const BusinessInsightsPage = lazy(() => import('./ui/insights/BusinessInsightsPage'));
+type AppSection = 'materials' | 'products' | 'production' | 'transactions' | 'insights';
 export type PersistenceUiClock = () => Date;
 
 const SIDEBAR_VISIBILITY_STORAGE_KEY = 'craft-business-manager.sidebar-visible';
@@ -56,6 +57,7 @@ const APP_SECTIONS: readonly { id: AppSection; label: string; icon: AppIconName 
   { id: 'products', label: 'Products', icon: 'products' },
   { id: 'production', label: 'Production', icon: 'production' },
   { id: 'transactions', label: 'Transactions', icon: 'history' },
+  { id: 'insights', label: 'Business insights', icon: 'insights' },
 ];
 
 export interface AppProps {
@@ -88,6 +90,7 @@ export default function App({
   persistenceUiClock,
 }: AppProps = {}) {
   const [section, setSection] = useState<AppSection>('materials');
+  const [insightsOpened, setInsightsOpened] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [sidebarVisible, setSidebarVisible] = useState(initialSidebarVisible);
   const [appearance, setAppearance] = useState<Appearance>(preferredAppearance);
@@ -188,6 +191,7 @@ export default function App({
   }
 
   function selectSection(nextSection: AppSection) {
+    if (nextSection === 'insights') setInsightsOpened(true);
     setSection(nextSection);
     setDrawerOpen(false);
   }
@@ -416,6 +420,7 @@ export default function App({
           {section === 'products' && <ProductsWorkspacePage />}
           {section === 'production' && <ProductionPage onOpenProducts={() => selectSection('products')} />}
           {section === 'transactions' && <TransactionsPage />}
+          {insightsOpened && <div hidden={section !== 'insights'}><Suspense fallback={<p role="status">Loading business insights…</p>}><BusinessInsightsPage active={section === 'insights'} /></Suspense></div>}
         </div>
       </section>
     </main>

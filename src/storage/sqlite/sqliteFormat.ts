@@ -1,6 +1,7 @@
 import type { SqlJsStatic } from 'sql.js';
 import { validatePhysicalBusinessDatasetV5Integrity, type PhysicalBusinessDatasetV5 } from '../../domain/physicalBusinessDatasetV5';
 import { emptyTransactionArchive, validatePortableTransactions, type PortableTransactionArchive } from '../../ui/transactions/portableTransactions';
+import { emptyBusinessWorkspace, validateBusinessWorkspace, type BusinessWorkspace } from '../../domain/businessInsights';
 
 export const SQLITE_APPLICATION_ID = 0x4d4c4346;
 export const SQLITE_FORMAT = 'my-lovely-craft-backup';
@@ -18,6 +19,8 @@ export interface SqliteDocument {
   workspaceRevision: string | null;
   savedAt: string;
   historyRevision: number;
+  businessRevision: number;
+  business: BusinessWorkspace;
 }
 
 const textEncoder = new TextEncoder();
@@ -29,7 +32,7 @@ export async function sha256(value: string | Uint8Array): Promise<string> {
 function assert(condition: unknown, message: string): asserts condition { if (!condition) throw new Error(message); }
 function object(value: unknown): value is JsonObject { return !!value && typeof value === 'object' && !Array.isArray(value); }
 export function newSqliteDocument(): SqliteDocument {
-  return { dataset: null, workspaceRevision: null, savedAt: new Date().toISOString(), historyRevision: 0, images: new Map(),
+  return { dataset: null, workspaceRevision: null, savedAt: new Date().toISOString(), historyRevision: 0, businessRevision: 0, business: emptyBusinessWorkspace(), images: new Map(),
     state: { version: 1, sourceUrl: '', snapshot: null,
       printer: { address: '', name: '', columns: 32, qrEnabled: false, copies: 1 },
       production: { includeBreakdown: true, materialsSize: 1, materialsBold: false },
@@ -114,6 +117,8 @@ function jpegSize(bytes: Uint8Array): boolean {
 /** Match CraftBackupFiles.kt on mobile branch 209ec7298921b42aa89c72dd6f5eab0133317e81. */
 export async function encodeSqlite(SQL: SqlJsStatic, document: SqliteDocument, portable = false): Promise<Uint8Array> {
   assert(Number.isSafeInteger(document.historyRevision) && document.historyRevision >= 0 && Number.isFinite(Date.parse(document.savedAt)), 'Invalid database revision metadata.');
+  assert(Number.isSafeInteger(document.businessRevision) && document.businessRevision >= 0, 'Invalid business workspace revision.');
+  const business = JSON.stringify(validateBusinessWorkspace(document.business));
   const dataset = document.dataset ? structuredClone(document.dataset) : null;
   if (dataset) assert(validatePhysicalBusinessDatasetV5Integrity(dataset).valid, 'The current catalog is invalid; the database was not changed.');
   const state = structuredClone(document.state), images = new Map(document.images);
@@ -198,7 +203,9 @@ export async function encodeSqlite(SQL: SqlJsStatic, document: SqliteDocument, p
     put('image_count', String(usedImages.size)); put('image_ids_sha256', await sha256([...usedImages].sort().join('\n'))); meta.free();
     const web = db.prepare('INSERT INTO craft_web_meta VALUES (?,?)');
     web.run(['workspace_revision', document.workspaceRevision ?? '']); web.run(['saved_at', document.savedAt]);
-    web.run(['history_revision', String(document.historyRevision)]); web.free(); db.run('COMMIT');
+    web.run(['history_revision', String(document.historyRevision)]);
+    web.run(['business_revision', String(document.businessRevision)]); web.run(['business_workspace', business]);
+    web.run(['business_workspace_sha256', await sha256(business)]); web.free(); db.run('COMMIT');
     const bytes = db.export(); assert(bytes.length <= MAX_FILE, 'The SQLite backup exceeds the mobile app 256 MB limit.'); return bytes;
   } finally { db.close(); }
 }
@@ -268,11 +275,19 @@ export async function decodeSqlite(SQL: SqlJsStatic, bytes: Uint8Array, portable
       assert(validatePhysicalBusinessDatasetV5Integrity(dataset).valid, 'The SQLite backup contains an invalid business catalog.');
     }
     const webRows = db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name='craft_web_meta'")[0]?.values.length;
-    const web = webRows ? Object.fromEntries((db.exec('SELECT key,value FROM craft_web_meta LIMIT 10')[0]?.values ?? []).map(([k, v]) => [String(k), String(v)])) : {};
+    const web = webRows ? Object.fromEntries((db.exec("SELECT key,value FROM craft_web_meta WHERE key IN ('workspace_revision','saved_at','history_revision','business_revision','business_workspace','business_workspace_sha256')")[0]?.values ?? []).map(([k, v]) => [String(k), String(v)])) : {};
     const savedAt = web.saved_at ?? new Date(Number(metadata.created_at_epoch_ms)).toISOString();
+    assert((web.business_workspace === undefined) === (web.business_workspace_sha256 === undefined) &&
+      (web.business_workspace === undefined) === (web.business_revision === undefined), 'The business workspace metadata or checksum is missing.');
+    if (web.business_workspace !== undefined) {
+      assert(new TextEncoder().encode(web.business_workspace).length <= 16 * 1024 * 1024 && await sha256(web.business_workspace) === web.business_workspace_sha256, 'The business workspace checksum is invalid.');
+    }
     const document: SqliteDocument = { dataset, state, images, workspaceRevision: web.workspace_revision || state.snapshot?.revision || null,
-      savedAt, historyRevision: Number(web.history_revision ?? ((state.quotations?.length || state.customerReceipts?.length) ? 1 : 0)) };
+      savedAt, historyRevision: Number(web.history_revision ?? ((state.quotations?.length || state.customerReceipts?.length) ? 1 : 0)),
+      businessRevision: Number(web.business_revision ?? 0),
+      business: web.business_workspace === undefined ? emptyBusinessWorkspace() : validateBusinessWorkspace(JSON.parse(web.business_workspace)) };
     assert(Number.isFinite(Date.parse(savedAt)) && Number.isSafeInteger(document.historyRevision) && document.historyRevision >= 0, 'Invalid database revision metadata.');
+    assert(Number.isSafeInteger(document.businessRevision) && document.businessRevision >= 0, 'Invalid business workspace revision.');
     await historyFromDocument(document);
     return document;
   } finally { db.close(); }
