@@ -1,6 +1,7 @@
 import type {
   PersistenceCoordinator,
   PersistenceWorkbookExported,
+  WorkbookExportOptions,
 } from './PersistenceCoordinator';
 
 export const XLSX_WORKBOOK_MIME_TYPE =
@@ -144,9 +145,11 @@ export class BrowserWorkbookExportCommand {
       options.downloadAdapter ?? createDefaultBrowserWorkbookDownloadAdapter();
   }
 
-  async exportAndDownload(): Promise<BrowserWorkbookExportResult> {
+  async exportAndDownload(options: WorkbookExportOptions = {}): Promise<BrowserWorkbookExportResult> {
     // Coordinator snapshot/export failures intentionally retain their existing operational meaning.
-    const exported = await this.exportTarget.exportCurrentWorkbook();
+    const exported = options.includeProductPictures === false
+      ? await this.exportTarget.exportCurrentWorkbook(options)
+      : await this.exportTarget.exportCurrentWorkbook();
     const ownedBytes = cloneBytes(exported.bytes);
 
     let fileName: string;
@@ -154,6 +157,7 @@ export class BrowserWorkbookExportCommand {
 
     try {
       fileName = createBrowserWorkbookDownloadFilename(this.clock());
+      if (options.includeProductPictures === false) fileName = fileName.replace(/\.xlsx$/, '-without-pictures.xlsx');
       const blob = this.downloadAdapter.createBlob(
         cloneBytes(ownedBytes),
         XLSX_WORKBOOK_MIME_TYPE,

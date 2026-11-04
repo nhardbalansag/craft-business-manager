@@ -73,6 +73,10 @@ import {
 
 export type PersistenceClock = () => Date;
 
+export interface WorkbookExportOptions {
+  readonly includeProductPictures?: boolean;
+}
+
 export interface PersistenceCoordinatorOptions {
   /** Resolved for each import, so a saved size change applies without reloading. */
   readonly maxWorkbookBytes?: number | (() => number);
@@ -393,8 +397,8 @@ export class PersistenceCoordinator {
     return this.codecPromise;
   }
 
-  async exportCurrentWorkbook(): Promise<PersistenceWorkbookExported> {
-    const prepared = await this.prepareCurrentWorkbookExport();
+  async exportCurrentWorkbook(options: WorkbookExportOptions = {}): Promise<PersistenceWorkbookExported> {
+    const prepared = await this.prepareCurrentWorkbookExport(options);
     return {
       status: 'exported',
       bytes: cloneWorkbookBytes(prepared.bytes),
@@ -544,7 +548,7 @@ export class PersistenceCoordinator {
     return this.importAndApplyWorkbook(cloneWorkbookBytes(bytes));
   }
 
-  private async prepareCurrentWorkbookExport(): Promise<PreparedWorkbookExport> {
+  private async prepareCurrentWorkbookExport(options: WorkbookExportOptions = {}): Promise<PreparedWorkbookExport> {
     let dataset: PersistableDataset;
     try {
       dataset = await this.snapshotService.snapshot();
@@ -558,6 +562,9 @@ export class PersistenceCoordinator {
     }
 
     try {
+      if (options.includeProductPictures === false) {
+        dataset = { ...dataset, products: dataset.products.map(({ imageDataUrl: _thumbnail, brochureImageDataUrl: _brochure, ...product }) => product) };
+      }
       const codec = await this.loadCodec();
       const metadata: WorkbookExportMetadata = {
         exportedAt: this.clock().toISOString(),

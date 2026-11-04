@@ -54,6 +54,19 @@ const directTransportCapabilities = createWorkbookTransportCapabilities({
 });
 
 describe('PersistenceCoordinator export/save orchestration', () => {
+  it('exports a smaller copy without pictures while preserving source records and long text', async () => {
+    const dataset = createEmptyBusinessDataset(), photo = 'data:image/jpeg;base64,/9j/2Q==';
+    const notes = 'Detailed product notes\n'.repeat(3000);
+    dataset.products.push({ id: 'P', name: 'Bear P (1pcs)', category: 'paintable-art', isActive: true, safetyWasteRate: 0, notes, imageDataUrl: photo, brochureImageDataUrl: photo });
+    const before = structuredClone(dataset), codec = new SheetJsWorkbookCodec();
+    const coordinator = new PersistenceCoordinator(snapshotSource(dataset), acceptingHydration(), codec);
+    const full = codec.decode((await coordinator.exportCurrentWorkbook()).bytes).sheets.find(s => s.name === 'Products')!.rows[0];
+    expect(full.imageDataUrl).toBe(photo); expect(full.notes).toBe(notes);
+    const smaller = codec.decode((await coordinator.exportCurrentWorkbook({ includeProductPictures: false })).bytes).sheets.find(s => s.name === 'Products')!.rows[0];
+    expect(smaller.notes).toBe(notes); expect(smaller.imageDataUrl).toBeUndefined();
+    expect(Object.keys(smaller).filter(k => k.startsWith('brochureImagePart')).every(k => smaller[k] == null)).toBe(true);
+    expect(dataset).toEqual(before);
+  });
   it('loads Excel support on demand, shares concurrent loading, and retries failed loads', async () => {
     const codec = new SheetJsWorkbookCodec();
     const factory = vi.fn().mockRejectedValueOnce(new Error('Temporary load failure')).mockResolvedValue(codec);
