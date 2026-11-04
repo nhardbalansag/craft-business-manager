@@ -6,6 +6,8 @@ Desktop-first business costing, inventory, production-yield, production-planning
 
 The **Business insights** drawer page provides sales and product trends, an expense/cash ledger, a 12-month scenario planner, investor summaries, business/growth plans and corporate/event/reseller proposals. Generate frozen document snapshots, print/save PDF, export editable Word files and CSV figures, or download a review pack. Business records share the primary SQLite database and backups. See [Business insights instructions and calculation limits](docs/BUSINESS_INSIGHTS.md).
 
+The **Investor proposals** tab generates branded investment proposals with conservative, moderate and optimistic earnings estimates, reserve/profit-sharing terms, a cumulative payout cap, capital recovery and gain. Use recorded history, manual assumptions or an existing business forecast, then preview and download PDF or Word. No investor login or investment-accounting entry is created. See [Investor Proposal Generator](docs/INVESTOR_PROPOSALS.md).
+
 ## Mobile transaction history
 
 The **Transactions** drawer page imports transaction-only JSON/Excel files from My Lovely Craft mobile, appends receipts and optional quotations without replacing the catalog, filters daily/date-range history, and provides private financial reports and debit/credit management. History now shares the primary SQLite database and its backups with the catalog. See [transaction-history instructions](docs/TRANSACTION_HISTORY.md).

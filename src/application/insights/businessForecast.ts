@@ -1,14 +1,15 @@
 import { validateScenario, type ForecastScenario, type ForecastResult } from '../../domain/businessInsights';
 import { addMoney, cents } from './businessReports';
 
-export function forecastBusiness(scenario: ForecastScenario): ForecastResult {
+export function forecastBusiness(scenario: ForecastScenario, months = 12): ForecastResult {
   validateScenario(scenario);
+  if (!Number.isSafeInteger(months) || months < 1 || months > 120) throw new Error('Forecast duration must be from 1 to 120 months.');
   const price = cents(scenario.averageUnitPrice), variable = cents(scenario.unitVariableCost), fixed = cents(scenario.monthlyFixedExpenses);
   let cash = addMoney(addMoney(cents(scenario.openingCash), cents(scenario.fundingAmount)), -cents(scenario.upfrontInvestment));
   let minimum = cash, revenue = 0, result = 0, constrained = false;
   const [year, month] = scenario.startMonth.split('-').map(Number);
   const rows: ForecastResult['rows'] = [];
-  for (let index = 0; index < 12; index++) {
+  for (let index = 0; index < months; index++) {
     const demand = Math.floor(scenario.monthlyUnits * Math.pow(1 + scenario.monthlyGrowthPercent / 100, index));
     constrained ||= demand > scenario.monthlyCapacity;
     const units = Math.min(demand, scenario.monthlyCapacity);

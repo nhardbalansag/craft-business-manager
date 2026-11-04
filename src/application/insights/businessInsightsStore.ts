@@ -5,8 +5,8 @@ import { workspaceChanges } from '../session';
 import { calculateBusinessReport } from './businessReports';
 
 export const loadBusinessWorkspace = (): Promise<BusinessSnapshot> => sqliteRequest({ action: 'business.load' });
-export const saveBusinessWorkspace = (workspace: BusinessWorkspace, expectedRevision: number): Promise<BusinessSnapshot> =>
-  workspaceChanges.batch(() => sqliteRequest({ action: 'business.save', payload: { workspace, expectedRevision } }));
+export const saveBusinessWorkspace = (workspace: BusinessWorkspace, expectedRevision: number, expectedHistoryRevision?: number): Promise<BusinessSnapshot> =>
+  workspaceChanges.batch(() => sqliteRequest({ action: 'business.save', payload: { workspace, expectedRevision, expectedHistoryRevision } }));
 
 /** The browser calculation stays off the UI thread; callers cancel superseded date ranges. */
 export async function loadBusinessReport(history: TransactionHistorySnapshot, workspace: BusinessWorkspace, from: string, to: string, signal: AbortSignal): Promise<BusinessReport> {
