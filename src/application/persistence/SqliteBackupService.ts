@@ -1,6 +1,7 @@
 import type { PhysicalBusinessDatasetV5 } from '../../domain/physicalBusinessDatasetV5';
 import { sqliteRequest } from '../../storage/sqlite/sqliteClient';
 import type { WorkspaceAutosave } from './WorkspaceAutosave';
+import { flushBusinessChanges } from '../insights/businessWorkingCopy';
 
 export interface SqliteBackupReview {
   databaseGeneration?: string | null;
@@ -12,10 +13,13 @@ export interface SqliteBackupReview {
   quotations: number;
   images: number;
   savedAt: string;
+  ledgerEntries?: number;
+  businessDocuments?: number;
 }
 export class SqliteBackupService {
   constructor(private readonly autosave: WorkspaceAutosave) {}
   async exportBackup(): Promise<Uint8Array> {
+    await flushBusinessChanges();
     const dataset = await this.autosave.snapshotForBackup();
     return sqliteRequest({ action: 'backup.export', payload: { dataset } });
   }

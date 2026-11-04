@@ -7,6 +7,7 @@ import { extendBusinessDatasetV2 } from '../../domain/physicalBusinessDatasetV3'
 import { extendPhysicalBusinessDatasetV3 } from '../../domain/physicalBusinessDatasetV4';
 import { extendPhysicalBusinessDatasetV4 } from '../../domain/physicalBusinessDatasetV5';
 import history from '../../ui/transactions/__fixtures__/mobile-transactions.json';
+import { emptyBusinessWorkspace } from '../../domain/businessInsights';
 
 let factory: IDBFactory;
 beforeEach(() => { factory = new IDBFactory(); });
@@ -16,6 +17,25 @@ function copy(revision: string, name = 'SQLite product') {
   return { formatVersion: 1 as const, revision, savedAt: new Date().toISOString(), dataset };
 }
 describe('Durable SQLite primary storage', () => {
+  it('keeps business records across catalog/history writes, rejects stale edits, and restores them from a portable backup', async () => {
+    const host = new SqliteDatabaseHost(() => factory), other = new SqliteDatabaseHost(() => factory);
+    const workspace = emptyBusinessWorkspace('2026-11-01'); workspace.profile.description = 'Investor snapshot test';
+    workspace.ledger.push({ id: 'rent', date: '2026-11-01', cashDate: '2026-11-02', kind: 'operating-expense', category: 'Rent', description: 'Studio rent', amount: 200, paid: true, reference: 'R-1' });
+    await host.request({ action: 'business.load' });
+    await host.request({ action: 'business.save', payload: { workspace, expectedRevision: 0 } });
+    await other.request({ action: 'save', payload: { copy: copy('catalog'), expectedRevision: null } });
+    await other.request({ action: 'history.save', payload: { archive: history, expectedRevision: 0 } });
+    expect((await host.request({ action: 'business.load' })).workspace).toEqual(workspace);
+    await expect(other.request({ action: 'business.save', payload: { workspace, expectedRevision: 0 } })).rejects.toThrow('changed in another tab');
+    const bytes = await host.request({ action: 'backup.export' });
+    await host.request({ action: 'business.save', payload: { workspace: emptyBusinessWorkspace(), expectedRevision: 1 } });
+    const review = await host.request({ action: 'backup.inspect', payload: { bytes } });
+    expect(review.ledgerEntries).toBe(1);
+    await host.request({ action: 'backup.restore', payload: { bytes, copy: copy('restored'), expectedRevision: 'catalog', expectedHistoryRevision: 1, expectedGeneration: review.databaseGeneration } });
+    const restored = await new SqliteDatabaseHost(() => factory).request({ action: 'business.load' });
+    expect(restored.workspace).toEqual(workspace); expect(restored.revision).toBe(3);
+    await expect(other.request({ action: 'business.save', payload: { workspace, expectedRevision: 1 } })).rejects.toThrow('changed in another tab');
+  });
   it('migrates the old workspace once and retains its original recovery copy', async () => {
     const legacy = new BrowserWorkspaceStore(() => factory); await legacy.save(copy('legacy'), null);
     const first = new SqliteDatabaseHost(() => factory);

@@ -52,6 +52,8 @@ This is local browser storage, not a shared server database. Use the same browse
 
 ## Verification
 
+Business insights adds an optional, versioned workspace in `craft_web_meta`, with its own revision and SHA-256 checksum. Web backups include expenses, cash ledger entries, scenarios, the proposal draft and frozen document snapshots. The existing mobile format remains unchanged. The current Android app ignores this web extension and omits it when exporting a new backup; retain the original web file. Importing a backup without the extension restores an empty business workspace. See [Business insights](BUSINESS_INSIGHTS.md) for the workflow and financial assumptions.
+
 ```text
 npm run typecheck
 npm run test:run -- --maxWorkers=4
