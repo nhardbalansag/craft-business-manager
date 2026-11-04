@@ -1,10 +1,9 @@
 import type { WorkspaceRecoveryCopy } from '../BrowserWorkspaceStore';
 import { validatePhysicalBusinessDatasetV5Integrity } from '../../domain/physicalBusinessDatasetV5';
-import { decodeSqlite, encodeSqlite, historyFromDocument, newSqliteDocument, setDocumentHistory, type SqliteDocument } from './sqliteFormat';
+import { decodeSqlite, encodeSqlite, historyFromDocument, newSqliteDocument, setDocumentHistory, updateSqliteBusiness, type SqliteDocument } from './sqliteFormat';
 import { sqliteRuntime } from './sqliteRuntime';
-import { validateBusinessWorkspace } from '../../domain/businessInsights';
 
-export type SqliteAction = 'load' | 'save' | 'history.load' | 'history.save' | 'business.load' | 'business.save' | 'backup.export' | 'backup.inspect' | 'backup.restore' | 'backup.recover';
+export type SqliteAction = 'load' | 'save' | 'history.load' | 'history.save' | 'business.load' | 'business.history' | 'business.save' | 'backup.export' | 'backup.inspect' | 'backup.restore' | 'backup.recover';
 export interface SqliteRequest { action: SqliteAction; payload?: any }
 const DATABASE = 'my-lovely-craft.sqlite';
 const STORE = 'database';
@@ -32,6 +31,7 @@ async function legacyValue(factory: IDBFactory, name: string, store: string): Pr
 export class SqliteDatabaseHost {
   private generation: string | null = null;
   private document?: SqliteDocument;
+  private bytes?: Uint8Array;
   private queue: Promise<unknown> = Promise.resolve();
   constructor(private readonly factory: () => IDBFactory = () => globalThis.indexedDB) {}
   request(request: SqliteRequest): Promise<any> {
@@ -47,8 +47,9 @@ export class SqliteDatabaseHost {
       transaction.onabort = transaction.onerror = () => reject(transaction.error ?? new Error('The saved SQLite database could not be read.'));
     }); } finally { db.close(); }
   }
-  private async commit(document: SqliteDocument, retainPrevious = false): Promise<void> {
-    const bytes = await encodeSqlite(await sqliteRuntime(), document), next = token();
+  private async commit(document: SqliteDocument, retainPrevious = false, businessOnly = false): Promise<void> {
+    const SQL = await sqliteRuntime();
+    const bytes = businessOnly && this.bytes ? await updateSqliteBusiness(SQL, this.bytes, document, this.document!.businessRevision) : await encodeSqlite(SQL, document), next = token();
     const db = await openDatabase(this.factory(), DATABASE, STORE);
     try { await new Promise<void>((resolve, reject) => {
       const transaction = db.transaction(STORE, 'readwrite'), store = transaction.objectStore(STORE), current = store.get('generation');
@@ -66,15 +67,15 @@ export class SqliteDatabaseHost {
       transaction.oncomplete = () => resolve();
       transaction.onabort = transaction.onerror = () => reject(failure ?? transaction.error ?? new Error('SQLite could not be saved. The previous database is retained.'));
     }); } finally { db.close(); }
-    this.generation = next; this.document = document;
+    this.generation = next; this.document = document; this.bytes = bytes;
   }
   private async current(): Promise<SqliteDocument> {
     const saved = await this.readFile();
     if (saved.generation && (saved.generation !== this.generation || !this.document)) {
       if (!(saved.bytes instanceof Uint8Array)) throw new Error('The saved SQLite database is incomplete. It has been preserved.');
-      this.document = await decodeSqlite(await sqliteRuntime(), saved.bytes); this.generation = saved.generation;
+      this.document = await decodeSqlite(await sqliteRuntime(), saved.bytes); this.generation = saved.generation; this.bytes = saved.bytes;
     } else if (!saved.generation) {
-      this.generation = null; this.document = undefined;
+      this.generation = null; this.document = undefined; this.bytes = undefined;
       const document = newSqliteDocument();
       const [workspace, history] = await Promise.all([
         legacyValue(this.factory(), 'craft-business-manager.workspace', 'recovery'),
@@ -121,20 +122,27 @@ export class SqliteDatabaseHost {
     const current = await this.current();
     if (action === 'load') return current.dataset ? { formatVersion: 1, revision: current.workspaceRevision!, savedAt: current.savedAt, dataset: current.dataset } satisfies WorkspaceRecoveryCopy : undefined;
     if (action === 'history.load') return { revision: current.historyRevision, archive: await historyFromDocument(current) };
+    if (action === 'business.history') return { revision: current.historyRevision, archive: {
+      customerReceipts: current.state.customerReceipts ?? [], transactionEntries: current.state.transactionEntries ?? [],
+    } };
     if (action === 'business.load') return { revision: current.businessRevision, workspace: structuredClone(current.business) };
     if (action === 'backup.export') {
       const backup = structuredClone(current);
       if (payload?.dataset) { backup.dataset = payload.dataset; backup.workspaceRevision = token(); backup.savedAt = new Date().toISOString(); }
       return encodeSqlite(await sqliteRuntime(), backup, true);
     }
-    const next = structuredClone(current);
     if (action === 'business.save') {
       if (payload.expectedHistoryRevision !== undefined && payload.expectedHistoryRevision !== current.historyRevision) conflict('Sales history changed while the investor proposal was being prepared. Refresh sales and review the proposal before saving.');
       if (payload.expectedRevision !== current.businessRevision) conflict('Business records changed in another tab or restore. Reload business insights before saving.');
       if (!Number.isSafeInteger(payload.expectedRevision) || payload.expectedRevision < 0 || payload.expectedRevision >= Number.MAX_SAFE_INTEGER) throw new Error('Invalid business workspace revision.');
-      next.business = structuredClone(validateBusinessWorkspace(payload.workspace)); next.businessRevision++; next.savedAt = new Date().toISOString();
-      await this.commit(next); return { revision: next.businessRevision, workspace: structuredClone(next.business) };
+      if (payload.changes !== undefined && (!payload.changes || typeof payload.changes !== 'object' || Array.isArray(payload.changes) || payload.workspace !== undefined ||
+        Object.keys(payload.changes).some(key => !['profile', 'ledger', 'scenarios', 'proposal', 'investorProposal', 'documents'].includes(key)))) throw new Error('Invalid business workspace changes.');
+      const business = payload.changes === undefined ? structuredClone(payload.workspace) : { ...current.business, ...structuredClone(payload.changes) };
+      const next = { ...current, business, businessRevision: current.businessRevision + 1, savedAt: new Date().toISOString() };
+      await this.commit(next, false, true);
+      return payload.revisionOnly ? { revision: next.businessRevision } : { revision: next.businessRevision, workspace: structuredClone(next.business) };
     }
+    const next = structuredClone(current);
     if (action === 'history.save') {
       if (payload.expectedRevision !== current.historyRevision) conflict('Transaction history changed in another tab. Reload history before saving.');
       if (!Number.isSafeInteger(payload.expectedRevision) || payload.expectedRevision < 0 || payload.expectedRevision >= Number.MAX_SAFE_INTEGER) throw new Error('Invalid transaction history revision.');

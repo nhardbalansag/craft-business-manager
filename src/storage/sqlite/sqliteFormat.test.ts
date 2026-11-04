@@ -1,11 +1,11 @@
-import { beforeAll, describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 import type { SqlJsStatic } from 'sql.js';
 import { createEmptyBusinessDatasetV2 } from '../../domain/businessDatasetV2';
 import { extendBusinessDatasetV2 } from '../../domain/physicalBusinessDatasetV3';
 import { extendPhysicalBusinessDatasetV3 } from '../../domain/physicalBusinessDatasetV4';
 import { extendPhysicalBusinessDatasetV4 } from '../../domain/physicalBusinessDatasetV5';
 import nativeHistory from '../../ui/transactions/__fixtures__/native-transactions.json';
-import { decodeSqlite, encodeSqlite, historyFromDocument, newSqliteDocument, setDocumentHistory, SQLITE_APPLICATION_ID, sha256 } from './sqliteFormat';
+import { decodeSqlite, encodeSqlite, historyFromDocument, newSqliteDocument, setDocumentHistory, updateSqliteBusiness, SQLITE_APPLICATION_ID, sha256 } from './sqliteFormat';
 import { sqliteRuntime } from './sqliteRuntime';
 
 let SQL: SqlJsStatic;
@@ -19,6 +19,27 @@ export function datasetFixture() {
 }
 
 describe('Mobile-compatible SQLite database format', () => {
+  it('updates business records without rehashing or rebuilding catalog, photo, history or mobile-state rows', async () => {
+    const document = newSqliteDocument(); document.dataset = datasetFixture();
+    await setDocumentHistory(document, nativeHistory); document.historyRevision = 3;
+    const bytes = await encodeSqlite(SQL, document, true), before = new SQL.Database(bytes);
+    const rows = (db: InstanceType<SqlJsStatic['Database']>) => ['craft_meta', 'craft_records', 'craft_images', 'craft_state_chunks'].map(table => db.exec(`SELECT * FROM ${table}`));
+    document.business.profile.description = 'Edited without rebuilding photos'; document.businessRevision++;
+    const digest = vi.spyOn(crypto.subtle, 'digest');
+    let updated: Uint8Array;
+    try { updated = await updateSqliteBusiness(SQL, bytes, document, 0); expect(digest).toHaveBeenCalledOnce(); }
+    finally { digest.mockRestore(); }
+    const after = new SQL.Database(updated!);
+    expect((await decodeSqlite(SQL, bytes, true)).businessRevision).toBe(0);
+    expect(rows(after)).toEqual(rows(before)); expect(after.exec('PRAGMA application_id')).toEqual(before.exec('PRAGMA application_id'));
+    const decoded = await decodeSqlite(SQL, updated!, true);
+    expect(decoded.business).toEqual(document.business); expect(decoded.businessRevision).toBe(1);
+    expect(decoded.dataset).toEqual(document.dataset); expect(await historyFromDocument(decoded)).toEqual(nativeHistory);
+    await expect(updateSqliteBusiness(SQL, updated!, { ...document, businessRevision: 1 }, 0)).rejects.toThrow('revision changed');
+    await expect(updateSqliteBusiness(SQL, updated!, { ...document, businessRevision: 2, business: { ...document.business, profile: { ...document.business.profile, name: '' } } }, 1)).rejects.toThrow('profile');
+    expect((await decodeSqlite(SQL, updated!, true)).businessRevision).toBe(1);
+    before.close(); after.close();
+  });
   it('verifies and round-trips the optional business extension without changing Android state or record contracts', async () => {
     const document = newSqliteDocument(); document.dataset = datasetFixture();
     document.business.profile.description = 'Investor records'; document.businessRevision = 4;

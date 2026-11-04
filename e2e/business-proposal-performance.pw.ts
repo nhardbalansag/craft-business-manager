@@ -1,0 +1,60 @@
+import { test, expect } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import initSqlJs from 'sql.js';
+import { createEmptyBusinessDatasetV2 } from '../src/domain/businessDatasetV2';
+import { extendBusinessDatasetV2 } from '../src/domain/physicalBusinessDatasetV3';
+import { extendPhysicalBusinessDatasetV3 } from '../src/domain/physicalBusinessDatasetV4';
+import { extendPhysicalBusinessDatasetV4 } from '../src/domain/physicalBusinessDatasetV5';
+import { encodeSqlite, newSqliteDocument } from '../src/storage/sqlite/sqliteFormat';
+
+test('proposal typing and selection stay available through autosaves with a 1500-product catalog', async ({ page }, info) => {
+  test.setTimeout(180000);
+  const SQL = await initSqlJs(), document = newSqliteDocument();
+  const data = extendPhysicalBusinessDatasetV4(extendPhysicalBusinessDatasetV3(extendBusinessDatasetV2(createEmptyBusinessDatasetV2())));
+  const history = JSON.parse(readFileSync(new URL('../src/ui/transactions/__fixtures__/native-transactions.json', import.meta.url), 'utf8'));
+  const photo = 'data:image/jpeg;base64,' + Object.values(history.images)[0];
+  data.products = Array.from({ length: 1500 }, (_, i) => ({ id: `P-${i}`, name: i < 60 ? `Bear ${i} P (1pcs)` : `Catalog sample ${i}`, category: 'paintable-art', isActive: true, safetyWasteRate: 0, imageDataUrl: photo }));
+  document.dataset = data;
+  document.business.investorProposal = { ...document.business.investorProposal!, investorName: 'Initial investor', investmentAmount: 10000, maximumPayout: 14000,
+    manual: { monthlySales: 20000, monthlyProductCost: 8000, monthlyOperatingExpenses: 2000 }, sourceNotes: 'Reviewed manual sales and expense assumptions.' };
+  const bytes = await encodeSqlite(SQL, document, true);
+  await page.goto('/'); await expect(page.getByLabel('Refresh protection')).toContainText('SQLite');
+  await page.getByLabel('Database tools', { exact: true }).click();
+  await page.getByLabel('Import / restore SQLite backup', { exact: true }).setInputFiles({ name: 'large-catalog.sqlite', mimeType: 'application/x-sqlite3', buffer: Buffer.from(bytes) });
+  await page.getByRole('button', { name: 'Restore this SQLite backup', exact: true }).click();
+  await expect(page.getByText('SQLite backup restored.', { exact: false })).toBeVisible();
+  await page.locator('.workbook-tools-close-row button').click();
+  await page.getByRole('button', { name: 'Business insights', exact: true }).click(); const app = page.locator('.business-insights');
+  await expect(app.locator('.insights-metric').first()).toBeVisible();
+  let reportWorkers = 0; page.on('worker', worker => { if (worker.url().includes('insights.worker')) reportWorkers++; });
+  await app.getByRole('button', { name: 'Proposals', exact: true }).click();
+  await app.evaluate(el => {
+    (window as any).__proposalFormLocks = 0;
+    new MutationObserver(() => { if (el.querySelector('fieldset:disabled')) (window as any).__proposalFormLocks++; })
+      .observe(el, { subtree: true, attributes: true, attributeFilter: ['disabled'] });
+  });
+  await app.getByLabel('Search proposal products', { exact: true }).fill('P (1pcs)');
+  await expect(app.locator('.insights-product-choice')).toHaveCount(25);
+  await app.getByRole('button', { name: 'Select all matching (60)', exact: true }).click();
+  await expect(app.getByText('60 selected', { exact: true })).toBeVisible();
+  const recipient = app.getByLabel('Prepared for', { exact: true }); await recipient.fill('Customer');
+  await expect(app.getByText('Saved in SQLite', { exact: true })).toBeVisible();
+  await recipient.pressSequentially(' with complete proposal terms', { delay: 20 });
+  await expect(recipient).toHaveValue('Customer with complete proposal terms');
+  await expect(app.getByText('Saved in SQLite', { exact: true })).toBeVisible();
+  await app.getByRole('button', { name: 'Investor proposals', exact: true }).click();
+  await expect(app.getByRole('article', { name: 'Moderate investor projection' })).toContainText('14,000.00');
+  const investor = app.getByLabel('Investor name', { exact: true }); await investor.fill('Investor');
+  await expect(app.getByText('Saved in SQLite', { exact: true })).toBeVisible();
+  await investor.pressSequentially(' with uninterrupted typing', { delay: 25 });
+  await app.getByLabel('Risks specific to this proposal', { exact: true }).fill('Demand and production capacity are reviewed.');
+  await expect(app.getByText('Saved in SQLite', { exact: true })).toBeVisible();
+  expect(await page.evaluate(() => (window as any).__proposalFormLocks)).toBe(0); expect(reportWorkers).toBe(0);
+  await page.getByLabel('Database tools', { exact: true }).click(); const downloading = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Download SQLite backup', exact: true }).click();
+  const path = info.outputPath('proposal-performance.sqlite'); await (await downloading).saveAs(path);
+  const saved = JSON.parse(execFileSync('python', ['-c', 'import sqlite3,json,sys; db=sqlite3.connect(sys.argv[1]); w=json.loads(db.execute("SELECT value FROM craft_web_meta WHERE key=?",("business_workspace",)).fetchone()[0]); print(json.dumps({"recipient":w["proposal"]["recipient"],"items":len(w["proposal"]["items"]),"investor":w["investorProposal"]["investorName"]}))', path], { encoding: 'utf8' }));
+  expect(saved).toEqual({ recipient: 'Customer with complete proposal terms', items: 60, investor: 'Investor with uninterrupted typing' });
+  expect(JSON.parse(execFileSync('python', ['scripts/verify-mobile-sqlite.py', path], { encoding: 'utf8' }))).toMatchObject({ native_sqlite: 'passed', products: 1500 });
+});

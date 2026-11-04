@@ -3,20 +3,19 @@ import {
   emptyBusinessWorkspace, emptyInvestorProposal, validateBusinessDocument,
   type BusinessDocument, type BusinessReport, type BusinessWorkspace, type InvestorProposalDraft,
 } from '../../domain/businessInsights';
-import type { TransactionHistorySnapshot } from '../transactions/transactionHistoryStore';
-import { loadBusinessReport } from '../../application/insights/businessInsightsStore';
+import { loadBusinessReport, type BusinessHistorySnapshot } from '../../application/insights/businessInsightsStore';
 import { createInvestorSnapshot, historicalInvestorBasis, INVESTOR_CONDITIONS, INVESTOR_SCENARIO_LABELS, projectInvestorProposal } from '../../application/insights/investorProjections';
 import { businessDocumentWord, businessFilename, businessMoney, downloadBusinessFile, renderBusinessDocument } from '../../application/insights/businessDocuments';
 import './investorProposal.css';
 
-export function InvestorProposalPanel({ draft, workspace, history, businessRevision, disabled, onChange, saveDocument, calculate = loadBusinessReport }: {
-  draft: InvestorProposalDraft; workspace: BusinessWorkspace; history: TransactionHistorySnapshot; businessRevision: number; disabled: boolean;
+export function InvestorProposalPanel({ draft, workspace, history, businessRevision, disabled, saveDisabled = false, onChange, saveDocument, calculate = loadBusinessReport }: {
+  draft: InvestorProposalDraft; workspace: BusinessWorkspace; history: BusinessHistorySnapshot; businessRevision: number; disabled: boolean; saveDisabled?: boolean;
   onChange: (draft: InvestorProposalDraft) => void; saveDocument: (document: BusinessDocument) => Promise<BusinessDocument | null>;
   calculate?: typeof loadBusinessReport;
 }) {
   const [historyReport, setHistoryReport] = useState<BusinessReport | null>(null), [historyBusy, setHistoryBusy] = useState(false), [historyError, setHistoryError] = useState('');
   const [preview, setPreview] = useState<BusinessDocument | null>(null), [saved, setSaved] = useState(false), [busy, setBusy] = useState(''), [error, setError] = useState('');
-  const occupied = useRef(false), mounted = useRef(true), resolvedHistory = useRef<{ ledger: BusinessWorkspace['ledger']; history: TransactionHistorySnapshot; from: string; to: string } | null>(null);
+  const occupied = useRef(false), mounted = useRef(true), resolvedHistory = useRef<{ ledger: BusinessWorkspace['ledger']; history: BusinessHistorySnapshot; from: string; to: string } | null>(null);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   useEffect(() => {
     if (draft.source !== 'history') return;
@@ -31,12 +30,19 @@ export function InvestorProposalPanel({ draft, workspace, history, businessRevis
     return () => { clearTimeout(timer); controller.abort(); };
   }, [draft.source, draft.historyFrom, draft.historyTo, history, workspace.ledger, calculate]);
   const sourceForecast = workspace.scenarios.find(s => s.id === draft.forecastScenarioId);
-  const calculation = useMemo(() => {
+  const prepared = useMemo(() => {
     try {
-      const snapshot = createInvestorSnapshot(draft, historyReport, workspace.scenarios);
-      return { snapshot, cases: projectInvestorProposal(snapshot), error: '' };
-    } catch (e) { return { snapshot: null, cases: [], error: e instanceof Error ? e.message : 'Check the projection assumptions.' }; }
-  }, [draft, historyReport, workspace.scenarios]);
+      return { snapshot: createInvestorSnapshot(draft, historyReport, sourceForecast ? [sourceForecast] : []), error: '' };
+    } catch (e) { return { snapshot: null, error: e instanceof Error ? e.message : 'Check the projection assumptions.' }; }
+  }, [draft, historyReport, sourceForecast]);
+  // Names, prose and equivalent save responses do not change earnings. Cache the model by financial inputs only.
+  const projectionKey = prepared.snapshot ? JSON.stringify({ basis: prepared.snapshot.basis, investment: draft.investmentAmount, cap: draft.maximumPayout,
+    share: draft.investorSharePercent, reserve: draft.reservePercent, months: draft.durationMonths, start: draft.startMonth, scenarios: draft.scenarios }) : '';
+  const projected = useMemo(() => {
+    try { return { cases: prepared.snapshot ? projectInvestorProposal(prepared.snapshot) : [], error: '' }; }
+    catch (e) { return { cases: [], error: e instanceof Error ? e.message : 'Check the projection assumptions.' }; }
+  }, [projectionKey]);
+  const calculation = { snapshot: projected.error ? null : prepared.snapshot, cases: projected.cases, error: prepared.error || projected.error };
   const fingerprint = JSON.stringify({ draft, profile: workspace.profile, basis: calculation.snapshot?.basis ?? null, historyRevision: draft.source === 'history' ? history.revision : null });
   useEffect(() => { setPreview(null); setSaved(false); setError(''); }, [fingerprint]);
   const previewHtml = useMemo(() => preview ? renderBusinessDocument(preview) : '', [preview]);
@@ -116,7 +122,7 @@ export function InvestorProposalPanel({ draft, workspace, history, businessRevis
         <p>Average monthly figures include zero-payment months. Once the cumulative cap is reached, projected payouts stop. View the full monthly and annual breakdown in the proposal preview.</p>
       </>}
       <div className="insights-actions"><button type="button" className="button button-primary" disabled={locked || !historyReady || !calculation.snapshot} onClick={() => void action('preview', () => { setPreview(buildPreview()); setSaved(false); })}>Preview investor proposal</button>
-        {preview && <button type="button" className="button button-secondary" disabled={locked || !historyReady || saved} onClick={() => void action('save', async () => { const result = await saveDocument(preview); if (result && mounted.current) { setPreview(result); setSaved(true); } })}>{saved ? 'Proposal saved' : 'Save proposal snapshot'}</button>}
+        {preview && <button type="button" className="button button-secondary" disabled={locked || saveDisabled || !historyReady || saved} onClick={() => void action('save', async () => { const result = await saveDocument(preview); if (result && mounted.current) { setPreview(result); setSaved(true); } })}>{saved ? 'Proposal saved' : 'Save proposal snapshot'}</button>}
       </div>
       {preview && <><div className="insights-actions"><button type="button" className="button button-primary" disabled={locked || !historyReady} onClick={() => void action('pdf', async () => { const { businessDocumentPdf } = await import('../../application/insights/businessDocumentPdf'); downloadBusinessFile(await businessDocumentPdf(preview), `${businessFilename(preview)}.pdf`); })}>Download investor PDF</button>
         <button type="button" className="button button-secondary" disabled={locked || !historyReady} onClick={() => void action('word', async () => downloadBusinessFile(await businessDocumentWord(preview), `${businessFilename(preview)}.docx`))}>Download investor Word (.docx)</button></div>
