@@ -51,15 +51,41 @@ export interface ForecastResult {
   rows: ForecastRow[]; revenue: number; operatingResult: number; endingCash: number;
   minimumCash: number; additionalFunding: number; breakEvenUnits: number | null; capacityConstrained: boolean;
 }
+export interface InvestmentBaseline { monthlySales: number; monthlyProductCost: number; monthlyOperatingExpenses: number }
+export type InvestorScenarioId = 'conservative' | 'moderate' | 'optimistic';
+export interface InvestorScenarioAssumption {
+  id: InvestorScenarioId; salesPercent: number; costPercent: number; monthlyGrowthPercent: number;
+}
+export interface InvestorProposalDraft {
+  version: 1; investorName: string; proposalDate: string; startMonth: string;
+  investmentAmount: number; investorSharePercent: number; reservePercent: number;
+  durationMonths: number; maximumPayout: number;
+  source: 'manual' | 'history' | 'forecast'; manual: InvestmentBaseline; forecastScenarioId: string;
+  historyFrom: string; historyTo: string; expensesReviewed: boolean;
+  sourceNotes: string; purpose: string; risks: string; conditions: string;
+  scenarios: InvestorScenarioAssumption[];
+}
+export interface InvestmentHistoryEvidence {
+  from: string; to: string; months: number; receipts: number; ledgerEntries: number;
+  sales: number; savedCost: number; operatingExpenses: number;
+}
+export type InvestorProjectionBasis =
+  | { kind: 'manual'; baseline: InvestmentBaseline }
+  | { kind: 'history'; baseline: InvestmentBaseline; evidence: InvestmentHistoryEvidence }
+  | { kind: 'forecast'; scenario: ForecastScenario };
+/** Immutable proposed terms and inputs; version 1 always uses the same distribution rules. */
+export interface InvestorProposalSnapshot { modelVersion: 1; draft: InvestorProposalDraft; basis: InvestorProjectionBasis }
 export type BusinessDocument = {
-  id: string; kind: 'business-report' | 'investor-summary' | 'business-plan' | 'proposal'; title: string;
+  id: string; kind: 'business-report' | 'investor-summary' | 'business-plan' | 'proposal' | 'investor-proposal'; title: string;
   generatedAt: string; profile: BusinessProfile; historyRevision: number; businessRevision: number;
   report: BusinessReport | null; scenario: ForecastScenario | null;
   proposal: (ProposalDraft & { pictures: Record<string, string> }) | null;
+  investment?: InvestorProposalSnapshot;
 };
 export interface BusinessWorkspace {
   version: 1; profile: BusinessProfile; ledger: BusinessLedgerEntry[];
   scenarios: ForecastScenario[]; proposal: ProposalDraft; documents: BusinessDocument[];
+  investorProposal?: InvestorProposalDraft;
 }
 export interface BusinessSnapshot { revision: number; workspace: BusinessWorkspace }
 
@@ -85,8 +111,18 @@ export function emptyBusinessWorkspace(day = businessDay()): BusinessWorkspace {
     })),
     proposal: { type: 'corporate', title: 'Corporate gifting proposal', recipient: '', introduction: '',
       leadTime: '', delivery: '', paymentTerms: '', validUntil: '', notes: '', includePictures: true, items: [] },
-    documents: [],
+    documents: [], investorProposal: emptyInvestorProposal(day),
   };
+}
+
+export function emptyInvestorProposal(day = businessDay()): InvestorProposalDraft {
+  const date = new Date(`${day}T00:00:00Z`), year = date.getUTCFullYear(), month = date.getUTCMonth();
+  return { version: 1, investorName: '', proposalDate: day, startMonth: day.slice(0, 7),
+    investmentAmount: 0, investorSharePercent: 25, reservePercent: 30, durationMonths: 24, maximumPayout: 0,
+    source: 'manual', manual: { monthlySales: 0, monthlyProductCost: 0, monthlyOperatingExpenses: 0 }, forecastScenarioId: 'scenario-1',
+    historyFrom: new Date(Date.UTC(year, month - 3, 1)).toISOString().slice(0, 10), historyTo: new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10),
+    expensesReviewed: false, sourceNotes: '', purpose: '', risks: '', conditions: '',
+    scenarios: (['conservative', 'moderate', 'optimistic'] as const).map((id, i) => ({ id, salesPercent: [80, 100, 120][i], costPercent: 100, monthlyGrowthPercent: 0 })) };
 }
 
 // Validate imported extensions before use; never execute saved document HTML or external image URLs.
@@ -96,6 +132,48 @@ const amount = (v: unknown): v is number => typeof v === 'number' && Number.isFi
 const integer = (v: unknown, max = 1000000): v is number => Number.isSafeInteger(v) && Number(v) >= 0 && Number(v) <= max;
 function check(ok: unknown, message: string): asserts ok { if (!ok) throw new Error(message); }
 function unique(rows: { id: string }[]) { return new Set(rows.map(row => row.id)).size === rows.length; }
+const percentage = (v: unknown, max = 100) => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= max && Math.abs(v * 100 - Math.round(v * 100)) < .0001;
+function validInvestmentBaseline(b: unknown): b is InvestmentBaseline {
+  return obj(b) && ['monthlySales', 'monthlyProductCost', 'monthlyOperatingExpenses'].every(k => amount(b[k]));
+}
+export function validateInvestorProposalDraft(d: unknown): asserts d is InvestorProposalDraft {
+  check(obj(d) && d.version === 1 && str(d.investorName, 300) && validBusinessDay(d.proposalDate) && validBusinessDay(`${d.startMonth}-01`) &&
+    Number(d.startMonth.slice(0, 4)) >= 2000 && Number(d.startMonth.slice(0, 4)) <= 2100 &&
+    amount(d.investmentAmount) && amount(d.maximumPayout) && percentage(d.investorSharePercent) && percentage(d.reservePercent) &&
+    integer(d.durationMonths, 120) && d.durationMonths >= 1 && ['manual', 'history', 'forecast'].includes(d.source) && validInvestmentBaseline(d.manual) &&
+    str(d.forecastScenarioId, 150) && validBusinessDay(d.historyFrom) && validBusinessDay(d.historyTo) && d.historyFrom <= d.historyTo && typeof d.expensesReviewed === 'boolean' &&
+    ['sourceNotes', 'purpose', 'risks', 'conditions'].every(k => str(d[k])) && Array.isArray(d.scenarios) && d.scenarios.length === 3 &&
+    d.scenarios.every((s, i) => obj(s) && s.id === ['conservative', 'moderate', 'optimistic'][i] && percentage(s.salesPercent, 500) && percentage(s.costPercent, 500) &&
+      typeof s.monthlyGrowthPercent === 'number' && Number.isFinite(s.monthlyGrowthPercent) && s.monthlyGrowthPercent >= -50 && s.monthlyGrowthPercent <= 100),
+  'Enter valid investor proposal inputs: PHP amounts up to 1 billion, percentages from 0 to 100, and a term of 1 to 120 months. Scenario volume/cost factors may range from 0% to 500% and growth from -50% to 100%.');
+}
+export function validateInvestorProposalSnapshot(s: unknown): asserts s is InvestorProposalSnapshot {
+  check(obj(s) && s.modelVersion === 1, 'Unsupported investor proposal calculation version.');
+  validateInvestorProposalDraft(s.draft);
+  const d = s.draft;
+  check(d.investorName.trim() && d.investmentAmount > 0 && d.maximumPayout >= d.investmentAmount && d.startMonth >= d.proposalDate.slice(0, 7),
+    'Enter an investor name, positive investment, a payout cap at least equal to capital, and a start month on or after the proposal month.');
+  check(d.sourceNotes.trim(), 'Explain the projection assumptions and financial record coverage before generating a proposal.');
+  const b = s.basis;
+  check(obj(b) && b.kind === d.source, 'The projection source does not match the proposal.');
+  if (b.kind === 'forecast') { validateScenario(b.scenario); check(b.scenario.id === d.forecastScenarioId, 'The saved forecast source does not match.'); }
+  else {
+    check(validInvestmentBaseline(b.baseline), 'The projection baseline contains invalid PHP amounts.');
+    if (b.kind === 'manual') check(['monthlySales', 'monthlyProductCost', 'monthlyOperatingExpenses'].every(k => b.baseline[k] === d.manual[k as keyof InvestmentBaseline]), 'Manual assumptions do not match the proposal.');
+    if (b.kind === 'history') {
+      const e = b.evidence;
+      check(d.expensesReviewed && obj(e) && e.from === d.historyFrom && e.to === d.historyTo && validBusinessDay(e.from) && validBusinessDay(e.to) &&
+        e.from.endsWith('-01') && e.to < d.proposalDate && new Date(Date.parse(`${e.to}T00:00:00Z`) + 86400000).getUTCDate() === 1 &&
+        integer(e.months, 120) && e.months > 0 && integer(e.receipts, 100000) && e.receipts > 0 && integer(e.ledgerEntries, 50000) &&
+        ['sales', 'savedCost', 'operatingExpenses'].every(k => typeof e[k] === 'number' && Number.isFinite(e[k]) && e[k] >= 0 && e[k] <= 1e14),
+      'Historical projections need complete calendar months, saved sale costs, and a review of operating expenses.');
+      const months = (Number(e.to.slice(0, 4)) - Number(e.from.slice(0, 4))) * 12 + Number(e.to.slice(5, 7)) - Number(e.from.slice(5, 7)) + 1;
+      check(months === e.months && b.baseline.monthlySales === Math.round(e.sales * 100 / months) / 100 &&
+        b.baseline.monthlyProductCost === Math.round(e.savedCost * 100 / months) / 100 && b.baseline.monthlyOperatingExpenses === Math.round(e.operatingExpenses * 100 / months) / 100,
+      'The historical monthly baseline does not match its recorded totals.');
+    }
+  }
+}
 function ledgerValid(e: unknown): e is BusinessLedgerEntry {
   return obj(e) && str(e.id, 150) && !!e.id && validBusinessDay(e.date) && LEDGER_KINDS.includes(e.kind) &&
     str(e.category, 100) && str(e.description, 1000) && !!e.description.trim() && amount(e.amount) && e.amount > 0 && typeof e.paid === 'boolean' && validBusinessDay(e.cashDate) && str(e.reference, 300);
@@ -136,10 +214,14 @@ function reportValid(r: unknown): r is BusinessReport {
     Array.isArray(r.ledgerSources) && r.ledgerSources.length <= 50000 && r.ledgerSources.every(ledgerValid);
 }
 export function validateBusinessDocument(d: unknown): asserts d is BusinessDocument {
-  check(obj(d) && str(d.id, 150) && d.id && ['business-report', 'investor-summary', 'business-plan', 'proposal'].includes(d.kind) &&
+  check(obj(d) && str(d.id, 150) && d.id && ['business-report', 'investor-summary', 'business-plan', 'proposal', 'investor-proposal'].includes(d.kind) &&
     str(d.title, 300) && d.title.trim() && str(d.generatedAt, 100) && Number.isFinite(Date.parse(d.generatedAt)) &&
     integer(d.historyRevision, Number.MAX_SAFE_INTEGER) && integer(d.businessRevision, Number.MAX_SAFE_INTEGER) && profileValid(d.profile), 'The saved business document has invalid metadata.');
-  if (d.kind === 'proposal') {
+  check(d.kind === 'investor-proposal' || d.investment === undefined, 'Investment inputs are only supported on investor proposals.');
+  if (d.kind === 'investor-proposal') {
+    check(d.report === null && d.scenario === null && d.proposal === null, 'Investor proposal inputs must be separate from sales and customer proposals.');
+    validateInvestorProposalSnapshot(d.investment);
+  } else if (d.kind === 'proposal') {
     validateProposal(d.proposal);
     const proposal: ProposalDraft = d.proposal;
     const pictures = (proposal as ProposalDraft & { pictures: unknown }).pictures;
@@ -156,6 +238,7 @@ export function validateBusinessWorkspace(value: unknown): BusinessWorkspace {
   check(Array.isArray(value.ledger) && value.ledger.length <= 50000 && value.ledger.every(ledgerValid) && unique(value.ledger), 'Enter a description, valid dates, and positive PHP amount for each ledger entry.');
   check(Array.isArray(value.scenarios) && value.scenarios.length >= 1 && value.scenarios.length <= 12 && unique(value.scenarios), 'Keep between 1 and 12 unique forecast scenarios.');
   value.scenarios.forEach(validateScenario); validateProposal(value.proposal);
+  if (value.investorProposal !== undefined) validateInvestorProposalDraft(value.investorProposal);
   check(Array.isArray(value.documents) && value.documents.length <= 40 && unique(value.documents), 'Keep up to 40 saved documents. Download or remove older documents to make room.');
   value.documents.forEach(validateBusinessDocument);
   check(new TextEncoder().encode(JSON.stringify(value)).length <= 16 * 1024 * 1024, 'Business records exceed 16 MB. Download or remove older document snapshots.');

@@ -17,6 +17,15 @@ function copy(revision: string, name = 'SQLite product') {
   return { formatVersion: 1 as const, revision, savedAt: new Date().toISOString(), dataset };
 }
 describe('Durable SQLite primary storage', () => {
+  it('rejects saving an investor document prepared against stale sales history', async () => {
+    const host = new SqliteDatabaseHost(() => factory);
+    const before = await host.request({ action: 'business.load' });
+    await host.request({ action: 'history.save', payload: { archive: history, expectedRevision: 0 } });
+    await expect(host.request({ action: 'business.save', payload: { workspace: before.workspace, expectedRevision: before.revision, expectedHistoryRevision: 0 } })).rejects.toThrow('Sales history changed');
+    expect((await host.request({ action: 'business.load' })).revision).toBe(before.revision);
+    expect((await host.request({ action: 'business.load' })).workspace.ledger).toEqual([]);
+    expect((await host.request({ action: 'history.load' })).archive).toEqual(history);
+  });
   it('keeps business records across catalog/history writes, rejects stale edits, and restores them from a portable backup', async () => {
     const host = new SqliteDatabaseHost(() => factory), other = new SqliteDatabaseHost(() => factory);
     const workspace = emptyBusinessWorkspace('2026-11-01'); workspace.profile.description = 'Investor snapshot test';

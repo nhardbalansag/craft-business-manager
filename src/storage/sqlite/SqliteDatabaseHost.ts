@@ -129,6 +129,7 @@ export class SqliteDatabaseHost {
     }
     const next = structuredClone(current);
     if (action === 'business.save') {
+      if (payload.expectedHistoryRevision !== undefined && payload.expectedHistoryRevision !== current.historyRevision) conflict('Sales history changed while the investor proposal was being prepared. Refresh sales and review the proposal before saving.');
       if (payload.expectedRevision !== current.businessRevision) conflict('Business records changed in another tab or restore. Reload business insights before saving.');
       if (!Number.isSafeInteger(payload.expectedRevision) || payload.expectedRevision < 0 || payload.expectedRevision >= Number.MAX_SAFE_INTEGER) throw new Error('Invalid business workspace revision.');
       next.business = structuredClone(validateBusinessWorkspace(payload.workspace)); next.businessRevision++; next.savedAt = new Date().toISOString();
