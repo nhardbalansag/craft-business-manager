@@ -19,6 +19,8 @@ Excel export is retained for interchange. Open **Database → Download SQLite ba
 portable `.sqlite` file, including catalog records, photos and saved transaction history.
 The same file imports into the existing My Lovely Craft Android app. See [SQLite storage and mobile backups](docs/SQLITE_STORAGE.md).
 
+Excel downloads preserve long source text through hidden continuation records and offer a smaller copy without product pictures. See [workbook export and recovery](docs/WORKBOOK_EXPORT.md).
+
 ## Architecture
 
 ```text
