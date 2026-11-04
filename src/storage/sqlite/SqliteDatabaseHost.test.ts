@@ -17,6 +17,25 @@ function copy(revision: string, name = 'SQLite product') {
   return { formatVersion: 1 as const, revision, savedAt: new Date().toISOString(), dataset };
 }
 describe('Durable SQLite primary storage', () => {
+  it('commits validated draft changes with revision-only acknowledgements and retains existing records after rejected patches', async () => {
+    const host = new SqliteDatabaseHost(() => factory);
+    const initial = await host.request({ action: 'business.load' });
+    const proposal = { ...initial.workspace.proposal, recipient: 'Proposal recipient' };
+    expect(await host.request({ action: 'business.save', payload: { changes: { proposal }, expectedRevision: 0, revisionOnly: true } })).toEqual({ revision: 1 });
+    await expect(host.request({ action: 'business.save', payload: { changes: { version: 2 }, expectedRevision: 1 } })).rejects.toThrow('Invalid business workspace changes');
+    await expect(host.request({ action: 'business.save', payload: { changes: { profile: { ...initial.workspace.profile, name: '' } }, expectedRevision: 1 } })).rejects.toThrow('profile');
+    await expect(host.request({ action: 'business.save', payload: { changes: { proposal }, expectedRevision: 0 } })).rejects.toThrow('changed in another tab');
+    const restored = await new SqliteDatabaseHost(() => factory).request({ action: 'business.load' });
+    expect(restored).toEqual({ revision: 1, workspace: { ...initial.workspace, proposal } });
+  });
+  it('loads report-only history without decoding or returning photos and quotations', async () => {
+    const host = new SqliteDatabaseHost(() => factory);
+    await host.request({ action: 'history.save', payload: { archive: history, expectedRevision: 0 } });
+    const financial = await host.request({ action: 'business.history' });
+    expect(financial).toEqual({ revision: 1, archive: { customerReceipts: history.customerReceipts, transactionEntries: history.transactionEntries ?? [] } });
+    expect(financial.archive).not.toHaveProperty('images'); expect(financial.archive).not.toHaveProperty('quotations');
+    expect((await host.request({ action: 'history.load' })).archive).toEqual(history);
+  });
   it('rejects saving an investor document prepared against stale sales history', async () => {
     const host = new SqliteDatabaseHost(() => factory);
     const before = await host.request({ action: 'business.load' });

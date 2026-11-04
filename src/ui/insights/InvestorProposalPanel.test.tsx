@@ -7,10 +7,11 @@ import { emptyTransactionArchive } from '../transactions/portableTransactions';
 import { InvestorProposalPanel } from './InvestorProposalPanel';
 import { calculateBusinessReport } from '../../application/insights/businessReports';
 import fixture from '../transactions/__fixtures__/mobile-transactions.json';
+import * as projections from '../../application/insights/investorProjections';
 
 let container: HTMLDivElement, root: Root;
 beforeEach(() => { vi.useFakeTimers(); vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true); container = document.createElement('div'); document.body.append(container); root = createRoot(container); });
-afterEach(async () => { await act(async () => root.unmount()); container.remove(); vi.useRealTimers(); vi.unstubAllGlobals(); });
+afterEach(async () => { await act(async () => root.unmount()); container.remove(); vi.useRealTimers(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 const button = (text: string) => Array.from(container.querySelectorAll('button')).find(b => b.textContent === text)!;
 const draft = (): InvestorProposalDraft => ({ ...emptyInvestorProposal('2026-11-04'), investorName: 'María Santos', investmentAmount: 10000, maximumPayout: 14000,
   manual: { monthlySales: 20000, monthlyProductCost: 8000, monthlyOperatingExpenses: 2000 }, sourceNotes: 'Owner reviewed assumptions and expense coverage.' });
@@ -47,6 +48,15 @@ it('keeps a preview through equivalent autosave clones and invalidates it when p
   expect(container.querySelector('iframe')).not.toBeNull();
   await act(async () => root.render(<InvestorProposalPanel {...props} draft={{ ...value, investorName: 'Another investor' }} />));
   expect(container.querySelector('iframe')).toBeNull();
+});
+it('recalculates earnings only when financial assumptions change, keeping prose edits lightweight', async () => {
+  const project = vi.spyOn(projections, 'projectInvestorProposal'), workspace = emptyBusinessWorkspace(), history = { revision: 0, archive: emptyTransactionArchive() };
+  function Harness() { const [value, setValue] = useState(draft()); return <InvestorProposalPanel draft={value} workspace={workspace} history={history} businessRevision={0} disabled={false} onChange={setValue} saveDocument={vi.fn()} />; }
+  await act(async () => root.render(<Harness />)); expect(project).toHaveBeenCalledOnce();
+  await input('Investor name', 'Updated investor'); await input('Risks specific to this proposal', 'Reviewed demand and production risks.');
+  await input('Additional investment conditions', 'Monthly review of actual profit.'); expect(project).toHaveBeenCalledOnce();
+  await input('Assumed monthly sales (PHP)', '21000'); expect(project).toHaveBeenCalledTimes(2);
+  expect(container.textContent).toContain('Estimated total payout');
 });
 it('requires complete historical cost evidence and an owner expense review instead of fabricating a profit baseline', async () => {
   const workspace = emptyBusinessWorkspace(), history = { revision: 1, archive: emptyTransactionArchive() };

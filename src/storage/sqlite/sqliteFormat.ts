@@ -210,6 +210,25 @@ export async function encodeSqlite(SQL: SqlJsStatic, document: SqliteDocument, p
   } finally { db.close(); }
 }
 
+/** Update only owner reporting records in an already verified SQLite file. Catalog, photos and mobile state stay byte-for-byte in their existing rows. */
+export async function updateSqliteBusiness(SQL: SqlJsStatic, bytes: Uint8Array, document: Pick<SqliteDocument, 'business' | 'businessRevision' | 'savedAt'>, expectedRevision: number): Promise<Uint8Array> {
+  assert(Number.isSafeInteger(document.businessRevision) && document.businessRevision === expectedRevision + 1 && Number.isFinite(Date.parse(document.savedAt)), 'Invalid business workspace revision.');
+  const business = JSON.stringify(validateBusinessWorkspace(document.business)), hash = await sha256(business);
+  const db = new SQL.Database(bytes);
+  try {
+    assert(db.exec('PRAGMA application_id')[0]?.values[0]?.[0] === SQLITE_APPLICATION_ID, 'This database belongs to another application.');
+    assert(Number(db.exec("SELECT value FROM craft_web_meta WHERE key='business_revision'")[0]?.values[0]?.[0]) === expectedRevision, 'The SQLite business revision changed before saving.');
+    db.run('BEGIN');
+    const put = db.prepare('INSERT OR REPLACE INTO craft_web_meta (key,value) VALUES (?,?)');
+    try {
+      put.run(['business_workspace', business]); put.run(['business_workspace_sha256', hash]);
+      put.run(['business_revision', String(document.businessRevision)]); put.run(['saved_at', document.savedAt]);
+    } finally { put.free(); }
+    db.run('COMMIT');
+    const result = db.export(); assert(result.length <= MAX_FILE, 'The SQLite backup exceeds the mobile app 256 MB limit.'); return result;
+  } finally { db.close(); }
+}
+
 export async function decodeSqlite(SQL: SqlJsStatic, bytes: Uint8Array, portable = false): Promise<SqliteDocument> {
   assert(bytes.length >= 100 && bytes.length <= MAX_FILE && new TextDecoder().decode(bytes.subarray(0, 16)) === 'SQLite format 3\0', 'Choose a My Lovely Craft .sqlite backup (up to 256 MB).');
   const db = new SQL.Database(bytes);
