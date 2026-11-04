@@ -1,6 +1,8 @@
 import { businessDay, LEDGER_LABELS, validateBusinessDocument, type BusinessDocument, type BusinessProfile, type ForecastScenario } from '../../domain/businessInsights';
 import { forecastBusiness } from './businessForecast';
 import { addMoney, cents } from './businessReports';
+import { investorDocumentBlocks } from './investorDocumentBlocks';
+import { projectInvestorProposal } from './investorProjections';
 
 const formatter = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 2, maximumFractionDigits: 2 });
 export const businessMoney = (n: number | null) => n === null ? 'Not available' : formatter.format(n);
@@ -19,7 +21,8 @@ export function proposalTotal(document: BusinessDocument): number {
   if (!document.proposal) return 0;
   return document.proposal.items.reduce((sum, line) => addMoney(sum, cents(line.unitPrice ?? 0) * line.quantity), 0) / 100;
 }
-type Block = { kind: 'text'; text: string; heading?: boolean } | { kind: 'table'; headers: string[]; rows: string[][] } | { kind: 'photo'; caption: string; data: string };
+export type BusinessDocumentBlock = { kind: 'text'; text: string; heading?: boolean } | { kind: 'table'; headers: string[]; rows: string[][] } | { kind: 'photo'; caption: string; data: string } | { kind: 'page-break' };
+type Block = BusinessDocumentBlock;
 const text = (value: string, heading = false): Block => ({ kind: 'text', text: value, heading });
 const table = (headers: string[], rows: string[][]): Block => ({ kind: 'table', headers, rows });
 function scenarioBlocks(scenario: ForecastScenario, compact = false): Block[] {
@@ -34,6 +37,7 @@ function scenarioBlocks(scenario: ForecastScenario, compact = false): Block[] {
 /** One content model drives both print and editable Word exports. All user content stays plain text. */
 export function businessDocumentBlocks(document: BusinessDocument): Block[] {
   validateBusinessDocument(document);
+  if (document.kind === 'investor-proposal') return investorDocumentBlocks(document, businessMoney);
   const p = document.profile, compact = document.kind === 'investor-summary';
   const clip = (value: string, limit = 260) => compact && value.length > limit ? `${value.slice(0, limit - 1)}…` : value;
   if (document.proposal) {
@@ -81,15 +85,20 @@ export function businessDocumentBlocks(document: BusinessDocument): Block[] {
   return blocks;
 }
 const html = (s: string) => s.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
+function documentFooter(document: BusinessDocument) {
+  return document.kind === 'investor-proposal'
+    ? `Prepared ${businessDay(document.generatedAt)} (SGT) · Reference ${document.id.slice(0, 8)} · Estimated earnings, not guaranteed payments.`
+    : `Generated ${businessDay(document.generatedAt)} (SGT) · Snapshot ${document.id} · Sales revision ${document.historyRevision} · Business revision ${document.businessRevision}. Figures and assumptions are frozen at generation.`;
+}
 export function renderBusinessDocument(document: BusinessDocument): string {
   const compact = document.kind === 'investor-summary';
-  const content = businessDocumentBlocks(document).map(block => block.kind === 'text' ?
+  const content = businessDocumentBlocks(document).map(block => block.kind === 'page-break' ? '<div class="page-break"></div>' : block.kind === 'text' ?
     `<${block.heading ? 'h2' : 'p'}>${html(block.text)}</${block.heading ? 'h2' : 'p'}>` : block.kind === 'photo' ?
       `<figure><img src="${html(block.data)}" alt="${html(block.caption)}"><figcaption>${html(block.caption)}</figcaption></figure>` :
       `<table><thead><tr>${block.headers.map(h => `<th>${html(h)}</th>`).join('')}</tr></thead><tbody>${block.rows.map(row => `<tr>${row.map(cell => `<td>${html(cell)}</td>`).join('')}</tr>`).join('')}</tbody></table>`).join('');
   const result = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'"><title>${html(document.title)}</title><style>
-@page{size:A4;margin:${compact ? '10mm' : '14mm'}}*{box-sizing:border-box}body{font:${compact ? '8' : '10'}pt/1.4 Arial,sans-serif;color:#35251e;margin:0;overflow-wrap:anywhere}header{border-bottom:2px solid #763923;padding-bottom:8px;margin-bottom:10px}header small{letter-spacing:1px;text-transform:uppercase}h1{font:${compact ? '21' : '25'}pt Georgia,serif;margin:4px 0}h2{font-size:${compact ? '10' : '13'}pt;color:#763923;margin:${compact ? '7px' : '18px'} 0 5px}p{margin:${compact ? '4px' : '8px'} 0;white-space:pre-wrap}table{border-collapse:collapse;width:100%;table-layout:fixed;margin:7px 0}th,td{padding:${compact ? '4' : '7'}px;text-align:left;border-bottom:1px solid #dfd5c9;vertical-align:top;white-space:pre-wrap}th{background:#f2e9df;font-size:.9em}thead{display:table-header-group}tr,figure{break-inside:avoid}figure{display:inline-block;vertical-align:top;width:23%;margin:10px 1%}figure img{display:block;max-width:100%;height:70px;object-fit:contain}figcaption{font-size:8pt}footer{margin-top:12px;border-top:1px solid #dfd5c9;padding-top:5px;font-size:7pt;color:#756153}@media screen{body{max-width:900px;padding:24px;margin:auto}}@media print{*{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
-</style></head><body><header><small>${html(document.profile.name)} · ${document.kind === 'proposal' ? 'Business proposal' : 'Private business document'}</small><h1>${html(document.title)}</h1><p>${html(document.profile.contact)}${document.profile.website ? ` · ${html(document.profile.website)}` : ''}</p></header>${content}<footer>Generated ${html(businessDay(document.generatedAt))} (SGT) · Snapshot ${html(document.id)} · Sales revision ${document.historyRevision} · Business revision ${document.businessRevision}. Figures and assumptions are frozen at generation.</footer></body></html>`;
+@page{size:A4;margin:${compact ? '10mm' : '14mm'}}*{box-sizing:border-box}.page-break{break-before:page;page-break-before:always;margin-top:24px}body{font:${compact ? '8' : '10'}pt/1.4 Arial,sans-serif;color:#35251e;margin:0;overflow-wrap:anywhere}header{border-bottom:2px solid #763923;padding-bottom:8px;margin-bottom:10px}header small{letter-spacing:1px;text-transform:uppercase}h1{font:${compact ? '21' : '25'}pt Georgia,serif;margin:4px 0}h2{font-size:${compact ? '10' : '13'}pt;color:#763923;margin:${compact ? '7px' : '18px'} 0 5px;break-after:avoid}p{margin:${compact ? '4px' : '8px'} 0;white-space:pre-wrap}table{border-collapse:collapse;width:100%;table-layout:fixed;margin:7px 0}th,td{padding:${compact ? '4' : '7'}px;text-align:left;border-bottom:1px solid #dfd5c9;vertical-align:top;white-space:pre-wrap}th{background:#f2e9df;font-size:.9em}thead{display:table-header-group}tr,figure{break-inside:avoid}figure{display:inline-block;vertical-align:top;width:23%;margin:10px 1%}figure img{display:block;max-width:100%;height:70px;object-fit:contain}figcaption{font-size:8pt}footer{margin-top:12px;border-top:1px solid #dfd5c9;padding-top:5px;font-size:7pt;color:#756153}@media screen{body{max-width:900px;padding:24px;margin:auto}}@media print{*{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
+</style></head><body><header><small>${html(document.profile.name)} · ${document.kind === 'investor-proposal' ? 'Investment proposal · Estimated figures' : document.kind === 'proposal' ? 'Business proposal' : 'Private business document'}</small><h1>${html(document.title)}</h1><p>${html(document.profile.contact)}${document.profile.website ? ` · ${html(document.profile.website)}` : ''}</p></header>${content}<footer>${html(documentFooter(document))}</footer></body></html>`;
   if (result.length > 4 * 1024 * 1024) throw new Error('The document is too large. Select fewer products or exclude pictures.');
   return result;
 }
@@ -114,33 +123,52 @@ export function printBusinessDocument(document: BusinessDocument) {
   }))).then(print);
 }
 export async function businessDocumentWord(document: BusinessDocument): Promise<Blob> {
-  const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, ImageRun, WidthType, HeadingLevel } = await import('docx');
+  const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, ImageRun, WidthType, HeadingLevel, BorderStyle, VerticalAlign, AlignmentType, Footer, PageNumber } = await import('docx');
   const blocks = businessDocumentBlocks(document), compact = document.kind === 'investor-summary';
+  const investor = document.kind === 'investor-proposal';
   const paragraph = (value: string, heading = false) => new Paragraph({
     heading: heading ? HeadingLevel.HEADING_2 : undefined,
-    children: value.split('\n').map((line, i) => new TextRun({ text: line, break: i ? 1 : undefined })),
-    spacing: { after: compact ? 65 : 120 },
+    ...(investor ? { keepNext: heading, widowControl: true } : {}),
+    children: value.split('\n').map((line, i) => new TextRun({ text: line, break: i ? 1 : undefined, ...(investor && heading ? { color: '000000', size: 26, bold: true } : {}) })),
+    spacing: { after: compact ? 65 : 120, ...(investor ? { before: heading ? 160 : 0 } : {}) },
   });
-  const children = [new Paragraph({ text: document.profile.name, heading: HeadingLevel.HEADING_1 }),
-    new Paragraph({ text: document.title, heading: HeadingLevel.TITLE }), paragraph(`${document.profile.contact} ${document.profile.website}`),
+  const children = [investor ? new Paragraph({ children: [new TextRun({ text: document.profile.name, color: '763923', bold: true, size: 28 })] }) : new Paragraph({ text: document.profile.name, heading: HeadingLevel.HEADING_1 }),
+    investor ? new Paragraph({ heading: HeadingLevel.TITLE, children: [new TextRun({ text: document.title, color: '000000', size: 44 })] }) : new Paragraph({ text: document.title, heading: HeadingLevel.TITLE }), paragraph(`${document.profile.contact} ${document.profile.website}`),
     ...blocks.map(block => {
+      if (block.kind === 'page-break') return new Paragraph({ pageBreakBefore: true, text: '' });
       if (block.kind === 'text') return paragraph(block.text, block.heading);
       if (block.kind === 'photo') {
         const bytes = Uint8Array.from(atob(block.data.split(',')[1]), c => c.charCodeAt(0));
         return new Paragraph({ children: [new ImageRun({ type: 'jpg', data: bytes, transformation: { width: 70, height: 70 } }), new TextRun({ text: block.caption, break: 1 })] });
       }
+      const border = { style: BorderStyle.SINGLE, size: 4, color: 'D9D9D9' };
       return new Table({ width: { size: 100, type: WidthType.PERCENTAGE },
+        ...(investor ? { borders: { top: border, bottom: border, left: border, right: border, insideHorizontal: border, insideVertical: border } } : {}),
         rows: [block.headers, ...block.rows].map((row, i) => new TableRow({ tableHeader: i === 0, cantSplit: true,
-          children: row.map(cell => new TableCell({ children: [paragraph(cell)], shading: i === 0 ? { fill: 'F2E9DF' } : undefined })) })) });
-    }), paragraph(`Generated ${businessDay(document.generatedAt)} (SGT). Snapshot ${document.id}; sales revision ${document.historyRevision}; business revision ${document.businessRevision}. Figures and assumptions are frozen at generation.`)];
+          children: row.map((cell, col) => new TableCell({
+            ...(investor ? { margins: { top: 90, bottom: 90, left: 90, right: 90 }, verticalAlign: VerticalAlign.CENTER,
+              width: { size: col === 0 && row.length >= 5 ? 18 : row.length >= 5 ? 82 / (row.length - 1) : 100 / row.length, type: WidthType.PERCENTAGE } } : {}),
+            children: investor ? [new Paragraph({ alignment: col === 0 ? AlignmentType.LEFT : AlignmentType.CENTER, spacing: { after: 40 }, children: cell.split('\n').map((line, index) => new TextRun({ text: line, break: index ? 1 : undefined, size: 19, bold: i === 0, color: '35251E' })) })] : [paragraph(cell)],
+            shading: i === 0 ? { fill: 'F2E9DF' } : undefined })) })) });
+    }), paragraph(documentFooter(document))];
   return Packer.toBlob(new Document({ title: document.title, creator: document.profile.name,
-    styles: { default: { document: { run: { font: 'Arial', size: compact ? 16 : 20 } } } },
-    sections: [{ properties: { page: { size: { width: 11906, height: 16838 }, margin: { top: 567, bottom: 567, left: 680, right: 680 } } }, children }] }));
+    styles: { default: { document: { run: { font: 'Arial', size: compact ? 16 : investor ? 22 : 20 } } } },
+    sections: [{ properties: { page: { size: { width: 11906, height: 16838 }, margin: investor ? { top: 800, bottom: 850, left: 800, right: 800, footer: 350 } : { top: 567, bottom: 567, left: 680, right: 680 } } },
+      ...(investor ? { footers: { default: new Footer({ children: [new Paragraph({ alignment: AlignmentType.CENTER,
+        children: [new TextRun({ text: `${document.profile.name} · Estimated figures · `, size: 16, color: '756153' }),
+          new TextRun({ children: [PageNumber.CURRENT, ' / ', PageNumber.TOTAL_PAGES], size: 16, color: '756153' })] })] }) } } : {}), children }] }));
 }
 export function businessDocumentCsv(document: BusinessDocument): string {
   validateBusinessDocument(document);
   const rows: (string | number | null)[][] = [['Document', document.title], ['Generated (SGT)', businessDay(document.generatedAt)], ['Currency', 'PHP']];
-  if (document.proposal) {
+  if (document.investment) {
+    const d = document.investment.draft;
+    rows.push(['Investor', d.investorName], ['Investment', d.investmentAmount], ['Payout cap including capital', d.maximumPayout], ['Investor share after reserve (%)', d.investorSharePercent], ['Reserve (%)', d.reservePercent], ['Term (months)', d.durationMonths], ['Assumptions', d.sourceNotes]);
+    projectInvestorProposal(document.investment).forEach(c => {
+      rows.push([], [c.name, 'Estimated figures, not guaranteed'], ['Month', 'Sales', 'Product cost', 'Operating expenses', 'Profit', 'Prior losses absorbed', 'Reserve', 'Investor payout', 'Cumulative payout', 'Retained by business', 'Loss carried forward']);
+      c.rows.forEach(r => rows.push([r.month, r.sales, r.productCost, r.operatingExpenses, r.profit, r.lossOffset, r.reserve, r.investorPayout, r.cumulativePayout, r.retainedByBusiness, r.lossCarryForward]));
+    });
+  } else if (document.proposal) {
     rows.push(['Product code', 'Product', 'Quantity', 'Unit price', 'Amount']);
     document.proposal.items.forEach(i => rows.push([i.productId, i.name, i.quantity, i.unitPrice, i.unitPrice === null ? null : cents(i.unitPrice) * i.quantity / 100]));
   } else {

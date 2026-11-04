@@ -13,6 +13,8 @@ Open **Business insights** in the application drawer. The workspace is loaded on
 7. In Documents, generate a business report, investor summary, business and growth plan, or customer proposal. Choose a forecast for investor/growth documents. The preparation checklist is included when evidence or business information is missing.
 8. Review the sandboxed preview, then print/save PDF, download an actual editable `.docx`, download figures as CSV, or download an HTML copy. A ZIP document pack includes Word, HTML, CSV, a frozen JSON source snapshot and instructions. This ZIP is a sharing artifact, not an importable database backup.
 
+For proposed investor profit-sharing terms, use the separate **Investor proposals** tab. It calculates three scenarios, capped distributions, recovery and gain from reviewed historical data, manual assumptions or an existing forecast, and generates downloadable PDF and Word proposals. No investor account or actual investment entry is created. See [Investor Proposal Generator instructions and calculation rules](INVESTOR_PROPOSALS.md).
+
 ## Calculation and evidence rules
 
 - Sales use saved receipt totals after discount on the sale's SGT date. Discounts are allocated to item sales while preserving exact receipt cents. Historical saved costs are used; current catalog costs are never substituted for missing evidence.
@@ -38,5 +40,7 @@ Limits: 50,000 ledger entries, 12 scenarios, 100 different products per proposal
 ## Performance and validation
 
 The workspace, its CSS, Word generator and ZIP exporter are split into on-demand bundles. Report aggregation runs in a cancellable worker with indexed lookups and one pass through receipts/ledger entries. Lists start with 25 rows. Product search is deferred, price resolution is batched, and autosave is debounced. No chart library is needed.
+
+Investor PDF generation and embedded fonts also load only on request. Its additive draft and snapshot records share the existing SQLite business extension; older backups remain accepted. Historical proposal saves check the source-history revision as well as the business revision.
 
 Financial tests cover SGT boundaries, exact discount allocation, cash/sale date separation, unpaid expenses, funding classifications, unknown costs, capacity/break-even, document escaping, Word/ZIP structure, unsafe imports and spreadsheet formulas. SQLite tests cover stale writes, extension checksums, backup/restore and absence of the extension in Android-style files. UI tests cover failed-save recovery and selecting matches across bounded pages. The production browser test exercises Excel/history import, expenses, forecasting, document exports, product selection, mobile layout and a native-readable SQLite restore.
